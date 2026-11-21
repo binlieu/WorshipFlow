@@ -16,6 +16,7 @@ Phase 0 (render spike) is implemented and unit tested; its timing exit criterion
 | OUT-003/SLIDE-002 themes, Looks, props, image layers | Yes | Yes | n/a | Not Verified | Not Verified |
 | OUT-004 operator workspace (with LIB-001, LIB-002, LIB-003, SLIDE-005) | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
 | APP-001 integration pass (settings in SQLite, focus, section orders, theme editor) | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
+| CUE-001 cue engine rules (Phase 3) | Yes (rules only) | Yes (191 tests) | n/a | n/a | Not Verified |
 | HW-003 real DeckLink bridge (SDK 16.0) | Yes | Yes (mapping and driver-absent only) | n/a | **Not Verified** | Not Verified |
 | HW-002, OUT-005 SDI and mirrored outputs in the app | Yes | Yes | Yes (simulated card, real-time driver) | Not Verified | Not Verified |
 | HW-001, KEY-001 SDI engine with simulated device | Yes | Yes | Yes (simulated Duo 2, manual clock) | Not Verified | Not Verified |
