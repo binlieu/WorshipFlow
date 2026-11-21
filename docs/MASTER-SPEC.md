@@ -411,7 +411,7 @@ Notes:
 | OPEN-02 | Approve the phase plan and the feature placement in section 3. **Closed: approved 2026-11-20.** | — |
 | OPEN-03 | Minimum macOS version for target Macs. | DIST-08 |
 | OPEN-04 | Is SDI needed at all, or does Plan C cover the venue? Needs the count of sanctuary screens, stage screens and stream feeds. | Hardware purchase, Phase 2 |
-| OPEN-05 | Which Bible translations, and who holds the licence for each. | PRES-09 |
+| OPEN-05 | Which Bible translations, and who holds the licence for each. **Partly decided 2026-11-20 [U]:** the owner states the Vietnamese 1925 translation (VI1925) is legal and free to use, and it is to be included. An English translation is still to be chosen. | PRES-09 |
 | OPEN-06 | Which song lyric service. | PRES-11 |
 | OPEN-07 | Which planning platform. | PRES-12 |
 | OPEN-08 | Which external protocols. | AUTO-14 |
