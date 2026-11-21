@@ -62,21 +62,41 @@ public enum VerticalAlignment: String, Sendable, Equatable, Codable, Hashable {
     case top, center, bottom
 }
 
-/// Font size and outline width are in points at a 1080-line reference height.
+/// A drop shadow behind text (MEDIA-07). Offsets and blur are in points at a 1080-line reference height.
+/// A positive `offsetX` moves the shadow right and a positive `offsetY` moves it down the screen.
+public struct TextShadow: Sendable, Equatable, Codable, Hashable {
+    public var color: ColorRGBA
+    public var offsetX: Double
+    public var offsetY: Double
+    public var blur: Double
+
+    public init(color: ColorRGBA = ColorRGBA(red: 0, green: 0, blue: 0, alpha: 0.6),
+                offsetX: Double = 0, offsetY: Double = 0, blur: Double = 0) {
+        self.color = color
+        self.offsetX = offsetX.isFinite ? offsetX : 0
+        self.offsetY = offsetY.isFinite ? offsetY : 0
+        self.blur = blur.isFinite ? max(0, blur) : 0
+    }
+}
+
+/// Font size, outline width and shadow offsets are in points at a 1080-line reference height.
 public struct TextStyle: Sendable, Equatable, Codable, Hashable {
     public var fontName: String
     public var fontSize: Double
     public var color: ColorRGBA
     public var outlineWidth: Double
     public var outlineColor: ColorRGBA
+    /// Nil: no shadow. Absent from content saved before shadows existed.
+    public var shadow: TextShadow?
 
     public init(fontName: String, fontSize: Double, color: ColorRGBA,
-                outlineWidth: Double = 0, outlineColor: ColorRGBA = .black) {
+                outlineWidth: Double = 0, outlineColor: ColorRGBA = .black, shadow: TextShadow? = nil) {
         self.fontName = fontName
         self.fontSize = fontSize
         self.color = color
         self.outlineWidth = outlineWidth
         self.outlineColor = outlineColor
+        self.shadow = shadow
     }
 }
 
@@ -86,14 +106,29 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
     public var frame: NormalizedRect
     public var alignment: TextAlignment
     public var verticalAlignment: VerticalAlignment
+    /// 0...1, applied to the whole text (outline and shadow included). Lyric text is always 1; text boxes use it.
+    public var opacity: Double
 
     public init(text: String, style: TextStyle, frame: NormalizedRect,
-                alignment: TextAlignment = .center, verticalAlignment: VerticalAlignment = .center) {
+                alignment: TextAlignment = .center, verticalAlignment: VerticalAlignment = .center,
+                opacity: Double = 1) {
         self.text = text
         self.style = style
         self.frame = frame
         self.alignment = alignment
         self.verticalAlignment = verticalAlignment
+        self.opacity = opacity.isNaN ? 1 : min(1, max(0, opacity))
+    }
+
+    private enum CodingKeys: String, CodingKey { case text, style, frame, alignment, verticalAlignment, opacity }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(text: try c.decode(String.self, forKey: .text), style: try c.decode(TextStyle.self, forKey: .style),
+                  frame: try c.decode(NormalizedRect.self, forKey: .frame),
+                  alignment: try c.decode(TextAlignment.self, forKey: .alignment),
+                  verticalAlignment: try c.decode(VerticalAlignment.self, forKey: .verticalAlignment),
+                  opacity: try c.decodeIfPresent(Double.self, forKey: .opacity) ?? 1)
     }
 }
 
@@ -127,10 +162,13 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
     public var backgroundMedia: SceneMedia?
     /// Media playing over the slide, drawn aspect-fit over black before the text (MEDIA-03).
     public var foregroundMedia: SceneMedia?
+    /// Slide objects (SLIDE-001a), back to front. Drawn after the foreground media and before the lyric text.
+    public var objectLayers: [SceneObjectLayer]
 
     public init(backgroundColor: ColorRGBA, showsVideo: Bool = false, textLayers: [TextLayer],
                 backgroundImage: ImageLayer? = nil, overlayImages: [ImageLayer] = [],
-                backgroundMedia: SceneMedia? = nil, foregroundMedia: SceneMedia? = nil) {
+                backgroundMedia: SceneMedia? = nil, foregroundMedia: SceneMedia? = nil,
+                objectLayers: [SceneObjectLayer] = []) {
         self.backgroundColor = backgroundColor
         self.showsVideo = showsVideo
         self.textLayers = textLayers
@@ -138,6 +176,23 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
         self.overlayImages = overlayImages
         self.backgroundMedia = backgroundMedia
         self.foregroundMedia = foregroundMedia
+        self.objectLayers = objectLayers
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case backgroundColor, showsVideo, textLayers, backgroundImage, overlayImages, backgroundMedia, foregroundMedia, objectLayers
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(backgroundColor: try c.decode(ColorRGBA.self, forKey: .backgroundColor),
+                  showsVideo: try c.decode(Bool.self, forKey: .showsVideo),
+                  textLayers: try c.decode([TextLayer].self, forKey: .textLayers),
+                  backgroundImage: try c.decodeIfPresent(ImageLayer.self, forKey: .backgroundImage),
+                  overlayImages: try c.decode([ImageLayer].self, forKey: .overlayImages),
+                  backgroundMedia: try c.decodeIfPresent(SceneMedia.self, forKey: .backgroundMedia),
+                  foregroundMedia: try c.decodeIfPresent(SceneMedia.self, forKey: .foregroundMedia),
+                  objectLayers: try c.decodeIfPresent([SceneObjectLayer].self, forKey: .objectLayers) ?? [])
     }
 }
 

@@ -45,6 +45,32 @@ public final class Compositor {
     /// Number of Core Text rasterisations performed (for tests and diagnostics).
     public private(set) var rasterizationCount = 0
 
+    // Shape cache (SLIDE-001a): one rasterised bitmap per distinct shape, size and colour.
+    private struct ShapeKey: Hashable {
+        let shape: ShapeObject.Shape
+        let fill: ColorRGBA?
+        let strokeColor: ColorRGBA?
+        let strokeWidth: Int        // hundredths of a pixel
+        let width: Int
+        let height: Int
+    }
+    private struct ShapeEntry {
+        let texture: MTLTexture
+        let bytes: Int
+        var lastUsed: Int
+    }
+    private var shapes: [ShapeKey: ShapeEntry] = [:]
+    private var shapeBytes = 0
+    /// At most this many shape bitmaps and bytes are kept; the least recently used go first. A shape larger than
+    /// `shapeSingleByteLimit` is not drawn (an object frame that large is far off the slide).
+    static let shapeCacheLimit = 48
+    static let shapeCacheByteLimit = 128 * 1024 * 1024
+    static let shapeSingleByteLimit = 64 * 1024 * 1024
+    /// Shapes held in the cache (for tests and diagnostics).
+    var cachedShapeCount: Int { shapes.count }
+    /// Number of shape bitmaps rasterised so far (for tests and diagnostics).
+    public private(set) var shapeRasterizationCount = 0
+
     // Image cache (OUT-003). Keyed by path; an entry is reloaded when the file's modification date changes.
     private struct ImageEntry {
         var texture: MTLTexture?        // nil: the file could not be read
@@ -108,6 +134,18 @@ public final class Compositor {
         return tex.sample(s, in.uv) * opacity;
     }
     """
+
+    /// One textured rectangle in pixels, with the opacity it is drawn at and an optional clip (lyric and text-box bitmaps
+    /// are clipped to their frame).
+    private struct QuadDraw {
+        let texture: MTLTexture
+        let origin: SIMD2<Float>
+        let size: SIMD2<Float>
+        let uvOrigin: SIMD2<Float>
+        let uvSize: SIMD2<Float>
+        let opacity: Float
+        let clip: NormalizedRect.PixelRect?
+    }
 
     private struct QuadUniforms {
         var origin: SIMD2<Float>
@@ -211,7 +249,7 @@ public final class Compositor {
     /// not ready yet shows the background colour rather than the theme's loop.
     ///
     /// Draw order: background colour, background media (or the shared video), background image, foreground media,
-    /// text, overlay images.
+    /// slide objects back to front, lyric text, overlay images.
     public func encode(scene: SceneDescription, into texture: MTLTexture, video: MTLTexture? = nil,
                        commandBuffer: MTLCommandBuffer, imageLoading: ImageLoading = .background,
                        backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil) throws {
@@ -220,29 +258,9 @@ public final class Compositor {
         let pipeline = try pipeline(for: texture.pixelFormat)
 
         // Resolve text textures before encoding so a rasterisation failure cannot leave a half-built pass.
-        struct Placed { let cached: CachedText; let x: Int; let y: Int; let clip: NormalizedRect.PixelRect }
-        var placed: [Placed] = []
-        let scale = Double(height) / Self.referenceHeight
-        for layer in scene.textLayers where !layer.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            let frame = layer.frame.pixelRect(width: width, height: height)
-            guard frame.width > 8, frame.height > 0 else { continue }
-            var scaled = layer.style
-            scaled.fontSize *= scale
-            scaled.outlineWidth *= scale
-            let cached = try cachedText(layer.text, style: scaled, maxWidth: frame.width, alignment: layer.alignment)
-            let x: Int
-            switch layer.alignment {
-            case .leading: x = frame.x
-            case .center: x = frame.x + (frame.width - cached.width) / 2
-            case .trailing: x = frame.x + frame.width - cached.width
-            }
-            let y: Int
-            switch layer.verticalAlignment {
-            case .top: y = frame.y
-            case .center: y = frame.y + (frame.height - cached.height) / 2
-            case .bottom: y = frame.y + frame.height - cached.height
-            }
-            placed.append(Placed(cached: cached, x: x, y: y, clip: frame))
+        var placed: [QuadDraw] = []
+        for layer in scene.textLayers {
+            if let draw = try textDraw(layer, width: width, height: height) { placed.append(draw) }
         }
 
         // Resolve image textures too, before the pass starts.
@@ -250,7 +268,23 @@ public final class Compositor {
         drainFinishedImages()
         let backgroundImage = scene.backgroundImage.flatMap { imageDraw($0, width: width, height: height, loading: imageLoading) }
         let overlays = scene.overlayImages.compactMap { imageDraw($0, width: width, height: height, loading: imageLoading) }
+        // Slide objects, back to front (SLIDE-001a).
+        var objects: [QuadDraw] = []
+        for layer in scene.objectLayers {
+            switch layer {
+            case .shape(let shape):
+                if let draw = shapeDraw(shape, width: width, height: height) { objects.append(draw) }
+            case .text(let text):
+                if let draw = try textDraw(text, width: width, height: height) { objects.append(draw) }
+            case .image(let image):
+                if let d = imageDraw(image, width: width, height: height, loading: imageLoading) {
+                    objects.append(QuadDraw(texture: d.texture, origin: d.origin, size: d.size, uvOrigin: d.uvOrigin,
+                                            uvSize: d.uvSize, opacity: d.opacity, clip: nil))
+                }
+            }
+        }
         evictImagesIfNeeded()
+        evictShapesIfNeeded()
 
         let bg = scene.backgroundColor
         let pass = MTLRenderPassDescriptor()
@@ -298,18 +332,8 @@ public final class Compositor {
             enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         }
 
-        for p in placed {
-            let left = max(0, p.clip.x), top = max(0, p.clip.y)
-            let right = min(width, p.clip.x + p.clip.width), bottom = min(height, p.clip.y + p.clip.height)
-            guard right > left, bottom > top else { continue }
-            enc.setScissorRect(MTLScissorRect(x: left, y: top, width: right - left, height: bottom - top))
-            var q = QuadUniforms(origin: SIMD2<Float>(Float(p.x), Float(p.y)),
-                                 size: SIMD2<Float>(Float(p.cached.width), Float(p.cached.height)),
-                                 target: target, uvOrigin: .zero, uvSize: SIMD2<Float>(1, 1))
-            enc.setVertexBytes(&q, length: MemoryLayout<QuadUniforms>.stride, index: 0)
-            enc.setFragmentTexture(p.cached.texture, index: 0)
-            enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-        }
+        // Objects, then lyric text. Each draw sets its own clip and opacity.
+        for q in objects + placed { draw(q, with: enc, target: target, width: width, height: height) }
 
         if !overlays.isEmpty {
             enc.setScissorRect(MTLScissorRect(x: 0, y: 0, width: width, height: height))   // text drawing left a clip set
@@ -332,6 +356,107 @@ public final class Compositor {
             origin.y = (1 - h) / 2
         }
         return (origin, size)
+    }
+
+    // MARK: Text and shape draws
+
+    private func draw(_ q: QuadDraw, with enc: MTLRenderCommandEncoder, target: SIMD2<Float>, width: Int, height: Int) {
+        var left = 0, top = 0, right = width, bottom = height
+        if let clip = q.clip {
+            left = max(0, clip.x); top = max(0, clip.y)
+            right = min(width, clip.x + clip.width); bottom = min(height, clip.y + clip.height)
+        }
+        guard right > left, bottom > top else { return }
+        enc.setScissorRect(MTLScissorRect(x: left, y: top, width: right - left, height: bottom - top))
+        var uniforms = QuadUniforms(origin: q.origin, size: q.size, target: target, uvOrigin: q.uvOrigin, uvSize: q.uvSize)
+        var opacity = q.opacity
+        enc.setVertexBytes(&uniforms, length: MemoryLayout<QuadUniforms>.stride, index: 0)
+        enc.setFragmentBytes(&opacity, length: MemoryLayout<Float>.stride, index: 0)
+        enc.setFragmentTexture(q.texture, index: 0)
+        enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+    }
+
+    /// Rasterises (or fetches) a text layer and places it in its frame. Nil when there is nothing to draw.
+    private func textDraw(_ layer: TextLayer, width: Int, height: Int) throws -> QuadDraw? {
+        guard !layer.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let frame = layer.frame.pixelRect(width: width, height: height)
+        guard frame.width > 8, frame.height > 0 else { return nil }
+        let opacity = Float(min(1, max(0, layer.opacity)))
+        guard opacity > 0 else { return nil }
+        let scale = Double(height) / Self.referenceHeight
+        var scaled = layer.style
+        scaled.fontSize *= scale
+        scaled.outlineWidth *= scale
+        if var shadow = scaled.shadow {
+            shadow.offsetX *= scale
+            shadow.offsetY *= scale
+            shadow.blur *= scale
+            scaled.shadow = shadow
+        }
+        let cached = try cachedText(layer.text, style: scaled, maxWidth: frame.width, alignment: layer.alignment)
+        let x: Int
+        switch layer.alignment {
+        case .leading: x = frame.x
+        case .center: x = frame.x + (frame.width - cached.width) / 2
+        case .trailing: x = frame.x + frame.width - cached.width
+        }
+        let y: Int
+        switch layer.verticalAlignment {
+        case .top: y = frame.y
+        case .center: y = frame.y + (frame.height - cached.height) / 2
+        case .bottom: y = frame.y + frame.height - cached.height
+        }
+        return QuadDraw(texture: cached.texture, origin: SIMD2(Float(x), Float(y)),
+                        size: SIMD2(Float(cached.width), Float(cached.height)), uvOrigin: .zero, uvSize: SIMD2(1, 1),
+                        opacity: opacity, clip: frame)
+    }
+
+    /// The shape's bitmap placed on its frame. Nil when it draws nothing or fails to rasterise.
+    private func shapeDraw(_ layer: ShapeLayer, width: Int, height: Int) -> QuadDraw? {
+        let opacity = Float(min(1, max(0, layer.opacity)))
+        let frame = layer.frame.pixelRect(width: width, height: height)
+        guard opacity > 0, frame.width > 0, frame.height > 0, frame.width * frame.height * 4 <= Self.shapeSingleByteLimit else { return nil }
+        let hasFill = (layer.fill?.alpha ?? 0) > 0
+        let strokePixels = layer.strokeWidth * Double(height) / Self.referenceHeight
+        let hasStroke = (layer.strokeColor?.alpha ?? 0) > 0 && strokePixels > 0
+        guard hasFill || hasStroke else { return nil }
+        let key = ShapeKey(shape: layer.shape, fill: hasFill ? layer.fill : nil, strokeColor: hasStroke ? layer.strokeColor : nil,
+                           strokeWidth: hasStroke ? Int((strokePixels * 100).rounded()) : 0, width: frame.width, height: frame.height)
+        let texture: MTLTexture
+        if var hit = shapes[key] {
+            hit.lastUsed = frameCounter
+            shapes[key] = hit
+            texture = hit.texture
+        } else {
+            guard let pixels = ShapeRasterizer.rasterize(shape: key.shape, fill: key.fill, strokeColor: key.strokeColor,
+                                                         strokeWidth: Double(key.strokeWidth) / 100,
+                                                         width: key.width, height: key.height) else { return nil }
+            let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: key.width, height: key.height, mipmapped: false)
+            td.usage = .shaderRead
+            td.storageMode = .shared
+            guard let tex = device.makeTexture(descriptor: td) else { return nil }
+            pixels.withUnsafeBytes { raw in
+                if let base = raw.baseAddress {
+                    tex.replace(region: MTLRegionMake2D(0, 0, key.width, key.height), mipmapLevel: 0, withBytes: base, bytesPerRow: key.width * 4)
+                }
+            }
+            shapeRasterizationCount += 1
+            shapes[key] = ShapeEntry(texture: tex, bytes: pixels.count, lastUsed: frameCounter)
+            shapeBytes += pixels.count
+            texture = tex
+        }
+        return QuadDraw(texture: texture, origin: SIMD2(Float(frame.x), Float(frame.y)),
+                        size: SIMD2(Float(frame.width), Float(frame.height)), uvOrigin: .zero, uvSize: SIMD2(1, 1),
+                        opacity: opacity, clip: nil)
+    }
+
+    /// Keeps the shape cache bounded. Shapes used by the frame being encoded are never dropped.
+    private func evictShapesIfNeeded() {
+        while shapes.count > Self.shapeCacheLimit || shapeBytes > Self.shapeCacheByteLimit {
+            guard let victim = shapes.filter({ $0.value.lastUsed != frameCounter }).min(by: { $0.value.lastUsed < $1.value.lastUsed }) else { return }
+            shapeBytes -= victim.value.bytes
+            shapes[victim.key] = nil
+        }
     }
 
     // MARK: Images

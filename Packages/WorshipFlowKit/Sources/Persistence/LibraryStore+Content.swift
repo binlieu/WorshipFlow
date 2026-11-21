@@ -128,15 +128,24 @@ extension LibraryStore {
             let count = try Int.fetchOne(
                 db, sql: "SELECT COUNT(*) FROM slide WHERE presentationID = ?", arguments: [presentationID.dbText]) ?? 0
             let now = Date()
-            // Raw insert: leaves groupID to its default so this also works on a v1 database.
+            // Raw insert: leaves groupID to its default so this also works on a v1 database. The objects column
+            // (v5) is written only when there are objects, so plain slides still insert on an older store.
+            let objects = SlideObjectsJSON.encode(content.objects)
             let record = SlideRecord(
                 id: UUID(), presentationID: presentationID, sortOrder: count,
                 primaryText: content.primary, secondaryText: content.secondary, notes: "",
-                createdAt: now, updatedAt: now)
-            try db.execute(sql: """
-                INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt)
-                VALUES (?, ?, ?, ?, ?, '', ?, ?)
-                """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now])
+                createdAt: now, updatedAt: now, objects: objects)
+            if let objects {
+                try db.execute(sql: """
+                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt, objects)
+                    VALUES (?, ?, ?, ?, ?, '', ?, ?, ?)
+                    """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now, objects])
+            } else {
+                try db.execute(sql: """
+                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt)
+                    VALUES (?, ?, ?, ?, ?, '', ?, ?)
+                    """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now])
+            }
             try Self.touch(db, presentationID: presentationID, backend: backend)
             return record.domain
         }
@@ -150,7 +159,7 @@ extension LibraryStore {
         }
     }
 
-    /// Updates content and notes only; order and owner are unchanged.
+    /// Updates content (text and objects) and notes only; order and owner are unchanged.
     public func updateSlide(_ slide: Slide) async throws {
         let backend = searchBackend
         try await writer.write { db in
@@ -158,6 +167,13 @@ extension LibraryStore {
             try db.execute(sql: """
                 UPDATE slide SET primaryText = ?, secondaryText = ?, notes = ?, updatedAt = ? WHERE id = ?
                 """, arguments: [slide.content.primary, slide.content.secondary, slide.notes, Date(), slide.id.dbText])
+            // On a store older than v5 there is no column: a slide without objects has nothing to write, and one with
+            // objects fails here with SQLite's "no such column" rather than silently losing them.
+            let hasColumn = try SearchIndex.slideHasObjectsColumn(db)
+            if hasColumn || !slide.content.objects.isEmpty {
+                try db.execute(sql: "UPDATE slide SET objects = ? WHERE id = ?",
+                               arguments: [SlideObjectsJSON.encode(slide.content.objects), slide.id.dbText])
+            }
             try Self.touch(db, presentationID: presentationID, backend: backend)
         }
     }

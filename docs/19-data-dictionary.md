@@ -21,7 +21,7 @@ Library file: `~/Library/Application Support/WORSHIPFLOW/Library.sqlite` by defa
 | title | TEXT NOT NULL | Trimmed, non-empty |
 | kind | TEXT NOT NULL | `song`, `sermon`, `scripture`, `other` |
 | titleFolded | TEXT NOT NULL DEFAULT '' | `SearchFolding.fold(title)`, maintained in the same transaction as every title or slide change |
-| bodyFolded | TEXT NOT NULL DEFAULT '' | Folded primary and secondary text of all slides, in slide order. Speaker notes are not searched |
+| bodyFolded | TEXT NOT NULL DEFAULT '' | Folded primary and secondary text of all slides, in slide order, plus the words of text boxes (v5). Speaker notes are not searched |
 | createdAt | DATETIME NOT NULL | |
 | updatedAt | DATETIME NOT NULL | Bumped on slide changes |
 
@@ -193,6 +193,17 @@ Custom stage layouts. The built-in `StageLayout.standard` (fixed id `5A6E0001-00
 | definition | TEXT NOT NULL | `ShowTimer` as JSON: `id`, `name`, `kind` (countdown seconds, elapsed, or countdown-to date), `runningSince` (seconds since the reference date, omitted while stopped) and `accumulated`. A running timer is stored as its start anchor, so a relaunch shows the right time |
 | createdAt | DATETIME NOT NULL | Listed by this, then insertion order |
 | updatedAt | DATETIME NOT NULL | |
+
+## Schema v5 (migration `v5`, SLIDE-001a)
+
+Adds slide objects: text boxes, shapes and images laid over a slide. No new table.
+
+### Columns added to v1 tables
+| Table.column | Type | Notes |
+|---|---|---|
+| slide.objects | TEXT, nullable | JSON array of `SlideObject`, back to front (first is drawn first). NULL when the slide has no objects, which is every lyric slide and every slide written before v5, so plain slides stay small. Each element has `id` (upper-case UUID), `frame` (`x`, `y`, `width`, `height` as fractions of the slide, top-left origin), `opacity` (0...1) and `content`, one of `{"text": {"_0": TextObject}}`, `{"shape": {"_0": ShapeObject}}`, `{"image": {"_0": ImageObject}}` (Swift's synthesized enum encoding). Keys are sorted. Sizes, outline, shadow and stroke widths are in points at a 1080-line reference. An unreadable value reads as no objects; it is never an error. The store writes the column only when a slide has objects or the column exists, and an update that would store objects on a store older than v5 fails instead of dropping them |
+
+The words of text objects are folded into `presentation.bodyFolded` and the search index with the lyrics (`TextObject.text` only; shapes and images add no words). `replaceContent` produces slides without objects.
 
 ## Derived search index (not a migration)
 

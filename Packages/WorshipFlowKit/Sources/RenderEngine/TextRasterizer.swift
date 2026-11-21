@@ -37,8 +37,14 @@ public struct TextRasterizer: Sendable {
         let outline = CGFloat(max(0, style.outlineWidth))
         let font = CTFontCreateWithName(style.fontName as CFString, size, nil)
 
-        let padX = Int((outline + size * 0.12 + 2).rounded(.up))
-        let padY = Int((outline + size * 0.45 + 2).rounded(.up))
+        // A shadow can reach |offset| + about 2 * blur (the Gaussian's visible tail) past the glyphs. Padding stays
+        // symmetric so the text keeps its place in the bitmap.
+        let shadow = style.shadow.flatMap { $0.color.alpha > 0 ? $0 : nil }
+        let shadowBlur = CGFloat(max(0, shadow?.blur ?? 0))
+        let shadowX = shadow.map { CGFloat(abs($0.offsetX)) + 2 * shadowBlur + 1 } ?? 0
+        let shadowY = shadow.map { CGFloat(abs($0.offsetY)) + 2 * shadowBlur + 1 } ?? 0
+        let padX = Int((outline + size * 0.12 + 2 + shadowX).rounded(.up))
+        let padY = Int((outline + size * 0.45 + 2 + shadowY).rounded(.up))
         let layoutWidth = Double(max(1, maxWidth - 2 * padX))
 
         let attributes: [CFString: Any] = [
@@ -96,6 +102,15 @@ public struct TextRasterizer: Sendable {
                 top += l.ascent + l.descent + l.leading
             }
 
+            // The shadow belongs to the whole glyph group (outline and fill), so draw both inside one transparency
+            // layer: the fill's shadow must not land on top of the outline. Positive offsetY is down the screen.
+            if let shadow {
+                ctx.setShadow(offset: CGSize(width: shadow.offsetX, height: -shadow.offsetY), blur: shadowBlur,
+                              color: shadow.color.cgColor(space))
+                ctx.beginTransparencyLayer(auxiliaryInfo: nil)
+            }
+            defer { if shadow != nil { ctx.endTransparencyLayer() } }
+
             if outline > 0 {
                 ctx.setTextDrawingMode(.stroke)
                 ctx.setLineWidth(outline * 2)
@@ -139,12 +154,5 @@ public struct TextRasterizer: Sendable {
         }
         guard maxX >= 0 else { return .zero }
         return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
-    }
-}
-
-extension ColorRGBA {
-    fileprivate func cgColor(_ space: CGColorSpace) -> CGColor {
-        CGColor(colorSpace: space, components: [CGFloat(red), CGFloat(green), CGFloat(blue), CGFloat(alpha)])
-            ?? CGColor(gray: 1, alpha: 1)
     }
 }

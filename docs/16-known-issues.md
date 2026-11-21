@@ -35,4 +35,6 @@
 | KI-031 | Deleting a timer leaves its element in stage layouts, drawing nothing until re-pointed. | Accepted. |
 | KI-032 | MEDIA-002 is engine only: the app does not yet pass the media registry to outputs, and nothing has been seen on a real output. Foreground audio, volume and device choice are unverified or unbuilt. Only small synthetic H.264 files were tried. | Open. MEDIA-001 interface slice wires and exercises it. |
 | KI-033 | Decision: a foreground clip shows only on screens whose Look shows the slide layer, and an audio file chosen as a visual layer is ignored. | Accepted. |
-| KI-034 | The media engine tests wait up to eight seconds for decoded frames and could fail on a heavily loaded Mac. | Watch. |
+| KI-034 | The media engine test `aClipThatDoesNotLoopReportsItsEnd` failed once in a full check run ("ended count 0") and passed on the next run with no code change. Either the test's timing is too tight or the end-of-clip report can be missed. | Open. Must be investigated before MEDIA-03 can be trusted: a missed end means lyrics would not come back. |
+| KI-035 | A slide whose stored objects cannot be decoded is shown with no objects, and saving it overwrites the bad value. | Accepted, so one bad row cannot break a slide list mid-service. |
+| KI-036 | Slide objects have been checked by offscreen pixel tests only; there is no editor yet and none has been drawn on a real output. Image objects were tested in fill mode with one sRGB PNG. | Open. SLIDE-001b editor slice. |

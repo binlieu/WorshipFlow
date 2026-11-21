@@ -37,18 +37,29 @@ enum SearchIndex {
         }
     }
 
+    /// True once migration v5 has added `slide.objects`.
+    static func slideHasObjectsColumn(_ db: Database) throws -> Bool {
+        try db.columns(in: "slide").contains { $0.name == "objects" }
+    }
+
     /// Recomputes folded title and slide text for one presentation. Call inside the same
     /// transaction as the change that made it stale.
     static func reindex(_ db: Database, backend: LibraryStore.SearchBackend, presentationID: UUID) throws {
         guard let title = try String.fetchOne(
             db, sql: "SELECT title FROM presentation WHERE id = ?", arguments: [presentationID.dbText]) else { return }
+        // Text boxes (v5) are searched like lyrics. Older stores have no column.
+        let columns = try slideHasObjectsColumn(db) ? "primaryText, secondaryText, objects" : "primaryText, secondaryText"
         let rows = try Row.fetchAll(
-            db, sql: "SELECT primaryText, secondaryText FROM slide WHERE presentationID = ? ORDER BY sortOrder",
+            db, sql: "SELECT \(columns) FROM slide WHERE presentationID = ? ORDER BY sortOrder",
             arguments: [presentationID.dbText])
         let text = rows.map { row -> String in
             let primary: String = row["primaryText"]
             let secondary: String? = row["secondaryText"]
-            return primary + "\n" + (secondary ?? "")
+            var line = primary + "\n" + (secondary ?? "")
+            if row.hasColumn("objects"), let json: String = row["objects"] {
+                line += "\n" + SlideObjectsJSON.searchableText(SlideObjectsJSON.decode(json))
+            }
+            return line
         }.joined(separator: "\n")
         try write(db, backend: backend, presentationID: presentationID,
                   titleFolded: SearchFolding.fold(title), bodyFolded: SearchFolding.fold(text))

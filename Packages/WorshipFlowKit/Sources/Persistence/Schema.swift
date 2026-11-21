@@ -166,6 +166,13 @@ enum Schema {
                 t.column("updatedAt", .datetime).notNull()
             }
         }
+
+        // SLIDE-001a: objects on a slide (text boxes, shapes, images) as JSON text; NULL when a slide has none.
+        migrator.registerMigration("v5") { db in
+            try db.alter(table: "slide") { t in
+                t.add(column: "objects", .text)
+            }
+        }
         return migrator
     }
 }

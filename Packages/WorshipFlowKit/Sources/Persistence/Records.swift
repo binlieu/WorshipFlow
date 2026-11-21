@@ -65,10 +65,26 @@ struct SlideRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     var updatedAt: Date
     /// Added by migration v2; nil for rows written under v1.
     var groupID: UUID?
+    /// Added by migration v5: JSON for `SlideContent.objects`, NULL when there are none. Missing on older stores (reads
+    /// as nil), and written by `insert` only when set, so a slide without objects still inserts on a v2 to v4 store.
+    var objects: String? = nil
+
+    func encode(to container: inout PersistenceContainer) throws {
+        container["id"] = id.dbText
+        container["presentationID"] = presentationID.dbText
+        container["sortOrder"] = sortOrder
+        container["primaryText"] = primaryText
+        container["secondaryText"] = secondaryText
+        container["notes"] = notes
+        container["createdAt"] = createdAt
+        container["updatedAt"] = updatedAt
+        container["groupID"] = groupID?.dbText
+        if let objects { container["objects"] = objects }
+    }
 
     var domain: Slide {
         Slide(id: id, presentationID: presentationID, sortOrder: sortOrder,
-              content: SlideContent(primary: primaryText, secondary: secondaryText),
+              content: SlideContent(primary: primaryText, secondary: secondaryText, objects: SlideObjectsJSON.decode(objects)),
               notes: notes, groupID: groupID, createdAt: createdAt, updatedAt: updatedAt)
     }
 }
@@ -92,4 +108,29 @@ struct PlaylistItemRecord: Codable, FetchableRecord, PersistableRecord, Sendable
     var presentationID: UUID
     var sortOrder: Int
     var createdAt: Date
+}
+
+/// The `slide.objects` column: a JSON array of `SlideObject`, or NULL for none.
+enum SlideObjectsJSON {
+    static func encode(_ objects: [SlideObject]) -> String? {
+        guard !objects.isEmpty else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(objects) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// An unreadable column reads as no objects rather than making the whole slide list fail to load in the middle of a service.
+    static func decode(_ text: String?) -> [SlideObject] {
+        guard let text, let data = text.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([SlideObject].self, from: data)) ?? []
+    }
+
+    /// Words of the text boxes, for the search index.
+    static func searchableText(_ objects: [SlideObject]) -> String {
+        objects.compactMap { object -> String? in
+            if case .text(let t) = object.content { return t.text }
+            return nil
+        }.joined(separator: "\n")
+    }
 }

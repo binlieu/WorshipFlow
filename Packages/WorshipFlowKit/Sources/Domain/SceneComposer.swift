@@ -107,6 +107,11 @@ public enum SceneComposer {
         if foreground == nil, look.visibleLayers.contains(.slide), let slide = state.liveSlide {
             if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary)) }
             if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block)) }
+            // Slide objects (SLIDE-001a) follow the slide layer. A keyed (transparent) screen leaves them out, so
+            // full-frame artwork cannot cover a lower third.
+            if !isBroadcast || theme.background != .transparent {
+                scene.objectLayers = slide.objects.map(\.sceneLayer)
+            }
         }
         if look.visibleLayers.contains(.props) {
             scene.overlayImages = props.filter(\.isOn).map(\.imageLayer)
