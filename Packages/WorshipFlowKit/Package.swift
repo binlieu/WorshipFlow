@@ -13,6 +13,7 @@ let package = Package(
         .library(name: "OperatorCore", targets: ["OperatorCore"]),
         .library(name: "SDIEngine", targets: ["SDIEngine"]),
         .library(name: "DeckLinkSDI", targets: ["DeckLinkSDI"]),
+        .library(name: "CueEngine", targets: ["CueEngine"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -46,6 +47,9 @@ let package = Package(
                 linkerSettings: [.linkedFramework("CoreFoundation"), .linkedFramework("Foundation"), .linkedFramework("CoreVideo")]),
         .target(name: "DeckLinkSDI", dependencies: ["DeckLinkC", "SDIEngine", "Domain"]),
         .testTarget(name: "DeckLinkSDITests", dependencies: ["DeckLinkSDI", "SDIEngine"]),
+        // CUE-001: show-control rules (actions, macros, schedule, playback markers, MIDI mapping). Pure Swift.
+        .target(name: "CueEngine", dependencies: ["Domain"]),
+        .testTarget(name: "CueEngineTests", dependencies: ["CueEngine", "Domain"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
