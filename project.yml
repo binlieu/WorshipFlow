@@ -24,6 +24,8 @@ targets:
         product: OutputEngine
       - package: WorshipFlowKit
         product: Persistence
+      - package: WorshipFlowKit
+        product: OperatorCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app
