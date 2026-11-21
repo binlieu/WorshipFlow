@@ -54,6 +54,9 @@ public final class MediaRegistry: @unchecked Sendable {
     private var foregroundEnded: (@Sendable () -> Void)?
     private var foregroundVolume: Float = 1
     private var foregroundMuted = false
+    private var backgroundVolume: Float = 1
+    /// MEDIA-010: a background video is muted until the operator says otherwise.
+    private var backgroundMuted = true
     private var audioDeviceUID: String?
     private var availabilityChanged: (@Sendable (UUID, MediaAvailability) -> Void)?
 
@@ -156,7 +159,7 @@ public final class MediaRegistry: @unchecked Sendable {
     }
 
     /// MEDIA-001: the level of the foreground clip's audio (default output device). Applies to the open foreground
-    /// source at once and to every one opened later, before it starts playing. A background is always muted.
+    /// source at once and to every one opened later, before it starts playing. The background has its own (`setBackgroundAudio`).
     public func setForegroundAudio(volume: Float, muted: Bool) {
         let level = volume.isFinite ? min(1, max(0, volume)) : 0
         lock.lock()
@@ -168,16 +171,29 @@ public final class MediaRegistry: @unchecked Sendable {
         source?.isMuted = muted
     }
 
+    /// MEDIA-010: the level of the background video's audio. Starts muted; applies to the open background source at once and
+    /// to every one opened later, before it starts playing. Goes to the same device as the foreground clip.
+    public func setBackgroundAudio(volume: Float, muted: Bool) {
+        let level = volume.isFinite ? min(1, max(0, volume)) : 0
+        lock.lock()
+        backgroundVolume = level
+        backgroundMuted = muted
+        let source = slots[.background]?.source
+        lock.unlock()
+        source?.volume = level
+        source?.isMuted = muted
+    }
+
     /// MEDIA-006: the sound device the foreground clip's audio goes to, the same one the audio cues use (rule HW-08: one
     /// path per signal). Nil is the system default. Applies to the open foreground source at once and to every one
-    /// opened later, before it starts playing. A background is always muted, so it has no sound to route.
+    /// opened later, before it starts playing. The background video follows it too.
     public func setAudioOutputDevice(uid: String?) {
         let value = (uid?.isEmpty ?? true) ? nil : uid
         lock.lock()
         audioDeviceUID = value
-        let source = slots[.foreground]?.source
+        let sources = [slots[.foreground]?.source, slots[.background]?.source]
         lock.unlock()
-        source?.audioOutputDeviceUniqueID = value
+        for source in sources { source?.audioOutputDeviceUniqueID = value }
     }
 
     /// The device the foreground clip's audio is routed to; nil for the system default.
@@ -217,14 +233,16 @@ public final class MediaRegistry: @unchecked Sendable {
         switch location.kind {
         case .video:
             do {
-                lock.lock(); let level = foregroundVolume, silent = foregroundMuted, device = audioDeviceUID; lock.unlock()
+                lock.lock()
+                let level = slot == .background ? backgroundVolume : foregroundVolume
+                let silent = slot == .background ? backgroundMuted : foregroundMuted
+                let device = audioDeviceUID
+                lock.unlock()
                 let source = try VideoPlayerSource(url: location.url, loops: layer.transport.loops,
                                                    duration: layer.selection.duration ?? location.duration,
-                                                   muted: slot == .background || silent)
-                if slot == .foreground {
-                    source.volume = level                            // before it plays: no burst at full volume
-                    source.audioOutputDeviceUniqueID = device        // and none on the wrong device
-                }
+                                                   muted: silent)
+                source.volume = level                                // before it plays: no burst at full volume
+                source.audioOutputDeviceUniqueID = device            // and none on the wrong device
                 if slot == .foreground {
                     source.setOnEnded { [weak self] in self?.notifyForegroundEnded() }
                 }

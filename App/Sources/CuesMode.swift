@@ -203,10 +203,8 @@ private struct CuesInfoColumn: View {
         }
     }
 
-    static let keys: [(String, String)] = [
-        ("→ or Space", "Next slide"), ("←", "Previous slide"), ("↩", "Go live with the selected slide"), ("B", "Blackout (toggle)"),
-        ("esc", "Clear"), ("⇧ esc", "Clear all"), ("⌘E", "Quick edit"), ("⌘F", "Search"), ("⌘J", "Scripture"),
-    ]
+    /// The same list a test checks for clashes (`ShowShortcuts`), with the MEDIA-010 layer clears.
+    static let keys: [(String, String)] = ShowShortcuts.all.map { ($0.key, $0.command) }
 
     private var activity: some View {
         VStack(alignment: .leading, spacing: Space.s3) {

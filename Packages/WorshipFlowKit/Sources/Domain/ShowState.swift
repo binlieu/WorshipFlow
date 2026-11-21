@@ -31,6 +31,12 @@ public enum ShowCommand: Sendable, Equatable {
     /// next and previous (when they move), and a second blackout lift it; Clear keeps it and takes effect when it lifts.
     /// Ignored while nothing is live.
     case blackout
+    /// MEDIA-010: hides the live background (the theme's own, the slide's own and a live override) on every audience and
+    /// broadcast screen. The words, the foreground clip and the place are kept. Go Live, Next and Previous (when they move),
+    /// Stop and `restoreBackground` bring it back. Ignored while nothing is live.
+    case clearBackground
+    /// MEDIA-010: a new bin choice brings a cleared background back.
+    case restoreBackground
     /// Drops the live deck (and ends Blackout); screens go empty. Preview is kept.
     case stop
     /// The one deliberate way to change live text (PRES-07).
@@ -48,8 +54,12 @@ public struct ShowState: Sendable, Equatable {
     public private(set) var liveIndex: Int?
     private var cleared = false
     private var blackedOut = false
+    private var backgroundHidden = false
 
     public init() {}
+
+    /// MEDIA-010: the live background is hidden (Clear background).
+    public var isBackgroundCleared: Bool { liveDeck != nil && backgroundHidden }
 
     /// UI-001: Blackout is on. `liveSlide` and `nextSlide` are unchanged (the stage still needs them); the composers
     /// read this to draw nothing on audience and broadcast screens.
@@ -60,6 +70,13 @@ public struct ShowState: Sendable, Equatable {
 
     public var liveSlide: SlideContent? {
         guard !cleared, let deck = liveDeck, let i = liveIndex, deck.slides.indices.contains(i) else { return nil }
+        return deck.slides[i]
+    }
+
+    /// MEDIA-010: the slide at the live place even while the words are cleared. The slide's own background stays on screen
+    /// under a Clear, so the composer and the media players read it from here.
+    public var liveSlideAtPlace: SlideContent? {
+        guard let deck = liveDeck, let i = liveIndex, deck.slides.indices.contains(i) else { return nil }
         return deck.slides[i]
     }
 
@@ -84,6 +101,7 @@ public struct ShowState: Sendable, Equatable {
             liveIndex = index
             cleared = false
             blackedOut = false
+            backgroundHidden = false
             selectedIndex = index
 
         case .next:
@@ -106,11 +124,19 @@ public struct ShowState: Sendable, Equatable {
             guard liveDeck != nil else { return }
             blackedOut.toggle()
 
+        case .clearBackground:
+            guard liveDeck != nil else { return }
+            backgroundHidden = true
+
+        case .restoreBackground:
+            backgroundHidden = false
+
         case .stop:
             liveDeck = nil
             liveIndex = nil
             cleared = false
             blackedOut = false
+            backgroundHidden = false
 
         case .quickEdit(let index, let content):
             guard var deck = liveDeck, deck.slides.indices.contains(index) else { return }
@@ -131,6 +157,7 @@ public struct ShowState: Sendable, Equatable {
         liveIndex = index
         cleared = false
         blackedOut = false
+        backgroundHidden = false
         if let live = liveDeck, let preview = previewDeck, live.presentationID == preview.presentationID {
             selectedIndex = index   // the preview follows the show only while it shows the same presentation
         }

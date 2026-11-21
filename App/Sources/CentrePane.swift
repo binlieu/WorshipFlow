@@ -195,6 +195,7 @@ struct SlideGrid: View {
             // The rings are drawn outside the picture (never over the words): blue for preview, 3 pt red for live.
             SlideThumbnail(app: app, slide: slide.content)
                 .overlay(alignment: .topLeading) { tags(live: live, selected: selected).padding(5) }
+                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content).padding(5) }
                 .padding(3)
                 .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.blue : .clear, lineWidth: 2))
                 .padding(live ? 4 : 0)
@@ -211,10 +212,14 @@ struct SlideGrid: View {
         .onTapGesture { workspace.selectSlide(i) }
         .draggable("\(i)")
         .dropDestination(for: String.self) { items, _ in
-            guard let text = items.first, let from = Int(text), from != i else { return false }
+            guard let text = items.first else { return false }
+            // MEDIA-010: a tile from the media bin is this slide's own background; a slide's index is a reorder.
+            if let mediaID = SlideBackgroundDrop.mediaID(fromDragText: text) { return app.setSlideBackground(mediaID: mediaID, slideID: slide.id) }
+            guard let from = Int(text), from != i else { return false }
             Task { await workspace.moveSlide(from: from, to: i) }
             return true
         }
+        .dropDestination(for: URL.self) { urls, _ in app.setSlideBackground(fileURLs: urls, slideID: slide.id) }
         .contextMenu { slideMenu(i) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
@@ -244,6 +249,9 @@ struct SlideGrid: View {
     @ViewBuilder private func slideMenu(_ i: Int) -> some View {
         Button("Go Live") { app.triggerSlide(i) }
         Button("Quick edit") { workspace.selectSlide(i); app.openQuickEdit() }
+        if SlideBackgroundDrop.hasOwnBackground(workspace.slides[i].content) {
+            Button("Use the presentation's background") { app.clearSlideBackground(slideID: workspace.slides[i].id) }
+        }
         Divider()
         Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
         Button("Move later") { Task { await workspace.moveSlide(from: i, to: i + 1) } }.disabled(i == workspace.slides.count - 1)

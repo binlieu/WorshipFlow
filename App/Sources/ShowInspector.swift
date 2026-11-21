@@ -17,6 +17,7 @@ struct ShowInspector: View {
                     monitors.padding(.horizontal, Space.s5).padding(.top, Space.s5).padding(.bottom, Space.s4)
                     otherScreens.padding(.horizontal, Space.s5).padding(.bottom, Space.s4)
                     lookRow.padding(.horizontal, Space.s5).padding(.bottom, Space.s3)
+                    overrideRow.padding(.horizontal, Space.s5)
                     tabBar
                     tabContent.padding(Space.s5)
                 }
@@ -191,6 +192,26 @@ struct ShowInspector: View {
                     .accessibilityLabel("More Looks")
             }
             if app.looks.isEmpty { Text("No Looks yet.").font(.caption).foregroundStyle(Tok.muted) }
+        }
+    }
+
+    // MARK: Live background override (MEDIA-010)
+
+    /// Shown while a background chosen in the media bin is on: it replaces every slide's own background on the live screens
+    /// (and is never written to the presentation). The button drops it.
+    @ViewBuilder private var overrideRow: some View {
+        if let media = app.media, media.hasLiveBackgroundOverride {
+            let name = media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "a background"
+            HStack(spacing: 6) {
+                Image(systemName: "film").foregroundStyle(Tok.liveFill).accessibilityHidden(true)
+                Text("Live background override: \(name)").font(.system(size: 12)).lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: 4)
+                Button("Drop") { media.dropBackgroundOverride() }.buttonStyle(HeaderButtonStyle())
+                    .help("Drop the override and go back to each slide's own background")
+                    .accessibilityLabel("Drop the live background override")
+            }
+            .padding(.bottom, Space.s3)
+            .accessibilityElement(children: .contain)
         }
     }
 

@@ -29,4 +29,5 @@ public final class MediaCueAdapter: CueMediaPort {
     public func stopForeground() { media.stopForeground() }
     public func playSound(_ id: UUID) { audio?.play(id) }
     public func stopSound(_ id: UUID) { audio?.stop(id) }
+    public func clearMusic() { audio?.stopAll() }
 }

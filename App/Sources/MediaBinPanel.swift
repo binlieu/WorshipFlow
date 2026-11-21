@@ -11,7 +11,7 @@ struct MediaBinPanel: View {
     @State private var renaming: MediaAsset?
     @State private var renameText = ""
     @State private var targeted = false
-    @State private var selected: UUID?
+    private var selected: UUID? { app.ui.binSelection }
 
     private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)]
 
@@ -33,12 +33,13 @@ struct MediaBinPanel: View {
                 }
                 .padding(2).background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
                 .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.border, lineWidth: 1))
-                .help("Double-click a tile: put it behind the words, or play it over them")
+                .help("Double-click a tile to send it live: behind the words, or over them. A single click only selects it and shows it in the player.")
                 Button { app.chooseMedia() } label: { Label("Import…", systemImage: "plus") }
                     .buttonStyle(HeaderButtonStyle())
                     .help("Add pictures and videos to the bin (or drop files here)")
             }
-            if media.visibleAssets.isEmpty {
+            if let folder = currentFolder { folderHeader(folder) }
+            if shownAssets.isEmpty {
                 Text(media.assets.isEmpty
                      ? "The bin is empty. Add pictures and videos with the button above, or drop files here. The bin keeps a reference to each file; your files are never moved or deleted."
                      : "Nothing of this kind in the bin.")
@@ -46,17 +47,23 @@ struct MediaBinPanel: View {
                     .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
             } else {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
-                    ForEach(media.visibleAssets) { asset in
+                    ForEach(shownAssets) { asset in
                         MediaTile(asset: asset, isBackground: media.layers.background?.selection.assetID == asset.id,
                                   isForeground: media.layers.foreground?.selection.assetID == asset.id)
                             .padding(3)
                             .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(live(asset) ? Tok.liveFill : (selected == asset.id ? Tok.blue : .clear), lineWidth: 2))
                             .contentShape(Rectangle())
                             .contextMenu { menu(for: asset) }
-                            .onTapGesture(count: 2) { selected = asset.id; app.performDockAction(MediaDock.action(for: asset, layer: app.ui.dockLayer)) }
-                            .onTapGesture { selected = asset.id }
+                            // MEDIA-010: a single click selects and shows it in the sidebar player; a double click also sends it live.
+                            .onTapGesture(count: 2) {
+                                let tap = MediaBinInteraction.tap(count: 2, asset: asset, layer: app.ui.dockLayer)
+                                app.selectBinItem(tap.select)
+                                if let action = tap.sendLive { app.performDockAction(action) }
+                            }
+                            .onTapGesture { app.selectBinItem(MediaBinInteraction.tap(count: 1, asset: asset, layer: app.ui.dockLayer).select) }
+                            .draggable(SlideBackgroundDrop.dragText(for: asset.id))
                             .accessibilityAddTraits(selected == asset.id ? [.isSelected, .isButton] : .isButton)
-                            .accessibilityAction { selected = asset.id }
+                            .accessibilityAction { app.selectBinItem(asset.id) }
                             .accessibilityAction(named: "Set as background") { media.setBackground(asset.id) }
                             .accessibilityAction(named: "Play in foreground") { media.playForeground(asset.id) }
                     }
@@ -65,24 +72,25 @@ struct MediaBinPanel: View {
                     HStack(spacing: 6) {
                         Text(chosen.name).font(.caption.bold()).lineLimit(1).truncationMode(.middle)
                         Spacer()
-                        Button("Set as background") { media.setBackground(chosen.id) }
+                        Button("Live background") { media.setBackground(chosen.id) }
                             .disabled(chosen.kind == .audio).controlSize(.small)
-                        Button("Play in foreground") { media.playForeground(chosen.id) }
+                        Button("Live foreground") { media.playForeground(chosen.id) }
                             .disabled(chosen.kind == .audio || !media.showIsLive).controlSize(.small)
                             .help(media.showIsLive ? "Play over the slides" : "Take a slide live first")
                     }
                 }
             }
-            if media.layers.background != nil {
+            if media.hasLiveBackgroundOverride {
                 HStack(spacing: 6) {
                     Image(systemName: "photo.on.rectangle").foregroundStyle(.secondary)
-                    Text("Background: \(media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "")")
+                    Text("Live background from the bin: \(media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "")")
                         .font(.caption).lineLimit(1)
                     Spacer()
-                    Button("Clear background") { media.clearBackground() }.controlSize(.small)
+                    Button("Use the slide's own background") { media.dropBackgroundOverride() }.controlSize(.small)
+                        .help("Drop the live override: each slide's own background (or the theme's) shows again")
                 }
             }
-            Text("Double-click does what the layer choice above says. Right-click for more. Backgrounds show on screens whose theme uses a motion background.")
+            Text("A single click selects an item and shows it in the player. A double click sends it live, as the layer choice above says. Drag a tile onto a slide to give that slide its own background. Right-click for more.")
                 .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(6)
@@ -102,6 +110,46 @@ struct MediaBinPanel: View {
         }
     }
 
+    /// MEDIA-010: the hot folder the sidebar chose, if any; the grid then shows its items instead of the bin's.
+    private var currentFolder: HotFolderState? { app.ui.binFolderID.flatMap { app.hotFolders?.state(of: $0) } }
+
+    private var shownAssets: [MediaAsset] {
+        guard let folder = currentFolder else { return media.visibleAssets }
+        guard let kind = media.kindFilter else { return folder.items }
+        return folder.items.filter { $0.kind == kind }
+    }
+
+    private func folderHeader(_ state: HotFolderState) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: state.status == .missing ? "exclamationmark.triangle" : "folder")
+                    .foregroundStyle(state.status == .missing ? Tok.warning : Tok.muted)
+                Text(state.folder.path).font(.caption).lineLimit(1).truncationMode(.middle).foregroundStyle(Tok.muted)
+                Spacer()
+                if state.status == .missing {
+                    Button("Point to the folder again…") { app.repointHotFolder(state.id) }.controlSize(.small)
+                } else {
+                    Menu("Play folder") {
+                        Button("On the live background") { media.playFolder(state.id, on: .background) }
+                        Button("Over the words") { media.playFolder(state.id, on: .foreground) }.disabled(!media.showIsLive)
+                    }
+                    .menuStyle(.borderlessButton).fixedSize().controlSize(.small)
+                    .help("Play this folder's videos one after another in name order, and again from the first")
+                }
+                if media.playingFolderID == state.id { Button("Stop folder") { media.stopFolder() }.controlSize(.small) }
+                Button("Stop following") { Task { await app.hotFolders?.remove(state.id); app.ui.binFolderID = nil } }.controlSize(.small)
+                    .help("The bin forgets this folder. Its files are not touched.")
+            }
+            if state.status == .missing {
+                Text("This folder cannot be found (moved, renamed or its drive is not connected). The show is not affected.")
+                    .font(.caption).foregroundStyle(Tok.warning)
+            } else if !state.heldBack.isEmpty {
+                Text("\(state.heldBack.count) file\(state.heldBack.count == 1 ? "" : "s") still being copied or not readable yet: \(state.heldBack.prefix(3).joined(separator: ", ")). Shown when complete.")
+                    .font(.caption).foregroundStyle(Tok.muted)
+            }
+        }
+    }
+
     /// Red only while it is on screen now: the background of a live show, or a playing clip.
     private func live(_ asset: MediaAsset) -> Bool {
         media.showIsLive && (media.layers.background?.selection.assetID == asset.id || media.layers.foreground?.selection.assetID == asset.id)
@@ -115,11 +163,11 @@ struct MediaBinPanel: View {
                 .disabled(!media.showIsLive)
         }
         if media.layers.background?.selection.assetID == asset.id {
-            Button("Clear background") { media.clearBackground() }
+            Button("Use the slide's own background") { media.dropBackgroundOverride() }
         }
         Divider()
         Button("Rename…") { renameText = asset.name; renaming = asset }
-        Button("Remove from bin") { Task { await media.remove(asset.id) } }
+        Button("Remove from bin") { Task { await media.remove(asset.id) } }.disabled(media.assets.contains { $0.id == asset.id } == false)
     }
 }
 

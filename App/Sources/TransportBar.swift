@@ -41,6 +41,21 @@ struct TransportBar: View {
         .frame(height: Space.transportBarHeight)
         .background(Tok.surface)
         .overlay(alignment: .top) { Rectangle().fill(Tok.border).frame(height: 1) }
+        .overlay(alignment: .topTrailing) { if app.ui.showClearMenuPreview { clearMenuPreview } }
+    }
+
+    /// The Clear menu's entries, drawn (debug pictures only; see `showClearMenuPreview`).
+    private var clearMenuPreview: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach([ClearControl.Action.clearAll] + ClearControl.layerMenu, id: \.title) { action in
+                HStack { Text(action.title); Spacer(minLength: 16); Text(action.shortcut).foregroundStyle(Tok.muted) }
+                    .font(.system(size: 13))
+            }
+        }
+        .padding(10).frame(width: 250)
+        .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+        .offset(x: -330, y: -128)
     }
 
     private func hinted(_ symbol: String, _ title: String, _ key: String?, onFill: Bool = false) -> some View {
@@ -64,6 +79,11 @@ struct TransportBar: View {
                 ForEach(ClearControl.menu, id: \.title) { action in
                     Button("\(action.title) (Shift-Escape)") { app.clearAll() }.help(action.detail)
                 }
+                Divider()
+                // MEDIA-010: one clear per layer. Each is reversible: Go Live, Next or a new choice brings content back.
+                ForEach(ClearControl.layerMenu, id: \.title) { action in
+                    Button("\(action.title) (\(action.shortcut))") { performLayerClear(action) }.help(action.detail)
+                }
             } label: {
                 Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).frame(width: 26, height: Space.transportHeight)
                     .foregroundStyle(Tok.text).background(Tok.surface2)
@@ -75,6 +95,16 @@ struct TransportBar: View {
         .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
         .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.borderStrong, lineWidth: 1))
         .disabled(workspace.show.isStopped)
+    }
+
+    private func performLayerClear(_ action: ClearControl.Action) {
+        switch action {
+        case .clearBackground: app.clearBackground()
+        case .clearForeground: app.clearForeground()
+        case .clearMusic: app.clearMusic()
+        case .clearWords: app.clear()
+        case .clearAll: app.clearAll()
+        }
     }
 
     @ViewBuilder private var stateBadge: some View {

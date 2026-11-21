@@ -71,6 +71,7 @@ struct EditModeView: View {
         return VStack(alignment: .leading, spacing: 3) {
             Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit())
             SlideThumbnail(app: app, slide: slide.content)
+                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content).padding(4) }
                 .padding(3)
                 .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.blue : .clear, lineWidth: 2))
                 .padding(live ? 4 : 0)
@@ -78,8 +79,18 @@ struct EditModeView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { workspace.selectSlide(i) }
+        .dropDestination(for: String.self) { items, _ in
+            guard let text = items.first, let mediaID = SlideBackgroundDrop.mediaID(fromDragText: text) else { return false }
+            return app.setSlideBackground(mediaID: mediaID, slideID: slide.id)
+        }
+        .dropDestination(for: URL.self) { urls, _ in app.setSlideBackground(fileURLs: urls, slideID: slide.id) }
+        .contextMenu {
+            if SlideBackgroundDrop.hasOwnBackground(slide.content) {
+                Button("Use the presentation's background") { app.clearSlideBackground(slideID: slide.id) }
+            }
+        }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
+        .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)\(SlideBackgroundDrop.hasOwnBackground(slide.content) ? ", has its own background" : "")")
         .accessibilityValue(live ? "live" : "")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
@@ -177,7 +188,11 @@ struct MediaModeView: View {
             .frame(maxWidth: .infinity)
             Divider()
             ScrollView {
-                if let audio = app.audio { AudioPanel(audio: audio).padding(Space.s5) }
+                VStack(alignment: .leading, spacing: 0) {
+                    // MEDIA-010: the player for the item selected in the bin, then the audio list.
+                    if let preview = app.binPreview { BinPlayerPanel(app: app, preview: preview) ; Divider() }
+                    if let audio = app.audio { AudioPanel(audio: audio).padding(Space.s5) }
+                }
             }
             .frame(width: 380)
             .background(Tok.surface)
@@ -192,6 +207,7 @@ struct MediaModeView: View {
             ForEach(entries.filter { !$0.isAudio }, id: \.title) { row($0, media) }
             SectionLabel("Audio").padding(.top, Space.s5).padding(.bottom, Space.s2)
             ForEach(entries.filter(\.isAudio), id: \.title) { row($0, media) }
+            folders
             Spacer()
         }
         .padding(Space.s4)
@@ -199,8 +215,8 @@ struct MediaModeView: View {
     }
 
     private func row(_ entry: MediaBinCategories.Entry, _ media: MediaModel) -> some View {
-        let selected = media.kindFilter == entry.kind
-        return Button { media.kindFilter = entry.kind } label: {
+        let selected = media.kindFilter == entry.kind && app.ui.binFolderID == nil
+        return Button { media.kindFilter = entry.kind; app.ui.binFolderID = nil } label: {
             HStack(spacing: Space.s3) {
                 Image(systemName: Self.symbol(entry.kind)).frame(width: 18).foregroundStyle(Tok.muted)
                 Text(entry.title).font(.system(size: 14))
@@ -214,6 +230,41 @@ struct MediaModeView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(entry.title), \(entry.count)")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// MEDIA-010: the hot folders the bin follows, each a source of its own.
+    @ViewBuilder private var folders: some View {
+        HStack {
+            SectionLabel("Folders")
+            Spacer()
+            Button { app.addHotFolder() } label: { Image(systemName: "plus") }.buttonStyle(.plain).foregroundStyle(Tok.muted)
+                .help("Point the bin at a folder: its videos, pictures and sound appear here and follow the folder")
+                .accessibilityLabel("Add a folder")
+        }
+        .padding(.top, Space.s5).padding(.bottom, Space.s2)
+        if let hot = app.hotFolders, !hot.folders.isEmpty {
+            ForEach(hot.folders) { state in
+                let selected = app.ui.binFolderID == state.id
+                Button { app.ui.binFolderID = state.id } label: {
+                    HStack(spacing: Space.s3) {
+                        Image(systemName: state.status == .missing ? "exclamationmark.triangle" : "folder")
+                            .frame(width: 18).foregroundStyle(state.status == .missing ? Tok.warning : Tok.muted)
+                        Text(state.folder.name).font(.system(size: 14)).lineLimit(1)
+                        Spacer()
+                        Text(state.status == .missing ? "missing" : "\(state.items.count)").font(.system(size: 12))
+                            .foregroundStyle(state.status == .missing ? Tok.warning : Tok.muted)
+                    }
+                    .padding(.horizontal, Space.s3).frame(height: 30)
+                    .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Folder \(state.folder.name), \(state.status == .missing ? "missing" : "\(state.items.count) items")")
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        } else {
+            Text("No folders. Add one with +.").font(.caption).foregroundStyle(Tok.muted)
+        }
     }
 
     private static func symbol(_ kind: MediaKind?) -> String {

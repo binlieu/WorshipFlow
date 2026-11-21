@@ -174,3 +174,26 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] (FIX-F) With a playlist item whose translation is removed between two songs: Next stops with a message; Next again skips it and says so. Do something else (Go Live on another slide) and Next again: it stops again.
 - [ ] (FIX-F, KI-094) Open the same scripture item under two different audience themes or verses-per-slide settings: the slide count can differ. That is expected.
 - [ ] (FIX-F) The X of the Scripture view closes the passage too: Preview goes empty, live is untouched.
+
+## LIB-005 program export and import
+
+Use a scratch library on both "Macs" (two `--library` files), and a folder standing for a USB stick. Do not use the real library for the first run.
+
+- [ ] Build a short program at home: a song with a picture object on a slide, a song with a section order, a header, a countdown, a Bible passage, a slide action that plays a clip. File > Export Program…: the sheet lists items, media files and total size. Put a file on a drive, unplug the drive, and open the sheet again: the file is listed as unreadable and the button says "Export without the missing files…".
+- [ ] Export: a save panel appears and asks before replacing a file. The result is one file in Finder (a package, not a folder), with the WORSHIPFLOW icon behaviour of a document. Cancel in the middle of a large export: nothing is left at the destination or next to it.
+- [ ] On the other library: File > Import Program…, then again by double-clicking the file in Finder, then by dropping it on the window. Each shows the summary first. Import: the playlist plays slide for slide, the picture and the clip are there, with the original drive disconnected. Quit, move the whole library folder to another place, reopen with `--library` there: the pictures and clips are still found.
+- [ ] Import the same file again: the summary says nothing to import and the button is off.
+- [ ] Change a lyric at church, change it differently at home, export again, import: the summary lists the song as having different content. Try each answer: Keep both (copy titled "(imported)" and a "(imported)" playlist that plays it), Keep mine, Use the imported one.
+- [ ] Open a program that has a Bible passage in a library without that translation: the item imports and says "not installed".
+- [ ] Hand-edit a copy of the package so a path says `../x` or is absolute, or replace a media file by a link: opening it says in plain words that it was not opened and nothing changes in the library.
+- [ ] Look for the Finder icon and the single-file display on a Mac that has the app in Applications (Launch Services registration was not tried).
+
+## MEDIA-010 live media control
+
+- [ ] Media mode: click a video in the bin. The sidebar shows a player for it with play, pause, a scrubber, the time, Loop and Mute. Nothing changes on the screens. Click a sound: the same without a picture. Click a picture: the picture alone. Start the app with `--silent-audio`: the preview stays silent.
+- [ ] Double-click a video (layer choice Background), or press "Send to live background": the live screens change, the slides' thumbnails and the Preview monitor do not, and the Show inspector says "Live background override" with a Drop button. Press Next several times: the override stays. Drop: each slide's own background (or the theme's) shows again.
+- [ ] Clear menu (the chevron next to Clear): Clear background, Clear foreground and Clear music, with Control-Option-B, F and M. Each takes away only its own layer. Go Live, Next or a new choice from the bin brings a background back. Blackout on, Clear background, Blackout off: the words come back and the background stays cleared.
+- [ ] Put a video behind the words (its sound is off), then click the speaker in the controller row: you hear it, and the icon matches. Press Next: it stays on. Blackout: silent; lifting it brings the sound back.
+- [ ] Media mode, Folders, +: choose a folder of videos. They appear as a source. Copy a new video into the folder: it appears when the copy is complete (not while it is growing). Rename and delete one in Finder: the bin follows. Play folder on the background: the videos play one after another in name order and start again. Rename the folder in Finder: it shows as missing; "Point to the folder again…" fixes it. The show is never held up.
+- [ ] Drag a video from the bin onto one slide's thumbnail in Show or Edit, then drag a picture from Finder onto another: each shows a small mark. Go live on a slide with a mark: its background plays. Right-click it, "Use the presentation's background": the mark goes. Command-Z with that slide selected in Edit undoes a drop. Quit and reopen: the marks are still there.
+- [ ] Check what was not seen by the coordinator's run: the drag and drop gestures themselves, the folder open panel, the double click, the real Clear menu popup and the player's video picture.

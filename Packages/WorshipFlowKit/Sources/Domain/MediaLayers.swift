@@ -51,10 +51,11 @@ public struct MediaLayers: Sendable, Equatable, Codable, Hashable {
     public var withoutForeground: MediaLayers { var copy = self; copy.foreground = nil; return copy }
 
     /// Replaces the background and starts it looping. Nil clears it. Audio is ignored.
-    public mutating func setBackground(_ selection: MediaSelection?, at now: Double) {
+    /// `loops: false` is for a folder playing one clip after another (MEDIA-010): the clip ends and the next one follows.
+    public mutating func setBackground(_ selection: MediaSelection?, at now: Double, loops: Bool = true) {
         guard let selection else { background = nil; return }
         guard selection.isVisual else { return }
-        var transport = MediaTransport(duration: selection.duration ?? 0, loops: true)
+        var transport = MediaTransport(duration: selection.duration ?? 0, loops: loops)
         transport.play(at: now)
         background = MediaLayer(selection: selection, transport: transport)
     }

@@ -185,6 +185,15 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // MEDIA-010: the live media control in the running app (bin player, live override, clears, hot folder, slide background).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_MEDIA010"] != nil {
+                await runMedia010Scenario(note: { note($0) }, capture: { await capture($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // LIB-004c: the Scripture view in the running app (Command-J, an empty library, a typed reference, two translations), then out.
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SCRIPTURE"] != nil {
                 await runScriptureScenario(note: { note($0) }, capture: { await capture($0) },

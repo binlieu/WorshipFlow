@@ -43,6 +43,27 @@ targets:
         product: ScriptureEngine
       - package: WorshipFlowKit
         product: ScriptureStore
+      - package: WorshipFlowKit
+        product: ProgramPackage
+    # LIB-005: the program package is a folder with the extension .worshipflowprogram that Finder shows as one file, and that
+    # opens in this app. The Info.plist is written by XcodeGen from this block.
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: WORSHIPFLOW Program
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSTypeIsPackage: true
+            LSItemContentTypes: [org.worshipflow.program]
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: org.worshipflow.program
+            UTTypeDescription: WORSHIPFLOW Program
+            UTTypeConformsTo: [com.apple.package]
+            UTTypeTagSpecification:
+              public.filename-extension: [worshipflowprogram]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app

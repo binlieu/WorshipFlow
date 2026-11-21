@@ -19,6 +19,7 @@ let package = Package(
         .library(name: "CueStore", targets: ["CueStore"]),
         .library(name: "MIDIIO", targets: ["MIDIIO"]),
         .library(name: "RemoteControl", targets: ["RemoteControl"]),
+        .library(name: "ProgramPackage", targets: ["ProgramPackage"]),
         .executable(name: "wf-bible-import", targets: ["BibleImportTool"]),
     ],
     dependencies: [
@@ -71,6 +72,10 @@ let package = Package(
         .testTarget(name: "MIDIIOTests", dependencies: ["MIDIIO", "CueEngine"]),
         .target(name: "RemoteControl", dependencies: ["CueEngine", "Domain"]),
         .testTarget(name: "RemoteControlTests", dependencies: ["RemoteControl", "CueEngine", "Domain"]),
+        // LIB-005: program export and import (a playlist, its presentations and its media as one folder package). Pure Swift,
+        // no UI; separate targets so the media slice and this one do not block each other's builds.
+        .target(name: "ProgramPackage", dependencies: ["Domain", "CueEngine", "Persistence", .product(name: "GRDB", package: "GRDB.swift")]),
+        .testTarget(name: "ProgramPackageTests", dependencies: ["ProgramPackage", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         // CUE-002b: OperatorCore also wires the cue rules, their storage, MIDI and the remote server into the app.
         // LIB-004c: and the scripture engine and store (the Scripture view's model).

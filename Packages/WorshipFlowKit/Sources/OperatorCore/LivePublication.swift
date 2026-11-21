@@ -10,6 +10,8 @@ public struct LiveOutputKey: Equatable, Sendable {
     var liveIndex: Int?
     var isCleared: Bool
     var isBlackedOut: Bool
+    /// MEDIA-010: Clear background is on.
+    var isBackgroundCleared: Bool
     var notes: String?
 
     public init(state: ShowState, notes: String?) {
@@ -17,6 +19,7 @@ public struct LiveOutputKey: Equatable, Sendable {
         liveIndex = state.liveIndex
         isCleared = state.isCleared
         isBlackedOut = state.isBlackedOut
+        isBackgroundCleared = state.isBackgroundCleared
         self.notes = notes
     }
 }

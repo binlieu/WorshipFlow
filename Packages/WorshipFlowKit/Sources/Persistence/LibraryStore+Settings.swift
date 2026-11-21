@@ -85,16 +85,17 @@ extension LibraryStore {
 
     /// Custom themes only, by folded name. Built-in themes live in code (`Theme.builtIn`).
     public func themes() async throws -> [Theme] {
-        try await writer.read { db in
+        let store = self
+        return try await writer.read { db in
             try String.fetchAll(db, sql: "SELECT definition FROM theme ORDER BY nameFolded, rowid")
-                .map { try SettingsJSON.decode(Theme.self, from: $0) }
+                .map { store.runtimeTheme(try SettingsJSON.decode(Theme.self, from: $0)) }
         }
     }
 
     /// Inserts or updates a custom theme by id. Built-in ids throw `invalidReference`; a blank name throws `invalidName`.
     public func saveTheme(_ theme: Theme) async throws {
         guard !builtInThemeIDs.contains(theme.id) else { throw StoreError.invalidReference }
-        var theme = theme
+        var theme = storedTheme(theme)
         theme.name = try Self.validName(theme.name)
         let definition = try SettingsJSON.encode(theme)
         let folded = SearchFolding.fold(theme.name)
@@ -168,12 +169,13 @@ extension LibraryStore {
 
     /// In creation order.
     public func props() async throws -> [Prop] {
-        try await writer.read { db in
+        let store = self
+        return try await writer.read { db in
             try Row.fetchAll(db, sql: """
                 SELECT id, name, imagePath, frame, opacity, isOn FROM prop ORDER BY createdAt, rowid
                 """).map { row in
                 guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("prop id") }
-                return Prop(id: id, name: row["name"], imagePath: row["imagePath"],
+                return Prop(id: id, name: row["name"], imagePath: store.runtimePath(row["imagePath"]),
                             frame: try SettingsJSON.decode(NormalizedRect.self, from: row["frame"]),
                             opacity: row["opacity"], isOn: row["isOn"])
             }
@@ -183,6 +185,7 @@ extension LibraryStore {
     /// Inserts or updates a prop. A nil `bookmark` keeps the stored one.
     public func saveProp(_ prop: Prop, bookmark: Data?) async throws {
         let frame = try SettingsJSON.encode(prop.frame)
+        let imagePath = storedPath(prop.imagePath)
         try await writer.write { db in
             let now = Date()
             try db.execute(sql: """
@@ -191,7 +194,7 @@ extension LibraryStore {
                 ON CONFLICT(id) DO UPDATE SET name = excluded.name, imagePath = excluded.imagePath,
                     bookmark = COALESCE(excluded.bookmark, prop.bookmark), frame = excluded.frame,
                     opacity = excluded.opacity, isOn = excluded.isOn, updatedAt = excluded.updatedAt
-                """, arguments: [prop.id.dbText, prop.name, prop.imagePath, bookmark, frame, prop.opacity, prop.isOn, now, now])
+                """, arguments: [prop.id.dbText, prop.name, imagePath, bookmark, frame, prop.opacity, prop.isOn, now, now])
         }
     }
 
@@ -265,9 +268,11 @@ extension LibraryStore {
     public func addMediaAsset(name: String, kind: MediaKind, path: String, bookmark: Data?, duration: Double?,
                               pixelWidth: Int?, pixelHeight: Int?) async throws -> MediaAsset {
         let name = try Self.validName(name)
+        let store = self
+        let path = storedPath(path)
         return try await writer.write { db in
             if let existing = try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE path = ?", arguments: [path]).first {
-                return existing
+                return store.runtimeAsset(existing)
             }
             let id = UUID()
             try db.execute(sql: """
@@ -278,18 +283,20 @@ extension LibraryStore {
             guard let stored = try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE id = ?", arguments: [id.dbText]).first else {
                 throw StoreError.notFound
             }
-            return stored
+            return store.runtimeAsset(stored)
         }
     }
 
     /// In the order added; `nil` means every kind.
     public func mediaAssets(kind: MediaKind?) async throws -> [MediaAsset] {
-        try await writer.read { db in
+        let store = self
+        return try await writer.read { db in
             if let kind {
                 return try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE kind = ? ORDER BY addedAt, rowid",
-                                              arguments: [kind.rawValue])
+                                              arguments: [kind.rawValue]).map { store.runtimeAsset($0) }
             }
             return try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset ORDER BY addedAt, rowid", arguments: [])
+                .map { store.runtimeAsset($0) }
         }
     }
 

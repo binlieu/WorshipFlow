@@ -114,6 +114,17 @@ extension WorkspaceModel {
         onClearAll?()
     }
 
+    /// MEDIA-010: hides the live background on every screen. Nothing else changes and nothing is cancelled: no epoch bump, so
+    /// a Next that is waiting still happens. The next Go Live, Next or Previous, or a bin choice, brings a background back.
+    public func clearBackground() {
+        apply(.clearBackground)
+    }
+
+    /// MEDIA-010: a new bin choice brings a cleared background back.
+    public func showBackground() {
+        apply(.restoreBackground)
+    }
+
     /// UI-001: toggles Blackout. The place and the live deck are kept; a trigger, Next or Previous lifts it.
     public func blackout() {
         transportEpoch &+= 1

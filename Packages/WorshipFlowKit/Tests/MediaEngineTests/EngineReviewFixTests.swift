@@ -152,8 +152,9 @@ private func brokenMovie(in dir: URL, name: String = "broken") throws -> URL {
         }
         #expect(failed)
         #expect(registry.unavailableAssetIDs.contains(id))
-        #expect(!events.all.isEmpty)
-        #expect(events.all.last?.hasPrefix("failed") == true)
+        // The state is set before the callback runs, on another thread: wait for the callback, do not race it.
+        let told = await TestMedia.wait { events.all.last?.hasPrefix("failed") == true }
+        #expect(told)
     }
 
     @Test func aMissingFileIsReportedAtOnce() {

@@ -132,6 +132,7 @@ struct WorkspaceView: View {
         .sheet(isPresented: Binding(get: { app.ui.showImport }, set: { app.ui.showImport = $0 })) {
             ImportSheet(app: app, workspace: workspace, existingID: app.ui.importExistingID)
         }
+        .modifier(ProgramTransferModifier(app: app, workspace: workspace))
         .sheet(isPresented: Binding(get: { app.ui.showSectionOrders }, set: { app.ui.showSectionOrders = $0 })) {
             SectionOrderSheet(app: app, workspace: workspace)
         }

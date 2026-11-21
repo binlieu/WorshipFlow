@@ -225,3 +225,18 @@ struct LiveScreenPreview: View {
             .overlay(RoundedRectangle(cornerRadius: 3).stroke(.quaternary))
     }
 }
+
+/// MEDIA-010: the small mark on a slide thumbnail whose slide has its own background (set by dropping a video or picture on it).
+struct OwnBackgroundMark: View {
+    let content: SlideContent
+
+    var body: some View {
+        if SlideBackgroundDrop.hasOwnBackground(content) {
+            Image(systemName: content.background?.kind == .video ? "film" : "photo")
+                .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                .padding(4).background(.black.opacity(0.65), in: Circle())
+                .help("This slide has its own background. Right-click the slide to use the presentation's background again.")
+                .accessibilityHidden(true)
+        }
+    }
+}

@@ -113,6 +113,7 @@ extension LibraryStore {
                 arguments: [id.dbText])
             try SearchIndex.remove(db, backend: backend, presentationID: id)
             try db.execute(sql: "DELETE FROM presentation WHERE id = ?", arguments: [id.dbText])
+            try db.execute(sql: "DELETE FROM appState WHERE key = ?", arguments: [Self.backgroundsKey(id)])     // MEDIA-010
             for playlistID in affected {
                 try Self.renumber(db, table: "playlistItem", parent: ("playlistID", playlistID))
             }
@@ -123,6 +124,7 @@ extension LibraryStore {
 
     public func appendSlide(to presentationID: UUID, content: SlideContent) async throws -> Slide {
         let backend = searchBackend
+        let store = self
         return try await writer.write { db in
             try Self.requireExists(db, table: "presentation", id: presentationID)
             let count = try Int.fetchOne(
@@ -130,7 +132,7 @@ extension LibraryStore {
             let now = Date()
             // Raw insert: leaves groupID to its default so this also works on a v1 database. The objects column
             // (v5) is written only when there are objects, so plain slides still insert on an older store.
-            let objects = SlideObjectsJSON.encode(content.objects)
+            let objects = SlideObjectsJSON.encode(store.storedObjects(content.objects))
             let record = SlideRecord(
                 id: UUID(), presentationID: presentationID, sortOrder: count,
                 primaryText: content.primary, secondaryText: content.secondary, notes: "",
@@ -146,22 +148,28 @@ extension LibraryStore {
                     VALUES (?, ?, ?, ?, ?, '', ?, ?)
                     """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now])
             }
+            try Self.writeBackground(db, presentationID: presentationID, slideID: record.id, content.background)
             try Self.touch(db, presentationID: presentationID, backend: backend)
-            return record.domain
+            var added = store.runtimeSlide(record.domain)
+            added.content.background = content.background
+            return added
         }
     }
 
     public func slides(of presentationID: UUID) async throws -> [Slide] {
-        try await writer.read { db in
-            try SlideRecord.fetchAll(
+        let store = self
+        return try await writer.read { db in
+            let slides = try SlideRecord.fetchAll(
                 db, sql: "SELECT * FROM slide WHERE presentationID = ? ORDER BY sortOrder, rowid",
-                arguments: [presentationID.dbText]).map(\.domain)
+                arguments: [presentationID.dbText]).map(\.domain).map { store.runtimeSlide($0) }
+            return Self.applyBackgrounds(slides, db, presentationID)
         }
     }
 
     /// Updates content (text and objects) and notes only; order and owner are unchanged.
     public func updateSlide(_ slide: Slide) async throws {
         let backend = searchBackend
+        let storedObjects = SlideObjectsJSON.encode(self.storedObjects(slide.content.objects))
         try await writer.write { db in
             guard let presentationID = try Self.presentationID(db, slideID: slide.id) else { throw StoreError.notFound }
             try db.execute(sql: """
@@ -172,8 +180,9 @@ extension LibraryStore {
             let hasColumn = try SearchIndex.slideHasObjectsColumn(db)
             if hasColumn || !slide.content.objects.isEmpty {
                 try db.execute(sql: "UPDATE slide SET objects = ? WHERE id = ?",
-                               arguments: [SlideObjectsJSON.encode(slide.content.objects), slide.id.dbText])
+                               arguments: [storedObjects, slide.id.dbText])
             }
+            try Self.writeBackground(db, presentationID: presentationID, slideID: slide.id, slide.content.background)
             try Self.touch(db, presentationID: presentationID, backend: backend)
         }
     }

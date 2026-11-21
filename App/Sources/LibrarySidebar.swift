@@ -234,6 +234,8 @@ struct LibrarySidebar: View {
                     Button("New playlist…") { ask(.newPlaylist, "") }
                     if let playlist = currentPlaylist {
                         Button("Rename playlist…") { ask(.renamePlaylist(playlist.id), playlist.name) }
+                        Button("Export program…") { app.openExportProgram(playlistID: playlist.id) }
+                        Button("Import program…") { app.openImportProgram() }
                         Button("Delete playlist…", role: .destructive) { pendingDelete = .playlist(playlist.id, playlist.name) }
                     }
                 } label: { Image(systemName: "ellipsis") }

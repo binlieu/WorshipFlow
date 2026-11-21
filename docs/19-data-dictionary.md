@@ -340,3 +340,16 @@ Other app state keys added: `cue.midi.settings` (MIDI on or off, chosen input an
 ### LIB-004c: scripture playlist items (no schema change)
 
 `playlistItem.kind = 'scripture'` with `payload` JSON `{"label", "ranges":[{"book","startChapter","startVerse","endChapter","endVerse"}], "primaryCode", "secondaryCode"}`; `presentationID` is NULL. No verse text is stored. State key `scripture.choices` (settings state table): `{"primary","secondary","versesPerSlide"}`.
+
+### LIB-005: media paths relative to the library's folder (no schema change)
+
+A path stored in `slide.objects` (image objects), `theme.definition` (an image background), `prop.imagePath` and `mediaAsset.path` that lies inside `<library folder>/Media/Imported/` is stored as `Media/Imported/<program id>/<file>`, relative to the folder that holds `Library.sqlite`. `LibraryStore` converts it to an absolute path when it reads and back when it writes, so callers only see absolute paths; every other path is stored as it was given, and an in-memory store converts nothing. A relative path with a `..` part is never turned into a file path. Files below `Media/Imported/<program id>/` are named `<sha256>.<ext>`; `missing/<name>` is a path that never had a file. The program package format (not stored in the library) is described in `docs/features/LIB-005-program-export-import.md`.
+
+### MEDIA-010: a slide's own background and hot folders (no schema change)
+
+Two JSON values in `appState`, because the library stays at ten migrations (KI-100).
+
+| Key | Value |
+|---|---|
+| `slideBackgrounds.<presentation id, upper-case UUID>` | JSON object `{"<slide id>": {"assetID": "<UUID>", "kind": "image" or "video", "duration": <seconds or absent>}}`. Absent when no slide of the presentation has its own background. Written in the same transaction as the slide's update; removed when the presentation is deleted. `SlideContent.background` is read from it by `slides(of:)` and the arrangement resolver. An entry whose slide is gone is ignored |
+| `media.hotFolders` | JSON array, in the order added: `[{"id": "<UUID>", "name": "...", "path": "/absolute/path", "bookmark": "<base64 security-scoped bookmark, optional>"}]`. Absent when there are none. Only the reference is stored; the folder and its files are never changed. The items of a folder are not stored: they are listed from the folder, with ids derived from the folder id and the file name |

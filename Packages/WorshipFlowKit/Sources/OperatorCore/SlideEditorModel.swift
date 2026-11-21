@@ -16,6 +16,8 @@ public final class SlideEditorModel {
     private struct Snapshot {
         var objects: [SlideObject]
         var selected: UUID?
+        /// MEDIA-010: the slide's own background at that moment, so one undo covers it too.
+        var background: MediaSelection?
     }
 
     private struct History {
@@ -117,7 +119,7 @@ public final class SlideEditorModel {
     /// Call when a drag begins and `endInteraction()` when it ends, so the whole drag is one undo step.
     public func beginInteraction() {
         guard let slide else { return }
-        interactionBase = (slide.id, Snapshot(objects: slide.content.objects, selected: selectedObjectID))
+        interactionBase = (slide.id, Snapshot(objects: slide.content.objects, selected: selectedObjectID, background: slide.content.background))
     }
 
     public func endInteraction() {
@@ -295,13 +297,31 @@ public final class SlideEditorModel {
         selectedObjectID.flatMap { duplicate($0) }
     }
 
+    // MARK: The slide's own background (MEDIA-010)
+
+    /// Sets (or, with nil, removes) one slide's own background. An edit to the presentation: it shows in the open presentation
+    /// at once, is saved by the same debounced path as typed text, and can be undone while that slide is selected. It never
+    /// reaches the live output until the slide goes live again. Returns false when the slide is not in the open presentation.
+    @discardableResult
+    public func setBackground(_ selection: MediaSelection?, forSlide slideID: UUID) -> Bool {
+        guard let slide = workspace.slides.first(where: { $0.id == slideID }) else { return false }
+        resetHistoryIfPresentationChanged()
+        guard slide.content.background != selection else { return true }
+        let selected = self.slide?.id == slideID ? selectedObjectID : nil
+        record(Snapshot(objects: slide.content.objects, selected: selected, background: slide.content.background), forSlide: slideID, key: nil)
+        var content = slide.content
+        content.background = selection
+        workspace.editSlide(id: slideID, content: content)
+        return true
+    }
+
     // MARK: Undo and redo
 
     private var history: History? { slide.flatMap { histories[$0.id] } }
 
     public func undo() {
         guard let slide, var h = histories[slide.id], let previous = h.undo.popLast() else { return }
-        h.redo.append(Snapshot(objects: slide.content.objects, selected: selectedObjectID))
+        h.redo.append(Snapshot(objects: slide.content.objects, selected: selectedObjectID, background: slide.content.background))
         h.lastKey = nil
         histories[slide.id] = h
         restore(previous, on: slide)
@@ -309,7 +329,7 @@ public final class SlideEditorModel {
 
     public func redo() {
         guard let slide, var h = histories[slide.id], let next = h.redo.popLast() else { return }
-        h.undo.append(Snapshot(objects: slide.content.objects, selected: selectedObjectID))
+        h.undo.append(Snapshot(objects: slide.content.objects, selected: selectedObjectID, background: slide.content.background))
         h.lastKey = nil
         histories[slide.id] = h
         restore(next, on: slide)
@@ -318,6 +338,7 @@ public final class SlideEditorModel {
     private func restore(_ snapshot: Snapshot, on slide: Slide) {
         var content = slide.content
         content.objects = snapshot.objects
+        content.background = snapshot.background
         workspace.editSlide(id: slide.id, content: content)
         if let id = snapshot.selected, snapshot.objects.contains(where: { $0.id == id }) {
             selection = (slide.id, id)
@@ -336,7 +357,7 @@ public final class SlideEditorModel {
         var objects = slide.content.objects
         change(&objects)
         guard objects != slide.content.objects else { return }
-        let before = Snapshot(objects: slide.content.objects, selected: selectedObjectID)
+        let before = Snapshot(objects: slide.content.objects, selected: selectedObjectID, background: slide.content.background)
         if interactionBase?.slideID == slide.id {
             // inside a drag: endInteraction records the single step
         } else if let key, histories[slide.id]?.lastKey == key, !(histories[slide.id]?.undo.isEmpty ?? true) {

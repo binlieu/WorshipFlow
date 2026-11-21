@@ -23,7 +23,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppModel.shared.startWorkspace()
             AppModel.shared.startSoakIfRequested()
             AppModel.shared.runUISnapshotsIfRequested()
+            #if DEBUG
+            AppModel.shared.runProgramExerciseIfRequested()      // LIB-005
+            #endif
         }
+    }
+
+    /// LIB-005: a `.worshipflowprogram` opened from Finder (double click, or dropped on the Dock icon).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        MainActor.assumeIsolated { AppModel.shared.openProgramPackages(urls) }
     }
 
     /// R4: closing windows never ends the app while the screens are open.
@@ -99,6 +107,9 @@ struct WorkspaceCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Presentation") { app.newPresentation() }.keyboardShortcut("n")
             Button("Import Lyrics…") { app.openImport(existing: nil) }.keyboardShortcut("i")
+            Divider()
+            Button("Export Program…") { app.openExportProgram() }
+            Button("Import Program…") { app.openImportProgram() }
         }
         // R4: Command-H hides every window of the app, the screens included, so it is off while they are open.
         CommandGroup(replacing: .appVisibility) {
@@ -146,6 +157,9 @@ struct WorkspaceCommands: Commands {
             Button("Previous (Left arrow)") { app.previous() }
             Button("Clear (Escape)") { app.clear() }
             Button("Clear All (Shift-Escape)") { app.clearAll() }
+            Button("Clear Background") { app.clearBackground(from: .key) }.keyboardShortcut("b", modifiers: [.control, .option])
+            Button("Clear Foreground") { app.clearForeground(from: .key) }.keyboardShortcut("f", modifiers: [.control, .option])
+            Button("Clear Music") { app.clearMusic(from: .key) }.keyboardShortcut("m", modifiers: [.control, .option])
             Button("Blackout (B)") { app.blackout() }
             Button("Stop") { app.stopShow() }
             Divider()

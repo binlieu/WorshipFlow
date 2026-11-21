@@ -6,20 +6,25 @@ public struct SlideContent: Sendable, Equatable, Codable, Hashable {
     public var secondary: String?
     /// Text boxes, shapes and images, back to front. Absent from content saved before objects existed.
     public var objects: [SlideObject]
+    /// MEDIA-010: this slide's own background (a bin video or picture). Nil means the presentation's own. A live override
+    /// from the media bin beats it while that is on.
+    public var background: MediaSelection?
 
-    public init(primary: String, secondary: String? = nil, objects: [SlideObject] = []) {
+    public init(primary: String, secondary: String? = nil, objects: [SlideObject] = [], background: MediaSelection? = nil) {
         self.primary = primary
         self.secondary = secondary
         self.objects = objects
+        self.background = background
     }
 
-    private enum CodingKeys: String, CodingKey { case primary, secondary, objects }
+    private enum CodingKeys: String, CodingKey { case primary, secondary, objects, background }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(primary: try c.decode(String.self, forKey: .primary),
                   secondary: try c.decodeIfPresent(String.self, forKey: .secondary),
-                  objects: try c.decodeIfPresent([SlideObject].self, forKey: .objects) ?? [])
+                  objects: try c.decodeIfPresent([SlideObject].self, forKey: .objects) ?? [],
+                  background: try c.decodeIfPresent(MediaSelection.self, forKey: .background))
     }
 
     /// Slides without objects encode exactly as they did before objects existed.
@@ -28,6 +33,7 @@ public struct SlideContent: Sendable, Equatable, Codable, Hashable {
         try c.encode(primary, forKey: .primary)
         try c.encodeIfPresent(secondary, forKey: .secondary)
         if !objects.isEmpty { try c.encode(objects, forKey: .objects) }
+        try c.encodeIfPresent(background, forKey: .background)
     }
 
     /// True when neither line has visible text and there are no objects.

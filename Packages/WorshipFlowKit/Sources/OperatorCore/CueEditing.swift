@@ -8,6 +8,8 @@ public enum CueActionKind: String, CaseIterable, Identifiable, Sendable {
     case look, prop, showMessage, hideMessage
     case startTimer, pauseTimer, resetTimer
     case setBackground, clearBackground, playClip, stopClip
+    /// MEDIA-010: the three live clears. (`clearBackground` above drops the live override; this one hides every background.)
+    case clearLiveBackground, clearLiveForeground, clearMusic
     case playSound, stopSound
     case midiOut, runMacro, wait
 
@@ -15,7 +17,7 @@ public enum CueActionKind: String, CaseIterable, Identifiable, Sendable {
 
     public var isTransport: Bool {
         switch self {
-        case .next, .previous, .goToSlide, .clear, .clearAll, .blackout, .stop: true
+        case .next, .previous, .goToSlide, .clear, .clearAll, .blackout, .stop, .clearLiveBackground, .clearLiveForeground, .clearMusic: true
         default: false
         }
     }
@@ -29,6 +31,9 @@ public enum CueActionKind: String, CaseIterable, Identifiable, Sendable {
         case .clearAll: "Clear all"
         case .blackout: "Blackout"
         case .stop: "Stop"
+        case .clearLiveBackground: "Clear live background"
+        case .clearLiveForeground: "Clear live foreground"
+        case .clearMusic: "Clear music"
         case .look: "Set Look"
         case .prop: "Prop on or off"
         case .showMessage: "Stage message"
@@ -50,7 +55,7 @@ public enum CueActionKind: String, CaseIterable, Identifiable, Sendable {
 
     public var group: String {
         switch self {
-        case .next, .previous, .goToSlide, .clear, .clearAll, .blackout, .stop: "Show"
+        case .next, .previous, .goToSlide, .clear, .clearAll, .blackout, .stop, .clearLiveBackground, .clearLiveForeground, .clearMusic: "Show"
         case .look, .prop: "Look and props"
         case .showMessage, .hideMessage, .startTimer, .pauseTimer, .resetTimer: "Stage"
         case .setBackground, .clearBackground, .playClip, .stopClip: "Media"
@@ -71,6 +76,9 @@ public enum CueActionKind: String, CaseIterable, Identifiable, Sendable {
             case .clearAll: return .clearAll
             case .blackout: return .blackout
             case .stop: return .stop
+            case .clearBackground: return .clearLiveBackground
+            case .clearForeground: return .clearLiveForeground
+            case .clearMusic: return .clearMusic
             }
         case .selectLook: return .look
         case .prop: return .prop
@@ -172,6 +180,9 @@ public enum CueActionEditing {
         case .clearAll: return .transport(.clearAll)
         case .blackout: return .transport(.blackout(.toggle))
         case .stop: return .transport(.stop)
+        case .clearLiveBackground: return .transport(.clearBackground)
+        case .clearLiveForeground: return .transport(.clearForeground)
+        case .clearMusic: return .transport(.clearMusic)
         case .look: return c.looks.first.map { .selectLook($0.id) }
         case .prop: return c.props.first.map { .prop(id: $0.id, isOn: true) }
         case .showMessage: return .showMessage(id: stageMessageID, fields: ["text": "Message"])
@@ -206,6 +217,9 @@ public enum CueActionEditing {
             case .clearAll: return CueActionRow(title: "Clear all", detail: "", screens: all, isBroken: false)
             case .blackout(let m): return CueActionRow(title: "Blackout", detail: m.rawValue, screens: all, isBroken: false)
             case .stop: return CueActionRow(title: "Stop", detail: "", screens: all, isBroken: false)
+            case .clearBackground: return CueActionRow(title: "Clear live background", detail: "", screens: [.audience, .broadcast], isBroken: false)
+            case .clearForeground: return CueActionRow(title: "Clear live foreground", detail: "", screens: [.audience, .broadcast], isBroken: false)
+            case .clearMusic: return CueActionRow(title: "Clear music", detail: "", screens: [], isBroken: false)
             }
         case .selectLook(let id):
             let (n, bad) = named(c.looks, id, missing: "Look")

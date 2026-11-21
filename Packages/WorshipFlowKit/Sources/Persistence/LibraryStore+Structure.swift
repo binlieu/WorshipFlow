@@ -165,7 +165,10 @@ extension LibraryStore {
 
     /// Slides in play order: natural order for a nil arrangement, else the arrangement's order.
     public func resolvedSlides(of presentationID: UUID, arrangementID: UUID?) async throws -> [Slide] {
-        try await writer.read { db in try Self.resolve(db, presentationID: presentationID, arrangementID: arrangementID) }
+        let store = self
+        return try await writer.read { db in
+            try Self.resolve(db, presentationID: presentationID, arrangementID: arrangementID).map { store.runtimeSlide($0) }
+        }
     }
 
     // MARK: Playlist items
@@ -191,7 +194,8 @@ extension LibraryStore {
 
     /// The slides a playlist item shows, honouring its arrangement.
     public func slides(forPlaylistItem itemID: UUID) async throws -> [Slide] {
-        try await writer.read { db in
+        let store = self
+        return try await writer.read { db in
             guard let row = try Row.fetchOne(
                 db, sql: "SELECT presentationID, arrangementID FROM playlistItem WHERE id = ?",
                 arguments: [itemID.dbText]),
@@ -199,7 +203,7 @@ extension LibraryStore {
             // UI-002: a header or a countdown has no presentation and so no slides.
             guard let presentationID = (row["presentationID"] as String?).flatMap(UUID.init(uuidString:)) else { return [] }
             let arrangementID = (row["arrangementID"] as String?).flatMap(UUID.init(uuidString:))
-            return try Self.resolve(db, presentationID: presentationID, arrangementID: arrangementID)
+            return try Self.resolve(db, presentationID: presentationID, arrangementID: arrangementID).map { store.runtimeSlide($0) }
         }
     }
 
@@ -227,9 +231,9 @@ extension LibraryStore {
     }
 
     private static func resolve(_ db: Database, presentationID: UUID, arrangementID: UUID?) throws -> [Slide] {
-        let slides = try SlideRecord.fetchAll(
+        let slides = applyBackgrounds(try SlideRecord.fetchAll(
             db, sql: "SELECT * FROM slide WHERE presentationID = ? ORDER BY sortOrder, rowid",
-            arguments: [presentationID.dbText]).map(\.domain)
+            arguments: [presentationID.dbText]).map(\.domain), db, presentationID)
         guard let arrangementID else { return slides }
         guard let arrangement = try fetchArrangements(db, presentationID: presentationID)
             .first(where: { $0.id == arrangementID }) else { throw StoreError.notFound }

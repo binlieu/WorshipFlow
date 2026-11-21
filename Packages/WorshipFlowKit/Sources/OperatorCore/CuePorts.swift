@@ -23,6 +23,8 @@ public protocol CueTransportPort: AnyObject {
     func clear()
     func clearAll()
     func stop()
+    /// MEDIA-010: hides the live background. Cancels nothing and moves nothing. The default does nothing.
+    func clearBackground()
     /// Toggles Blackout.
     func blackout()
     /// The id of the slide that is live now, when `event` still describes it; nil when the show has moved on.
@@ -56,7 +58,13 @@ public protocol CueMediaPort: AnyObject {
     func stopForeground()
     func playSound(_ id: UUID)
     func stopSound(_ id: UUID)
+    /// MEDIA-010: stops every sound cue (the audio player). The default does nothing.
+    func clearMusic()
 }
+
+// MEDIA-010: the doors added later have a default, so an earlier conformer keeps compiling.
+extension CueTransportPort { public func clearBackground() {} }
+extension CueMediaPort { public func clearMusic() {} }
 
 /// MIDI out: the router when MIDI is on. Throws a `CueTargetError` with text for the operator.
 @MainActor

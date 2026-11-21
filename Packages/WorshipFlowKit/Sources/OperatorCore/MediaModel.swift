@@ -78,12 +78,34 @@ public final class MediaModel {
     }
     private var loopingAssetID: UUID?
 
+    // MARK: MEDIA-010 state
+    /// MEDIA-010: the background video's sound. A background starts muted, which stays until the operator unmutes it.
+    public private(set) var isBackgroundMuted = true
+    /// The state the player is given: the operator's choice, or silent while Blackout is on.
+    public var backgroundHeardMuted: Bool { isBackgroundMuted || isMutedByBlackout }
+    /// MEDIA-010: a live background chosen in the bin (or by a cue or folder) is on. It is a live override: it never writes to
+    /// the presentation, and it stays until it is dropped or replaced.
+    public var hasLiveBackgroundOverride: Bool { layers.background != nil }
+    /// The hot folder playing its videos one after another, if one is.
+    public var playingFolderID: UUID? { folderPlay?.folderID }
+    @ObservationIgnored private var hotAssetsByFolder: [UUID: [MediaAsset]] = [:]
+    @ObservationIgnored private var folderPlay: FolderPlay?
+
+    /// Which layer a hot folder plays on.
+    public enum FolderLayer: Sendable, Equatable { case background, foreground }
+    private struct FolderPlay { var folderID: UUID; var layer: FolderLayer; var current: String }
+
     public var visibleAssets: [MediaAsset] {
         guard let kindFilter else { return assets }
         return assets.filter { $0.kind == kindFilter }
     }
 
-    public func asset(_ id: UUID) -> MediaAsset? { assets.first { $0.id == id } }
+    public func asset(_ id: UUID) -> MediaAsset? {
+        assets.first { $0.id == id } ?? hotAssetsByFolder.values.lazy.flatMap { $0 }.first { $0.id == id }
+    }
+
+    /// MEDIA-010: the bin's items and the items of every hot folder, for the registry and the audio list.
+    public var allAssets: [MediaAsset] { assets + hotAssetsByFolder.keys.sorted { $0.uuidString < $1.uuidString }.flatMap { hotAssetsByFolder[$0] ?? [] } }
 
     /// Called on the main actor after the bin's contents change (add, rename, remove, load).
     @ObservationIgnored public var onAssetsChange: (@MainActor ([MediaAsset]) -> Void)?
@@ -91,6 +113,11 @@ public final class MediaModel {
     @ObservationIgnored public var onLayersChange: (@MainActor (MediaLayers) -> Void)?
     /// Called on the main actor after the volume or mute changed.
     @ObservationIgnored public var onAudioChange: (@MainActor (_ volume: Float, _ muted: Bool) -> Void)?
+    /// MEDIA-010: called after the background video's sound changed (its mute, the volume, Blackout). `muted` is the state to
+    /// be heard, Blackout included.
+    @ObservationIgnored public var onBackgroundAudioChange: (@MainActor (_ volume: Float, _ muted: Bool) -> Void)?
+    /// MEDIA-010: a new live background was chosen. The app uses it to bring a cleared background back.
+    @ObservationIgnored public var onBackgroundChosen: (@MainActor () -> Void)?
 
     // MARK: Internals
 
@@ -130,7 +157,7 @@ public final class MediaModel {
     public func load() async {
         guard let all = await attempt("read the media bin", { try await self.store.mediaAssets(kind: nil) }) else { return }
         assets = all
-        onAssetsChange?(assets)
+        onAssetsChange?(allAssets)
         guard let text = try? await store.state(for: Self.backgroundKey), let id = UUID(uuidString: text) else { return }
         guard let asset = asset(id) else { return }     // the asset was removed: nothing to restore
         guard isAvailable(asset) else {
@@ -147,6 +174,9 @@ public final class MediaModel {
     public func flush() async { await writes.flush() }
 
     public func dismissError() { lastError = nil }
+
+    /// MEDIA-010: a message for the operator from the interface (a refused drop).
+    public func report(_ text: String) { lastError = text }
 
     // MARK: The bin
 
@@ -201,7 +231,7 @@ public final class MediaModel {
     private func reload() async {
         guard let all = await attempt("read the media bin", { try await self.store.mediaAssets(kind: nil) }) else { return }
         assets = all
-        onAssetsChange?(assets)
+        onAssetsChange?(allAssets)
     }
 
     // MARK: Background
@@ -209,13 +239,19 @@ public final class MediaModel {
     /// Starts the item looping behind the slides. Persisted, so the next launch brings it back.
     public func setBackground(_ id: UUID) {
         guard let asset = asset(id), usable(asset, as: "a background") else { return }
+        endFolderPlay(on: .background)
         if layers.background?.selection == MediaSelection(asset: asset) { return }
         layers.setBackground(MediaSelection(asset: asset), at: now())
         persistBackground(asset.id)
         layersChanged()
+        onBackgroundChosen?()
     }
 
+    /// MEDIA-010: drops the live override (the inspector's button); the slide's own background shows again.
+    public func dropBackgroundOverride() { clearBackground() }
+
     public func clearBackground() {
+        endFolderPlay(on: .background)
         let had = layers.background != nil
         layers.setBackground(nil, at: now())
         persistBackground(nil)
@@ -236,6 +272,7 @@ public final class MediaModel {
             lastError = "Take a slide live first, then play \"\(asset.name)\": the screens are stopped, so nobody would see it."
             return
         }
+        endFolderPlay(on: .foreground)
         loopingAssetID = nil                      // a new clip plays once unless the operator asks otherwise
         layers.startForeground(MediaSelection(asset: asset), at: now())
         layersChanged()
@@ -274,6 +311,7 @@ public final class MediaModel {
     }
 
     public func stopForeground() {
+        endFolderPlay(on: .foreground)
         loopingAssetID = nil
         guard layers.foreground != nil else { return }
         layers.stopForeground()
@@ -320,6 +358,7 @@ public final class MediaModel {
     @discardableResult
     public func tick(now at: Double? = nil) -> Bool {
         let t = at ?? now()
+        if advanceFolderIfDue(at: t) { return true }
         if restartLoopingClipIfEnded(at: t) { return true }
         guard layers.tick(at: t) else { return false }
         layersChanged()
@@ -335,6 +374,7 @@ public final class MediaModel {
         let t = at ?? now()
         let transport = foreground.transport
         if transport.duration > 0, transport.remaining(at: t) > 1.0 { return false }
+        if folderPlay?.layer == .foreground { advanceFolder(at: t); return true }
         if foregroundLoops { restartForegroundNow(foreground, at: t); return true }
         layers.stopForeground()
         layersChanged()
@@ -374,6 +414,7 @@ public final class MediaModel {
         guard blackout != isMutedByBlackout else { return }
         isMutedByBlackout = blackout
         onAudioChange?(Float(volume), isMuted || isMutedByBlackout)
+        onBackgroundAudioChange?(Float(volume), backgroundHeardMuted)
     }
 
     /// R17: the screens were closed. The clip playing over the slide stops (its sound with it); the background stays
@@ -385,6 +426,15 @@ public final class MediaModel {
         guard v != volume else { return }
         volume = v
         onAudioChange?(Float(volume), isMuted || isMutedByBlackout)
+        onBackgroundAudioChange?(Float(volume), backgroundHeardMuted)
+    }
+
+    /// MEDIA-010: mute or unmute the background video's sound. The choice holds across Next and a new background; Blackout
+    /// silences it meanwhile and the choice comes back when it lifts.
+    public func setBackgroundMuted(_ muted: Bool) {
+        guard muted != isBackgroundMuted else { return }
+        isBackgroundMuted = muted
+        onBackgroundAudioChange?(Float(volume), backgroundHeardMuted)
     }
 
     public func setMuted(_ muted: Bool) {
@@ -434,6 +484,94 @@ public final class MediaModel {
             changed = true
         }
         if changed { layersChanged() }
+    }
+
+    // MARK: Hot folders (MEDIA-010)
+
+    /// The items of one hot folder, as the folder model last saw them. An empty list forgets the folder. Items are not in
+    /// the bin and are never stored here; they can be chosen, played and found like bin items.
+    public func setHotAssets(_ folderID: UUID, _ items: [MediaAsset]) {
+        if items.isEmpty { hotAssetsByFolder[folderID] = nil } else { hotAssetsByFolder[folderID] = items }
+        onAssetsChange?(allAssets)
+    }
+
+    /// Plays the folder's videos one after another in name order, and again from the first after the last. Refused, with a
+    /// message, when the folder has no video, or for the foreground while the screens are stopped.
+    public func playFolder(_ folderID: UUID, on layer: FolderLayer) {
+        guard let first = folderVideos(folderID).first else {
+            lastError = "This folder has no videos to play yet. Videos that are still being copied in are played when they are complete."
+            return
+        }
+        if layer == .foreground, !showIsLive {
+            lastError = "Take a slide live first, then play the folder over the words: the screens are stopped, so nobody would see it."
+            return
+        }
+        guard isAvailable(first) else { lastError = Self.missingMessage(first, what: "The file"); return }
+        endFolderPlay(on: layer)
+        folderPlay = FolderPlay(folderID: folderID, layer: layer, current: first.name)
+        startFolderClip(first, on: layer)
+        if layer == .background { onBackgroundChosen?() }
+    }
+
+    public func stopFolder() {
+        guard let play = folderPlay else { return }
+        folderPlay = nil
+        switch play.layer {
+        case .background: clearBackground()
+        case .foreground: stopForeground()
+        }
+    }
+
+    private func folderVideos(_ id: UUID) -> [MediaAsset] {
+        (hotAssetsByFolder[id] ?? []).filter { $0.kind == .video }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    /// A choice or a clear on the layer the folder plays on ends the folder play; it is never replaced behind the operator's back.
+    private func endFolderPlay(on layer: FolderLayer) {
+        if folderPlay?.layer == layer { folderPlay = nil }
+    }
+
+    private func startFolderClip(_ asset: MediaAsset, on layer: FolderLayer) {
+        switch layer {
+        case .background: layers.setBackground(MediaSelection(asset: asset), at: now(), loops: false)
+        case .foreground:
+            loopingAssetID = nil
+            layers.startForeground(MediaSelection(asset: asset), at: now())
+        }
+        layersChanged()
+    }
+
+    /// Moves to the next video, in the order as the folder is now. Nothing to play (the folder emptied or went missing) ends it.
+    private func advanceFolder(at t: Double) {
+        guard let play = folderPlay else { return }
+        let queue = folderVideos(play.folderID).filter { isAvailable($0) }
+        guard !queue.isEmpty else {
+            folderPlay = nil
+            switch play.layer {
+            case .background: layers.setBackground(nil, at: t)
+            case .foreground: layers.stopForeground()
+            }
+            layersChanged()
+            return
+        }
+        let next = queue.first { $0.name.localizedStandardCompare(play.current) == .orderedDescending } ?? queue[0]
+        folderPlay?.current = next.name
+        startFolderClip(next, on: play.layer)
+    }
+
+    private func advanceFolderIfDue(at t: Double) -> Bool {
+        guard let play = folderPlay else { return false }
+        switch play.layer {
+        case .background:
+            guard let b = layers.background else { folderPlay = nil; return false }
+            guard b.transport.status(at: t) == .ended else { return false }
+        case .foreground:
+            guard let f = layers.foreground else { folderPlay = nil; return false }
+            guard f.transport.status(at: t) == .ended else { return false }
+        }
+        advanceFolder(at: t)
+        return true
     }
 
     // MARK: Helpers

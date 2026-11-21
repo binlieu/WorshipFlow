@@ -68,6 +68,8 @@ final class AppModel {
     private(set) var unavailableImages: [String] = []
     /// The operator workspace (OUT-004). Nil in a soak run, or when the library file could not be opened.
     private(set) var workspace: WorkspaceModel?
+    /// LIB-005: the open library, for program export and import (they read and write it through its one connection pool).
+    @ObservationIgnored private(set) var libraryStore: LibraryStore?
     private(set) var workspaceLoaded = false
     /// Objects (text boxes, shapes, images) on the selected slide (SLIDE-001b). Nil when the workspace is nil.
     private(set) var slideEditor: SlideEditorModel?
@@ -75,6 +77,15 @@ final class AppModel {
     private(set) var media: MediaModel?
     /// The audio list, cues and programme audio device (MEDIA-005 / MEDIA-006). Nil under the same conditions.
     private(set) var audio: AudioModel?
+    /// MEDIA-010: the folders the media bin follows, and the player in the Media mode's sidebar.
+    private(set) var hotFolders: HotFolderModel?
+    private(set) var binPreview: MediaPreviewModel?
+    @ObservationIgnored let binPreviewPlayer = AVPreviewPlayer()
+    @ObservationIgnored let hotFolderAccess = HotFolderAccess()
+    @ObservationIgnored private var knownHotFolderIDs: Set<UUID> = []
+    @ObservationIgnored private var hotTick = 0
+    /// MEDIA-010: when the live slide's own background started, so a publish does not restart its video.
+    @ObservationIgnored private var ownBackgroundStart: (selection: MediaSelection, at: Double)?
     /// Macros, slide actions, the schedule, MIDI and the remote control, and the one command path every show command goes through
     /// (CUE-002b). Nil under the same conditions.
     private(set) var cue: CueModel?
@@ -164,6 +175,7 @@ final class AppModel {
         let url = Self.libraryURL()
         do {
             let store = try LibraryStore.open(at: url)
+            libraryStore = store
             let model = WorkspaceModel(store: store)
             model.onShowChange = { [weak self] state in self?.showChanged(state) }
             model.onAppearanceChange = { [weak self] in self?.lookChanged() }
@@ -195,6 +207,21 @@ final class AppModel {
             }
             media.onAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setForegroundAudio(volume: volume, muted: muted) }
             mediaRegistry.setForegroundAudio(volume: Float(media.volume), muted: media.isMuted)
+            // MEDIA-010: the background video has its own sound state, muted until the operator unmutes it.
+            media.onBackgroundAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setBackgroundAudio(volume: volume, muted: muted) }
+            mediaRegistry.setBackgroundAudio(volume: Float(media.volume), muted: media.backgroundHeardMuted)
+            // A new live background brings a cleared one back.
+            media.onBackgroundChosen = { [weak self] in self?.workspace?.showBackground() }
+            let hot = HotFolderModel(store: store, listing: FileSystemFolderListing(), watching: DispatchFolderWatching(), prober: AppMediaProber())
+            hot.onFoldersChange = { [weak self] folders in self?.hotFolderAccess.update(folders) }
+            hot.onAssetsChange = { [weak self] byFolder in
+                guard let self, let media = self.media else { return }
+                for (id, items) in byFolder { media.setHotAssets(id, items) }
+                for gone in self.knownHotFolderIDs.subtracting(byFolder.keys) { media.setHotAssets(gone, []) }
+                self.knownHotFolderIDs = Set(byFolder.keys)
+            }
+            hotFolders = hot
+            binPreview = MediaPreviewModel(player: binPreviewPlayer, silent: CommandLine.arguments.contains("--silent-audio"))
             // A player that failed or stalled: end the clip so the words come back, and tell the operator (R9).
             mediaRegistry.setOnAvailabilityChange { id, state in
                 let mapped: ClipAvailability
@@ -270,6 +297,7 @@ final class AppModel {
             await stage?.load()
             await resolvePropBookmarks()
             await media?.load()
+            await hotFolders?.load()
             await audio?.load()
             await scripture?.load()
             coordinator.setProfiles(profiles)
@@ -395,7 +423,8 @@ final class AppModel {
             ?? profiles.first { $0.role == .audience }
             ?? ScreenProfile(name: "Audience", role: .audience, destination: .window)
         return PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props,
-                               presentationThemeID: workspace?.openThemeID, media: media?.layers.withoutForeground)
+                               presentationThemeID: workspace?.openThemeID,
+                               media: LiveMedia.preview(slide: slide, at: MediaClock.now()))
             .scene(forScreen: profile.id)
     }
 
@@ -408,6 +437,7 @@ final class AppModel {
         // R15: typing, moving the selection and loading a deck change preview only; the screens are republished
         // (every scene composed again) only when what they show changed.
         scheduleImageWarm()
+        syncMediaPlayers()          // MEDIA-010: the new live slide may bring its own background (or take it away)
         if publicationGate.shouldPublish(LiveOutputKey(state: state, notes: workspace?.liveNotes)) { publish() }
         cue?.remoteStateMayHaveChanged()     // CUE-002b: phones connected to the remote server see the new slide at once
         stage?.showStateChanged(isStopped: state.isStopped)      // Stop takes the stage message off the stage screens
@@ -548,6 +578,7 @@ final class AppModel {
             MainActor.assumeIsolated {
                 self?.updateClock(force: false)
                 self?.updateReadouts()
+                self?.hotFolderTick()
                 self?.cue?.tick()                    // CUE-002b: delivers waited stages of macros that have come due
             }
         }
@@ -804,6 +835,15 @@ final class AppModel {
 
     /// The layers changed: open the players for what was newly chosen, close the rest, and publish scenes.
     private func mediaLayersChanged(_ layers: MediaLayers) {
+        syncMediaPlayers()
+        appearanceRevision &+= 1          // thumbnails draw the background
+        updateMediaTicker(layers)
+        publish()
+    }
+
+    /// Opens the players for what is chosen to be on the live screens now, closes the rest and hands the registry the layers.
+    private func syncMediaPlayers() {
+        let layers = effectiveMedia()
         var closing: [MediaAccess] = []
         for (slot, layer) in [(MediaLayerSlot.background, layers.background), (.foreground, layers.foreground)] {
             let id = layer?.selection.assetID
@@ -815,10 +855,7 @@ final class AppModel {
             mediaRegistry.register(id: asset.id, kind: asset.kind, url: access.url, duration: asset.duration)
         }
         mediaRegistry.apply(layers)
-        appearanceRevision &+= 1          // thumbnails draw the background
         closing.forEach { $0.stop() }          // the players that used these files are closed now
-        updateMediaTicker(layers)
-        publish()
     }
 
     /// Forgets what the registry holds for assets that left the bin.
@@ -932,6 +969,106 @@ final class AppModel {
     func clearAll(from source: CommandSource = .button) {
         if let cue { cue.submit(.transport(.clearAll), from: source) } else if let w = workspace { w.clearAll() } else { send(.clearAll) }
     }
+    // MARK: The bin's selection and its player (MEDIA-010)
+
+    /// A single click in the bin: select the item and show it in the sidebar player. Nothing goes live.
+    func selectBinItem(_ id: UUID?) {
+        ui.binSelection = id
+        binPreview?.select(id.flatMap { media?.asset($0) })
+    }
+
+    /// Leaving the Media mode (or removing the item) puts the preview away.
+    func releaseBinPreview() { binPreview?.select(nil); ui.binSelection = nil }
+
+    // MARK: A slide's own background (MEDIA-010)
+
+    /// A tile from the media bin dropped on a slide thumbnail: that slide's own background. An edit to the presentation.
+    func setSlideBackground(mediaID: UUID, slideID: UUID) -> Bool {
+        guard let asset = media?.asset(mediaID), let selection = SlideBackgroundDrop.selection(for: asset) else {
+            media?.report("A sound file cannot be a slide's background. Drop a picture or a video.")
+            return false
+        }
+        return slideEditor?.setBackground(selection, forSlide: slideID) ?? false
+    }
+
+    /// A file from Finder dropped on a slide thumbnail: it joins the media bin, then becomes that slide's background.
+    func setSlideBackground(fileURLs: [URL], slideID: UUID) -> Bool {
+        guard let url = fileURLs.first(where: \.isFileURL), let media else { return false }
+        Task { @MainActor in
+            let started = url.startAccessingSecurityScopedResource()
+            let bookmark = MediaAccess.bookmark(for: url)
+            if started { url.stopAccessingSecurityScopedResource() }
+            guard let asset = await media.add(url: url, bookmark: bookmark) else { return }
+            _ = setSlideBackground(mediaID: asset.id, slideID: slideID)
+        }
+        return true
+    }
+
+    /// "Use the presentation's background".
+    func clearSlideBackground(slideID: UUID) { _ = slideEditor?.setBackground(nil, forSlide: slideID) }
+
+    // MARK: Hot folders (MEDIA-010)
+
+    /// Points the media bin at a folder, chosen in the system open panel.
+    func addHotFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose a folder for the media bin to follow. Its videos, pictures and sound appear in the bin."
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            MainActor.assumeIsolated { self?.followFolder(url) }
+        }
+    }
+
+    func followFolder(_ url: URL) {
+        guard let hot = hotFolders else { return }
+        Task { @MainActor in
+            let started = url.startAccessingSecurityScopedResource()
+            let bookmark = HotFolderAccess.bookmark(for: url)
+            if started { url.stopAccessingSecurityScopedResource() }
+            await hot.add(path: url.path, bookmark: bookmark)
+        }
+    }
+
+    /// A folder that went missing: choose it again.
+    func repointHotFolder(_ id: UUID) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose the folder this source should follow now."
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            MainActor.assumeIsolated {
+                Task { @MainActor in
+                    let bookmark = HotFolderAccess.bookmark(for: url)
+                    await self?.hotFolders?.relocate(id, to: url.path, bookmark: bookmark)
+                }
+            }
+        }
+    }
+
+    /// Called twice a second by the app timer: folders with files still being copied are looked at again every two seconds,
+    /// every folder every ten (so one that came back is found). Nothing runs while no folder is followed.
+    private func hotFolderTick() {
+        guard let hot = hotFolders, !hot.folders.isEmpty else { return }
+        hotTick &+= 1
+        if hotTick % 20 == 0 { Task { await hot.rescan() } }
+        else if hotTick % 4 == 0, hot.pendingCount > 0 { Task { await hot.rescan() } }
+    }
+
+    /// MEDIA-010: the three layer clears, through the same serial command path as every other transport command.
+    func clearBackground(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.clearBackground), from: source) } else { workspace?.clearBackground() }
+    }
+    func clearForeground(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.clearForeground), from: source) } else { media?.stopForeground() }
+    }
+    func clearMusic(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.clearMusic), from: source) } else { audio?.stopAll() }
+    }
     /// Command-E (UI-003): the Quick edit tab, for the SELECTED slide, in preview. Never touches what is on screen.
     func openQuickEdit() {
         guard let w = workspace, !w.slides.isEmpty else { return }
@@ -975,6 +1112,17 @@ final class AppModel {
         return PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
                                look: currentLook, props: props, presentationThemeID: workspace?.shownThemeID,
                                stageScenes: stageScenes, media: media?.layers)
+    }
+
+    /// MEDIA-010: what the media registry plays: a live override from the bin, else the live slide's own background, and the
+    /// clip over the words. The slide's own background keeps one start time while it stays the same, so a publish never
+    /// restarts its video.
+    private func effectiveMedia() -> MediaLayers {
+        let override = media?.layers ?? MediaLayers()
+        let own = show.liveSlideAtPlace?.background
+        if override.background != nil || own == nil { ownBackgroundStart = nil; return override }
+        if ownBackgroundStart?.selection != own { ownBackgroundStart = (own!, MediaClock.now()) }
+        return LiveMedia.effective(override: override, slide: show.liveSlideAtPlace, at: ownBackgroundStart!.at)
     }
 
     /// The stage's one-second republish. Skipped when nothing on any screen changed, and it does not touch the slide

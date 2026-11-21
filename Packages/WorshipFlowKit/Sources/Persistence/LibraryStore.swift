@@ -12,10 +12,13 @@ public final class LibraryStore: Sendable {
     // GRDB's DatabaseWriter is Sendable and serialises access itself.
     let writer: any DatabaseWriter
     let searchBackend: SearchBackend
+    /// LIB-005: maps media paths kept relative to the library's folder (nil for an in-memory store). See `MediaPathMapper`.
+    let mediaPaths: MediaPathMapper?
 
-    private init(writer: any DatabaseWriter, searchBackend: SearchBackend) {
+    private init(writer: any DatabaseWriter, searchBackend: SearchBackend, mediaPaths: MediaPathMapper?) {
         self.writer = writer
         self.searchBackend = searchBackend
+        self.mediaPaths = mediaPaths
     }
 
     // MARK: Opening
@@ -46,7 +49,8 @@ public final class LibraryStore: Sendable {
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         // One DatabasePool per file, kept for the life of the store (ADR-0004 decision 2).
         let pool = try DatabasePool(path: url.path, configuration: makeConfiguration())
-        return try finishOpening(writer: pool, upTo: migration, forcing: backend)
+        return try finishOpening(writer: pool, upTo: migration, forcing: backend,
+                                 mediaPaths: MediaPathMapper(libraryFolder: url.deletingLastPathComponent()))
     }
 
     private static func makeConfiguration() -> Configuration {
@@ -60,7 +64,7 @@ public final class LibraryStore: Sendable {
     }
 
     private static func finishOpening(writer: any DatabaseWriter, upTo migration: String?,
-                                      forcing forced: SearchBackend?) throws -> LibraryStore {
+                                      forcing forced: SearchBackend?, mediaPaths: MediaPathMapper? = nil) throws -> LibraryStore {
         let migrator = Schema.makeMigrator()
         if let migration {
             guard migrator.migrations.contains(migration) else { throw StoreError.unknownMigration(migration) }
@@ -76,7 +80,7 @@ public final class LibraryStore: Sendable {
             try SearchIndex.prepare(db, backend: backend)
             try ScriptureIndex.prepare(db, backend: backend)
         }
-        return LibraryStore(writer: writer, searchBackend: backend)
+        return LibraryStore(writer: writer, searchBackend: backend, mediaPaths: mediaPaths)
     }
 
     /// Closes the connections. Calls made afterwards throw.

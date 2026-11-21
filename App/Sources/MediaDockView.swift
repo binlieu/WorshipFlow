@@ -153,6 +153,7 @@ struct MediaDockView: View {
         let mark = MediaTileMarks.mark(for: asset, layers: media.layers, showIsLive: media.showIsLive, selected: selected,
                                        soundIsPlaying: audio?.activeCues.contains { $0.assetID == asset.id } ?? false)
         return DockTile(asset: asset, mark: mark, width: width)
+            .draggable(SlideBackgroundDrop.dragText(for: asset.id))       // MEDIA-010: drop it on a slide for that slide's own background
             .onTapGesture {
                 selected = asset.id
                 app.performDockAction(MediaDock.action(for: asset, layer: app.ui.dockLayer))
@@ -161,7 +162,7 @@ struct MediaDockView: View {
                 if asset.kind != .audio {
                     Button("Set as background") { selected = asset.id; media.setBackground(asset.id) }
                     Button("Play in foreground") { selected = asset.id; media.playForeground(asset.id) }
-                    if media.layers.background?.selection.assetID == asset.id { Button("Clear background") { media.clearBackground() } }
+                    if media.layers.background?.selection.assetID == asset.id { Button("Use the slide's own background") { media.dropBackgroundOverride() } }
                 } else {
                     Button("Play sound") { selected = asset.id; audio?.play(asset.id) }
                     if audio?.isActive(asset.id) == true { Button("Stop sound") { audio?.stop(asset.id) } }
@@ -261,7 +262,7 @@ struct MediaControllerRow: View {
         var chips: [String]
     }
     private enum Loop { case toggle(Bool, (Bool) -> Void), always }
-    private enum Sound { case clip, cue, silent }
+    private enum Sound { case clip, cue, background }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.1)) { _ in
@@ -298,7 +299,7 @@ struct MediaControllerRow: View {
                         restart: { media.restartBackground() },
                         togglePlay: { r.isPlaying ? media.pauseBackground() : media.resumeBackground() },
                         stop: { media.clearBackground() }, seek: { media.seekBackground(to: $0) },
-                        loops: .always, sound: .silent,
+                        loops: .always, sound: .background,
                         chips: chips(LayerPresence.backgroundMediaRoles(screens: app.layerInputs)))
         case nil:
             return nil
@@ -373,9 +374,16 @@ struct MediaControllerRow: View {
                 Slider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), in: 0...1)
                     .tint(Tok.cyan).frame(width: 80).disabled(audio.isMuted).accessibilityLabel("Sound volume")
             }
-        case .silent:
-            Image(systemName: "speaker.slash").foregroundStyle(Tok.muted).help("A background has no sound")
-                .accessibilityLabel("A background has no sound")
+        case .background:
+            // MEDIA-010: muted when it starts, and the operator can unmute it. The state shown is the state the player was given.
+            let heard = media.backgroundHeardMuted
+            Button { media.setBackgroundMuted(!media.isBackgroundMuted) } label: { Image(systemName: heard ? "speaker.slash.fill" : "speaker.wave.2.fill") }
+                .buttonStyle(.plain).foregroundStyle(heard ? Tok.muted : Tok.text)
+                .help(media.isBackgroundMuted ? "The background video is muted. Click to unmute it." : (heard ? "Silent while Blackout is on" : "Mute the background video"))
+                .accessibilityLabel(media.isBackgroundMuted ? "Unmute background" : "Mute background")
+                .accessibilityValue(heard ? "muted" : "sound on")
+            Slider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), in: 0...1)
+                .tint(Tok.cyan).frame(width: 80).disabled(heard).accessibilityLabel("Background volume")
         }
     }
 }

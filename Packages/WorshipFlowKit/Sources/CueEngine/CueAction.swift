@@ -16,6 +16,13 @@ public enum CueTransport: Sendable, Equatable, Hashable, Codable {
     case clearAll
     case blackout(CueBlackout)
     case stop
+    /// MEDIA-010: hides the live background (the theme's own, the slide's own and a live override). Reversible: the next Go
+    /// Live, Next, Previous or bin choice brings a background back.
+    case clearBackground
+    /// MEDIA-010: stops the clip playing over the words. Nothing else changes.
+    case clearForeground
+    /// MEDIA-010: stops the sound cues of the audio player (not a video's own sound).
+    case clearMusic
 
     public var summary: String {
         switch self {
@@ -26,6 +33,9 @@ public enum CueTransport: Sendable, Equatable, Hashable, Codable {
         case .clearAll: return "Clear all"
         case .blackout(let m): return "Blackout \(m.rawValue)"
         case .stop: return "Stop"
+        case .clearBackground: return "Clear background"
+        case .clearForeground: return "Clear foreground"
+        case .clearMusic: return "Clear music"
         }
     }
 }
@@ -105,6 +115,9 @@ public enum CueAction: Sendable, Equatable, Hashable, Codable {
             guard let m = o["mode"]?.stringValue.flatMap(CueBlackout.init(rawValue:)) else { return nil }
             self = .transport(.blackout(m))
         case "transport.stop": self = .transport(.stop)
+        case "transport.clearBackground": self = .transport(.clearBackground)
+        case "transport.clearForeground": self = .transport(.clearForeground)
+        case "transport.clearMusic": self = .transport(.clearMusic)
         case "look.select":
             guard let i = id() else { return nil }
             self = .selectLook(i)
@@ -190,6 +203,9 @@ public enum CueAction: Sendable, Equatable, Hashable, Codable {
             case .clearAll: return obj("transport.clearAll")
             case .blackout(let m): return obj("transport.blackout", ["mode": .string(m.rawValue)])
             case .stop: return obj("transport.stop")
+            case .clearBackground: return obj("transport.clearBackground")
+            case .clearForeground: return obj("transport.clearForeground")
+            case .clearMusic: return obj("transport.clearMusic")
             }
         case .selectLook(let i): return obj("look.select", ["id": uuid(i)])
         case .prop(let i, let on): return obj("prop.set", ["id": uuid(i), "on": .bool(on)])

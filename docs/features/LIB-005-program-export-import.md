@@ -1,0 +1,63 @@
+# LIB-005: export a program at home, import it at church
+
+Catalogue: LIB (library and service plans: import and export). Source: the owner's hands-on feedback of 2026-11-21, item 5: prepare the program at home, export, import at church, with relative paths so the videos go with the lyrics and the program. Verification: Implemented; Unit Tested (`ProgramPackageTests`, `LIB005_*`). Exercised once in a Debug build against a scratch library (see `AI/reports/LIB-005-report.md`). Not Hardware Verified, not Live-Service Verified. Finder's single-file display of the package and a double click in Finder were not seen.
+
+Code: `Packages/WorshipFlowKit/Sources/ProgramPackage` (format, export, import, safety rules; no SwiftUI), `Persistence/ProgramDoor.swift` (relative media paths and the narrow door the package code writes through), `OperatorCore/WorkspaceModel+Program.swift` and `SettingsModel+Program.swift` (refresh after an import), `App/Sources/ProgramTransfer.swift`, `ProgramSheets.swift`, `AppModel+Program.swift` (sheets, menus, drop, Finder open). No migration: the schema is unchanged (v10 at the time of writing).
+
+## What the operator does
+
+- **Export.** File > Export Program… or the playlist's ellipsis menu > Export program…. Pick the playlist; the sheet reads the playlist and its media and says how many presentations, media files and bytes it holds, and lists any media file that cannot be read. With missing files the button reads "Export without the missing files…" (the operator may export without them; they are recorded as missing in the package). Then a save panel (which asks before replacing), then progress with Cancel. The package is built in a hidden sibling folder and moved into place at the end; a failure or Cancel removes the hidden folder and leaves nothing at the destination. The library is only read.
+- **Import.** File > Import Program…, the playlist menu, opening a `.worshipflowprogram` from Finder, or dropping one on the window. A summary comes first: what is new, what is already in the library unchanged, what has the same id but different content, new themes, Looks and media bin items, how many media files will be copied and how big, what was missing when the package was written, and scripture items whose translation is not installed. If anything conflicts, one question covers the whole import: **Keep both** (default: the imported copy gets a new id and " (imported)" in its title, and a conflicting playlist is kept next to the library's own as "<name> (imported)"), **Keep mine**, or **Use the imported one**. Nothing is written until Import is pressed; Cancel during the copy removes what it copied.
+- **Second import of the same package** changes nothing: the summary says so and the Import button is off.
+
+## The package
+
+A folder named `<name>.worshipflowprogram`, declared in the app's Info.plist as an exported type (`org.worshipflow.program`, conforms to `com.apple.package`) and a document type the app owns, so Finder shows it as one file. Inside:
+
+```
+Sunday plan.worshipflowprogram/
+  program.json
+  media/
+    <sha256>.<ext>          one file per distinct content, however many slides use it
+```
+
+Every file reference in `program.json` is a path relative to the package, starting with `media/`. No absolute path, bookmark, user name or volume name is written. Identical files are stored once (named by their SHA-256); the extension is the source file's, lower case, letters and digits only.
+
+### `program.json`, field by field
+
+Unknown fields are ignored when reading, so a later build can add fields. Keys are sorted; the file is pretty-printed; UUIDs are upper case.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `format` | string | Always `worshipflow-program`. Anything else is refused. |
+| `formatVersion` | integer | 1. Larger than this build knows: refused in plain words ("saved by a newer WORSHIPFLOW"). Smaller than 1: refused as invalid. Older valid versions are read (none exist yet). |
+| `appVersion` | string | The app version that wrote the package (`CFBundleShortVersionString`). |
+| `programID` | UUID | The exported playlist's id. Imported media is kept under `Media/Imported/<programID>/`. |
+| `playlist` | object | `id` (UUID), `name`. |
+| `items` | array | The playlist in order. Each: `id`, `kind` (`presentation`, `header`, `countdown`, `scripture`), and by kind: `presentationID` and optional `arrangementID`; `label` (header); `countdown` (`CountdownSpec`: `label` and `mode`); `scripture` (`ScriptureItemSpec`: `label`, `ranges`, `primaryCode`, `secondaryCode`). A scripture item is a reference and translation codes only, never verse text. |
+| `presentations` | array | One entry per distinct presentation in the playlist (see below). |
+| `themes` | array | Custom `Theme` values used by those presentations or by the included Looks. Built-in themes are not written. A theme's `background` of kind `image` has a package path. |
+| `looks` | array | Looks that slide actions select. Each: `id`, `name`, `screens` (object keyed by upper-case screen profile id: `themeID`, `visibleLayers`). |
+| `mediaAssets` | array | Media bin entries that slide actions play: `id`, `name`, `kind` (`image`, `video`, `audio`), `duration`, `pixelWidth`, `pixelHeight`, `file` (a package path). |
+| `media` | array | Every file the package names: `file` (package path), `name` (the original file name, no folder), `status` (`included` or `missing`), `sha256` and `size` (included only). A missing file has `file` `media/missing/<name>` (no such file exists in the package). |
+
+A presentation entry: `id`, `title`, `kind` (`song`, `sermon`, `scripture`, `other`), `themeID` (optional), `slides`, `groups` (`id`, `name`: the sections), `arrangements` (`id`, `name`, `groupIDs`: section order). A slide entry: `id`, `primary`, `secondary` (second language, optional), `notes`, `groupID` (optional), `objects` (text boxes, shapes and images, back to front, as `SlideObject` encodes them; an image's `path` is a package path) and `actions` (the slide's actions exactly as the cue editor stored them: `{"version": 1, "actions": [...]}`, any action kind, including kinds this build does not know).
+
+What a program does **not** carry: macros (`macro.run`), props (`prop.set`), timers and stage messages that slide actions use, screen profiles, stage layouts, the media bin as a whole, and Bible text. The export sheet warns when slide actions use any of those.
+
+**When the per-slide background (MEDIA-010, a `slide.background` column in migration v11) lands**, add a `background` field to the slide entry holding the media selection by asset id, put that asset in `mediaAssets` and its file in `media/`, and read it back in `ProgramSnapshot.presentation` and `ProgramImportWriter.write`. Until then a package from a later build with such a field is read and the field is ignored; a package written now carries no per-slide background.
+
+## Rules
+
+- **Safety (a package is untrusted).** `ProgramPackageContents.open` reads without writing: the package must be a folder; `program.json` must be a plain file, not a link, at most 32 MiB; `format` and `formatVersion` are checked before anything else; every path the document names (media list, slide images, theme pictures, media bin files) must be relative, start with `media/`, and contain no `.`, `..`, empty, backslash or control part, and must be listed in `media`; at most 20,000 media files; each included file must exist, be a plain file (not a link) and, after resolving folders on the way, lie inside the package; each included entry needs a lower-case 64-digit checksum. A file's checksum is checked while it is copied, and a mismatch refuses the import (and removes what was copied). The names written into the library come from the checksum and a sanitized extension, never from a name in the package. Nothing is overwritten: a different file at a managed path refuses the import.
+- **Import is one transaction.** Media is copied first (to `<name>.partial`, then renamed) into `Media/Imported/<programID>/` next to the library; then every row is written in one database transaction. Any failure, cancel or refusal removes the files and folders this import created and leaves the database as it was. An identical file already in that folder is reused (and never removed by a rollback).
+- **Ids and conflicts.** Presentations are compared by id, then by content: title, kind, theme, and per slide the text, notes, section name, objects (with image bytes compared by checksum, not by where the file is kept) and actions, and the arrangements by name and section names. Ids of slides, sections and arrangements are not compared. Themes, Looks and playlists are compared the same way (a playlist by name and its items after the presentation answers are applied). Media bin entries are matched by id and never overwritten. A slide, section, arrangement or playlist item id that is already used by another presentation or playlist gets a new id on import.
+- **Where new presentations go.** Into the library's first library (lowest sort order); if there is none, a library named "Library" is created in the same transaction.
+- **Playlist.** A new playlist keeps its id. Items that point at a presentation use the library's own or the imported copy, according to the answer; a playlist whose items would then differ from the library's own is a conflict too (so with Keep both the imported playlist is "<name> (imported)" and plays the imported copies).
+- **Media paths in the library are relative.** `Persistence` stores a path inside `<library folder>/Media/Imported/` as `Media/Imported/<programID>/<file>` (slide image objects, theme pictures, props, media bin entries) and hands the rest of the app absolute paths, so a library folder moved to another place or another Mac still resolves. Paths outside that folder are stored as given. An in-memory library has no folder and stores everything as given.
+- **Scripture.** An item whose translation is not installed imports and shows the existing "not installed" state.
+- **Cancel.** Export and import poll a cancel flag between files and about every megabyte inside a copy.
+
+## Tests
+
+`Tests/ProgramPackageTests/LIB005_*`: round trip into an empty library slide for slide with the pictures' drive gone; no absolute path, home folder or volume name in `program.json`; identical media stored once; missing media reported, recorded, export succeeds; import twice makes no duplicates and the second summary says nothing to import; id clash with each of the three answers (and the default); failure and cancel in the middle of an import leave row counts and the media folder as they were; media already there survives a failed later import; reuse of identical media; cancelled and failed export leave nothing at or beside the destination; a source that changes while exporting is refused; an existing destination is not replaced without being asked; hostile packages (absolute path, `../`, backslash, absolute slide image path, symlinked media file, symlinked manifest, oversized JSON, newer format, wrong format name, not JSON, no manifest, a listed file that is absent) are refused with no row and no file written; a damaged media file is refused while copying; scripture round trip without verse text; moving the library folder after an import still resolves every media; a later build's extra fields are ignored.

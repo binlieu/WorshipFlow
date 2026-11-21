@@ -42,14 +42,42 @@ public enum HeaderChrome {
 public enum ClearControl {
     public enum Action: Sendable, Equatable {
         case clearWords, clearAll
-        public var title: String { self == .clearWords ? "Clear" : "Clear all" }
+        /// MEDIA-010: the three layer clears.
+        case clearBackground, clearForeground, clearMusic
+        public var title: String {
+            switch self {
+            case .clearWords: "Clear"
+            case .clearAll: "Clear all"
+            case .clearBackground: "Clear background"
+            case .clearForeground: "Clear foreground"
+            case .clearMusic: "Clear music"
+            }
+        }
         public var detail: String {
-            self == .clearWords ? "Hide the words on every screen"
-                                : "Hide the words and stop a clip playing over them (Shift-Escape)"
+            switch self {
+            case .clearWords: "Hide the words on every screen"
+            case .clearAll: "Hide the words and stop a clip playing over them (Shift-Escape)"
+            case .clearBackground: "Hide the background on every screen. Go Live, Next or a new choice brings one back"
+            case .clearForeground: "Stop the clip playing over the words"
+            case .clearMusic: "Stop the sound player (not a video's own sound)"
+            }
+        }
+        /// The key that does it, as the Cues key table shows it. Option and Control keys are never transport keys, so the
+        /// app's key monitor lets them through to the Show menu.
+        public var shortcut: String {
+            switch self {
+            case .clearWords: "esc"
+            case .clearAll: "⇧ esc"
+            case .clearBackground: "⌃⌥B"
+            case .clearForeground: "⌃⌥F"
+            case .clearMusic: "⌃⌥M"
+            }
         }
     }
     public static let primary: Action = .clearWords
     public static let menu: [Action] = [.clearAll]
+    /// MEDIA-010: the three layer clears, listed after Clear all in the Clear menu.
+    public static let layerMenu: [Action] = [.clearBackground, .clearForeground, .clearMusic]
 }
 
 /// How a slide thumbnail is drawn: the theme's colour or image always; a background video or still as one frame
@@ -95,4 +123,20 @@ public enum AppearanceChoice: String, CaseIterable, Sendable, Identifiable {
     /// Nil follows the system.
     public var forcedScheme: Scheme? { self == .system ? nil : (self == .dark ? .dark : .light) }
     public static func restored(from stored: String?) -> AppearanceChoice { stored.flatMap(AppearanceChoice.init(rawValue:)) ?? .default }
+}
+
+/// MEDIA-010: every key the Cues mode's keyboard table lists, in one place so a test can see that no two share a key.
+public enum ShowShortcuts {
+    public struct Entry: Equatable, Sendable { public var key: String; public var command: String }
+
+    public static let all: [Entry] = [
+        Entry(key: "→ or Space", command: "Next slide"), Entry(key: "←", command: "Previous slide"),
+        Entry(key: "↩", command: "Go live with the selected slide"), Entry(key: "B", command: "Blackout (toggle)"),
+        Entry(key: ClearControl.Action.clearWords.shortcut, command: "Clear"),
+        Entry(key: ClearControl.Action.clearAll.shortcut, command: "Clear all"),
+        Entry(key: ClearControl.Action.clearBackground.shortcut, command: "Clear background"),
+        Entry(key: ClearControl.Action.clearForeground.shortcut, command: "Clear foreground"),
+        Entry(key: ClearControl.Action.clearMusic.shortcut, command: "Clear music"),
+        Entry(key: "⌘E", command: "Quick edit"), Entry(key: "⌘F", command: "Search"), Entry(key: "⌘J", command: "Scripture"),
+    ]
 }

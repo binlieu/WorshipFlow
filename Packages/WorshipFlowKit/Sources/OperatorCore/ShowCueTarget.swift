@@ -95,6 +95,9 @@ public final class ShowCueTarget: CueTarget {
             case .off: if transport.isBlackedOut { transport.blackout() }
             }
         case .stop: transport.stop()
+        case .clearBackground: transport.clearBackground()
+        case .clearForeground: media.stopForeground()
+        case .clearMusic: media.clearMusic()
         }
     }
 }

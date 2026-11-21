@@ -83,21 +83,33 @@ public enum SceneComposer {
             return SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
         }
         var scene = SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
-        if look.visibleLayers.contains(.background) {
+        // MEDIA-010: Clear background hides every kind of background; the words and props stay.
+        if look.visibleLayers.contains(.background), !state.isBackgroundCleared {
+            // A live override from the bin beats the live slide's own background; either replaces the theme's own.
+            let override = media?.background?.selection.sceneMedia
+            let own = state.liveSlideAtPlace?.background?.sceneMedia
             switch theme.background {
             case .media:
                 scene.backgroundColor = Theme.mediaFallbackColor
                 scene.showsVideo = true
                 // A chosen background replaces the theme's shared loop; a still must not leave the loop showing.
-                if let chosen = media?.background?.selection.sceneMedia {
+                if let chosen = override ?? own {
                     scene.backgroundMedia = chosen
                     if case .image = chosen { scene.showsVideo = false }
                 }
             case .color(let c):
                 scene.backgroundColor = c
+                scene.backgroundMedia = override ?? own
             case .image(let path):
-                scene.backgroundImage = ImageLayer(path: path, frame: .full, opacity: 1, contentMode: .fill)
-                scene.backgroundColor = .black
+                // A background chosen in the bin does not show on a picture theme (the theme's picture is an explicit choice);
+                // a slide's own background is an explicit choice too, and beats it.
+                if let own {
+                    scene.backgroundMedia = own
+                    scene.backgroundColor = .black
+                } else {
+                    scene.backgroundImage = ImageLayer(path: path, frame: .full, opacity: 1, contentMode: .fill)
+                    scene.backgroundColor = .black
+                }
             case .transparent:
                 scene.backgroundColor = .clear
             }
