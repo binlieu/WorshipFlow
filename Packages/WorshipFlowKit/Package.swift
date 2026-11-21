@@ -11,6 +11,7 @@ let package = Package(
         .library(name: "OutputEngine", targets: ["OutputEngine"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "OperatorCore", targets: ["OperatorCore"]),
+        .library(name: "SDIEngine", targets: ["SDIEngine"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -33,6 +34,9 @@ let package = Package(
         .testTarget(name: "MediaEngineTests", dependencies: ["MediaEngine", "Domain"]),
         // SLIDE-001a: slide objects (shapes, images, text boxes) across model, compositor and storage.
         .testTarget(name: "SlideObjectTests", dependencies: ["Domain", "RenderEngine", "Persistence"]),
+        // HW-001: SDI device abstraction, scheduler, connector planning and simulator. No vendor SDK here.
+        .target(name: "SDIEngine", dependencies: ["Domain"]),
+        .testTarget(name: "SDIEngineTests", dependencies: ["SDIEngine", "Domain"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
