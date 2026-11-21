@@ -3,6 +3,7 @@
 // Configure), one compact row of Looks, tabs (Props, Cues, Audio and, while open, Quick edit) and the stage message under them.
 // Screen configuration is not here: "Configure…" switches to the Screens mode.
 import SwiftUI
+import AppKit
 import Domain
 import OutputEngine
 import OperatorCore
@@ -10,6 +11,7 @@ import OperatorCore
 struct ShowInspector: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
+    @State private var textPropEditing: TextPropEdit?
 
     var body: some View {
         ScrollView {
@@ -218,33 +220,129 @@ struct ShowInspector: View {
     }
 
     private var props: some View {
-        let roles = LayerPresence.roles(showing: .props, screens: app.layerInputs)
         return VStack(alignment: .leading, spacing: 0) {
             if app.props.isEmpty {
-                Text("No props. Add a logo image in Screens to keep it above the slides.").font(.system(size: 11)).foregroundStyle(Tok.muted)
+                Text("No props. Add a logo image in Screens, or a text prop below, to keep it above the slides.").font(.system(size: 11)).foregroundStyle(Tok.muted)
             }
-            ForEach(app.props) { prop in
-                HStack(spacing: 8) {
-                    Image(systemName: "photo").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 15)
-                    Text(prop.name).font(.system(size: 13)).lineLimit(1)
-                    Spacer()
-                    if app.unavailableImages.contains(prop.imagePath) {
-                        Text("File not readable").font(.system(size: 11)).foregroundStyle(Tok.warning)
-                    }
-                    // The roles whose screens show the props layer under the active Look: what is true, not decoration.
-                    ForEach(roles, id: \.self) { role in
-                        PillTag(text: role == .audience ? "AUD" : "BRD", color: role.tokenColor, height: 16)
-                            .accessibilityLabel("\(role.rawValue) screens show props")
-                    }
-                    Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { app.setProp(prop.id, isOn: $0) }))
-                        .toggleStyle(.wfBare)
-                }
-                .frame(height: 28)
-            }
+            ForEach(app.props) { prop in propRow(prop) }
             ForEach(Array(app.messages.enumerated()), id: \.offset) { _, m in
                 Text(m).font(.system(size: 11)).foregroundStyle(Tok.warning)
             }
+            Button { textPropEditing = TextPropEdit(propID: nil) } label: { Label("Add text prop…", systemImage: "plus") }
+                .buttonStyle(HeaderButtonStyle(kind: .ghost)).padding(.top, 6)
+                .help("A service title strap, a speaker name: words kept above the slides on the screens you choose")
         }
+        .sheet(item: $textPropEditing) { edit in TextPropSheet(app: app, edit: edit) }
+    }
+
+    /// One prop: icon by kind, name, the roles it is targeted to as pills that switch off when clicked, then its switch. The pills
+    /// say where the prop is drawn when it is on and the screen's Look shows props: what is true, not decoration.
+    private func propRow(_ prop: Prop) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: prop.kind == .text ? "textformat" : "photo").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 15)
+            Text(prop.name).font(.system(size: 13)).lineLimit(1)
+            Spacer()
+            if prop.kind == .image, app.unavailableImages.contains(prop.imagePath) {
+                Text("File not readable").font(.system(size: 11)).foregroundStyle(Tok.warning)
+            }
+            ForEach(ScreenRole.allCases.filter { prop.targets.contains($0) }, id: \.self) { role in
+                Button { app.setProp(prop.id, target: role, isOn: false) } label: { PillTag(text: Self.abbreviation(role), color: role.tokenColor, height: 16) }
+                    .buttonStyle(.plain)
+                    .help("Drawn on \(role.rawValue) screens. Click to stop showing it there.")
+                    .accessibilityLabel("\(prop.name) on \(role.rawValue) screens")
+                    .accessibilityHint("Switches this prop off for \(role.rawValue) screens")
+            }
+            Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { app.setProp(prop.id, isOn: $0) }))
+                .toggleStyle(.wfBare)
+        }
+        .frame(height: 28)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Menu("Show on") {
+                ForEach(ScreenRole.allCases, id: \.self) { role in
+                    Toggle(role.rawValue.capitalized, isOn: Binding(get: { prop.targets.contains(role) }, set: { app.setProp(prop.id, target: role, isOn: $0) }))
+                }
+            }
+            if prop.kind == .text { Button("Edit…") { textPropEditing = TextPropEdit(propID: prop.id) } }
+            Divider()
+            Button("Remove prop", role: .destructive) { app.removeProp(prop.id) }
+        }
+    }
+
+    static func abbreviation(_ role: ScreenRole) -> String {
+        switch role { case .audience: "AUD"; case .stage: "STG"; case .broadcast: "BRD" }
+    }
+}
+
+struct TextPropEdit: Identifiable {
+    let id = UUID()
+    var propID: UUID?
+}
+
+/// UI-005b: makes or edits a text prop: its name, words, size, colour, position, and the screens it is drawn on. The words are drawn
+/// by the same text path as the slides' words. Nothing changes on a screen until the prop is on and targeted to it.
+struct TextPropSheet: View {
+    let app: AppModel
+    let edit: TextPropEdit
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = "Service title strap"
+    @State private var words = ""
+    @State private var size = 48.0
+    @State private var color = Color.white
+    @State private var anchor = PropAnchor.bottomLeft
+    @State private var targets: Set<ScreenRole> = [.broadcast]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s4) {
+            Text(edit.propID == nil ? "Add text prop" : "Edit text prop").font(.headline)
+            TextField("Name (for example Service title strap)", text: $name).textFieldStyle(.roundedBorder)
+            TextField("Words", text: $words).textFieldStyle(.roundedBorder)
+            HStack {
+                Stepper("Size \(Int(size))", value: $size, in: TextPropSpec.fontSizes, step: 2)
+                ColorPicker("Colour", selection: $color, supportsOpacity: false)
+            }
+            Picker("Position", selection: $anchor) { ForEach(PropAnchor.allCases, id: \.self) { Text($0.title).tag($0) } }
+            HStack(spacing: Space.s4) {
+                Text("Show on").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                ForEach(ScreenRole.allCases, id: \.self) { role in
+                    Toggle(role.rawValue.capitalized, isOn: Binding(get: { targets.contains(role) },
+                        set: { on in if on { targets.insert(role) } else { targets.remove(role) } })).toggleStyle(.wfCheckbox)
+                }
+            }
+            Text("Speaker notes never go to the audience or broadcast screens, and this prop does not change that.")
+                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Save") { save(); dismiss() }.keyboardShortcut(.defaultAction)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(Space.s6).frame(width: 460)
+        .onAppear {
+            guard let id = edit.propID, let prop = app.props.first(where: { $0.id == id }), let spec = prop.text else { return }
+            name = prop.name; words = spec.text; size = spec.fontSize; anchor = spec.anchor; targets = prop.targets
+            color = Self.color(hex: spec.colorHex)
+        }
+    }
+
+    private func save() {
+        let spec = TextPropSpec(text: words, fontSize: size, colorHex: Self.hex(color), anchor: anchor)
+        if let id = edit.propID {
+            app.updateTextProp(id, name: name, spec: spec)
+            for role in ScreenRole.allCases { app.setProp(id, target: role, isOn: targets.contains(role)) }
+        } else {
+            app.addTextProp(name: name, spec: spec, targets: targets)
+        }
+    }
+
+    static func hex(_ color: Color) -> String {
+        let c = NSColor(color).usingColorSpace(.sRGB) ?? .white
+        return String(format: "#%02X%02X%02X", Int((c.redComponent * 255).rounded()), Int((c.greenComponent * 255).rounded()), Int((c.blueComponent * 255).rounded()))
+    }
+    static func color(hex: String) -> Color {
+        let c = TextPropSpec(text: "", colorHex: hex).color
+        return Color(.sRGB, red: c.red, green: c.green, blue: c.blue)
     }
 }
 
@@ -285,13 +383,17 @@ struct QuickEditTab: View {
                     PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 18)
                         .accessibilityLabel("Preview only. The screens do not change until this slide goes live.")
                 }
-                field("First language", slide: slide, kind: .first, focus: true)
-                field("Second language", slide: slide, kind: .second, focus: false)
+                let names = workspace.quickEditLanguageNames
+                field(names.first, slide: slide, kind: .first, focus: true)
+                field(names.second, slide: slide, kind: .second, focus: false)
                 field("Speaker notes — stage screens only", slide: slide, kind: .notes, focus: false)
                 // The design's footer row: the saved note at the left, Done (esc) at the right.
                 HStack(spacing: 8) {
-                    Text(workspace.hasUnsavedDrafts ? "Saving…" : "Saved · \(QuickEditLabels.previewNote)")
-                        .font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    // The note counts from the last real write; it redraws each second only while this tab is open.
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        Text(workspace.hasUnsavedDrafts ? "Saving…" : workspace.quickEditSavedNote())
+                            .font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    }
                     Spacer(minLength: 4)
                     Button { app.closeQuickEdit() } label: { HStack(spacing: 5) { Text("Done"); KeyHint(key: "esc") } }
                         .buttonStyle(HeaderButtonStyle()).keyboardShortcut(.cancelAction)

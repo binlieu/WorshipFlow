@@ -2,8 +2,10 @@
 // search above it, live previews and controls on the right, transport along the bottom. Errors appear in a bar at
 // the top of this window and never on an output (NFR-08).
 import SwiftUI
+import AppKit
 import Domain
 import OperatorCore
+import OutputEngine
 
 struct ContentView: View {
     @Bindable var app: AppModel
@@ -77,6 +79,7 @@ struct WorkspaceView: View {
             if let error = workspace.lastError ?? app.settingsError {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
+            ForEach(app.faultCards) { card in OutputFaultBar(app: app, card: card) }
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
             if let cue = app.cue {
                 // CUE-002b: a failed action, a skipped scheduled event, a refused edit. Inside the operator window, never on an output.
@@ -161,7 +164,7 @@ struct WorkspaceView: View {
 
     /// The window's own title and subtitle carry the service and the library, so the name is shown once (KI-068).
     private var serviceName: String {
-        workspace.playlists.first { $0.id == workspace.selectedPlaylistID }?.name ?? "No playlist"
+        workspace.serviceTitle()      // UI-005b: the service date and time when the playlist has them, else its name
     }
     private var serviceSubtitle: String {
         "WorshipFlow · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")"
@@ -252,6 +255,50 @@ struct ErrorBar: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
         .background(Tok.bg)
+    }
+}
+
+/// UI-005b: an output that stopped sending, with the design's two actions. Retry output reopens that output once; Details shows the
+/// recorded fault text with a Copy button. After a Retry that failed, the card says so in plain words.
+struct OutputFaultBar: View {
+    let app: AppModel
+    let card: OutputFaultCard
+    @State private var showDetails = false
+
+    var body: some View {
+        MessageCard(message: app.retryNotes[card.screenID] ?? card.message) {
+            HStack(spacing: 8) {
+                Button("Retry output") { app.retryOutput(card) }.buttonStyle(HeaderButtonStyle())
+                    .help("Open \(card.name) again. The show on the other screens is not touched.")
+                Button("Details") { showDetails = true }.buttonStyle(HeaderButtonStyle())
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(Tok.bg)
+        .sheet(isPresented: $showDetails) { OutputFaultDetails(card: card) }
+    }
+}
+
+struct OutputFaultDetails: View {
+    let card: OutputFaultCard
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s4) {
+            Text("\(card.name): what was recorded").font(.headline)
+            Text(card.detail).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading).padding(8)
+                .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.border, fill: Tok.bg)
+            HStack {
+                Button("Copy") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(card.detail, forType: .string)
+                }
+                Spacer()
+                Button("Close") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(Space.s6).frame(width: 460)
     }
 }
 

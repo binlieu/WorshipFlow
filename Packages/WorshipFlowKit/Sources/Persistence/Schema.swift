@@ -323,6 +323,19 @@ enum Schema {
             }
         }
 
+        // UI-005b: additive. A library has a kind (existing libraries are songs); a playlist may carry a service date and time; a prop
+        // has the roles it may appear on (existing props keep audience and broadcast, where they were drawn; the stage never drew them), a kind (existing
+        // props are pictures) and, for a text prop, its words and look as JSON. Nothing is rewritten or removed.
+        migrator.registerMigration("v12") { db in
+            try db.alter(table: "library") { t in t.add(column: "kind", .text).notNull().defaults(to: "songs") }
+            try db.alter(table: "playlist") { t in t.add(column: "serviceAt", .datetime) }
+            try db.alter(table: "prop") { t in
+                t.add(column: "targets", .text).notNull().defaults(to: #"["audience","broadcast"]"#)
+                t.add(column: "kind", .text).notNull().defaults(to: "image")
+                t.add(column: "text", .text)
+            }
+        }
+
         return migrator
     }
 }

@@ -170,6 +170,9 @@ enum ProgramSnapshot {
         case .header(let label): return .init(id: item.id, kind: "header", label: label)
         case .countdown(let spec): return .init(id: item.id, kind: "countdown", countdown: spec)
         case .scripture(let spec): return .init(id: item.id, kind: "scripture", scripture: spec)
+        case .sermon: return .init(id: item.id, kind: "sermon", presentationID: item.presentationID, arrangementID: item.arrangementID)
+        case .media(let spec): return .init(id: item.id, kind: "media", media: spec)
+        case .announcements(let spec): return .init(id: item.id, kind: "announcements", announcements: spec)
         }
     }
 
@@ -180,6 +183,9 @@ enum ProgramSnapshot {
         case "header": return .header(label: entry.label ?? "")
         case "countdown": return entry.countdown.map { .countdown($0) }
         case "scripture": return entry.scripture.map { .scripture($0) }
+        case "sermon": return .sermon
+        case "media": return entry.media.map { .media($0) }
+        case "announcements": return entry.announcements.map { .announcements($0) }
         default: return nil
         }
     }

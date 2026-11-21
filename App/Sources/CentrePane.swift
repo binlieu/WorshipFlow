@@ -49,7 +49,7 @@ struct ShowHeader: View {
         HStack(spacing: Space.s3) {
             // The design's 17 / 22 bold title. It is still the field that renames the presentation: a hidden copy of the text
             // gives the field the width of its words.
-            Text(title.isEmpty ? "Title" : title).font(.system(size: 17, weight: .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, maxWidth: 300)
+            Text(title.isEmpty ? "Title" : title).font(.system(size: 17, weight: .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, maxWidth: 300).layoutPriority(1)
                 .overlay {
                     TextField("Title", text: $title)
                         .textFieldStyle(.plain).font(.system(size: 17, weight: .bold))
@@ -58,15 +58,17 @@ struct ShowHeader: View {
                         .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
                         .accessibilityLabel("Presentation title")
                 }
-            if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }), item.kind == .presentation {
-                WFPopup(title: "Arrangement: \(workspace.arrangements.first { $0.id == item.arrangementID }?.name ?? "Natural order")", accessibilityName: "Arrangement") {
-                    Button("Natural order") { Task { await workspace.setArrangement(nil, forPlaylistItem: itemID) } }
-                    ForEach(workspace.arrangements) { a in
-                        Button(a.name) { Task { await workspace.setArrangement(a.id, forPlaylistItem: itemID) } }
-                    }
+            // UI-005b: always present for a song. From a playlist item it sets that item's order; from the library it previews one.
+            if presentation != nil, workspace.openScripture == nil {
+                let itemID = workspace.openPlaylistItemID
+                let item = itemID.flatMap { id in workspace.playlistItems.first { $0.id == id } }
+                let chosen = item != nil ? item?.arrangementID : workspace.previewArrangementID
+                WFPopup(title: "Arrangement: \(workspace.arrangements.first { $0.id == chosen }?.name ?? "Natural")", accessibilityName: "Arrangement") {
+                    Button("Natural order") { chooseArrangement(nil, item: itemID) }
+                    ForEach(workspace.arrangements) { a in Button(a.name) { chooseArrangement(a.id, item: itemID) } }
                 }
-                .frame(maxWidth: 190).fixedSize(horizontal: false, vertical: true)
-                .help("The section order this playlist item plays")
+                .frame(minWidth: 110, maxWidth: 190).fixedSize(horizontal: false, vertical: true)
+                .help(itemID == nil ? "The section order shown in preview. Add the song to a playlist to keep an order with it." : "The section order this playlist item plays")
             }
             if let id = workspace.openPresentationID, workspace.bilingualPresentationIDs.contains(id) {
                 PillTag(text: "EN + VI", color: Tok.muted)
@@ -92,6 +94,10 @@ struct ShowHeader: View {
             WFSegmented(items: [.init(value: false, symbol: "square.grid.2x2", label: "Grid"), .init(value: true, symbol: "list.bullet", label: "List")],
                         selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 }), accessibilityName: "Slide view")
         }
+    }
+
+    private func chooseArrangement(_ id: UUID?, item: UUID?) {
+        Task { if let item { await workspace.setArrangement(id, forPlaylistItem: item) } else { await workspace.setPreviewArrangement(id) } }
     }
 
     private func commitTitle() {

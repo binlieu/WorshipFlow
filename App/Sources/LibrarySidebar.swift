@@ -1,14 +1,15 @@
 // OUT-004 / LIB-001 / LIB-002 / LIB-003: libraries and presentations on top, the playlist below.
 import SwiftUI
+import AppKit
 import Domain
 import OperatorCore
 
 private enum NamePrompt: Equatable {
-    case newLibrary, renameLibrary(UUID), newPlaylist, renamePlaylist(UUID), renamePresentation(UUID), newHeader, renameHeader(UUID)
+    case newLibrary(LibraryKind), renameLibrary(UUID), newPlaylist, renamePlaylist(UUID), renamePresentation(UUID), newHeader, renameHeader(UUID)
 
     var title: String {
         switch self {
-        case .newLibrary: "New library"
+        case .newLibrary(let kind): kind == .songs ? "New library" : "New \(kind.title.lowercased()) library"
         case .renameLibrary: "Rename library"
         case .newPlaylist: "New playlist"
         case .renamePlaylist: "Rename playlist"
@@ -41,6 +42,8 @@ struct LibrarySidebar: View {
     @State private var promptText = ""
     @State private var pendingDelete: PendingDelete?
     @State private var countdownEditing: CountdownEdit?
+    @State private var serviceDateEditing: ServiceDateEdit?
+    @State private var loopEditing: LoopEdit?
 
     var body: some View {
         // The design's split: Libraries and the song list over 338 pt, the playlist beneath; a drag strip on the line moves it.
@@ -65,6 +68,12 @@ struct LibrarySidebar: View {
                 }
             }
         }
+        .sheet(item: $loopEditing) { _ in
+            if let media = app.media { LoopSheet(media: media) { spec in Task { await workspace.addAnnouncementsItem(spec) } } }
+        }
+        .sheet(item: $serviceDateEditing) { edit in
+            ServiceDateSheet(edit: edit) { date in Task { await workspace.setServiceDate(date, forPlaylist: edit.playlistID) } }
+        }
         .confirmationDialog(pendingDelete?.message ?? "", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             titleVisibility: .visible) {
             Button("Delete", role: .destructive) { commitDelete() }
@@ -88,9 +97,18 @@ struct LibrarySidebar: View {
                     Button("New presentation") { app.newPresentation() }
                     Button("Import lyrics…") { app.openImport(existing: nil) }
                     Divider()
-                    Button("New library…") { ask(.newLibrary, "") }
+                    Menu("New library") {
+                        ForEach(LibraryKind.allCases, id: \.self) { kind in Button("\(kind.title)…") { ask(.newLibrary(kind), "") } }
+                    }
                     if let library = currentLibrary {
                         Button("Rename library…") { ask(.renameLibrary(library.id), library.name) }
+                        Menu("Library kind") {
+                            ForEach(LibraryKind.allCases, id: \.self) { kind in
+                                Button { Task { await workspace.setLibraryKind(id: library.id, to: kind) } } label: {
+                                    if library.kind == kind { Label(kind.title, systemImage: "checkmark") } else { Text(kind.title) }
+                                }
+                            }
+                        }
                         Button("Delete library…", role: .destructive) { pendingDelete = .library(library.id, library.name) }
                             .disabled(workspace.libraries.count < 2)
                     }
@@ -102,8 +120,12 @@ struct LibrarySidebar: View {
             .padding(.bottom, 6)
             searchField.padding(.bottom, 6)
             VStack(spacing: 0) {
-                ForEach(workspace.libraries) { library in libraryRow(library) }
+                // UI-005b: the design's order: songs, the Bible entry, then sermons and announcements.
+                let ordered = LibraryListing.sidebarOrder(workspace.libraries)
+                let bibleAt = LibraryListing.scriptureEntryPosition(in: ordered)
+                ForEach(Array(ordered.prefix(bibleAt))) { library in libraryRow(library) }
                 scriptureRow
+                ForEach(Array(ordered.dropFirst(bibleAt))) { library in libraryRow(library) }
             }
             .padding(.bottom, 10)
             Rectangle().fill(Tok.border).frame(height: 1).padding(.horizontal, -12)
@@ -142,7 +164,7 @@ struct LibrarySidebar: View {
         let selected = workspace.openPresentationID == row.id
         return Button { open(row.id) } label: {
             HStack(spacing: 8) {
-                Image(systemName: "music.note").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 16)
+                Image(systemName: currentLibrary?.kind.symbol ?? "music.note").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 16)
                 Text(row.title).font(.system(size: 13)).lineLimit(1)
                 Spacer(minLength: 4)
                 if let match = row.match {
@@ -223,7 +245,7 @@ struct LibrarySidebar: View {
         let selected = library.id == workspace.selectedLibraryID && !(app.ui.scriptureOpen || workspace.centreShowsScripture)
         return Button { app.ui.scriptureOpen = false; Task { await workspace.selectLibrary(library.id) } } label: {
             HStack(spacing: 8) {
-                Image(systemName: "music.note").font(.system(size: 13)).frame(width: 16).foregroundStyle(Tok.text)
+                Image(systemName: library.kind.symbol).font(.system(size: 13)).frame(width: 16).foregroundStyle(Tok.text)
                 Text(library.name).font(.system(size: 13)).lineLimit(1)
                 Spacer()
                 if let count = workspace.libraryCounts[library.id] {
@@ -235,7 +257,7 @@ struct LibrarySidebar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Library \(library.name), \(workspace.libraryCounts[library.id] ?? 0) presentations")
+        .accessibilityLabel("\(library.kind.title) library \(library.name), \(workspace.libraryCounts[library.id] ?? 0) presentations")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -254,11 +276,13 @@ struct LibrarySidebar: View {
                 Spacer()
                 Menu {
                     Button("Add header…") { ask(.newHeader, "") }
+                    Button("Add announcements loop…") { loopEditing = LoopEdit() }
                     Button("Add countdown…") { countdownEditing = CountdownEdit(itemID: nil, spec: CountdownSpec(label: "Starting soon", mode: .duration(seconds: 300))) }
                     Divider()
                     Button("New playlist…") { ask(.newPlaylist, "") }
                     if let playlist = currentPlaylist {
                         Button("Rename playlist…") { ask(.renamePlaylist(playlist.id), playlist.name) }
+                        Button("Set service date and time…") { serviceDateEditing = ServiceDateEdit(playlistID: playlist.id, date: playlist.serviceAt) }
                         Button("Export program…") { app.openExportProgram(playlistID: playlist.id) }
                         Button("Import program…") { app.openImportProgram() }
                         Button("Delete playlist…", role: .destructive) { pendingDelete = .playlist(playlist.id, playlist.name) }
@@ -288,6 +312,7 @@ struct LibrarySidebar: View {
                 }
             }
             .accessibilityLabel("Playlist items")
+            .background(TableHighlightOff())
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
     }
@@ -306,6 +331,8 @@ struct LibrarySidebar: View {
         case .presentation: app.show.liveDeck?.presentationID == item.presentationID
         case .countdown: app.show.liveDeck?.presentationID == item.id
         case .scripture: app.show.liveDeck?.presentationID == item.id
+        case .sermon: app.show.liveDeck?.presentationID == item.presentationID
+        case .media, .announcements: workspace.liveMediaItemID == item.id         // UI-005b
         case .header: false
         }
     }
@@ -351,6 +378,39 @@ struct LibrarySidebar: View {
                 liveMarker(item)
             }
             .accessibilityLabel("Scripture \(item.title)")
+            .contextMenu {
+                Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
+            }
+        case .media(let spec):
+            rowChrome(item, icon: Self.symbol(for: spec.kind)) {
+                Text(item.title).lineLimit(1)
+                Spacer()
+                liveMarker(item)
+            }
+            .accessibilityLabel("\(spec.kind.rawValue) file \(item.title)")
+            .contextMenu {
+                Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
+            }
+        case .announcements(let spec):
+            rowChrome(item, icon: "megaphone") {
+                Text(item.title).lineLimit(1)
+                Spacer()
+                liveMarker(item)
+            }
+            .accessibilityLabel("Announcements loop \(item.title), \(spec.items.count) \(spec.isVideoLoop ? "video" : "pictures")")
+            .contextMenu {
+                Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
+            }
+        case .sermon:
+            rowChrome(item, icon: "textformat") {
+                Text("Sermon — \(item.title)").lineLimit(1)
+                if workspace.emptyPlaylistItemIDs.contains(item.id) {
+                    Text("empty").font(.caption2.bold()).foregroundStyle(Tok.warning)
+                }
+                Spacer()
+                liveMarker(item)
+            }
+            .accessibilityLabel("Sermon \(item.title)")
             .contextMenu {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
@@ -402,6 +462,10 @@ struct LibrarySidebar: View {
         }
     }
 
+    static func symbol(for kind: MediaKind) -> String {
+        switch kind { case .video: "film"; case .image: "photo"; case .audio: "waveform" }
+    }
+
     static func summary(_ spec: CountdownSpec) -> String {
         switch spec.mode {
         case .duration(let seconds): CountdownText.format(seconds)
@@ -424,7 +488,7 @@ struct LibrarySidebar: View {
         let name = promptText
         Task {
             switch p {
-            case .newLibrary: await workspace.createLibrary(name: name)
+            case .newLibrary(let kind): await workspace.createLibrary(name: name, kind: kind)
             case .renameLibrary(let id): await workspace.renameLibrary(id: id, to: name)
             case .newPlaylist: await workspace.createPlaylist(name: name)
             case .renamePlaylist(let id): await workspace.renamePlaylist(id: id, to: name)
@@ -471,6 +535,95 @@ struct SplitHandle: View {
                         height = min(max(height + (direction == .increment ? 8 : -8), range.lowerBound), range.upperBound)
                     }
             }
+    }
+}
+
+struct LoopEdit: Identifiable { let id = UUID() }
+
+/// UI-005b: chooses the pictures (or one video) of an announcements loop from the media bin. Pictures cycle; a video repeats; the
+/// loop runs until the operator presses Next.
+struct LoopSheet: View {
+    @Bindable var media: MediaModel
+    let save: (AnnouncementsSpec) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var label = "Announcements loop"
+    @State private var chosen: [UUID] = []
+    @State private var seconds = 8
+
+    private var candidates: [MediaAsset] { media.assets.filter { $0.kind != .audio } }
+    private var spec: AnnouncementsSpec {
+        AnnouncementsSpec(label: label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Announcements loop" : label,
+                          items: chosen.compactMap { id in media.asset(id).map { MediaItemSpec(assetID: $0.id, name: $0.name, kind: $0.kind) } },
+                          secondsPerPicture: seconds)
+    }
+    /// One video alone repeats; pictures cycle. A video chosen with other files would not play, so the sheet says so.
+    private var problem: String? {
+        let items = spec.items
+        if items.isEmpty { return "Choose at least one picture, or one video." }
+        if items.count > 1, items.contains(where: { $0.kind == .video }) { return "Choose pictures only, or a single video." }
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s4) {
+            Text("Announcements loop").font(.headline)
+            TextField("Name", text: $label).textFieldStyle(.roundedBorder)
+            if candidates.isEmpty {
+                Text("The media bin has no pictures or videos yet. Add them in the Media tab first.").font(.caption).foregroundStyle(Tok.muted)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(candidates) { asset in
+                            Toggle(isOn: Binding(get: { chosen.contains(asset.id) },
+                                                 set: { on in if on { chosen.append(asset.id) } else { chosen.removeAll { $0 == asset.id } } })) {
+                                Label(asset.name, systemImage: LibrarySidebar.symbol(for: asset.kind))
+                            }.toggleStyle(.wfCheckbox)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }.frame(height: 160)
+                Stepper("Each picture stays \(seconds) s", value: $seconds, in: AnnouncementsSpec.pictureSeconds)
+            }
+            Text("It runs until you press Next. It never moves the service on by itself.")
+                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            if let problem { Text(problem).font(.caption).foregroundStyle(Tok.warning) }
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Add") { save(spec); dismiss() }.keyboardShortcut(.defaultAction).disabled(problem != nil)
+            }
+        }
+        .padding(Space.s6).frame(width: 420)
+    }
+}
+
+struct ServiceDateEdit: Identifiable {
+    let id = UUID()
+    var playlistID: UUID
+    var date: Date?
+}
+
+/// UI-005b: the service's date and time. The toolbar title reads from it ("Sunday 9:00 — 22 Nov"); without one it shows the playlist's name.
+struct ServiceDateSheet: View {
+    let edit: ServiceDateEdit
+    let save: (Date?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var date = Date()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s4) {
+            Text("Service date and time").font(.headline)
+            DatePicker("Service", selection: $date, displayedComponents: [.date, .hourAndMinute])
+            Text("The window title reads from it, in your language. Nothing on the screens changes.")
+                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button("Remove date") { save(nil); dismiss() }.disabled(edit.date == nil)
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Save") { save(date); dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(Space.s6).frame(width: 420)
+        .onAppear { date = edit.date ?? Date() }
     }
 }
 
@@ -533,5 +686,37 @@ struct CountdownSheet: View {
             return CountdownSpec(label: label, mode: .targetTime(hour: c.hour ?? 0, minute: c.minute ?? 0))
         }
         return CountdownSpec(label: label, mode: .duration(seconds: minutes * 60 + seconds))
+    }
+}
+
+/// UI-005b: the system List keeps its selection, arrow keys, type-select, drag-reorder and VoiceOver; only the table's own square
+/// selection block is turned off, so the rounded row fill is all that shows (the design's selected row).
+extension LibraryKind {
+    /// The icon the design gives each kind: music, book, text, megaphone.
+    var symbol: String {
+        switch self {
+        case .songs: "music.note"
+        case .scripture: "book.closed"
+        case .sermons: "textformat"
+        case .announcements: "megaphone"
+        }
+    }
+}
+
+private struct TableHighlightOff: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { NSView(frame: .zero) }
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async {
+            var node: NSView? = view
+            while let current = node {
+                if let table = Self.table(in: current) { table.selectionHighlightStyle = .none; return }
+                node = current.superview
+            }
+        }
+    }
+    private static func table(in view: NSView) -> NSTableView? {
+        if let t = view as? NSTableView { return t }
+        for sub in view.subviews { if let t = table(in: sub) { return t } }
+        return nil
     }
 }

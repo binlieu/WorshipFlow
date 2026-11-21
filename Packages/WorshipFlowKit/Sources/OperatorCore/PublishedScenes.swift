@@ -18,11 +18,12 @@ public struct PublishedScenes: Sendable, Equatable {
                 stageScenes: [UUID: SceneDescription] = [:], media: MediaLayers? = nil) {
         var composed: [UUID: SceneDescription] = [:]
         for profile in profiles {
+            let screenLook = look?.screenLook(for: profile.id) ?? .standard
             if profile.role == .stage, let stage = stageScenes[profile.id] {
-                composed[profile.id] = stage
+                // UI-005b: props targeted to the stage (and shown by its Look) go on top of the stage layout's own scene.
+                composed[profile.id] = SceneComposer.addingProps(to: stage, role: .stage, state: state, look: screenLook, props: props)
                 continue
             }
-            let screenLook = look?.screenLook(for: profile.id) ?? .standard
             let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
                                             presentationThemeID: presentationThemeID, themes: themes)
             composed[profile.id] = SceneComposer.scene(for: profile.role, state: state, theme: theme, look: screenLook,

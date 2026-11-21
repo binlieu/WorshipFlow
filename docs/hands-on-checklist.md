@@ -225,3 +225,16 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Edit, Stage and Screens have no transport bar: Space, Return, the arrows, B and Escape still move the show; the toolbar shows LIVE and the slide while something is on the screens.
 - [ ] The Clear button is one button with a menu (Clear words with Escape, Clear all, the layers); Stop has no key hint; the screens button is in the toolbar.
 - [ ] Edit live slide, the live background override (Drop) and Configure are in the slim row under the monitors; Quick edit is in the header only and gets a blue ring while its tab is open.
+
+## UI-005b the features Show's design draws
+
+- [ ] Toolbar timers read `00:10:32` and `25:00`; Quick edit's fields are named English and Tiếng Việt for a bilingual song and "Saved 2 s ago" counts up after you type.
+- [ ] Playlist menu > Set service date and time…: the window title reads "Sunday 9:00 — 22 Nov" (in your language); Remove date brings the playlist name back; export and import the program: the date comes back.
+- [ ] Libraries: New library > Sermons and Announcements (icons, order); Library kind changes the icon.
+- [ ] Right-click a bin tile > Add to playlist: select the item (the bin player shows it, the screens do not change); Go Live plays it; Next moves on and stops it; Stop ends it. Do it with a video, a picture and a sound.
+- [ ] Playlist menu > Add announcements loop…: pictures cycle until you press Next; a single video repeats.
+- [ ] A song from a Sermons library added to the playlist shows "Sermon — title" with the text icon.
+- [ ] Props tab: click AUD, BRD pills; right-click > Show on; Add text prop… with Vietnamese words: it appears only on the screens you picked; speaker notes still appear on stage screens only.
+- [ ] A new library starts with Full, Notes, Lower 3rd and BG only; an existing library keeps its own Looks.
+- [ ] Unplug a screen while the show runs: the card says which output stopped; Retry output after plugging it back; Details shows the recorded text and Copy copies it.
+

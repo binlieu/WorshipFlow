@@ -6,12 +6,12 @@ import Domain
 extension LibraryStore {
     // MARK: Libraries
 
-    public func createLibrary(name: String) async throws -> Library {
+    public func createLibrary(name: String, kind: LibraryKind = .songs) async throws -> Library {
         let name = try Self.validName(name)
         return try await writer.write { db in
             let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM library") ?? 0
             let now = Date()
-            let record = LibraryRecord(id: UUID(), name: name, sortOrder: count, createdAt: now, updatedAt: now)
+            let record = LibraryRecord(id: UUID(), name: name, sortOrder: count, createdAt: now, updatedAt: now, kind: kind)
             try record.insert(db)
             return record.domain
         }
@@ -20,6 +20,14 @@ extension LibraryStore {
     public func libraries() async throws -> [Library] {
         try await writer.read { db in
             try LibraryRecord.fetchAll(db, sql: "SELECT * FROM library ORDER BY sortOrder, rowid").map(\.domain)
+        }
+    }
+
+    /// UI-005b: changes what a library is for. Its presentations are untouched.
+    public func setLibraryKind(id: UUID, to kind: LibraryKind) async throws {
+        try await writer.write { db in
+            try Self.requireExists(db, table: "library", id: id)
+            try db.execute(sql: "UPDATE library SET kind = ?, updatedAt = ? WHERE id = ?", arguments: [kind.rawValue, Date(), id.dbText])
         }
     }
 

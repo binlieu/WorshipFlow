@@ -13,36 +13,39 @@ struct MediaTransportStrip: View {
         TimelineView(.periodic(from: .now, by: 0.1)) { _ in
             if let r = media.foregroundReadout() {
                 HStack(spacing: 10) {
-                    Image(systemName: "film").foregroundStyle(.red).accessibilityHidden(true)
-                    Text(r.name).font(.subheadline.bold()).lineLimit(1).frame(maxWidth: 160, alignment: .leading)
+                    Image(systemName: "film").foregroundStyle(Tok.muted).accessibilityHidden(true)
+                    Text(r.name).font(.system(size: 13, weight: .semibold)).lineLimit(1).frame(maxWidth: 160, alignment: .leading)
                     Button { r.isPlaying ? media.pause() : media.resume() } label: {
                         Label(r.isPlaying ? "Pause" : "Play", systemImage: r.isPlaying ? "pause.fill" : "play.fill")
                             .labelStyle(.iconOnly)
                     }
+                    .buttonStyle(HeaderButtonStyle(compact: true))
                     .help(r.isPlaying ? "Pause the clip" : "Resume the clip")
                     .disabled(r.status == .ended)
-                    Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.caption.monospacedDigit()).frame(width: 44, alignment: .trailing)
-                    Slider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
-                           in: 0...max(r.duration, 0.1)) { editing in
+                    Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.system(size: 12, design: .monospaced)).frame(width: 52, alignment: .trailing)
+                    WFSlider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
+                             range: 0...max(r.duration, 0.1)) { editing in
                         if editing { dragPosition = r.position; dragging = true }
                         else { media.seek(to: dragPosition); dragging = false }
                     }
                     .disabled(!r.canSeek).accessibilityLabel("Clip position")
                     Text("-" + MediaTile.clock(dragging ? max(0, r.duration - dragPosition) : r.remaining))
-                        .font(.caption.monospacedDigit()).frame(width: 48, alignment: .leading)
-                    Divider().frame(height: 18)
+                        .font(.system(size: 12, design: .monospaced)).foregroundStyle(Tok.muted).frame(width: 56, alignment: .leading)
+                    Rectangle().fill(Tok.border).frame(width: 1, height: 18)
                     Button { media.setMuted(!media.isMuted) } label: {
                         Label(media.isMuted ? "Unmute" : "Mute", systemImage: media.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                             .labelStyle(.iconOnly)
                     }
+                    .buttonStyle(HeaderButtonStyle(compact: true))
                     .help(media.isMuted ? "Unmute the clip's sound" : "Mute the clip's sound")
-                    Slider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), in: 0...1)
+                    WFSlider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), range: 0...1, fill: Tok.blue)
                         .frame(width: 90).disabled(media.isMuted).accessibilityLabel("Clip volume")
                     Button { media.stopForeground() } label: { Label("Stop clip", systemImage: "stop.fill") }
+                        .buttonStyle(HeaderButtonStyle())
                         .help("Stop the clip and bring the words back")
                 }
                 .padding(.horizontal, 14).padding(.vertical, 6)
-                .background(Color.red.opacity(0.10))
+                .background(Tok.surface2)      // UI-005b: no red here; red is for on air
             }
         }
     }

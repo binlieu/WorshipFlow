@@ -21,12 +21,68 @@ public struct CountdownSpec: Equatable, Codable, Sendable {
     }
 }
 
+/// UI-005b: a file from the media bin as a playlist item. A video or picture plays over the slides (the foreground), a sound plays as
+/// audio. The name is the bin's name when the item was made, kept so the row and a program package can say what it was.
+public struct MediaItemSpec: Equatable, Codable, Sendable, Hashable {
+    public var assetID: UUID
+    public var name: String
+    public var kind: MediaKind
+
+    public init(assetID: UUID, name: String, kind: MediaKind) {
+        self.assetID = assetID
+        self.name = name
+        self.kind = kind
+    }
+}
+
+/// UI-005b: an announcements loop: a set of pictures shown one after another, or one video repeated, until the operator presses
+/// Next. It never ends or advances by itself.
+public struct AnnouncementsSpec: Equatable, Codable, Sendable, Hashable {
+    public static let pictureSeconds = 3...120
+
+    public var label: String
+    public var items: [MediaItemSpec]
+    /// How long each picture stays when there is more than one (a single picture stays; a video repeats).
+    public var secondsPerPicture: Int
+
+    public init(label: String, items: [MediaItemSpec], secondsPerPicture: Int = 8) {
+        self.label = label
+        self.items = items.filter { $0.kind != .audio }
+        self.secondsPerPicture = min(Self.pictureSeconds.upperBound, max(Self.pictureSeconds.lowerBound, secondsPerPicture))
+    }
+
+    /// A single video repeats; anything else is pictures, cycled.
+    public var isVideoLoop: Bool { items.count == 1 && items[0].kind == .video }
+    public var assetIDs: [UUID] { items.map(\.assetID) }
+
+    /// Which picture is up `elapsed` seconds after the loop started (always 0 for one item or none).
+    public func pictureIndex(afterSeconds elapsed: Double) -> Int {
+        guard items.count > 1, elapsed.isFinite, elapsed > 0 else { return 0 }
+        return Int(elapsed / Double(secondsPerPicture)) % items.count
+    }
+}
+
 public enum PlaylistItemKind: Equatable, Sendable, Codable {
     case presentation
     case header(label: String)
     case countdown(CountdownSpec)
     /// LIB-004c: a Bible passage, kept as a reference and translation codes (see `ScriptureItemSpec`).
     case scripture(ScriptureItemSpec)
+    /// UI-005b: a presentation from a sermons library, listed with the sermon icon. It plays exactly as a presentation does.
+    case sermon
+    /// UI-005b: a file from the media bin (see `MediaItemSpec`).
+    case media(MediaItemSpec)
+    /// UI-005b: an announcements loop (see `AnnouncementsSpec`).
+    case announcements(AnnouncementsSpec)
+
+    /// True for the kinds whose slides come from a stored presentation (the item's `presentationID`).
+    public var hasSlides: Bool {
+        switch self { case .presentation, .sermon: true; default: false }
+    }
+    /// True for the kinds that play a file over the screens or through the speakers instead of showing slides.
+    public var isMediaPlayback: Bool {
+        switch self { case .media, .announcements: true; default: false }
+    }
 
     /// A header is a label in the list: it cannot go live, and Next and Previous skip over it.
     public var isSelectableLive: Bool { if case .header = self { return false } else { return true } }
@@ -40,6 +96,9 @@ public enum PlaylistItemKind: Equatable, Sendable, Codable {
         case .header(let label): return ("header", Self.encode(["label": label]))
         case .countdown(let spec): return ("countdown", (try? String(data: JSONEncoder.sorted.encode(spec), encoding: .utf8)) ?? nil)
         case .scripture(let spec): return ("scripture", (try? String(data: JSONEncoder.sorted.encode(spec), encoding: .utf8)) ?? nil)
+        case .sermon: return ("sermon", nil)
+        case .media(let spec): return ("media", (try? String(data: JSONEncoder.sorted.encode(spec), encoding: .utf8)) ?? nil)
+        case .announcements(let spec): return ("announcements", (try? String(data: JSONEncoder.sorted.encode(spec), encoding: .utf8)) ?? nil)
         }
     }
 
@@ -58,6 +117,15 @@ public enum PlaylistItemKind: Equatable, Sendable, Codable {
             if let payload, let data = payload.data(using: .utf8), let spec = try? JSONDecoder().decode(ScriptureItemSpec.self, from: data) {
                 self = .scripture(spec)
             } else { self = .header(label: "Scripture") }
+        case "sermon": self = .sermon
+        case "media":
+            if let payload, let data = payload.data(using: .utf8), let spec = try? JSONDecoder().decode(MediaItemSpec.self, from: data) {
+                self = .media(spec)
+            } else { self = .header(label: "Media file") }
+        case "announcements":
+            if let payload, let data = payload.data(using: .utf8), let spec = try? JSONDecoder().decode(AnnouncementsSpec.self, from: data) {
+                self = .announcements(spec)
+            } else { self = .header(label: "Announcements") }
         default: self = .header(label: "Unknown item")
         }
     }

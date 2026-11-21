@@ -19,7 +19,7 @@ rm -rf "$APP"; cp -R "$APP_SRC" "$APP"
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1
 BIN="$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")"
 rm -rf "$SCRATCH/library"; LIB="$SCRATCH/library/Library.sqlite"; mkdir -p "$SCRATCH/library"
-UI_SNAPSHOT_DIR="$OUT" UI_SNAPSHOT_PREFIX=UI-005a UI_SNAPSHOT_DESIGN=1 UI_SNAPSHOT_SDI=1 UI_SNAPSHOT_CLIP="$ROOT/TestMedia/loop-1080p5994.mov" \
+UI_SNAPSHOT_DIR="$OUT" UI_SNAPSHOT_PREFIX=${UI_PREFIX:-UI-005a} UI_SNAPSHOT_DESIGN=1 UI_SNAPSHOT_SDI=1 UI_SNAPSHOT_CLIP="$ROOT/TestMedia/loop-1080p5994.mov" \
   "$BIN" --library "$LIB" --silent-audio &
 PID=$!
 for _ in $(seq 1 120); do kill -0 $PID 2>/dev/null || break; [ -f "$OUT/ui-snapshots.log" ] && break; sleep 2; done
@@ -30,5 +30,5 @@ PRE="${CMP_PREFIX:-$OUT/cmp}"
 for pair in "01-operator-show:show-dark" "01b-operator-show-quick-edit:show-quick-edit" "09-operator-show-light:show-light" "08-components:components-dark" "10-components-light:components-light"; do
   d="${pair%%:*}"; a="${pair##*:}"
   echo "== $d vs $a"
-  scripts/compare-design.sh "$D/$d.png" "$OUT/UI-005a-$a.png" "$PRE-$a" "${TOL:-24}" "$( [[ $d == 08* || $d == 10* ]] && echo components || echo show )"
+  scripts/compare-design.sh "$D/$d.png" "$OUT/${UI_PREFIX:-UI-005a}-$a.png" "$PRE-$a" "${TOL:-24}" "$( [[ $d == 08* || $d == 10* ]] && echo components || echo show )"
 done

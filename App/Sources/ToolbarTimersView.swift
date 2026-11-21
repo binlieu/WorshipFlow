@@ -29,7 +29,7 @@ struct ToolbarTimersView: View {
                             .accessibilityHidden(true)
                         Text(row.name).font(.system(size: 11)).lineLimit(1).frame(maxWidth: 90, alignment: .leading)
                         // The picture: the value in the text colour (muted while it is not running, warning on overrun, never red).
-                        Text(row.text).font(.system(size: 13, weight: .bold, design: .monospaced))
+                        Text(row.toolbarText).font(.system(size: 13, weight: .bold, design: .monospaced))
                             .foregroundStyle(row.isOverrun ? Tok.warning : (row.isRunning || row.canToggle == false ? Tok.text : Tok.text))
                         if row.canToggle {
                             Button { stage.toggleToolbarTimer(row.id) } label: {
@@ -45,7 +45,7 @@ struct ToolbarTimersView: View {
                     .foregroundStyle(Tok.muted)
                     .fixedSize()
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(row.name) \(row.text)\(row.isOverrun ? ", over time" : "")")
+                    .accessibilityLabel("\(row.name) \(row.toolbarText)\(row.isOverrun ? ", over time" : "")")
                 }
             }
             .padding(.horizontal, 8).frame(height: 28)

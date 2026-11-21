@@ -171,13 +171,19 @@ extension LibraryStore {
     public func props() async throws -> [Prop] {
         let store = self
         return try await writer.read { db in
-            try Row.fetchAll(db, sql: """
-                SELECT id, name, imagePath, frame, opacity, isOn FROM prop ORDER BY createdAt, rowid
+            let v12 = try db.columns(in: "prop").contains { $0.name == "targets" }
+            return try Row.fetchAll(db, sql: """
+                SELECT id, name, imagePath, frame, opacity, isOn, \(v12 ? "targets, kind, text" : "NULL AS targets, NULL AS kind, NULL AS text")
+                FROM prop ORDER BY createdAt, rowid
                 """).map { row in
                 guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("prop id") }
+                // A damaged value reads as the old behaviour (every role, a picture), never as a prop that vanishes.
+                let targets = (row["targets"] as String?).flatMap { try? SettingsJSON.decode(Set<ScreenRole>.self, from: $0) } ?? Set(ScreenRole.allCases)
+                let kind = (row["kind"] as String?).flatMap(PropKind.init(rawValue:)) ?? .image
+                let text = (row["text"] as String?).flatMap { try? SettingsJSON.decode(TextPropSpec.self, from: $0) }
                 return Prop(id: id, name: row["name"], imagePath: store.runtimePath(row["imagePath"]),
                             frame: try SettingsJSON.decode(NormalizedRect.self, from: row["frame"]),
-                            opacity: row["opacity"], isOn: row["isOn"])
+                            opacity: row["opacity"], isOn: row["isOn"], targets: targets, kind: kind, text: text)
             }
         }
     }
@@ -186,15 +192,19 @@ extension LibraryStore {
     public func saveProp(_ prop: Prop, bookmark: Data?) async throws {
         let frame = try SettingsJSON.encode(prop.frame)
         let imagePath = storedPath(prop.imagePath)
+        let targets = try SettingsJSON.encode(prop.targets)
+        let text = try prop.text.map { try SettingsJSON.encode($0) }
         try await writer.write { db in
             let now = Date()
             try db.execute(sql: """
-                INSERT INTO prop (id, name, imagePath, bookmark, frame, opacity, isOn, createdAt, updatedAt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO prop (id, name, imagePath, bookmark, frame, opacity, isOn, createdAt, updatedAt, targets, kind, text)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET name = excluded.name, imagePath = excluded.imagePath,
                     bookmark = COALESCE(excluded.bookmark, prop.bookmark), frame = excluded.frame,
-                    opacity = excluded.opacity, isOn = excluded.isOn, updatedAt = excluded.updatedAt
-                """, arguments: [prop.id.dbText, prop.name, imagePath, bookmark, frame, prop.opacity, prop.isOn, now, now])
+                    opacity = excluded.opacity, isOn = excluded.isOn, updatedAt = excluded.updatedAt,
+                    targets = excluded.targets, kind = excluded.kind, text = excluded.text
+                """, arguments: [prop.id.dbText, prop.name, imagePath, bookmark, frame, prop.opacity, prop.isOn, now, now,
+                                  targets, prop.kind.rawValue, text])
         }
     }
 

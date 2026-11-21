@@ -14,7 +14,7 @@ public enum ImageUsage {
         for profile in profiles where profile.isEnabled && profile.role != .stage {
             let screenLook = look?.screenLook(for: profile.id) ?? .standard
             if screenLook.visibleLayers.contains(.props) {
-                for prop in props where prop.isOn { paths.insert(prop.imagePath) }
+                for prop in props where prop.isOn && prop.kind == .image && prop.targets.contains(profile.role) { paths.insert(prop.imagePath) }
             }
             if screenLook.visibleLayers.contains(.background) {
                 let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,

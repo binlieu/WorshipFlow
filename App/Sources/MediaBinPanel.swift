@@ -188,6 +188,7 @@ struct MediaBinPanel: View {
             Button("Use the slide's own background") { media.dropBackgroundOverride() }
         }
         Divider()
+        Button("Add to playlist") { Task { await app.workspace?.addMediaItem(MediaItemSpec(assetID: asset.id, name: asset.name, kind: asset.kind)) } }
         Button("Rename…") { renameText = asset.name; renaming = asset }
         Button("Remove from bin") { Task { await requestRemoval(asset) } }.disabled(media.assets.contains { $0.id == asset.id } == false)
     }

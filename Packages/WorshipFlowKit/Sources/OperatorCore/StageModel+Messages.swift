@@ -14,6 +14,8 @@ public struct ToolbarTimerRow: Sendable, Equatable, Identifiable {
     /// Only a countdown has a start or pause button in the toolbar.
     public var canToggle: Bool
     public var kindLabel: String
+    /// UI-005b: the toolbar's own format, as the design draws it ("00:10:32", "25:00").
+    public var toolbarText: String
 }
 
 extension StageModel {
@@ -78,9 +80,10 @@ extension StageModel {
         return toolbarTimers.map { timer in
             var canToggle = false
             if case .countdown = timer.kind { canToggle = true }
-            return ToolbarTimerRow(id: timer.id, name: timer.name, text: TimeFormat.clock(seconds: timer.value(at: seconds)),
+            let value = timer.value(at: seconds)
+            return ToolbarTimerRow(id: timer.id, name: timer.name, text: TimeFormat.clock(seconds: value),
                                    isRunning: timer.isRunning, isOverrun: timer.isOverrun(at: seconds), canToggle: canToggle,
-                                   kindLabel: labels[timer.id] ?? "")
+                                   kindLabel: labels[timer.id] ?? "", toolbarText: TimeFormat.toolbar(seconds: value, elapsed: !canToggle))
         }
     }
 

@@ -27,5 +27,18 @@ public enum TimeFormat {
         return "\(hour12):\(pad(minute))\(tail) \(hour < 12 ? "AM" : "PM")"
     }
 
+    /// UI-005b: the toolbar's readout as the design draws it: an elapsed timer always `00:10:32`; a countdown `25:00`, with hours
+    /// (`01:30:00`) only from an hour up. A minus sign below zero.
+    public static func toolbar(seconds: TimeInterval, elapsed: Bool) -> String {
+        let limit = 99.0 * 3600 + 3599
+        let clamped = seconds.isNaN ? 0 : min(limit, max(-limit, seconds))
+        let whole = Int(clamped.rounded(.up))
+        let total = abs(whole)
+        let (h, m, s) = (total / 3600, (total % 3600) / 60, total % 60)
+        let sign = whole < 0 ? "-" : ""
+        if elapsed || h > 0 { return "\(sign)\(pad(h)):\(pad(m)):\(pad(s))" }
+        return "\(sign)\(pad(m)):\(pad(s))"
+    }
+
     private static func pad(_ n: Int) -> String { n < 10 ? "0\(n)" : "\(n)" }
 }

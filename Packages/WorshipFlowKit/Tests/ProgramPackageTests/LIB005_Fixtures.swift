@@ -181,6 +181,10 @@ func describe(_ store: LibraryStore, playlist id: UUID) async throws -> [String]
         case .header(let label): lines.append("header \(label)")
         case .countdown(let spec): lines.append("countdown \(spec.label) \(spec.mode)")
         case .scripture(let spec): lines.append("scripture \(spec)")
+        // UI-005b: three new kinds; the switch must name them (existing lines unchanged).
+        case .sermon: lines.append("sermon \(item.title)")
+        case .media(let spec): lines.append("media \(spec.name) \(spec.kind)")
+        case .announcements(let spec): lines.append("announcements \(spec.label) \(spec.items.map(\.name)) \(spec.secondsPerPicture)")
         case .presentation:
             lines.append("presentation \(item.title)")
             let groups = try await store.groups(of: item.presentationID)

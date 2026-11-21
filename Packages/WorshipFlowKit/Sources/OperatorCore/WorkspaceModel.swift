@@ -91,6 +91,10 @@ public final class WorkspaceModel {
     /// UI-001: the live deck's title and the section name of each live slide, for the transport bar's position line.
     public internal(set) var liveTitle: String?
     public internal(set) var liveSectionNames: [String?] = []
+    /// UI-005b: the media-file item or announcements loop that is live, if any. A song taken live, Stop or stepping on ends it.
+    public internal(set) var liveMediaItemID: UUID?
+    /// UI-005b: told to the app, which plays the files. The model never touches a player: it says what the operator chose.
+    @ObservationIgnored public var onMediaItem: (@MainActor (MediaItemCommand) -> Void)?
     /// UI-002: the countdown that is live, if any.
     public internal(set) var liveCountdown: LiveCountdown?
     /// Where the time comes from; tests replace it.
@@ -131,6 +135,10 @@ public final class WorkspaceModel {
     @ObservationIgnored private var placeSaver: DebouncedSaver<WorkspacePlace>?
     @ObservationIgnored private var modeSaver: DebouncedSaver<WorkspaceMode>?
     @ObservationIgnored private var restoring = false
+    /// UI-005b: the saved-note's source: when (on the save clock) typed text was last written, and the section order a song opened from
+    /// the library is previewed in.
+    public internal(set) var lastDraftSavedAt: TimeInterval?
+    public internal(set) var previewArrangementID: UUID?
 
     static let placeKey = "workspace.place"
     public static let modeKey = "workspace.mode"
@@ -155,6 +163,20 @@ public final class WorkspaceModel {
         guard new != mode else { return }
         mode = new
         modeSaver?.schedule(new)
+    }
+
+    // MARK: Quick edit labels (UI-005b)
+
+    /// The note under the Quick edit fields, from the last real write of typed text and the save clock.
+    public func quickEditSavedNote() -> String {
+        QuickEditLabels.savedNote(secondsAgo: lastDraftSavedAt.map { Int((clock.now - $0).rounded(.down)) })
+    }
+
+    /// The two fields' labels: the language of the words in each, or the neutral names when the words do not say.
+    public var quickEditLanguageNames: (first: String, second: String) {
+        let sample = slides.prefix(12)
+        return (LanguageNaming.name(of: sample.map(\.content.primary)) ?? "First language",
+                LanguageNaming.name(of: sample.compactMap(\.content.secondary)) ?? "Second language")
     }
 
     // MARK: Loading
@@ -295,9 +317,11 @@ public final class WorkspaceModel {
     /// and schedules another try with back-off (2 s, 4 s, ... at most 30 s).
     private func writeDrafts() async {
         var failure: Error?
+        var wrote = false
         for slide in pendingDrafts.values.sorted(by: { $0.sortOrder < $1.sortOrder }) {
             do {
                 try await draftWriter(slide)
+                wrote = true
                 if pendingDrafts[slide.id] == slide { pendingDrafts[slide.id] = nil }
             } catch StoreError.notFound {
                 // The row is gone (deleted elsewhere): nothing to save into. Dropped knowingly, and the operator is told.
@@ -307,6 +331,7 @@ public final class WorkspaceModel {
                 failure = error
             }
         }
+        if failure == nil, wrote { lastDraftSavedAt = clock.now }
         guard let failure else { draftsSettled(); return }
         let first = draftSaveProblem == nil
         draftSaveProblem = "Your typing is not saved yet: \(Self.reason(for: failure)) It is kept here and WorshipFlow keeps trying."

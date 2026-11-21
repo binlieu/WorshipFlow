@@ -135,6 +135,8 @@ struct MediaDockView: View {
                 app.performDockAction(MediaDock.action(for: asset, layer: app.ui.dockLayer))
             }
             .contextMenu {
+                Button("Add to playlist") { Task { await app.workspace?.addMediaItem(MediaItemSpec(assetID: asset.id, name: asset.name, kind: asset.kind)) } }
+                Divider()
                 if asset.kind != .audio {
                     Button("Set as background") { selected = asset.id; media.setBackground(asset.id) }
                     Button("Play in foreground") { selected = asset.id; media.playForeground(asset.id) }

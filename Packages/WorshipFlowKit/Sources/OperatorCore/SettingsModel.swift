@@ -299,6 +299,25 @@ public final class SettingsModel {
         onAppearanceChange?()
     }
 
+    /// UI-005b: on a NEW library, replaces the untouched "Standard" Look with the design's four (Full, Notes, Lower 3rd, BG only) and
+    /// selects Full. `isNewLibrary` comes from the app (no library existed at launch). Anything else is left exactly as it is: an
+    /// existing library, and a library whose Looks the operator renamed, added to or customised.
+    public func seedDesignLooks(isNewLibrary: Bool) async {
+        guard isNewLibrary, isLoaded, looks.count == 1, let standard = looks.first, standard.name == "Standard", standard.screens.isEmpty else { return }
+        await writes.flush()                       // the first-launch Standard Look is written before it is replaced
+        let made = DesignLooks.make(profiles: profiles)
+        looks = made
+        selectedLookID = made[0].id
+        let oldID = standard.id
+        // One ordered write, so the stored order (by time of writing) is the design's order.
+        persist(key: "seedLooks", "save the Looks") { [store] in
+            for look in made { try await store.saveLook(look) }
+            try await store.deleteLook(id: oldID)
+        }
+        persistSelectedLook()
+        onAppearanceChange?()
+    }
+
     private func persistLook(_ look: Look) {
         persist(key: "look:\(look.id)", "save the Look") { [store] in try await store.saveLook(look) }
     }
@@ -325,6 +344,43 @@ public final class SettingsModel {
         let prop = props[i]
         let bookmark = propBookmarks[id]
         persist(key: "prop:\(id)", "save the prop") { [store] in try await store.saveProp(prop, bookmark: bookmark) }
+        onAppearanceChange?()
+    }
+
+    /// UI-005b: switches one role on or off for a prop: the AUD, STG and BRD pills. A prop is drawn only on the roles it is targeted to.
+    public func setProp(_ id: UUID, target: ScreenRole, isOn: Bool) {
+        guard let i = props.firstIndex(where: { $0.id == id }), props[i].targets.contains(target) != isOn else { return }
+        if isOn { props[i].targets.insert(target) } else { props[i].targets.remove(target) }
+        savePropChange(props[i])
+    }
+
+    /// UI-005b: a prop that draws words (a service title strap, a speaker name). The words go through the same text path as the
+    /// slides' lyrics. A name is needed; nothing is added without one.
+    @discardableResult
+    public func addTextProp(name: String, spec: TextPropSpec, targets: Set<ScreenRole>) -> Prop? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            lastError = "Could not add the prop: a name is needed. Type at least one letter and try again."
+            return nil
+        }
+        let prop = Prop(name: trimmed, imagePath: "", frame: .full, targets: targets, kind: .text, text: spec)
+        addProp(prop, bookmark: nil)
+        return prop
+    }
+
+    /// UI-005b: changes a text prop's name, words, size, colour and position. A picture prop is left alone.
+    public func updateTextProp(_ id: UUID, name: String, spec: TextPropSpec) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let i = props.firstIndex(where: { $0.id == id }), props[i].kind == .text, !trimmed.isEmpty else { return }
+        guard props[i].name != trimmed || props[i].text != spec else { return }
+        props[i].name = trimmed
+        props[i].text = spec
+        savePropChange(props[i])
+    }
+
+    private func savePropChange(_ prop: Prop) {
+        let bookmark = propBookmarks[prop.id]
+        persist(key: "prop:\(prop.id)", "save the prop") { [store] in try await store.saveProp(prop, bookmark: bookmark) }
         onAppearanceChange?()
     }
 

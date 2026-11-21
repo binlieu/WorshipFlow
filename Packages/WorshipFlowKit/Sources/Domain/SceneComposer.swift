@@ -59,7 +59,7 @@ public enum SceneComposer {
     public static func scene(for role: ScreenRole, state: ShowState, theme: Theme, look: ScreenLook, props: [Prop],
                              media: MediaLayers? = nil, clockText: String? = nil) -> SceneDescription {
         switch role {
-        case .stage: return stage(state, .standard, clockText)
+        case .stage: return addingProps(to: stage(state, .standard, clockText), role: .stage, state: state, look: look, props: props)
         case .audience: return themed(state, theme: theme, look: look, props: props, media: media, isBroadcast: false)
         case .broadcast: return themed(state, theme: theme, look: look, props: props, media: media, isBroadcast: true)
         }
@@ -126,10 +126,19 @@ public enum SceneComposer {
                 scene.objectLayers = slide.objects.map(\.sceneLayer)
             }
         }
-        if look.visibleLayers.contains(.props) {
-            scene.overlayImages = props.filter(\.isOn).map(\.imageLayer)
-        }
-        return scene
+        return addingProps(to: scene, role: isBroadcast ? .broadcast : .audience, state: state, look: look, props: props)
+    }
+
+    /// UI-005b: adds the props that are on, targeted to `role`, and shown by the screen's Look (its props layer). A picture prop
+    /// becomes an overlay image, a text prop a text layer after the slide's own words (the same `TextLayer` the words use). A prop
+    /// never reaches a role it is not targeted to, and none is drawn while stopped or blacked out.
+    public static func addingProps(to scene: SceneDescription, role: ScreenRole, state: ShowState, look: ScreenLook, props: [Prop]) -> SceneDescription {
+        guard !state.isStopped, !state.isBlackedOut, look.visibleLayers.contains(.props) else { return scene }
+        let shown = props.filter { $0.isOn && $0.targets.contains(role) }
+        var result = scene
+        result.overlayImages += shown.filter { $0.kind == .image }.map(\.imageLayer)
+        result.textLayers += shown.compactMap(\.textLayer)
+        return result
     }
 
     private static func stage(_ state: ShowState, _ s: SceneStyles, _ clock: String?) -> SceneDescription {

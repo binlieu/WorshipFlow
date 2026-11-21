@@ -130,7 +130,7 @@ struct EditModeView: View {
                 }
                 .frame(maxWidth: 220).help("The look of this song on the audience screen")
                 HeaderControlButton(control: .themes, symbol: "paintpalette", compact: compact) { app.ui.showThemeEditor = true }
-                if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }), item.kind == .presentation {
+                if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }), item.kind.hasSlides {
                     Picker("Section order", selection: Binding(get: { item.arrangementID },
                                                                set: { id in Task { await workspace.setArrangement(id, forPlaylistItem: itemID) } })) {
                         Text("Natural order").tag(UUID?.none)

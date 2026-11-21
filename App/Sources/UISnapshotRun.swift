@@ -172,10 +172,10 @@ extension AppModel {
             }
 
             // Extra Looks so the compact row has something to hold.
-            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil {
-                // UI-005a: in the design capture the Looks are the design's four (the first, existing one is renamed Full).
-                if ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil, let first = looks.first { renameLook(first.id, to: "Full") }
-                for name in (ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil ? ["Notes", "Lower 3rd", "BG only"] : ["Notes", "Lower 3rd", "BG only", "Sermon"]) { addLook(); if let last = looks.last { renameLook(last.id, to: name) } }
+            // UI-005b: in the design capture the throw-away library is new, so the app has seeded the design's four Looks itself (Full is
+            // selected); nothing is renamed or added here any more.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil, ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] == nil {
+                for name in ["Notes", "Lower 3rd", "BG only", "Sermon"] { addLook(); if let last = looks.last { renameLook(last.id, to: name) } }
             }
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGEMSG"] != nil { stage?.sendMessage("Wrap up in 2 min") }
 

@@ -267,17 +267,18 @@ enum ProgramImportWriter {
             playlistID = existing
         case .insert(let id, let name):
             playlistID = id
-            try db.execute(sql: "INSERT INTO playlist (id, name, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
-                           arguments: [id.uuidString, name, now, now])
+            try db.execute(sql: "INSERT INTO playlist (id, name, createdAt, updatedAt, serviceAt) VALUES (?, ?, ?, ?, ?)",
+                           arguments: [id.uuidString, name, now, now, plan.playlistServiceAt])
         case .replace(let existing, let name):
             playlistID = existing
-            try db.execute(sql: "UPDATE playlist SET name = ?, updatedAt = ? WHERE id = ?", arguments: [name, now, existing.uuidString])
+            try db.execute(sql: "UPDATE playlist SET name = ?, updatedAt = ?, serviceAt = ? WHERE id = ?",
+                           arguments: [name, now, plan.playlistServiceAt, existing.uuidString])
             try db.execute(sql: "DELETE FROM playlistItem WHERE playlistID = ?", arguments: [existing.uuidString])
         }
         if case .skip = plan.playlistAction {} else {
             for (order, item) in plan.items.enumerated() {
                 let stored = item.kind.stored
-                if item.kind == .presentation, item.presentationID == nil { continue }
+                if item.kind.hasSlides, item.presentationID == nil { continue }
                 try db.execute(sql: """
                     INSERT INTO playlistItem (id, playlistID, presentationID, sortOrder, createdAt, arrangementID, kind, payload)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)

@@ -14,7 +14,7 @@ extension WorkspaceModel {
             playlistItems = list
             var empty: Set<UUID> = []
             for item in list where ((try? await store.slides(forPlaylistItem: item.id))?.count ?? 1) == 0 {
-                if !item.kind.isScripture { empty.insert(item.id) }      // a passage has no stored slides: it is read from the Bible library
+                if item.kind.hasSlides { empty.insert(item.id) }      // a passage, a file or a loop has no stored slides, and is not "empty"
             }
             emptyPlaylistItemIDs = empty
         }
@@ -62,7 +62,36 @@ extension WorkspaceModel {
             selectedPlaylistID = p.id
         }
         guard let playlist = selectedPlaylistID else { return }
-        guard await attempt("add to the playlist", { try await self.store.addPresentation(presentationID, to: playlist) }) != nil else { return }
+        // UI-005b: a presentation from a sermons library is listed as a sermon.
+        let isSermon = await libraryKind(ofPresentation: presentationID) == .sermons
+        guard await attempt("add to the playlist", {
+            if isSermon { _ = try await self.store.addPlaylistSermon(presentationID, to: playlist) }
+            else { _ = try await self.store.addPresentation(presentationID, to: playlist) }
+        }) != nil else { return }
+        await reloadPlaylistItems()
+        placeChanged()
+    }
+
+    private func libraryKind(ofPresentation id: UUID) async -> LibraryKind? {
+        for library in libraries {
+            if let list = try? await store.presentations(in: library.id), list.contains(where: { $0.id == id }) { return library.kind }
+        }
+        return nil
+    }
+
+    /// UI-005b: appends a file from the media bin to the playlist.
+    public func addMediaItem(_ spec: MediaItemSpec) async {
+        guard let playlist = await ensurePlaylist() else { return }
+        guard await attempt("add the file", { try await self.store.addPlaylistMedia(spec, to: playlist) }) != nil else { return }
+        await reloadPlaylistItems()
+        placeChanged()
+    }
+
+    /// UI-005b: appends an announcements loop (pictures that cycle, or a video that repeats) to the playlist.
+    public func addAnnouncementsItem(_ spec: AnnouncementsSpec) async {
+        guard !spec.items.isEmpty else { lastError = "Could not add the loop: choose at least one picture or a video."; return }
+        guard let playlist = await ensurePlaylist() else { return }
+        guard await attempt("add the loop", { try await self.store.addPlaylistAnnouncements(spec, to: playlist) }) != nil else { return }
         await reloadPlaylistItems()
         placeChanged()
     }
@@ -73,6 +102,7 @@ extension WorkspaceModel {
     }
 
     public func removePlaylistItem(id: UUID) async {
+        if liveMediaItemID == id { endLiveMediaItem() }           // UI-005b: removing the file that is playing stops it
         guard await attempt("remove the item", { try await self.store.removePlaylistItem(id: id) }) != nil else { return }
         if liveItemID == id { liveItemID = nil }
         countdownItemRemoved(id)
@@ -87,7 +117,12 @@ extension WorkspaceModel {
         case .header: return                                  // a header is a label: it cannot be selected
         case .countdown: _ = beginPreviewRequest(); selectedPlaylistItemID = id; placeChanged(); return    // selected for Go Live, not started
         case .scripture(let spec): await openScriptureItem(item, spec: spec); return        // LIB-004c
-        case .presentation: break
+        case .media(let spec):                                // UI-005b: selected for Go Live, previewed in the bin player, never played
+            _ = beginPreviewRequest(); selectedPlaylistItemID = id; placeChanged()
+            onMediaItem?(.preview(spec)); return
+        case .announcements:
+            _ = beginPreviewRequest(); selectedPlaylistItemID = id; placeChanged(); return
+        case .presentation, .sermon: break
         }
         let token = beginPreviewRequest()
         await flushDrafts()

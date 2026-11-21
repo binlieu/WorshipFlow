@@ -28,8 +28,8 @@ extension WorkspaceModel {
         }
     }
 
-    public func createLibrary(name: String) async {
-        guard let library = await attempt("create the library", { try await self.store.createLibrary(name: name) }) else { return }
+    public func createLibrary(name: String, kind: LibraryKind = .songs) async {
+        guard let library = await attempt("create the library", { try await self.store.createLibrary(name: name, kind: kind) }) else { return }
         await reloadLibraries()
         await selectLibrary(library.id)
     }
@@ -39,6 +39,12 @@ extension WorkspaceModel {
         selectedLibraryID = id
         await reloadPresentations()
         placeChanged()
+    }
+
+    /// UI-005b: changes what a library is for (its icon and place in the sidebar). The presentations stay as they are.
+    public func setLibraryKind(id: UUID, to kind: LibraryKind) async {
+        guard await attempt("change the library", { try await self.store.setLibraryKind(id: id, to: kind) }) != nil else { return }
+        await reloadLibraries()
     }
 
     public func renameLibrary(id: UUID, to name: String) async {
@@ -119,6 +125,7 @@ extension WorkspaceModel {
         let token = beginPreviewRequest()
         await flushDrafts()
         guard isCurrentPreviewRequest(token) else { return }
+        previewArrangementID = nil             // a song is opened in natural order; the previewed order is chosen after
         guard let loaded = await loadContent(of: id, itemID: nil), isCurrentPreviewRequest(token) else { return }
         selectedPlaylistItemID = nil
         openPlaylistItemID = nil
@@ -148,7 +155,9 @@ extension WorkspaceModel {
     func loadContent(of presentationID: UUID, itemID: UUID?) async -> LoadedContent? {
         await attempt("open the presentation") {
             let slides: [Slide]
-            if let itemID { slides = try await self.store.slides(forPlaylistItem: itemID) } else {
+            if let itemID { slides = try await self.store.slides(forPlaylistItem: itemID) } else if let order = self.previewArrangementID {
+                slides = try await self.store.resolvedSlides(of: presentationID, arrangementID: order)     // UI-005b: previewed, not stored
+            } else {
                 slides = try await self.store.slides(of: presentationID)
             }
             let natural = try await self.store.slides(of: presentationID)
@@ -163,6 +172,7 @@ extension WorkspaceModel {
 
     func install(_ content: LoadedContent, presentationID: UUID) {
         openScripture = nil                    // a song or sermon replaces a passage in preview (LIB-004c)
+        if openPresentationID != presentationID || openPlaylistItemID != nil { previewArrangementID = nil }
         openPresentationID = presentationID
         slides = content.slides
         groups = content.groups
@@ -183,6 +193,15 @@ extension WorkspaceModel {
         let keep = min(show.selectedIndex, max(slides.count - 1, 0))
         apply(.restore(deck: previewDeck(), selectedIndex: keep))
         placeChanged()
+    }
+
+    /// UI-005b: the section order a song opened from the library is previewed in (nil: natural order). Nothing is stored and Live is
+    /// not touched; with a playlist item open, the item's own order is used and this does nothing.
+    public func setPreviewArrangement(_ id: UUID?) async {
+        guard openPresentationID != nil, openPlaylistItemID == nil else { return }
+        if let id, !arrangements.contains(where: { $0.id == id }) { return }
+        previewArrangementID = id
+        await reloadOpen()
     }
 
     // MARK: Search (PRES-08)

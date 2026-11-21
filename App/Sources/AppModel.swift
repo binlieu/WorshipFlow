@@ -103,6 +103,7 @@ final class AppModel {
     /// Sheets and focus requests shared by the menus and the views.
     let ui = WorkspaceUIState()
 
+    @ObservationIgnored private var mediaItemPlayer: MediaItemPlayer?
     @ObservationIgnored private let sceneBox: SceneBox
     @ObservationIgnored private var scopedURLs: [UUID: URL] = [:]   // security-scoped access held while the prop exists
     @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
@@ -241,6 +242,10 @@ final class AppModel {
             }
             self.media = media
             makeAudio(store: store)
+            // UI-005b: the playlist's media-file items and announcements loops play through the bin's own models.
+            let player = MediaItemPlayer(media: media, audio: audio, preview: { [weak self] id in self?.selectBinItem(id) })
+            mediaItemPlayer = player
+            model.onMediaItem = { [weak player] command in player?.handle(command) }
             makeCue(library: store, workspace: model, settings: settings, stage: stage, media: media)
             makeScripture(library: store, workspace: model)
         } catch {
@@ -295,7 +300,11 @@ final class AppModel {
     func startWorkspace() {
         guard let workspace, !workspaceLoaded else { return }
         Task { @MainActor in
+            // UI-005b: a library that did not exist before this launch is new: it gets the design's four Looks. Read before the
+            // workspace load creates its first library.
+            let isNewLibrary = ((try? await libraryStore?.libraries().isEmpty) ?? false)
             await settings?.load()
+            await settings?.seedDesignLooks(isNewLibrary: isNewLibrary)
             await stage?.load()
             await resolvePropBookmarks()
             await media?.load()
@@ -690,6 +699,20 @@ final class AppModel {
         updateReadouts()
     }
 
+    /// UI-005b: the cards for outputs that stopped sending (Retry output, Details), and what the last Retry found per output.
+    var faultCards: [OutputFaultCard] { OutputFaultCards.cards(from: readouts) }
+    private(set) var retryNotes: [UUID: String] = [:]
+
+    /// Reopens the failed output once through the coordinator's own restart. A failure is said plainly on its card.
+    func retryOutput(_ card: OutputFaultCard) {
+        let outcome = OutputFaultCards.retry(card.screenID, name: card.name, reopen: { [self] id in restartScreen(id) },
+                                             state: { [self] id in readouts.first { $0.id == id }?.state })
+        switch outcome {
+        case .reopened: retryNotes[card.screenID] = nil
+        case .stillFailing(let text): retryNotes[card.screenID] = text
+        }
+    }
+
     func stopScreen(_ id: UUID) {
         coordinator.stop(id)
         updateReadouts()
@@ -768,6 +791,11 @@ final class AppModel {
     }
 
     func setProp(_ id: UUID, isOn: Bool) { settings?.setProp(id, isOn: isOn) }
+    /// UI-005b: the AUD, STG and BRD pills of a prop.
+    func setProp(_ id: UUID, target: ScreenRole, isOn: Bool) { settings?.setProp(id, target: target, isOn: isOn) }
+    @discardableResult
+    func addTextProp(name: String, spec: TextPropSpec, targets: Set<ScreenRole>) -> Prop? { settings?.addTextProp(name: name, spec: spec, targets: targets) }
+    func updateTextProp(_ id: UUID, name: String, spec: TextPropSpec) { settings?.updateTextProp(id, name: name, spec: spec) }
 
     func removeProp(_ id: UUID) {
         scopedURLs.removeValue(forKey: id)?.stopAccessingSecurityScopedResource()

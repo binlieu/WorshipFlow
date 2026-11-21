@@ -52,6 +52,8 @@ struct ImportPlan: Sendable {
     }
 
     var libraryID: UUID?
+    /// UI-005b: the package's service date, written with an inserted or replaced playlist.
+    var playlistServiceAt: Date?
     var presentations: [PresentationPlan] = []
     var themes: [ThemePlan] = []
     var looks: [LookPlan] = []
@@ -268,7 +270,7 @@ enum ProgramImportPlanner {
         var effective: [ProgramDocument.ItemEntry] = []
         for item in doc.items {
             var entry = item
-            if item.kind == "presentation" {
+            if item.kind == "presentation" || item.kind == "sermon" {
                 guard let id = item.presentationID, let p = byPresentation[id] else {
                     plan.warnings.append("A playlist item refers to a presentation that is not in the package; it was left out.")
                     continue
@@ -282,7 +284,8 @@ enum ProgramImportPlanner {
         if existing.playlistIDs.contains(doc.playlist.id) {
             let mine = try await store.playlistItems(of: doc.playlist.id).map(ProgramSnapshot.item)
             let myName = try await store.playlists().first { $0.id == doc.playlist.id }?.name
-            let same = mine == effective && myName == doc.playlist.name
+            let myDate = try await store.playlists().first { $0.id == doc.playlist.id }?.serviceAt
+            let same = mine == effective && myName == doc.playlist.name && myDate?.timeIntervalSince1970.rounded() == doc.playlist.serviceDate?.timeIntervalSince1970.rounded()
             plan.playlistState = same ? .alreadyPresent : .conflicting
             switch (same, choice) {
             case (true, _), (false, .keepMine): plan.playlistAction = .skip(existing: playlistID)
@@ -296,6 +299,7 @@ enum ProgramImportPlanner {
             plan.playlistAction = .insert(id: playlistID, name: doc.playlist.name)
         }
         plan.summary.playlist = plan.playlistState
+        plan.playlistServiceAt = doc.playlist.serviceDate
         let freshItemIDs: Bool
         if case .insert(let id, _) = plan.playlistAction, id != doc.playlist.id { freshItemIDs = true } else { freshItemIDs = false }
         for entry in effective {

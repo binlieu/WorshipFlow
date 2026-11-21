@@ -143,6 +143,15 @@ public enum QuickEditLabels {
     public static let liveTitle = "Edit live slide…"
     public static let liveShortcut = "⌥⌘E"
     public static let liveMenuTitle = "Quick Edit Live Slide…"
+    /// UI-005b: "Saved 2 s ago · live at next trigger", from the time of the last real write. Nil: nothing was written yet.
+    public static func savedNote(secondsAgo: Int?) -> String {
+        let tail = " · live at next trigger"
+        guard let secondsAgo else { return "No edits yet" + tail }
+        let s = max(0, secondsAgo)
+        if s < 60 { return "Saved \(s) s ago" + tail }
+        if s < 3600 { return "Saved \(s / 60) min ago" + tail }
+        return "Saved \(s / 3600) h ago" + tail
+    }
     public static let liveWarning = "This changes what the audience sees now, and saves the new words."
 }
 
@@ -227,7 +236,32 @@ public enum LayerPresence {
 
 // MARK: Library list while searching
 
+extension LibraryKind {
+    /// The word VoiceOver and the menus use.
+    public var title: String {
+        switch self {
+        case .songs: "Songs"
+        case .scripture: "Scripture"
+        case .sermons: "Sermons"
+        case .announcements: "Announcements"
+        }
+    }
+    var sidebarRank: Int {
+        switch self { case .songs: 0; case .scripture: 1; case .sermons: 2; case .announcements: 3 }
+    }
+}
+
 public enum LibraryListing {
+    /// UI-005b: the design's order, songs, scripture, sermons, announcements; each kind in the order its libraries were made.
+    public static func sidebarOrder(_ libraries: [Library]) -> [Library] {
+        libraries.enumerated().sorted { a, b in
+            a.element.kind.sidebarRank != b.element.kind.sidebarRank ? a.element.kind.sidebarRank < b.element.kind.sidebarRank : a.offset < b.offset
+        }.map(\.element)
+    }
+
+    /// Where the Scripture entry (the Bible view) goes in an ordered list: after the songs libraries.
+    public static func scriptureEntryPosition(in ordered: [Library]) -> Int { ordered.filter { $0.kind == .songs }.count }
+
     public enum Match: Equatable, Sendable { case title, lyrics }
     public struct Row: Equatable, Identifiable, Sendable {
         public var id: UUID

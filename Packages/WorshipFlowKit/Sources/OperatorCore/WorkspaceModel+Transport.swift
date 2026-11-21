@@ -15,7 +15,10 @@ extension WorkspaceModel {
     /// item (none when it came from the library), not a countdown chosen before. Go Live then starts the slide.
     func chooseOpenPresentation() {
         guard let selected = selectedPlaylistItemID, selected != openPlaylistItemID,
-              playlistItems.first(where: { $0.id == selected }).map({ item -> Bool in if case .countdown = item.kind { return true } else { return false } }) ?? false
+              playlistItems.first(where: { $0.id == selected }).map({ item -> Bool in
+                  if case .countdown = item.kind { return true }
+                  return item.kind.isMediaPlayback                    // UI-005b: a file or a loop chosen before is not the open song either
+              }) ?? false
         else { return }
         selectedPlaylistItemID = openPlaylistItemID
     }
@@ -24,7 +27,10 @@ extension WorkspaceModel {
     public func goLive() async {
         await serialized { [self] in
             if let id = selectedPlaylistItemID, let item = playlistItems.first(where: { $0.id == id }), case .countdown = item.kind {
+                endLiveMediaItem()
                 goLiveOnCountdown(item)
+            } else if let id = selectedPlaylistItemID, let item = playlistItems.first(where: { $0.id == id }), item.kind.isMediaPlayback {
+                goLiveOnMediaItem(item)                      // UI-005b
             } else {
                 goLive(at: show.selectedIndex)
             }
@@ -32,6 +38,7 @@ extension WorkspaceModel {
     }
 
     public func goLive(at index: Int) {
+        endLiveMediaItem()                       // UI-005b: a slide taken live ends the file or loop that was live
         transportEpoch &+= 1
         liveCountdown = nil
         chooseOpenPresentation()                 // the slide named here is the target, whatever was selected before
@@ -80,6 +87,7 @@ extension WorkspaceModel {
     }
 
     private func nextNow(epoch: Int) async {
+        if liveMediaItemID != nil { _ = await step(by: 1, epoch: epoch); return }       // UI-005b: a file or loop is live: Next moves on from it
         guard let live = show.liveDeck, let i = show.liveIndex else {
             apply(.next)                       // nothing live yet: the first slide of the preview goes live
             recordLiveSource()
@@ -95,6 +103,7 @@ extension WorkspaceModel {
         let epoch = transportEpoch
         await serialized { [self] in
             guard epoch == transportEpoch else { return }
+            if liveMediaItemID != nil { _ = await step(by: -1, epoch: epoch); return }   // UI-005b
             if show.liveDeck != nil, show.liveIndex == 0, await step(by: -1, epoch: epoch) { return }
             guard epoch == transportEpoch else { return }
             apply(.previous)
@@ -109,6 +118,7 @@ extension WorkspaceModel {
 
     /// R8, "Clear all": the words go (as with `clear`) and a clip playing over the slide stops. Clear alone leaves the clip.
     public func clearAll() {
+        endLiveMediaItem()                       // UI-005b: Clear all stops the file or loop too
         transportEpoch &+= 1
         apply(.clearAll)
         onClearAll?()
@@ -132,6 +142,7 @@ extension WorkspaceModel {
     }
 
     public func stop() {
+        endLiveMediaItem()                       // UI-005b
         transportEpoch &+= 1
         apply(.stop)
         liveCountdown = nil
@@ -184,6 +195,7 @@ extension WorkspaceModel {
             guard epoch == transportEpoch else { return false }
             switch resolution {
             case .ready(let passage):
+                endLiveMediaItem()
                 blockedStep = nil
                 openScripturePassage(passage, itemID: playlistItems[j].id)
                 liveCountdown = nil
@@ -208,8 +220,16 @@ extension WorkspaceModel {
             }
         }
         let item = playlistItems[j]
+        if item.kind.isMediaPlayback {                // UI-005b: a file or a loop is taken live like a countdown is
+            guard epoch == transportEpoch else { return false }
+            blockedStep = nil
+            goLiveOnMediaItem(item)
+            if !skipped.isEmpty { lastError = Self.skipNote(what, skipped) }
+            return true
+        }
         if case .countdown = item.kind {
             guard epoch == transportEpoch else { return false }
+            endLiveMediaItem()
             blockedStep = nil
             goLiveOnCountdown(item)
             if !skipped.isEmpty { lastError = Self.skipNote(what, skipped) }
@@ -224,6 +244,7 @@ extension WorkspaceModel {
         }
         await openPlaylistItem(item.id)
         guard epoch == transportEpoch, selectedPlaylistItemID == item.id, !slides.isEmpty else { return false }
+        endLiveMediaItem()
         liveCountdown = nil
         apply(.trigger(index: direction > 0 ? 0 : slides.count - 1))
         recordLiveSource()

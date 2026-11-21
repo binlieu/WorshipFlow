@@ -37,7 +37,7 @@ extension WorkspaceModel {
         await reloadPlaylistItems()
     }
 
-    private func ensurePlaylist() async -> UUID? {
+    func ensurePlaylist() async -> UUID? {
         if selectedPlaylistID == nil {
             guard let p = await attempt("create the playlist", { try await self.store.createPlaylist(name: "Service") }) else { return nil }
             await reloadPlaylists()

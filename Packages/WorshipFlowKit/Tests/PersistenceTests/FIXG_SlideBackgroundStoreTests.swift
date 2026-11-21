@@ -50,7 +50,7 @@ import Domain
         let new = try LibraryStore.open(at: file)
         let applied = try await new.appliedMigrations()
         #expect(Array(applied.prefix(10)) == ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"])
-        #expect(applied.last == "v11" && applied.count == 11)
+        #expect(Array(applied.prefix(11)).last == "v11" && applied.prefix(11).count == 11)   // UI-005b: v12 follows (was: applied.last == "v11" && count == 11)
         #expect(try await new.columnNames(of: "slide").contains("background"))
         #expect(try await new.slides(of: a.id).map(\.content.background) == [video, nil, picture])
         #expect(try await new.slides(of: b.id).map(\.content.background) == [picture])

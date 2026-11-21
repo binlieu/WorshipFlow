@@ -110,7 +110,16 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
     public struct PlaylistEntry: Codable, Equatable, Sendable {
         public var id: UUID
         public var name: String
-        public init(id: UUID, name: String) { self.id = id; self.name = name }
+        /// UI-005b: the service date and time as an ISO 8601 UTC instant, when the playlist has one. Older packages have none.
+        public var serviceAt: String?
+        public init(id: UUID, name: String, serviceAt: Date? = nil) {
+            self.id = id
+            self.name = name
+            self.serviceAt = serviceAt.map { Self.iso.string(from: $0) }
+        }
+        /// The instant, nil when absent or unreadable (a damaged value imports as no date rather than failing the package).
+        public var serviceDate: Date? { serviceAt.flatMap { Self.iso.date(from: $0) } }
+        private static var iso: ISO8601DateFormatter { ISO8601DateFormatter() }
     }
 
     /// One row of the playlist, in order. `kind` is `presentation`, `header`, `countdown` or `scripture`.
@@ -124,9 +133,14 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
         public var scripture: ScriptureItemSpec?
         public var presentationID: UUID?
         public var arrangementID: UUID?
+        /// UI-005b: a media-file item (its bin item travels in `mediaAssets`, its file in `media/`) and an announcements loop.
+        public var media: MediaItemSpec?
+        public var announcements: AnnouncementsSpec?
 
         public init(id: UUID, kind: String, label: String? = nil, countdown: CountdownSpec? = nil, scripture: ScriptureItemSpec? = nil,
-                    presentationID: UUID? = nil, arrangementID: UUID? = nil) {
+                    presentationID: UUID? = nil, arrangementID: UUID? = nil, media: MediaItemSpec? = nil, announcements: AnnouncementsSpec? = nil) {
+            self.media = media
+            self.announcements = announcements
             self.id = id
             self.kind = kind
             self.label = label

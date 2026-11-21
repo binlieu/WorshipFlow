@@ -114,15 +114,34 @@ extension AppModel {
             if let p = await workspace.importLyrics(title: title, primaryText: "Line one of \(title)\nLine two of \(title)", secondaryText: nil, maxLines: 2) { ids[title] = p.id }
         }
         let keep = workspace.selectedLibraryID
-        await workspace.createLibrary(name: "Sermons")
-        await workspace.createLibrary(name: "Announcements")
+        // UI-005b: the design's libraries have kinds, the playlist has every item kind the picture shows, and four props.
+        await workspace.createLibrary(name: "Sermons", kind: .sermons)
+        let sermon = await workspace.importLyrics(title: "Saved by Grace", primaryText: "Verse 1:\nBy grace you have been saved", secondaryText: nil, maxLines: 2)
+        await workspace.createLibrary(name: "Announcements", kind: .announcements)
         if let keep { await workspace.selectLibrary(keep) }
+        for item in workspace.playlistItems { await workspace.removePlaylistItem(id: item.id) }
+        let pictures = (media?.assets ?? []).filter { $0.kind == .image }.prefix(2).map { MediaItemSpec(assetID: $0.id, name: $0.name, kind: .image) }
+        await workspace.addHeader("Pre-service")
+        await workspace.addCountdown(CountdownSpec(label: "Countdown", mode: .duration(seconds: 300)))
+        if !pictures.isEmpty { await workspace.addAnnouncementsItem(AnnouncementsSpec(label: "Announcements loop", items: Array(pictures))) }
+        await workspace.addHeader("Worship")
         if let id = ids["How Great Thou Art"] { await workspace.addToPlaylist(id) }
+        if let amazing = workspace.presentations.first(where: { $0.title == "Amazing Grace" }) { await workspace.addToPlaylist(amazing.id) }
         if let id = ids["10,000 Reasons"] { await workspace.addToPlaylist(id) }
         await workspace.addHeader("Message")
+        await workspace.addScriptureToPlaylist(ScriptureItemSpec(label: "Ephesians 2:1–10", ranges: [.init(book: "EPH", startChapter: 2, startVerse: 1, endChapter: 2, endVerse: 10)], primaryCode: "kjv"))
+        if let sermon { await workspace.addToPlaylist(sermon.id) }
+        if let clip = media?.assets.first(where: { $0.kind == .video }) { await workspace.addMediaItem(MediaItemSpec(assetID: clip.id, name: "Baptism testimony.mov", kind: .video)) }
         await workspace.addHeader("Response")
         if let id = ids["Great Is Thy Faithfulness"] { await workspace.addToPlaylist(id) }
-        if let playlist = workspace.playlists.first(where: { $0.id == workspace.selectedPlaylistID }) { await workspace.renamePlaylist(id: playlist.id, to: "Sunday 9:00") }
+        if let playlist = workspace.playlists.first(where: { $0.id == workspace.selectedPlaylistID }) {
+            await workspace.renamePlaylist(id: playlist.id, to: "Sunday 9:00")
+            await workspace.setServiceDate(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 22, hour: 9)), forPlaylist: playlist.id)
+        }
+        // Props as the design draws them: a logo on the audience and broadcast screens (on), then three text props that are off.
+        for (name, text, targets) in [("Service title strap", "Sunday Worship", Set<ScreenRole>([.broadcast])), ("Speaker name", "Pastor Minh", [.broadcast]), ("Giving reminder", "Give online or in the offering", [.audience])] {
+            if let prop = addTextProp(name: name, spec: TextPropSpec(text: text), targets: targets) { setProp(prop.id, isOn: false) }
+        }
         if let amazing = workspace.playlistItems.first(where: { $0.title == "Amazing Grace" }) { await workspace.openPlaylistItem(amazing.id) }
         window?.setContentSize(NSSize(width: 1440, height: 900))
         window?.center()

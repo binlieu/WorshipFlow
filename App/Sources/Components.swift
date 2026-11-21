@@ -203,7 +203,7 @@ extension SectionTone {
         case .verse: Tok.sectionVerse
         case .chorus: Tok.sectionChorus
         case .bridge, .ending: Tok.sectionBridge
-        case .other: Tok.muted
+        case .other: Tok.broadcast      // the design's `--tag` colour (UI-005b)
         }
     }
 }

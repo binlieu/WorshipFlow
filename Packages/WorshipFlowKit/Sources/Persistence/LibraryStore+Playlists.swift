@@ -20,6 +20,14 @@ extension LibraryStore {
         }
     }
 
+    /// UI-005b: when the service is (nil removes it). The playlist's name and items are untouched.
+    public func setPlaylistServiceDate(id: UUID, to date: Date?) async throws {
+        try await writer.write { db in
+            try Self.requireExists(db, table: "playlist", id: id)
+            try db.execute(sql: "UPDATE playlist SET serviceAt = ?, updatedAt = ? WHERE id = ?", arguments: [date, Date(), id.dbText])
+        }
+    }
+
     public func renamePlaylist(id: UUID, to name: String) async throws {
         let name = try Self.validName(name)
         try await writer.write { db in
@@ -74,12 +82,14 @@ extension LibraryStore {
                 let presentation = (row["presentationID"] as String?).flatMap(UUID.init(uuidString:))
                 var title: String
                 switch kind {
-                case .presentation:
+                case .presentation, .sermon:
                     guard presentation != nil, let t = row["title"] as String? else { return nil }
                     title = t
                 case .header(let label): title = label
                 case .countdown(let spec): title = spec.label
                 case .scripture(let spec): title = spec.label
+                case .media(let spec): title = spec.name
+                case .announcements(let spec): title = spec.label
                 }
                 return PlaylistItem(id: id, playlistID: playlist, presentationID: presentation ?? PlaylistItem.noPresentationID,
                                     title: title, sortOrder: row["sortOrder"],
@@ -128,6 +138,35 @@ extension LibraryStore {
     @discardableResult
     public func addPlaylistScripture(_ spec: ScriptureItemSpec, to playlistID: UUID) async throws -> PlaylistItem {
         try await addNonPresentation(.scripture(spec), title: spec.label, to: playlistID)
+    }
+
+    /// UI-005b: appends a file from the media bin.
+    @discardableResult
+    public func addPlaylistMedia(_ spec: MediaItemSpec, to playlistID: UUID) async throws -> PlaylistItem {
+        try await addNonPresentation(.media(spec), title: spec.name, to: playlistID)
+    }
+
+    /// UI-005b: appends an announcements loop.
+    @discardableResult
+    public func addPlaylistAnnouncements(_ spec: AnnouncementsSpec, to playlistID: UUID) async throws -> PlaylistItem {
+        try await addNonPresentation(.announcements(spec), title: spec.label, to: playlistID)
+    }
+
+    /// UI-005b: appends a presentation as a sermon item (the presentation is read from its library like any other).
+    @discardableResult
+    public func addPlaylistSermon(_ presentationID: UUID, to playlistID: UUID) async throws -> PlaylistItem {
+        try await writer.write { db in
+            try Self.requireExists(db, table: "playlist", id: playlistID)
+            guard let title = try String.fetchOne(db, sql: "SELECT title FROM presentation WHERE id = ?", arguments: [presentationID.dbText]) else {
+                throw StoreError.notFound
+            }
+            let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM playlistItem WHERE playlistID = ?", arguments: [playlistID.dbText]) ?? 0
+            let id = UUID()
+            try db.execute(sql: "INSERT INTO playlistItem (id, playlistID, presentationID, sortOrder, createdAt, kind) VALUES (?, ?, ?, ?, ?, 'sermon')",
+                           arguments: [id.dbText, playlistID.dbText, presentationID.dbText, count, Date()])
+            try db.execute(sql: "UPDATE playlist SET updatedAt = ? WHERE id = ?", arguments: [Date(), playlistID.dbText])
+            return PlaylistItem(id: id, playlistID: playlistID, presentationID: presentationID, title: title, sortOrder: count, kind: .sermon)
+        }
     }
 
     /// Changes a header's label or a countdown's settings. A presentation item cannot be changed this way.

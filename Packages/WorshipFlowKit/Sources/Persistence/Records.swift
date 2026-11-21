@@ -16,8 +16,19 @@ struct LibraryRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     var sortOrder: Int
     var createdAt: Date
     var updatedAt: Date
+    /// Added by migration v12 (UI-005b). Nil on a store older than v12, which reads as songs; written only when it is not songs.
+    var kind: LibraryKind? = nil
 
-    var domain: Library { Library(id: id, name: name, sortOrder: sortOrder, createdAt: createdAt, updatedAt: updatedAt) }
+    func encode(to container: inout PersistenceContainer) throws {
+        container["id"] = id.dbText
+        container["name"] = name
+        container["sortOrder"] = sortOrder
+        container["createdAt"] = createdAt
+        container["updatedAt"] = updatedAt
+        if let kind, kind != .songs { container["kind"] = kind.rawValue }
+    }
+
+    var domain: Library { Library(id: id, name: name, sortOrder: sortOrder, kind: kind ?? .songs, createdAt: createdAt, updatedAt: updatedAt) }
 }
 
 struct PresentationRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
@@ -101,8 +112,18 @@ struct PlaylistRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     var name: String
     var createdAt: Date
     var updatedAt: Date
+    /// Added by migration v12 (UI-005b); written only when set.
+    var serviceAt: Date? = nil
 
-    var domain: Playlist { Playlist(id: id, name: name, createdAt: createdAt, updatedAt: updatedAt) }
+    func encode(to container: inout PersistenceContainer) throws {
+        container["id"] = id.dbText
+        container["name"] = name
+        container["createdAt"] = createdAt
+        container["updatedAt"] = updatedAt
+        if let serviceAt { container["serviceAt"] = serviceAt }
+    }
+
+    var domain: Playlist { Playlist(id: id, name: name, serviceAt: serviceAt, createdAt: createdAt, updatedAt: updatedAt) }
 }
 
 struct PlaylistItemRecord: Codable, FetchableRecord, PersistableRecord, Sendable {

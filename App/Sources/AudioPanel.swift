@@ -12,11 +12,11 @@ struct AudioPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Audio").font(.headline)
+                SectionLabel("Audio")
                 Spacer()
                 if !audio.activeCues.isEmpty {
                     Button { audio.stopAll() } label: { Label("Stop sound", systemImage: "stop.fill") }
-                        .controlSize(.small).help("Stop every sound that is playing")
+                        .buttonStyle(HeaderButtonStyle()).help("Stop every sound that is playing")
                 }
             }
             DevicePicker(audio: audio)
@@ -25,22 +25,23 @@ struct AudioPanel: View {
                     Label(audio.isMuted ? "Unmute" : "Mute", systemImage: audio.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .labelStyle(.iconOnly)
                 }
+                .buttonStyle(HeaderButtonStyle(compact: true))
                 .help(audio.isMuted ? "Unmute the sound" : "Mute the sound")
-                Slider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), in: 0...1)
+                WFSlider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), range: 0...1, fill: Tok.blue)
                     .disabled(audio.isMuted).accessibilityLabel("Sound volume")
-                Text("\(Int((audio.volume * 100).rounded()))%").font(.caption.monospacedDigit()).frame(width: 36, alignment: .trailing)
+                Text("\(Int((audio.volume * 100).rounded()))%").font(.system(size: 11, design: .monospaced)).foregroundStyle(Tok.muted).frame(width: 36, alignment: .trailing)
             }
             LevelMeter(audio: audio)
             if audio.assets.isEmpty {
                 Text("No sound files yet. Add them to the media bin above with Add… (or drop them there): they appear here.")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             } else {
                 VStack(spacing: 2) {
                     ForEach(audio.assets) { asset in AudioRow(audio: audio, asset: asset) }
                 }
             }
             Text("Loop repeats a sound. Overlap lets a sound play together with others, such as a quiet bed under a spoken part. Stopping the show ends all sound; Clear and Clear all do not.")
-                .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                .font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
         }
         .padding(6)
     }
@@ -55,29 +56,28 @@ private struct DevicePicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Output").font(.subheadline)
-                Picker("Output", selection: Binding(
-                    get: { audio.programmeDeviceUID ?? Self.systemDefault },
-                    set: { audio.chooseDevice($0.isEmpty ? nil : $0) })) {
-                    Text("System default" + defaultSuffix).tag(Self.systemDefault)
-                    ForEach(audio.devices) { device in
-                        Text(label(for: device)).tag(device.uid)
-                    }
-                    if let missing = missingChoice {
-                        Text("\(missing) (not connected)").tag(audio.programmeDeviceUID ?? "")
-                    }
+                Text("Output").font(.system(size: 12))
+                WFPopup(title: currentDeviceTitle, accessibilityName: "Sound output device") {
+                    Button("System default" + defaultSuffix) { audio.chooseDevice(nil) }
+                    ForEach(audio.devices) { device in Button(label(for: device)) { audio.chooseDevice(device.uid) } }
+                    if let missing = missingChoice { Button("\(missing) (not connected)") { audio.chooseDevice(missing) } }
                 }
-                .labelsHidden().accessibilityLabel("Sound output device")
                 Button { audio.refreshDevices() } label: { Label("Refresh devices", systemImage: "arrow.clockwise").labelStyle(.iconOnly) }
-                    .help("Look for sound devices again").buttonStyle(.borderless)
+                    .help("Look for sound devices again").buttonStyle(HeaderButtonStyle(compact: true))
             }
             if let notice = audio.deviceNotice {
-                Text(notice).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                Text(notice).font(.system(size: 11)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Sound files and video sound both go to this output, once. Microphones and instruments stay on the mixer.")
-                    .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private var currentDeviceTitle: String {
+        guard let uid = audio.programmeDeviceUID else { return "System default" + defaultSuffix }
+        if let device = audio.devices.first(where: { $0.uid == uid }) { return label(for: device) }
+        return "\(uid) (not connected)"
     }
 
     private var defaultSuffix: String {
@@ -110,36 +110,37 @@ private struct AudioRow: View {
                         Label(readout?.isPlaying == true ? "Pause" : "Play", systemImage: readout?.isPlaying == true ? "pause.fill" : "play.fill")
                             .labelStyle(.iconOnly)
                     }
+                    .buttonStyle(HeaderButtonStyle(compact: true))
                     .help(readout?.isPlaying == true ? "Pause \(asset.name)" : "Play \(asset.name)")
                     .accessibilityLabel(readout?.isPlaying == true ? "Pause \(asset.name)" : "Play \(asset.name)")
-                    Text(asset.name).font(.callout).lineLimit(1).truncationMode(.middle)
+                    Text(asset.name).font(.system(size: 13)).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 4)
-                    Text(asset.duration.map(MediaTile.clock) ?? "—").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    Text(asset.duration.map(MediaTile.clock) ?? "—").font(.system(size: 11, design: .monospaced)).foregroundStyle(Tok.muted)
                     Toggle(isOn: Binding(get: { audio.loopIDs.contains(asset.id) }, set: { audio.setLoops($0, for: asset.id) })) {
-                        Image(systemName: "repeat")
+                        Text("Loop").font(.system(size: 11))
                     }
-                    .toggleStyle(.button).controlSize(.small).help("Repeat this sound").accessibilityLabel("Loop \(asset.name)")
+                    .toggleStyle(.wfCheckbox).help("Repeat this sound").accessibilityLabel("Loop \(asset.name)")
                     Toggle(isOn: Binding(get: { audio.overlapIDs.contains(asset.id) }, set: { audio.setOverlap($0, for: asset.id) })) {
-                        Image(systemName: "square.on.square")
+                        Text("Overlap").font(.system(size: 11))
                     }
-                    .toggleStyle(.button).controlSize(.small).help("Let this sound play together with others").accessibilityLabel("Overlap \(asset.name)")
+                    .toggleStyle(.wfCheckbox).help("Let this sound play together with others").accessibilityLabel("Overlap \(asset.name)")
                 }
                 if let r = readout {
                     HStack(spacing: 6) {
-                        Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.caption.monospacedDigit()).frame(width: 40, alignment: .trailing)
-                        Slider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
-                               in: 0...max(r.duration, 0.1)) { editing in
+                        Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.system(size: 11, design: .monospaced)).frame(width: 44, alignment: .trailing)
+                        WFSlider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
+                                 range: 0...max(r.duration, 0.1)) { editing in
                             if editing { dragPosition = r.position; dragging = true }
                             else { audio.seek(asset.id, to: dragPosition); dragging = false }
                         }
                         .disabled(!r.canSeek).accessibilityLabel("Position in \(asset.name)")
                         Button { audio.stop(asset.id) } label: { Label("Stop", systemImage: "stop.fill").labelStyle(.iconOnly) }
-                            .help("Stop \(asset.name)").buttonStyle(.borderless)
+                            .help("Stop \(asset.name)").buttonStyle(HeaderButtonStyle(compact: true))
                     }
                 }
             }
             .padding(.vertical, 3).padding(.horizontal, 4)
-            .background(readout == nil ? Color.clear : Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+            .background(readout == nil ? Color.clear : Tok.surface3, in: RoundedRectangle(cornerRadius: Radius.md))
         }
     }
 
@@ -183,8 +184,8 @@ private struct LevelMeter: View {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 2).fill(Color.primary.opacity(0.12))
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(LinearGradient(stops: [.init(color: .green, location: 0), .init(color: .green, location: 0.7),
-                                                     .init(color: .yellow, location: 0.85), .init(color: .red, location: 1)],
+                        .fill(LinearGradient(stops: [.init(color: Tok.cyan, location: 0), .init(color: Tok.cyan, location: 0.7),
+                                                     .init(color: Tok.warning, location: 0.85), .init(color: Tok.warning, location: 1)],
                                              startPoint: .leading, endPoint: .trailing))
                         .frame(width: geo.size.width)
                         .mask(alignment: .leading) { Rectangle().frame(width: geo.size.width * Self.position(rms)) }

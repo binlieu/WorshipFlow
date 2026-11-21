@@ -23,11 +23,22 @@ public enum ProgramExporter {
 
         var presentations: [ProgramDocument.PresentationEntry] = []
         var seen: Set<UUID> = []
-        for item in playlistItems where item.kind == .presentation && seen.insert(item.presentationID).inserted {
+        for item in playlistItems where item.kind.hasSlides && seen.insert(item.presentationID).inserted {
             if let entry = try await ProgramSnapshot.presentation(item.presentationID, in: store, collector: &collector, references: &references) {
                 presentations.append(entry)
             }
         }
+
+        // UI-005b: the bin items that media-file items and announcements loops play travel like the ones slide actions play.
+        var itemAssets: [UUID] = []
+        for item in playlistItems {
+            switch item.kind {
+            case .media(let spec): itemAssets.append(spec.assetID)
+            case .announcements(let spec): itemAssets.append(contentsOf: spec.assetIDs)
+            default: break
+            }
+        }
+        references.assets.append(contentsOf: itemAssets)
 
         // Looks that the slide actions select, then every custom theme those Looks and the presentations use.
         let allLooks = try await store.looks()
@@ -60,7 +71,7 @@ public enum ProgramExporter {
         }
 
         let document = ProgramDocument(
-            appVersion: appVersion, programID: playlist.id, playlist: .init(id: playlist.id, name: playlist.name),
+            appVersion: appVersion, programID: playlist.id, playlist: .init(id: playlist.id, name: playlist.name, serviceAt: playlist.serviceAt),
             items: playlistItems.map(ProgramSnapshot.item), presentations: presentations, themes: themes,
             looks: looks.map { ProgramSnapshot.lookEntry($0, profiles: profiles) }, mediaAssets: assetEntries, media: collector.entries)
         return ProgramExportPlan(document: document, files: collector.files,

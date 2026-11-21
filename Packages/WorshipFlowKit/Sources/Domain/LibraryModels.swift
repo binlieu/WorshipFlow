@@ -1,16 +1,24 @@
 // SYS-001: library, presentation, slide, playlist records as the rest of the app sees them. Foundation only.
 import Foundation
 
+/// UI-005b: what a library holds. It picks the sidebar icon and the count shown. Sermons and announcements libraries hold ordinary
+/// presentations for now; the kind says what they are for. Libraries made before v12 are songs.
+public enum LibraryKind: String, Sendable, Equatable, Codable, CaseIterable {
+    case songs, scripture, sermons, announcements
+}
+
 public struct Library: Sendable, Equatable, Codable, Identifiable {
     public let id: UUID
     public var name: String
     public var sortOrder: Int
+    public var kind: LibraryKind
     public let createdAt: Date
     public var updatedAt: Date
 
-    public init(id: UUID = UUID(), name: String, sortOrder: Int = 0, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    public init(id: UUID = UUID(), name: String, sortOrder: Int = 0, kind: LibraryKind = .songs, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.name = name
+        self.kind = kind
         self.sortOrder = sortOrder
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -70,12 +78,15 @@ public struct Slide: Sendable, Equatable, Codable, Identifiable {
 public struct Playlist: Sendable, Equatable, Codable, Identifiable {
     public let id: UUID
     public var name: String
+    /// UI-005b: when the service is, if the operator said. The toolbar title reads from it; the name is the fallback.
+    public var serviceAt: Date?
     public let createdAt: Date
     public var updatedAt: Date
 
-    public init(id: UUID = UUID(), name: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    public init(id: UUID = UUID(), name: String, serviceAt: Date? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.name = name
+        self.serviceAt = serviceAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
