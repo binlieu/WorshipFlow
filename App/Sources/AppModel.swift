@@ -6,8 +6,15 @@ import Observation
 import Domain
 import MediaEngine
 import OutputEngine
+import Persistence
+import OperatorCore
 
 enum LiveMode: Equatable { case stopped, live, cleared }
+
+struct LibraryProblem: Equatable {
+    var path: String
+    var message: String
+}
 
 struct DisplayChoice: Identifiable, Equatable {
     var id: UInt32
@@ -34,6 +41,15 @@ final class AppModel {
     private(set) var props: [Prop] = []
     /// Image files that are missing or unreadable: from the files checked here and from what the outputs reported.
     private(set) var unavailableImages: [String] = []
+    /// The operator workspace (OUT-004). Nil in a soak run, or when the library file could not be opened.
+    private(set) var workspace: WorkspaceModel?
+    private(set) var workspaceLoaded = false
+    /// Set when the library file could not be opened: the path and a message. The file is left untouched.
+    private(set) var libraryProblem: LibraryProblem?
+    /// Bumped on every publish, so previews know to re-read their scene.
+    private(set) var sceneRevision = 0
+    /// Sheets and focus requests shared by the menus and the views.
+    let ui = WorkspaceUIState()
 
     @ObservationIgnored private let sceneBox: SceneBox
     @ObservationIgnored private let store = ScreenProfileStore.standard
@@ -51,16 +67,90 @@ final class AppModel {
     @ObservationIgnored private var soakProfileID: UUID?
 
     private init() {
-        var state = ShowState()
-        state.apply(.load(SampleSlides.deck))
-        show = state
-        sceneBox = SceneBox(PublishedScenes(state: state, clockText: nil))
+        sceneBox = SceneBox(PublishedScenes(state: ShowState(), clockText: nil))
         selectedLookID = looks[0].id
         soak = SoakConfig.parse(CommandLine.arguments)   // known before profiles load, so a soak never writes settings
         refreshDisplayChoices()
         loadProfiles()
         loadLooks()
         updateClock(force: true)
+        if soak == nil { openLibrary() }
+    }
+
+    // MARK: Library (OUT-004)
+
+    /// `--library <path>` overrides the default file (for tests and screenshots); a bare launch uses ADR-0004's path.
+    static func libraryURL(arguments: [String] = CommandLine.arguments) -> URL {
+        if let i = arguments.firstIndex(of: "--library"), i + 1 < arguments.count {
+            return URL(fileURLWithPath: arguments[i + 1])
+        }
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
+        return base.appendingPathComponent("WORSHIPFLOW", isDirectory: true).appendingPathComponent("Library.sqlite")
+    }
+
+    private func openLibrary() {
+        let url = Self.libraryURL()
+        do {
+            let store = try LibraryStore.open(at: url)
+            let model = WorkspaceModel(store: store)
+            model.onShowChange = { [weak self] state in self?.showChanged(state) }
+            workspace = model
+        } catch {
+            // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
+            libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
+            log("The library at \(url.path) could not be opened: \(error.localizedDescription)")
+        }
+    }
+
+    func startWorkspace() {
+        guard let workspace, !workspaceLoaded else { return }
+        Task { @MainActor in
+            await workspace.load()
+            workspaceLoaded = true
+        }
+    }
+
+    /// Command-N: an empty presentation in the selected library, opened with its title ready to type.
+    func newPresentation() {
+        guard let w = workspace else { return }
+        Task { @MainActor in
+            if await w.createPresentation(title: "New presentation") != nil { ui.focusTitle += 1 }
+        }
+    }
+
+    /// Command-I: the import sheet, for a new presentation or (with an id) to re-flow an existing one.
+    func openImport(existing id: UUID?) {
+        guard workspace != nil else { return }
+        ui.importExistingID = id
+        ui.showImport = true
+    }
+
+    /// Writes unsaved typing and the saved place. Called when the app loses focus and before it quits.
+    func flushWorkspace() async { await workspace?.flush() }
+
+    /// The scene a screen is showing now, for the live thumbnails.
+    func scene(forScreen id: UUID) -> SceneDescription { sceneBox.read().scene(forScreen: id) }
+
+    /// How `slide` looks on the audience screen, built by the same composer the outputs use.
+    func thumbnailScene(for slide: SlideContent) -> SceneDescription {
+        var state = ShowState()
+        let deck = ShowDeck(presentationID: UUID(), slides: [slide])
+        state.apply(.load(deck))
+        state.apply(.trigger(index: 0))
+        let profile = profiles.first { $0.role == .audience && $0.isEnabled }
+            ?? profiles.first { $0.role == .audience }
+            ?? ScreenProfile(name: "Audience", role: .audience, destination: .window)
+        return PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props)
+            .scene(forScreen: profile.id)
+    }
+
+    /// The workspace changed the show: publish to every output and open the screens on the first slide.
+    private func showChanged(_ state: ShowState) {
+        let wasStopped = show.isStopped
+        show = state
+        publish()
+        if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
 
     private func makeCoordinator() -> OutputCoordinator {
@@ -396,14 +486,15 @@ final class AppModel {
         if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
 
-    func goLive() { send(.trigger(index: show.selectedIndex)) }
-    func next() { send(.next) }
-    func previous() { send(.previous) }
-    func clear() { send(.clear) }
-    func stopShow() { send(.stop) }
-    func select(_ index: Int) { send(.select(index: index)) }
+    // With a workspace these go through it (playlist stepping, live bookkeeping); a soak run has none.
+    func goLive() { if let w = workspace { Task { await w.goLive() } } else { send(.trigger(index: show.selectedIndex)) } }
+    func next() { if let w = workspace { Task { await w.next() } } else { send(.next) } }
+    func previous() { if let w = workspace { Task { await w.previous() } } else { send(.previous) } }
+    func clear() { if let w = workspace { w.clear() } else { send(.clear) } }
+    func stopShow() { if let w = workspace { w.stop() } else { send(.stop) } }
 
     private func publish() {
+        sceneRevision &+= 1
         sceneBox.publish(PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
                                          look: currentLook, props: props))
     }
@@ -483,6 +574,7 @@ final class AppModel {
         soakProfileID = audience.id
         profiles = [audience]
         coordinator.setProfiles(profiles)
+        send(.load(SoakDeck.deck))
         send(.trigger(index: 0))
         if !screensOn { startScreens() }
         let started = Date()
