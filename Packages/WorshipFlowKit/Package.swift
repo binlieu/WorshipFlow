@@ -21,7 +21,7 @@ let package = Package(
         .target(name: "Domain"),
         .target(name: "RenderEngine", dependencies: ["Domain"]),
         .target(name: "MediaEngine", dependencies: ["Domain"]),
-        .target(name: "OutputEngine", dependencies: ["Domain", "RenderEngine"]),
+        .target(name: "OutputEngine", dependencies: ["Domain", "RenderEngine", "SDIEngine"]),
         .target(name: "Persistence", dependencies: ["Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence", "Domain"]),
         // SYS-002 settings storage tests, separate so parallel slices do not block each other.

@@ -26,6 +26,8 @@ targets:
         product: Persistence
       - package: WorshipFlowKit
         product: OperatorCore
+      - package: WorshipFlowKit
+        product: SDIEngine
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app
