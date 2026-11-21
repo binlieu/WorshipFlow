@@ -40,6 +40,7 @@
 		6B9D90BE5D4246BD564E26B9 /* DeckLinkSDI in Frameworks */ = {isa = PBXBuildFile; productRef = 1935C82D7238921CB54F7254 /* DeckLinkSDI */; };
 		70CF61C4B13414CFCDBCA8BA /* SDIProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94C7D2528DCC2560168C824 /* SDIProviders.swift */; };
 		71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 2C12DD02A64F9ED92363C486 /* OutputEngine */; };
+		78D44CCAA7FF18B3E6F65D5D /* UISnapshotUI004.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC625191093FFEDD7A007C2 /* UISnapshotUI004.swift */; };
 		7E995D6D0D133D3BCFDE45AB /* ShowInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */; };
 		8131FE6CEDA6419FB54B34CC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C06648FD1853A2071017E9D1 /* Assets.xcassets */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
@@ -62,6 +63,7 @@
 		BA87BFAC597CB9D387BAEEDF /* AudioSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5155C53E346262B7C544622F /* AudioSupport.swift */; };
 		BA97409E06ED5FD754985EAC /* UISnapshotScripture.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9CE58A927A93F82E09171EF /* UISnapshotScripture.swift */; };
 		D023CE93211A0306A400C70A /* MediaTransportStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */; };
+		D6356FDDFB0CC30CB777A899 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F593A8F95D20AAA3FA4526EB /* AboutView.swift */; };
 		D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B845A215193778B503237BC /* CuesTab.swift */; };
 		DB57A7075229EB502A101210 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B1B6A1952D317922E741F6 /* Components.swift */; };
 		DBDEC0CEFAF28D0C64DA6052 /* ScriptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8053413ADC834AF5ADB30E /* ScriptureView.swift */; };
@@ -100,6 +102,7 @@
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
 		50CC8A593F62AE4E30942E47 /* ProgramSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramSheets.swift; sourceTree = "<group>"; };
 		5155C53E346262B7C544622F /* AudioSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSupport.swift; sourceTree = "<group>"; };
+		5AC625191093FFEDD7A007C2 /* UISnapshotUI004.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotUI004.swift; sourceTree = "<group>"; };
 		6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptureTranslationsView.swift; sourceTree = "<group>"; };
 		7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -140,6 +143,7 @@
 		EF4F9BFE582616CC8E8F65DD /* HotFolderSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotFolderSupport.swift; sourceTree = "<group>"; };
 		F1320EF2993E56B2BB360523 /* SoakConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoakConfig.swift; sourceTree = "<group>"; };
 		F28162D8810237DB29AB3177 /* CentrePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentrePane.swift; sourceTree = "<group>"; };
+		F593A8F95D20AAA3FA4526EB /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceUIState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -180,6 +184,7 @@
 		9B300197250B3BEFD63B0797 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				F593A8F95D20AAA3FA4526EB /* AboutView.swift */,
 				7166181C03E3555D4CD67FBC /* AppModel.swift */,
 				26CA0960FC6722EC666D1BB6 /* AppModel+Program.swift */,
 				C339254CFC75C60002280994 /* AudioPanel.swift */,
@@ -233,6 +238,7 @@
 				D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */,
 				E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */,
 				D9CE58A927A93F82E09171EF /* UISnapshotScripture.swift */,
+				5AC625191093FFEDD7A007C2 /* UISnapshotUI004.swift */,
 				D74BA46590DEC0370D1EB32F /* VideoSupport.swift */,
 				FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */,
 				E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */,
@@ -284,6 +290,7 @@
 				984542902BC93B471156A200 /* Sources */,
 				0D5151FE2005EC599C022439 /* Resources */,
 				94323BAABE569A93C507CE64 /* Frameworks */,
+				66AB3A3ED9C20F7BC79166CA /* Stamp build info */,
 			);
 			buildRules = (
 			);
@@ -358,11 +365,34 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		66AB3A3ED9C20F7BC79166CA /* Stamp build info */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Stamp build info";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "PLIST=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n[ -f \"$PLIST\" ] || exit 0\nPB=/usr/libexec/PlistBuddy\n\"$PB\" -c \"Delete :WFBuildCommit\" \"$PLIST\" 2>/dev/null || true\n\"$PB\" -c \"Delete :WFBuildDate\" \"$PLIST\" 2>/dev/null || true\ncd \"${SRCROOT}\" || exit 0\nCOMMIT=\"$(git rev-parse --short HEAD 2>/dev/null || true)\"\nif [ -n \"$COMMIT\" ]; then\n  git diff --quiet HEAD -- 2>/dev/null || COMMIT=\"${COMMIT}-dirty\"\n  COUNT=\"$(git rev-list --count HEAD 2>/dev/null || true)\"\n  \"$PB\" -c \"Add :WFBuildCommit string $COMMIT\" \"$PLIST\"\n  \"$PB\" -c \"Add :WFBuildDate string $(date +%Y-%m-%d)\" \"$PLIST\"\n  [ -n \"$COUNT\" ] && \"$PB\" -c \"Set :CFBundleVersion $COUNT\" \"$PLIST\"\nfi\nexit 0\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		984542902BC93B471156A200 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6356FDDFB0CC30CB777A899 /* AboutView.swift in Sources */,
 				8F5AEDB90067555BB1456695 /* AppModel+Program.swift in Sources */,
 				4EE6208509993801D9FEEFD6 /* AppModel.swift in Sources */,
 				5064BE52904C3EE8C418611E /* AudioPanel.swift in Sources */,
@@ -416,6 +446,7 @@
 				10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */,
 				36FF51F147353E7711DB6517 /* UISnapshotRun.swift in Sources */,
 				BA97409E06ED5FD754985EAC /* UISnapshotScripture.swift in Sources */,
+				78D44CCAA7FF18B3E6F65D5D /* UISnapshotUI004.swift in Sources */,
 				54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */,
 				13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */,
 				876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */,
@@ -554,6 +585,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
@@ -564,7 +596,7 @@
 				);
 				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = org.worshipflow.app;
-				PRODUCT_NAME = WORSHIPFLOW;
+				PRODUCT_NAME = WorshipFlow;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -580,6 +612,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
@@ -590,7 +623,7 @@
 				);
 				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = org.worshipflow.app;
-				PRODUCT_NAME = WORSHIPFLOW;
+				PRODUCT_NAME = WorshipFlow;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};

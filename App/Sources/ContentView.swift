@@ -38,7 +38,7 @@ struct LibraryProblemView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("The song library could not be opened", systemImage: "exclamationmark.triangle.fill")
                 .font(.title2.bold()).foregroundStyle(.orange)
-            Text("WORSHIPFLOW looked for the library here:")
+            Text("WorshipFlow looked for the library here:")
             Text(problem.path).font(.system(.body, design: .monospaced)).textSelection(.enabled)
             Text(problem.message).foregroundStyle(.secondary).textSelection(.enabled)
             Text("The file has not been changed or deleted. Check that the disk is connected and the folder is writable, or move the file aside and restart to begin a new library. Restore a backup copy over it to get your songs back.")
@@ -160,7 +160,7 @@ struct WorkspaceView: View {
         workspace.playlists.first { $0.id == workspace.selectedPlaylistID }?.name ?? "No playlist"
     }
     private var serviceSubtitle: String {
-        "WORSHIPFLOW · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")"
+        "WorshipFlow · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")"
     }
 
     /// The segmented mode switcher: icon and word per mode, Command-1 to Command-6.
@@ -186,8 +186,8 @@ struct WorkspaceView: View {
             }
         }
         .padding(Space.s1)
-        .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.border, lineWidth: 1))
+        .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.border, fill: Tok.surface2)
+        .padding(1)   // room inside the toolbar item, which clips to its bounds
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Mode")
     }

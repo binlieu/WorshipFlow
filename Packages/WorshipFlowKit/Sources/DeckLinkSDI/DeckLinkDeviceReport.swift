@@ -63,7 +63,7 @@ enum DeckLinkDeviceReport {
             if environment.frameworkOnDisk {
                 return SDIEnvironmentStatus(
                     state: .driverNotInstalled, driverInstalled: false, apiVersion: nil, frameworkLoadable: false, deviceCount: 0,
-                    message: "Blackmagic Desktop Video's files are on this Mac, but WORSHIPFLOW could not load them, so SDI outputs are not available. Restart the Mac and open WORSHIPFLOW again. If this stays, reinstall Blackmagic Desktop Video. Screens on displays and windows still work.")
+                    message: "Blackmagic Desktop Video's files are on this Mac, but WorshipFlow could not load them, so SDI outputs are not available. Restart the Mac and open WorshipFlow again. If this stays, reinstall Blackmagic Desktop Video. Screens on displays and windows still work.")
             }
             return SDIEnvironmentStatus(state: .driverNotInstalled, driverInstalled: false, apiVersion: nil, frameworkLoadable: nil, deviceCount: 0,
                                         message: DeckLinkEnvironment.driverMissingMessage)

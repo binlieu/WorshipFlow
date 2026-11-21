@@ -53,7 +53,7 @@ public enum CueStoreError: Error, Sendable, Equatable {
         case .invalidBinding(let name): return "The MIDI binding \u{201C}\(name)\u{201D} has a channel, number or value range that no message can match."
         case .invalidOrder: return "The new order lists the same item twice."
         case .storedByNewerVersion(let kind, _, let v):
-            return "This \(kind.label) was saved by a newer version of WORSHIPFLOW (format \(v)); it was left as it is."
+            return "This \(kind.label) was saved by a newer version of WorshipFlow (format \(v)); it was left as it is."
         case .unreadable(let kind, _): return "This \(kind.label) cannot be read; it was left as it is."
         case .libraryNeedsUpdate: return "This library file has not been updated for show control yet."
         }

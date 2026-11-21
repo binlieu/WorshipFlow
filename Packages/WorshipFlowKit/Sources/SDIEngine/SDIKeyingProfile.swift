@@ -62,7 +62,7 @@ public enum SDIKeyingProfile {
             return .failed(nil, reason: why)
         case .askOperator(let change):
             guard let activate else {
-                return .failed(change, reason: "This card cannot change its profile from WORSHIPFLOW. Change it in Blackmagic Desktop Video Setup.")
+                return .failed(change, reason: "This card cannot change its profile from WorshipFlow. Change it in Blackmagic Desktop Video Setup.")
             }
             guard await ask(change) else { return .declined(change) }
             do {

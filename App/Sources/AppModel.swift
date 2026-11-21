@@ -34,7 +34,7 @@ struct DisplayChoice: Identifiable, Equatable {
 @Observable
 final class AppModel {
     static let shared = AppModel()
-    static let operatorWindowTitle = "WORSHIPFLOW"
+    static let operatorWindowTitle = "WorshipFlow"
     /// The operator window is found by this identifier (set when its view reaches the window), because its title is the service name.
     static let operatorWindowIdentifier = NSUserInterfaceItemIdentifier("wf-operator-window")
     static var operatorWindow: NSWindow? {
@@ -168,7 +168,7 @@ final class AppModel {
         }
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
-        return base.appendingPathComponent("WORSHIPFLOW", isDirectory: true).appendingPathComponent("Library.sqlite")
+        return LibraryLocation.defaultURL(applicationSupport: base)
     }
 
     private func openLibrary() {
@@ -1474,7 +1474,7 @@ final class AppModel {
     private func log(_ message: String) {
         messages.append(message)
         if messages.count > 6 { messages.removeFirst() }
-        FileHandle.standardError.write(Data("[WORSHIPFLOW] \(message)\n".utf8))
+        FileHandle.standardError.write(Data("[WorshipFlow] \(message)\n".utf8))
     }
 
     // MARK: Soak
@@ -1556,7 +1556,7 @@ final class AppModel {
             modeText = "window output, \(String(format: "%.0f", refreshAtStart)) Hz display"
         }
         var lines: [String] = []
-        lines.append("WORSHIPFLOW OUT-002 soak report")
+        lines.append("WorshipFlow OUT-002 soak report")
         lines.append("duration: \(String(format: "%.1f", duration)) s (requested \(config.seconds) s)")
         lines.append("display mode: \(modeText)")
         lines.append("slide advances: \(advances)")

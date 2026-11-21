@@ -25,9 +25,9 @@ public enum ProgramPackageError: Error, Equatable, Sendable, LocalizedError {
         switch self {
         case .notImplemented: return "Not implemented yet."
         case .playlistNotFound: return "That playlist no longer exists."
-        case .notAProgramPackage(let why): return "This is not a WORSHIPFLOW program: \(why)"
+        case .notAProgramPackage(let why): return "This is not a WorshipFlow program: \(why)"
         case .newerFormat(let found, let supported):
-            return "This program was saved by a newer WORSHIPFLOW (format \(found)); this version reads up to format \(supported). Update WORSHIPFLOW on this Mac, then open it again. Nothing was imported."
+            return "This program was saved by a newer WorshipFlow (format \(found)); this version reads up to format \(supported). Update WorshipFlow on this Mac, then open it again. Nothing was imported."
         case .manifestTooLarge(let size): return "The program description is unusually large (\(size) bytes), so it was not opened. Nothing was imported."
         case .manifestUnreadable(let why): return "The program description could not be read: \(why) Nothing was imported."
         case .unsafePath(let path): return "The program names a file in a way that is not allowed (\(path)), so it was not opened. Nothing was imported."

@@ -80,18 +80,18 @@ public enum HardwareTestBundleError: Error, LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .notABundle(let why): return "This is not a WORSHIPFLOW hardware test bundle: \(why)"
+        case .notABundle(let why): return "This is not a WorshipFlow hardware test bundle: \(why)"
         case .photoUnreadable(let what): return "The photo could not be read: \(what) is not a picture this app can open."
         }
     }
 }
 
 public enum HardwareTestBundle {
-    /// `2026-11-20-0905-WORSHIPFLOW-hardware-test.zip`, with `SIMULATED-` before `WORSHIPFLOW` for a simulated run.
+    /// `2026-11-20-0905-WorshipFlow-hardware-test.zip`, with `SIMULATED-` before `WorshipFlow` for a simulated run.
     public static func fileName(simulated: Bool, date: Date = Date(), calendar: Calendar = .current) -> String {
         let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         let stamp = String(format: "%04d-%02d-%02d-%02d%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
-        return "\(stamp)-\(simulated ? "SIMULATED-" : "")WORSHIPFLOW-hardware-test.zip"
+        return "\(stamp)-\(simulated ? "SIMULATED-" : "")WorshipFlow-hardware-test.zip"
     }
 
     /// Reads a bundle from its zip or from the folder it was built in.

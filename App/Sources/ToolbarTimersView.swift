@@ -35,7 +35,7 @@ struct ToolbarTimersView: View {
                                     .frame(width: 22, height: 18)
                             }
                             .buttonStyle(.plain).foregroundStyle(Tok.text)
-                            .overlay(RoundedRectangle(cornerRadius: Radius.sm).stroke(Tok.borderStrong, lineWidth: 1))
+                            .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: Tok.borderStrong)
                             .help(row.isRunning ? "Pause \(row.name)" : "Start \(row.name)")
                             .accessibilityLabel(row.isRunning ? "Pause \(row.name)" : "Start \(row.name)")
                         }
@@ -46,8 +46,8 @@ struct ToolbarTimersView: View {
                 }
             }
             .padding(.horizontal, Space.s4).frame(height: 28)
-            .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.xl))
-            .overlay(RoundedRectangle(cornerRadius: Radius.xl).stroke(Tok.border, lineWidth: 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.xl), stroke: Tok.border, fill: Tok.surface2)
+            .padding(1)   // room inside the toolbar item, which clips to its bounds
         }
     }
 }

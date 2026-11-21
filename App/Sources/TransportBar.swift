@@ -53,8 +53,7 @@ struct TransportBar: View {
             }
         }
         .padding(10).frame(width: 250)
-        .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
-        .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+        .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: Tok.surface2)
         .offset(x: -330, y: -128)
     }
 
@@ -93,7 +92,7 @@ struct TransportBar: View {
             .accessibilityLabel("More clear options")
         }
         .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.borderStrong, lineWidth: 1))
+        .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.borderStrong)
         .disabled(workspace.show.isStopped)
     }
 
@@ -121,7 +120,7 @@ struct TransportBar: View {
     private func badge(_ text: String, _ color: Color) -> some View {
         Text(text).font(.system(size: 12, weight: .bold)).tracking(0.6).foregroundStyle(color)
             .padding(.horizontal, 10).frame(height: 28)
-            .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(color, lineWidth: 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: color)
             .accessibilityLabel("Show state: \(text.lowercased())")
     }
 
@@ -179,8 +178,7 @@ extension View {
     func transportChrome() -> some View {
         self.font(.system(size: 13, weight: .semibold)).foregroundStyle(Tok.text)
             .padding(.horizontal, 12).frame(height: Space.transportHeight)
-            .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.lg))
-            .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.borderStrong, lineWidth: 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.borderStrong, fill: Tok.surface2)
     }
 }
 

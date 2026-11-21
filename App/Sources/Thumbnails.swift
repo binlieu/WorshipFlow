@@ -18,6 +18,22 @@ struct PreviewImage: @unchecked Sendable {
 /// Which picture of a keyed screen to draw: what the keyer produces, or one of the two signals sent to the card (UI-002).
 enum PreviewChannel: Hashable, Sendable { case composite, fill, key }
 
+/// UI-004: hands out an increasing number per name, so the render queue can tell the newest request from an older one.
+private final class FollowTickets: @unchecked Sendable {
+    private let lock = NSLock()
+    private var newest: [UUID: Int] = [:]
+    func take(_ name: UUID) -> Int {
+        lock.lock(); defer { lock.unlock() }
+        let next = (newest[name] ?? 0) + 1
+        newest[name] = next
+        return next
+    }
+    func isNewest(_ ticket: Int, for name: UUID) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return newest[name] == ticket
+    }
+}
+
 private struct RenderKey: Hashable {
     let scene: SceneDescription
     let width: Int
@@ -46,15 +62,34 @@ final class PreviewRenderer: @unchecked Sendable {
     /// Renders `scene` at the given size. Thumbnails are cached by scene; live previews are not.
     /// `frames` supplies the current picture of the media the scene names (MEDIA-001, KI-022); without it the media
     /// layers are simply not drawn.
+    ///
+    /// UI-004: `follow` names a picture that is being redrawn as fast as the pointer moves (the slide editor during a drag). Only the
+    /// newest request under one name is drawn; an older one that has not started yet is dropped and returns nil, so a burst of
+    /// requests leaves at most one render running and one waiting, never a growing queue.
     func image(for scene: SceneDescription, width: Int, height: Int, cached: Bool,
-               frames: (any MediaFrameSource)? = nil, channel: PreviewChannel = .composite, straight: Bool = false) async -> PreviewImage? {
-        await withCheckedContinuation { continuation in
-            queue.async { continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames, channel, straight)) }
+               frames: (any MediaFrameSource)? = nil, channel: PreviewChannel = .composite, straight: Bool = false,
+               follow: UUID? = nil) async -> PreviewImage? {
+        let ticket = follow.map { followTickets.take($0) }
+        return await withCheckedContinuation { continuation in
+            queue.async {
+                if let follow, let ticket, !self.followTickets.isNewest(ticket, for: follow) { continuation.resume(returning: nil); return }
+                continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames, channel, straight))
+            }
         }
     }
 
+    private let followTickets = FollowTickets()
+
+    #if DEBUG
+    /// UI-004: how many renders were asked for (hits included), for the drag exercise in the ui-snapshots hook.
+    nonisolated(unsafe) private(set) var requestCount = 0
+    #endif
+
     private func renderLocked(_ scene: SceneDescription, _ width: Int, _ height: Int, _ cached: Bool,
                               _ frames: (any MediaFrameSource)?, _ channel: PreviewChannel, _ straight: Bool) -> PreviewImage? {
+        #if DEBUG
+        requestCount += 1
+        #endif
         let key = RenderKey(scene: scene, width: width, height: height, channel: channel, straight: straight)
         if cached, let hit = cache[key] { return hit }
         if compositor == nil, failure == nil {
@@ -133,7 +168,10 @@ struct ScenePreview: View {
     /// Keyed screens: draw the composite (over a checkerboard), or the fill or the key signal.
     var channel: PreviewChannel = .composite
     var straightAlpha = false
+    /// UI-004: draw at once, as fast as the scene changes, instead of waiting a tenth of a second (the slide editor during a drag).
+    var follow = false
     @State private var picture: PreviewImage?
+    @State private var followName = UUID()
 
     var body: some View {
         ZStack {
@@ -144,10 +182,11 @@ struct ScenePreview: View {
         }
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .task(id: scene) {
-            if picture != nil { try? await Task.sleep(for: .milliseconds(100)) }
+            if picture != nil, !follow { try? await Task.sleep(for: .milliseconds(100)) }
             guard !Task.isCancelled else { return }
             let height = width * 9 / 16
-            let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached, frames: frames, channel: channel, straight: straightAlpha)
+            let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached, frames: frames, channel: channel, straight: straightAlpha,
+                                                          follow: follow ? followName : nil)
             guard !Task.isCancelled, let made else { return }
             picture = made
             // A thumbnail of a media background: the player may not have a frame yet, so draw it again twice.

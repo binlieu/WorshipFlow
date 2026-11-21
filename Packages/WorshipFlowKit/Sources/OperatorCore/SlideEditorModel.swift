@@ -33,6 +33,11 @@ public final class SlideEditorModel {
     @ObservationIgnored private var historyPresentation: UUID?
     @ObservationIgnored private var interactionBase: (slideID: UUID, snapshot: Snapshot)?
 
+    /// UI-004: where a dragged or resized object is while the pointer is down. Nothing else is touched until the pointer is released:
+    /// not the presentation, the preview, the live output or the save queue. `objects` and `selectedObject` show these frames, so
+    /// the canvas and the inspector follow the pointer; `endInteraction()` writes them once.
+    public private(set) var dragFrames: [UUID: NormalizedRect] = [:]
+
     /// Selection is remembered with its slide, so choosing another slide shows no selection.
     private var selection: (slideID: UUID, objectID: UUID)?
     /// Set when something could not be done (for example no image was chosen); a message a volunteer can act on.
@@ -57,7 +62,16 @@ public final class SlideEditorModel {
     }
 
     /// Objects of the selected slide, back to front.
-    public var objects: [SlideObject] { slide?.content.objects ?? [] }
+    public var objects: [SlideObject] {
+        let stored = slide?.content.objects ?? []
+        guard !dragFrames.isEmpty else { return stored }
+        return stored.map { object in
+            guard let frame = dragFrames[object.id] else { return object }
+            var o = object
+            o.frame = frame
+            return o
+        }
+    }
 
     public var selectedObjectID: UUID? {
         guard let slide, let selection, selection.slideID == slide.id,
@@ -119,11 +133,26 @@ public final class SlideEditorModel {
     /// Call when a drag begins and `endInteraction()` when it ends, so the whole drag is one undo step.
     public func beginInteraction() {
         guard let slide else { return }
+        dragFrames = [:]
         interactionBase = (slide.id, Snapshot(objects: slide.content.objects, selected: selectedObjectID, background: slide.content.background))
     }
 
     public func endInteraction() {
         guard let base = interactionBase else { return }
+        // UI-004: the one write of the drag. It goes through `mutate` while the interaction is still open, so it records no step of its
+        // own; the step is recorded below, from the snapshot taken when the pointer went down.
+        let dragged = dragFrames
+        dragFrames = [:]
+        if !dragged.isEmpty, let target = workspace.slides.first(where: { $0.id == base.slideID }) {
+            mutate(target, key: nil, selecting: nil) { objects in
+                for i in objects.indices {
+                    guard let frame = dragged[objects[i].id] else { continue }
+                    var o = objects[i]
+                    o.frame = frame
+                    objects[i] = SlideEditing.sanitized(o)
+                }
+            }
+        }
         interactionBase = nil
         guard let current = workspace.slides.first(where: { $0.id == base.slideID }),
               current.content.objects != base.snapshot.objects else { return }
@@ -133,7 +162,7 @@ public final class SlideEditorModel {
     /// Puts the object where `start` was, moved by (`dx`, `dy`) slide fractions, kept on the slide. Measuring from the
     /// start frame lets a drag go back to exactly where it began.
     public func move(_ id: UUID, from start: NormalizedRect, dx: Double, dy: Double) {
-        edit(id, key: "frame") { o in
+        editFrame(id) { o in
             o.frame = start
             o.move(dx: dx, dy: dy)
         }
@@ -141,10 +170,26 @@ public final class SlideEditorModel {
 
     /// Resizes from the corner that does not move: the size is `start`'s plus the given change.
     public func resize(_ id: UUID, from start: NormalizedRect, dWidth: Double, dHeight: Double) {
-        edit(id, key: "frame") { o in
+        editFrame(id) { o in
             o.frame = start
             o.resize(width: start.width + dWidth, height: start.height + dHeight)
         }
+    }
+
+    /// A frame change from a drag. Inside an open interaction it only moves the transient frame (see `dragFrames`); outside one
+    /// (the keyboard, a test) it is written at once, as before.
+    private func editFrame(_ id: UUID, _ change: @escaping (inout SlideObject) -> Void) {
+        resetHistoryIfPresentationChanged()
+        guard let slide, interactionBase?.slideID == slide.id,
+              let stored = slide.content.objects.first(where: { $0.id == id }) else {
+            edit(id, key: "frame", change)
+            return
+        }
+        var o = stored
+        change(&o)
+        o.id = id
+        o = SlideEditing.sanitized(o)
+        if o.frame == stored.frame { dragFrames[id] = nil } else { dragFrames[id] = o.frame }
     }
 
     /// Sets the frame from typed values (fractions of the slide), kept on the slide and at least the minimum size.
@@ -389,6 +434,7 @@ public final class SlideEditorModel {
         if historyPresentation != workspace.openPresentationID {
             histories = [:]
             interactionBase = nil
+            dragFrames = [:]
             historyPresentation = workspace.openPresentationID
         }
     }

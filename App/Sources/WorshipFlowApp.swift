@@ -79,7 +79,7 @@ struct WorshipFlowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     var body: some Scene {
-        Window("WORSHIPFLOW", id: "workspace") {
+        Window("WorshipFlow", id: "workspace") {
             ContentView(app: AppModel.shared)
                 .modifier(HardwareTestLauncher())
         }
@@ -87,6 +87,13 @@ struct WorshipFlowApp: App {
         .windowResizability(.contentMinSize)
         .defaultLaunchBehavior(HardwareTestLaunchMode.opensHardwareTest ? .suppressed : .automatic)
         .commands { WorkspaceCommands(app: AppModel.shared) }
+
+        // UI-004: About and version.
+        Window("About WorshipFlow", id: "about") {
+            AboutView(app: AppModel.shared)
+        }
+        .windowResizability(.contentSize)
+        .defaultLaunchBehavior(.suppressed)
 
         // HWTEST-001: the guided hardware test. `--hardware-test` opens it straight away instead of the workspace.
         Window("Hardware Test", id: "hardware-test") {
@@ -104,6 +111,9 @@ struct WorkspaceCommands: Commands {
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button("About WorshipFlow") { openWindow(id: "about") }
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Presentation") { app.newPresentation() }.keyboardShortcut("n")
             Button("Import Lyrics…") { app.openImport(existing: nil) }.keyboardShortcut("i")
@@ -113,7 +123,7 @@ struct WorkspaceCommands: Commands {
         }
         // R4: Command-H hides every window of the app, the screens included, so it is off while they are open.
         CommandGroup(replacing: .appVisibility) {
-            Button("Hide WORSHIPFLOW") { NSApp.hide(nil) }.keyboardShortcut("h").disabled(!app.mayHide)
+            Button("Hide WorshipFlow") { NSApp.hide(nil) }.keyboardShortcut("h").disabled(!app.mayHide)
             Button("Hide Others") { NSApp.hideOtherApplications(nil) }.keyboardShortcut("h", modifiers: [.command, .option])
             Button("Show All") { NSApp.unhideAllApplications(nil) }
         }
@@ -132,6 +142,7 @@ struct WorkspaceCommands: Commands {
         }
         CommandGroup(after: .help) {
             Divider()
+            Button("About and version…") { openWindow(id: "about") }
             Button("Hardware Test…") { openWindow(id: "hardware-test") }
         }
         CommandGroup(after: .textEditing) {

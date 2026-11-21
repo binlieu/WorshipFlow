@@ -67,7 +67,7 @@ public final class HardwareTestController {
             return Double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - began) / 1_000_000
         }
         self.durationsOverride = durationsOverride
-        self.workingFolder = workingFolder ?? FileManager.default.temporaryDirectory.appendingPathComponent("WORSHIPFLOW-hardware-test", isDirectory: true)
+        self.workingFolder = workingFolder ?? FileManager.default.temporaryDirectory.appendingPathComponent("WorshipFlow-hardware-test", isDirectory: true)
         refresh()
     }
 
@@ -244,7 +244,7 @@ public final class HardwareTestController {
     }
 
     /// The name offered when saving the report of the unfinished run.
-    public var suggestedUnfinishedFileName: String { unfinishedRun.map { HardwareTestUnfinished.zipName(for: $0.folder) } ?? "WORSHIPFLOW-hardware-test-UNFINISHED.zip" }
+    public var suggestedUnfinishedFileName: String { unfinishedRun.map { HardwareTestUnfinished.zipName(for: $0.folder) } ?? "WorshipFlow-hardware-test-UNFINISHED.zip" }
 
     /// Saves the report of a run that did not finish (found at launch) to where the tester chose, then removes its folder.
     public func saveUnfinishedReport(to destination: URL) throws {

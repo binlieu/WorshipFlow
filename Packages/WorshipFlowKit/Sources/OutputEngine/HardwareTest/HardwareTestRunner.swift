@@ -213,7 +213,7 @@ public final class HardwareTestContext: @unchecked Sendable {
         let fresh = currentDevice()
         guard let record, let restore = fresh?.restoreProfiles ?? device?.restoreProfiles else {
             let why = record == nil ? "the card's profile could not be read before it was changed, so there is nothing to put back"
-                                    : "this card cannot change its profile back from WORSHIPFLOW; set it in Blackmagic Desktop Video Setup"
+                                    : "this card cannot change its profile back from WorshipFlow; set it in Blackmagic Desktop Video Setup"
             finishRestore(.init(state: .notVerified, detail: why))
             return
         }

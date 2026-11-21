@@ -8,9 +8,10 @@ SECS="${1:-3600}"; SCREEN="${2:-1}"
 DD="$HOME/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-release"
 [ -f TestMedia/loop-1080p5994.mov ] || ./scripts/make-test-media.sh
 xcodegen generate --quiet
+rm -rf "$DD/Build/Products/Release"/*.app   # UI-004: no app left over under the old capitals
 xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DD" build -quiet
 REPORT="AI/reports/soak-screen${SCREEN}-${SECS}s-$(date +%Y%m%d-%H%M).log"
-"$DD/Build/Products/Release/WORSHIPFLOW.app/Contents/MacOS/WORSHIPFLOW" \
+"$DD/Build/Products/Release/WorshipFlow.app/Contents/MacOS/WorshipFlow" \
   --soak "$SECS" --screen "$SCREEN" --video "$PWD/TestMedia/loop-1080p5994.mov" --report "$PWD/$REPORT"
 echo "Report: $REPORT"

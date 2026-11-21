@@ -1,5 +1,5 @@
 // HWTEST-001 / FIX-D S6: a run that did not finish. While a real run goes, its files are written to a visible folder on the
-// Desktop ("<date>-WORSHIPFLOW-hardware-test-unfinished"); the folder is removed after the report is saved. If the app crashes on
+// Desktop ("<date>-WorshipFlow-hardware-test-unfinished"); the folder is removed after the report is saved. If the app crashes on
 // first contact with the card, the folder is still there, and the next time the Hardware Test window opens it offers to
 // save what is in it, with a first line that says the run did not finish and which step it stopped in.
 import Foundation
@@ -13,9 +13,9 @@ public struct UnfinishedHardwareTestRun: Equatable, Sendable {
 }
 
 public enum HardwareTestUnfinished {
-    public static let folderSuffix = "WORSHIPFLOW-hardware-test-unfinished"
+    public static let folderSuffix = "WorshipFlow-hardware-test-unfinished"
 
-    /// `2026-11-21-1423-WORSHIPFLOW-hardware-test-unfinished`.
+    /// `2026-11-21-1423-WorshipFlow-hardware-test-unfinished`.
     public static func folderName(date: Date = Date(), calendar: Calendar = .current) -> String {
         let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         return String(format: "%04d-%02d-%02d-%02d%02d-", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0) + folderSuffix
@@ -49,7 +49,8 @@ public enum HardwareTestUnfinished {
     public static func find(in parent: URL, excluding: URL? = nil) -> [UnfinishedHardwareTestRun] {
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: parent.path) else { return [] }
         let skip = excluding?.standardizedFileURL.path
-        return names.filter { $0.contains(folderSuffix) }.sorted(by: >).compactMap { name in
+        // An older build wrote the name in capitals, so the match ignores case.
+        return names.filter { $0.range(of: folderSuffix, options: .caseInsensitive) != nil }.sorted(by: >).compactMap { name in
             let folder = parent.appendingPathComponent(name, isDirectory: true)
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue, folder.standardizedFileURL.path != skip else { return nil }
@@ -100,11 +101,11 @@ public enum HardwareTestUnfinished {
         try HardwareTestZip.write(entries, to: zip)
     }
 
-    /// `2026-11-21-1423-WORSHIPFLOW-hardware-test-UNFINISHED.zip`, from the folder's own date.
+    /// `2026-11-21-1423-WorshipFlow-hardware-test-UNFINISHED.zip`, from the folder's own date.
     public static func zipName(for folder: URL) -> String {
         let name = folder.lastPathComponent
-        let stamp = name.components(separatedBy: "-" + folderSuffix).first ?? name
-        return stamp + "-WORSHIPFLOW-hardware-test-UNFINISHED.zip"
+        let stamp = name.range(of: "-" + folderSuffix, options: .caseInsensitive).map { String(name[..<$0.lowerBound]) } ?? name
+        return stamp + "-WorshipFlow-hardware-test-UNFINISHED.zip"
     }
 }
 

@@ -24,7 +24,7 @@ struct MIDISection: View {
             }
             .toggleStyle(.switch)
             if !cue.midi.isEnabled {
-                CueNote(text: "MIDI is off: nothing is listening to any device, and WORSHIPFLOW has no MIDI ports. Turn it on to bind pads and keys to the show.")
+                CueNote(text: "MIDI is off: nothing is listening to any device, and WorshipFlow has no MIDI ports. Turn it on to bind pads and keys to the show.")
             } else {
                 status
                 devices

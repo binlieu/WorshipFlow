@@ -163,7 +163,7 @@ final class ProgramTransferModel {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.message = "Choose a WORSHIPFLOW program (.\(ProgramFormat.fileExtension))"
+        panel.message = "Choose a WorshipFlow program (.\(ProgramFormat.fileExtension))"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         beginImport(app: app, url: url)
     }

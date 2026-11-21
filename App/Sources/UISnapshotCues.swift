@@ -52,7 +52,7 @@ extension AppModel {
         await cue.saveEvent(ScheduledEvent(name: "Sunday service", timing: .weekly(weekdays: [.sunday], hour: 9, minute: 0, timeZoneID: TimeZone.current.identifier),
                                            payload: .macro(macro.id)))
         // 4. MIDI on the app's own virtual port, with names that cannot be mistaken for another app's.
-        cue.midiPortsFactory = { try CoreMIDIPorts(clientName: "WORSHIPFLOW cue run", virtualDestinationName: "WF cue run In", virtualSourceName: "WF cue run Out") }
+        cue.midiPortsFactory = { try CoreMIDIPorts(clientName: "WorshipFlow cue run", virtualDestinationName: "WF cue run In", virtualSourceName: "WF cue run Out") }
         await cue.saveBinding(MIDIBinding(name: "Note D4", pattern: MIDIPattern(kind: .noteOn, channel: 1, number: 62), command: .transport(.next)))
         await cue.saveBinding(MIDIBinding(name: "Note C4", pattern: MIDIPattern(kind: .noteOn, channel: 1, number: 60), command: .macro(macro.id)))
         await cue.setMIDIEnabled(true)
@@ -127,7 +127,7 @@ extension AppModel {
     /// Sends one note-on to the virtual destination of this process, from a second CoreMIDI client that is disposed afterwards.
     private func sendNoteToVirtualPort(named name: String, note number: UInt8, note log: @MainActor (String) -> Void) {
         var client = MIDIClientRef()
-        guard MIDIClientCreate("WORSHIPFLOW cue run sender" as CFString, nil, nil, &client) == noErr else { log("cues: no sender client"); return }
+        guard MIDIClientCreate("WorshipFlow cue run sender" as CFString, nil, nil, &client) == noErr else { log("cues: no sender client"); return }
         defer { MIDIClientDispose(client) }
         var port = MIDIPortRef()
         guard MIDIOutputPortCreate(client, "out" as CFString, &port) == noErr else { log("cues: no sender port"); return }

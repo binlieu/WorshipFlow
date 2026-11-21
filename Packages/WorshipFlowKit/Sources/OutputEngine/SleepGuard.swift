@@ -42,7 +42,7 @@ public final class SleepGuard {
     public private(set) var failedKinds: [PowerAssertionKind] = []
 
     public init(backend: any PowerAssertionBackend = IOKitPowerAssertionBackend(),
-                reason: String = "WORSHIPFLOW is presenting") {
+                reason: String = "WorshipFlow is presenting") {
         self.backend = backend
         self.reason = reason
     }

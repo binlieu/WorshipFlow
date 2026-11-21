@@ -20,6 +20,12 @@ public enum NewSlideObject: Sendable, Equatable {
 }
 
 public enum SlideEditing {
+    /// UI-004: how far the pointer must move (in points) before a press on an object becomes a drag. A press that stays inside it is a click.
+    public static let dragThreshold: Double = 3
+    /// UI-004: the side, in points, of the area that grabs the resize handle. The drawn handle is smaller; the area is not.
+    public static let handleHitSize: Double = 28
+
+    public static func dragHasStarted(dx: Double, dy: Double) -> Bool { (dx * dx + dy * dy).squareRoot() >= dragThreshold }
     public static let fontSizeRange = ThemeEditing.fontSizeRange
     public static let outlineRange = ThemeEditing.outlineRange
     public static let strokeRange: ClosedRange<Double> = 0...40

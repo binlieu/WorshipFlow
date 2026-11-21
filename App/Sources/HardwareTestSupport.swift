@@ -4,6 +4,7 @@
 import AppKit
 import CoreGraphics
 import DeckLinkSDI
+import Domain
 import OutputEngine
 import SDIEngine
 
@@ -20,6 +21,7 @@ enum AppHardwareTest {
         let info = Bundle.main.infoDictionary
         return .system(appVersion: info?["CFBundleShortVersionString"] as? String ?? "unknown",
                        appBuild: info?["CFBundleVersion"] as? String ?? "unknown",
+                       buildDetail: BuildInfo.current.detail,
                        displays: { displays() })
     }
 

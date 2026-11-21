@@ -23,7 +23,7 @@ public struct DeckLinkEnvironment: Equatable, Sendable {
         self.frameworkOnDisk = frameworkOnDisk
     }
 
-    public static let driverMissingMessage = "Blackmagic Desktop Video is not installed on this Mac. SDI outputs need it. Install Blackmagic Desktop Video from the Blackmagic Design support site, restart the Mac, then open WORSHIPFLOW again. Screens on displays and windows still work."
+    public static let driverMissingMessage = "Blackmagic Desktop Video is not installed on this Mac. SDI outputs need it. Install Blackmagic Desktop Video from the Blackmagic Design support site, restart the Mac, then open WorshipFlow again. Screens on displays and windows still work."
 
     /// Where the vendor framework lives. The SDK loads it from here at run time.
     public static let frameworkPath = "/Library/Frameworks/DeckLinkAPI.framework"

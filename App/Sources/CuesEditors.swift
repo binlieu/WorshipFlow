@@ -158,7 +158,7 @@ struct ScheduleEditor: View {
                         if editing != nil { ScheduleForm(cue: cue, draft: Binding(get: { editing ?? ScheduleDraft() }, set: { editing = $0 })) { editing = nil } }
                     }
             }
-            Text("While WORSHIPFLOW is open, an event runs a macro at its time. An event more than five minutes late (the Mac was asleep, or the app was closed) is not run late: it is skipped and you are told.")
+            Text("While WorshipFlow is open, an event runs a macro at its time. An event more than five minutes late (the Mac was asleep, or the app was closed) is not run late: it is skipped and you are told.")
                 .font(.system(size: 13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if cue.schedule.events.isEmpty { CueNote(text: "No scheduled events.") }
             ForEach(cue.schedule.events) { event in row(event) }

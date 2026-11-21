@@ -75,7 +75,7 @@ extension HWTEST_Heavy {
         #expect(code == 0)
         let names = try FileManager.default.contentsOfDirectory(atPath: target.path)
         #expect(names.count == 1)
-        #expect(names[0].hasSuffix("-SIMULATED-WORSHIPFLOW-hardware-test.zip"))
+        #expect(names[0].hasSuffix("-SIMULATED-WorshipFlow-hardware-test.zip"))
     }
 
     @Test func failingStepsDoNotChangeTheExitCode() async throws {
@@ -151,7 +151,7 @@ extension HWTEST_Heavy {
         #expect(c.phase == .finished)
         #expect(c.results.count == 3)
         #expect(c.summaryText?.components(separatedBy: "\n")[0].contains("SIMULATED") == true)
-        #expect(c.suggestedFileName.contains("SIMULATED-WORSHIPFLOW-hardware-test"))
+        #expect(c.suggestedFileName.contains("SIMULATED-WorshipFlow-hardware-test"))
         #expect(c.logLines.contains { $0.contains("Hardware test finished") })
         let bundle = try #require(c.bundleURL)
         let dest = FileManager.default.temporaryDirectory.appendingPathComponent("wf-hwtest-unit-\(UUID().uuidString).zip")
@@ -167,7 +167,7 @@ extension HWTEST_Heavy {
         await finish(c)
         #expect(c.phase == .finished)
         #expect(c.summaryText?.contains("none found") == true)
-        #expect(c.suggestedFileName.contains("WORSHIPFLOW-hardware-test") && !c.suggestedFileName.contains("SIMULATED"))
+        #expect(c.suggestedFileName.contains("WorshipFlow-hardware-test") && !c.suggestedFileName.contains("SIMULATED"))
         if let url = c.bundleURL { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
     }
 

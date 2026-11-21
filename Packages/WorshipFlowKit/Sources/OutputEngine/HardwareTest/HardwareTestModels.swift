@@ -156,7 +156,7 @@ public struct HardwareCardState: Equatable, Sendable {
             if driver.frameworkLoadable == false { return HardwareCardState(state: .driverNotInstalled, text: driver.message) }
             return HardwareCardState(
                 state: .driverNotInstalled,
-                text: "Blackmagic Desktop Video is not installed on this Mac. Install Blackmagic Desktop Video from the Blackmagic Design support site, restart the Mac, open WORSHIPFLOW again, then press Rescan.")
+                text: "Blackmagic Desktop Video is not installed on this Mac. Install Blackmagic Desktop Video from the Blackmagic Design support site, restart the Mac, open WorshipFlow again, then press Rescan.")
         }
         let version = driver.apiVersion.map { " (driver API \($0))" } ?? ""
         return HardwareCardState(
@@ -189,9 +189,12 @@ public struct HardwareEnvironmentInfo: Codable, Equatable, Sendable {
     public var driver: HardwareDriverStatus
     /// UTC, no zone name.
     public var collectedAt: String
+    /// UI-004: `commit 71d344d, built 2026-11-21` or `development build`. Absent in a report written by an older build.
+    public var appBuildDetail: String?
 
     public init(appVersion: String, appBuild: String, osVersion: String, osBuild: String, macModel: String, chip: String,
-                memoryGB: Double, processorCount: Int, displays: [HardwareDisplayInfo], driver: HardwareDriverStatus, collectedAt: String) {
+                memoryGB: Double, processorCount: Int, displays: [HardwareDisplayInfo], driver: HardwareDriverStatus, collectedAt: String,
+                appBuildDetail: String? = nil) {
         self.appVersion = appVersion
         self.appBuild = appBuild
         self.osVersion = osVersion
@@ -203,6 +206,7 @@ public struct HardwareEnvironmentInfo: Codable, Equatable, Sendable {
         self.displays = displays
         self.driver = driver
         self.collectedAt = collectedAt
+        self.appBuildDetail = appBuildDetail
     }
 }
 

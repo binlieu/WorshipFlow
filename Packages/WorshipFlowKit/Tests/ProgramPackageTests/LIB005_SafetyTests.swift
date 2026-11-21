@@ -84,7 +84,7 @@ import ProgramPackage
         catch let error as ProgramPackageError {
             #expect(error == .newerFormat(found: 99, supported: 1))
             let message = try #require(error.errorDescription)
-            #expect(message.contains("newer") && message.contains("Update WORSHIPFLOW"))
+            #expect(message.contains("newer") && message.contains("Update WorshipFlow"))
         }
         let rig2 = try Rig()
         let big = try await hostile(.oversizedJSON, rig2)

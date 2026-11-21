@@ -31,7 +31,7 @@ extension ProgramPackageContents {
         do { header = try JSONDecoder().decode(Header.self, from: data) }
         catch { throw ProgramPackageError.manifestUnreadable("\(ProgramFormat.manifestName) is not valid JSON.") }
         guard header.format == ProgramFormat.name else {
-            throw ProgramPackageError.notAProgramPackage("\(ProgramFormat.manifestName) does not describe a WORSHIPFLOW program.")
+            throw ProgramPackageError.notAProgramPackage("\(ProgramFormat.manifestName) does not describe a WorshipFlow program.")
         }
         guard let version = header.formatVersion, version >= 1 else {
             throw ProgramPackageError.notAProgramPackage("its format version is missing or not valid.")

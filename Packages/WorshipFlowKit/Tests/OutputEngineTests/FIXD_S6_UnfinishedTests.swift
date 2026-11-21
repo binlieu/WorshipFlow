@@ -37,8 +37,8 @@ extension HWTEST_Heavy {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(identifier: "UTC")!
         let name = HardwareTestUnfinished.folderName(date: Date(timeIntervalSince1970: 1_800_000_000), calendar: cal)
-        #expect(name == "2027-01-15-0800-WORSHIPFLOW-hardware-test-unfinished")
-        #expect(HardwareTestUnfinished.zipName(for: URL(fileURLWithPath: "/x/" + name)) == "2027-01-15-0800-WORSHIPFLOW-hardware-test-UNFINISHED.zip")
+        #expect(name == "2027-01-15-0800-WorshipFlow-hardware-test-unfinished")
+        #expect(HardwareTestUnfinished.zipName(for: URL(fileURLWithPath: "/x/" + name)) == "2027-01-15-0800-WorshipFlow-hardware-test-UNFINISHED.zip")
     }
 
     @Test func aLaunchArgumentMovesTheFolderOffTheDesktop() {
@@ -68,7 +68,7 @@ extension HWTEST_Heavy {
         for _ in 0..<400 where folders.isEmpty { try? await Task.sleep(for: .milliseconds(10)); folders = unfinishedFolders(in: parent) }
         #expect(folders.count == 1, "\(folders)")
         let folder = parent.appendingPathComponent(try #require(folders.first))
-        #expect(folder.lastPathComponent.hasSuffix("-WORSHIPFLOW-hardware-test-unfinished"))
+        #expect(folder.lastPathComponent.hasSuffix("-WorshipFlow-hardware-test-unfinished"))
         var running: Int?
         for _ in 0..<400 where running == nil {
             try? await Task.sleep(for: .milliseconds(10))
@@ -128,7 +128,7 @@ extension HWTEST_Heavy {
         #expect(run.folder.lastPathComponent == folder.lastPathComponent)
         #expect(run.description.contains("stopped during step 5") && run.description.contains("Fill and key loopback"), "\(run.description)")
         #expect(!run.reachedTheEnd)
-        #expect(c.suggestedUnfinishedFileName.hasSuffix("WORSHIPFLOW-hardware-test-UNFINISHED.zip"))
+        #expect(c.suggestedUnfinishedFileName.hasSuffix("WorshipFlow-hardware-test-UNFINISHED.zip"))
         let dest = parent.appendingPathComponent("out/report.zip")
         try c.saveUnfinishedReport(to: dest)
         let loaded = try HardwareTestBundle.load(from: dest)

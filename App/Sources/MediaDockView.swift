@@ -79,8 +79,7 @@ struct MediaDockView: View {
                     ForEach(MediaLayerChoice.allCases) { choice in layerButton(choice) }
                 }
                 .padding(2)
-                .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
-                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.border, lineWidth: 1))
+                .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.border, fill: Tok.surface2)
                 .help("What a click on a picture or video does: put it behind the words, or play it over them")
             }
             Button { app.chooseMedia() } label: { Image(systemName: "plus") }
@@ -335,9 +334,7 @@ struct MediaControllerRow: View {
             loopControl(f)
             soundControl(f)
             ForEach(f.chips, id: \.self) { chip in
-                Text(chip).font(.system(size: 11, weight: .bold)).tracking(0.4).foregroundStyle(Tok.blue).lineLimit(1)
-                    .padding(.horizontal, 8).frame(height: 20, alignment: .center).frame(maxWidth: 110)
-                    .overlay(Capsule().stroke(Tok.blue, lineWidth: 1)).fixedSize()
+                PillTag(text: chip, color: Tok.blue, maxWidth: 110)
             }
         }
         .padding(.horizontal, Space.s5).frame(height: 46)
@@ -395,8 +392,8 @@ private struct ControllerButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 12, weight: .semibold)).frame(width: 30, height: 28)
             .foregroundStyle(Tok.text)
-            .background(selected ? Tok.surface3 : Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.cyan : Tok.borderStrong, lineWidth: selected ? 1.5 : 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: selected ? Tok.cyan : Tok.borderStrong,
+                       fill: selected ? Tok.surface3 : Tok.surface2, lineWidth: selected ? 1.5 : 1)
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
     }
 }

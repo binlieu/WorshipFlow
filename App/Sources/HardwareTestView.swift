@@ -31,7 +31,7 @@ struct HardwareTestView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Hardware Test").font(.largeTitle.bold())
-            Text("This checks how your Blackmagic DeckLink card works with WORSHIPFLOW and makes one file to send back. You do not need to understand the results: just run it and send the file.")
+            Text("This checks how your Blackmagic DeckLink card works with WorshipFlow and makes one file to send back. You do not need to understand the results: just run it and send the file.")
                 .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }

@@ -4,6 +4,38 @@ import SwiftUI
 import Domain
 import OperatorCore
 
+// UI-004: one way to draw a rounded outline. The fill and the stroke come from the SAME shape (so the radii cannot differ) and the
+// stroke is inset by half its width (`strokeBorder`), so nothing of it lies outside the view's frame. A plain `.stroke` is centred on
+// the edge: half of it falls outside the frame and is cut off by whatever clips the view (a toolbar item, a scroll view, a
+// parent frame), which flattened the ends of every pill and segmented control. Capsules are `.circular`: the default
+// `.continuous` capsule stroked with a 1 pt line drew a short straight stub at each end on this macOS.
+extension View {
+    func wfOutline<S: InsettableShape>(_ shape: S, stroke: Color, fill: Color = .clear, lineWidth: CGFloat = 1) -> some View {
+        background { shape.fill(fill) }
+            .overlay { shape.strokeBorder(stroke, lineWidth: lineWidth) }
+    }
+}
+
+/// A one-line outlined pill with a word in it (AUD, BRD, a media chip, the Preview-only chip): the shared pill for the app.
+struct PillTag: View {
+    let text: String
+    let color: Color
+    var height: CGFloat = 20
+    var weight: Font.Weight = .bold
+    var size: CGFloat = 11
+    var tracking: CGFloat = 0.4
+    var maxWidth: CGFloat? = nil
+
+    var body: some View {
+        Text(text).font(.system(size: size, weight: weight)).tracking(tracking).foregroundStyle(color)
+            .lineLimit(1).truncationMode(.tail)
+            .padding(.horizontal, 9).frame(height: height)
+            .wfOutline(Capsule(style: .circular), stroke: color)
+            .frame(maxWidth: maxWidth)
+            .fixedSize(horizontal: maxWidth == nil, vertical: true)
+    }
+}
+
 /// Uppercase tag: LIVE (red fill), PREVIEW (blue fill), SIMULATED (outlined in the broadcast colour), and so on.
 struct Badge: View {
     enum Style { case live, preview, outline(Color), warning }
@@ -14,8 +46,7 @@ struct Badge: View {
         Text(text).font(.wfBadge).tracking(0.6)
             .padding(.horizontal, 6).padding(.vertical, 2)
             .foregroundStyle(foreground)
-            .background(background, in: RoundedRectangle(cornerRadius: Radius.xs))
-            .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(stroke, lineWidth: 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: stroke, fill: background)
             .fixedSize()
     }
 
@@ -74,7 +105,8 @@ struct RolePillView: View {
                 .foregroundStyle(pill.status == .off ? Tok.muted : pill.role.tokenColor)
         }
         .padding(.horizontal, 9).frame(height: 20)
-        .overlay(Capsule().stroke(pill.status == .off ? Tok.borderStrong : pill.role.tokenColor, lineWidth: 1))
+        .wfOutline(Capsule(style: .circular), stroke: pill.status == .off ? Tok.borderStrong : pill.role.tokenColor)
+        .padding(1)   // room inside a toolbar item, which clips to its bounds
         .fixedSize()
         .help("\(pill.accessibilityText)")
         .accessibilityElement(children: .ignore)
@@ -89,7 +121,7 @@ struct KeyHint: View {
     var body: some View {
         Text(key).font(.system(size: 10, weight: .semibold, design: .monospaced))
             .padding(.horizontal, 4).padding(.vertical, 1)
-            .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(onFill ? Tok.onLive.opacity(0.7) : Tok.borderStrong, lineWidth: 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: onFill ? Tok.onLive.opacity(0.7) : Tok.borderStrong)
             .foregroundStyle(onFill ? Tok.onLive : Tok.muted)
             .accessibilityHidden(true)
     }
@@ -116,10 +148,9 @@ struct TransportButtonStyle: ButtonStyle {
             .padding(.horizontal, 12)
             .frame(height: Space.transportHeight)
             .foregroundStyle(prominent ? Tok.onLive : Tok.text)
-            .background(prominent ? Tok.liveFill : (active ? Tok.surface3 : Tok.surface2),
-                        in: RoundedRectangle(cornerRadius: Radius.lg))
-            .overlay(RoundedRectangle(cornerRadius: Radius.lg)
-                .stroke(prominent ? Tok.liveFill : (active ? Tok.warning : Tok.borderStrong), lineWidth: active ? 2 : 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.lg),
+                       stroke: prominent ? Tok.liveFill : (active ? Tok.warning : Tok.borderStrong),
+                       fill: prominent ? Tok.liveFill : (active ? Tok.surface3 : Tok.surface2), lineWidth: active ? 2 : 1)
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .contentShape(RoundedRectangle(cornerRadius: Radius.lg))
     }
@@ -134,8 +165,7 @@ struct HeaderButtonStyle: ButtonStyle {
             .font(.system(size: 12, weight: .medium))
             .padding(.horizontal, 10).frame(height: Space.controlHeight)
             .foregroundStyle(Tok.text)
-            .background(selected ? Tok.surface3 : Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: selected ? Tok.surface3 : Tok.surface2)
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
     }
 }

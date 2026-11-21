@@ -26,13 +26,13 @@ public enum QuitPolicy {
         switch request {
         case .quitCommand:
             return .confirm(
-                title: "Quit WORSHIPFLOW while the screens are open?",
+                title: "Quit WorshipFlow while the screens are open?",
                 message: "The screens are open, so the audience may be looking at them. Quitting closes every screen and ends the show. Your typing and settings are saved first.",
                 confirmTitle: "Quit and Close Screens")
         case .operatorWindowClose:
             return .refuse(message: "The screens are still open, so this window stays. Close the screens first (Show, then Close Screens) if the service is over, or choose Quit.")
         case .lastWindowClosed:
-            return .refuse(message: "The screens are still open, so WORSHIPFLOW keeps running.")
+            return .refuse(message: "The screens are still open, so WorshipFlow keeps running.")
         }
     }
 

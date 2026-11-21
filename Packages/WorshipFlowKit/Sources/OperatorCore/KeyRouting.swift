@@ -100,10 +100,17 @@ extension KeyRouting {
         return false
     }
 
+    /// UI-004: true for the About window (title "About WorshipFlow", or the identifier of the window made with `id: "about"`).
+    public static func isAboutWindow(title: String?, identifier: String?) -> Bool {
+        if let title, title.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare("About WorshipFlow") == .orderedSame { return true }
+        if let identifier, identifier.lowercased().hasPrefix("about") { return true }
+        return false
+    }
+
     /// Whether the transport key monitor may act on a key pressed in `window`. Off in the Hardware Test window and, when the app
     /// was started with `--hardware-test`, everywhere: that session is a test of the card, not a service.
     public static func transportKeysActive(windowTitle: String?, windowIdentifier: String?, launchedWithHardwareTest: Bool) -> Bool {
         if launchedWithHardwareTest { return false }
-        return !isHardwareTestWindow(title: windowTitle, identifier: windowIdentifier)
+        return !isHardwareTestWindow(title: windowTitle, identifier: windowIdentifier) && !isAboutWindow(title: windowTitle, identifier: windowIdentifier)
     }
 }

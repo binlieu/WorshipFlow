@@ -309,7 +309,7 @@ public final class WorkspaceModel {
         }
         guard let failure else { draftsSettled(); return }
         let first = draftSaveProblem == nil
-        draftSaveProblem = "Your typing is not saved yet: \(Self.reason(for: failure)) It is kept here and WORSHIPFLOW keeps trying."
+        draftSaveProblem = "Your typing is not saved yet: \(Self.reason(for: failure)) It is kept here and WorshipFlow keeps trying."
         if first { lastError = Self.message(for: failure, doing: "save your typing") }
         scheduleDraftRetry()
     }

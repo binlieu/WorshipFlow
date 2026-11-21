@@ -81,9 +81,18 @@ struct SlideCanvas: View {
     let content: SlideContent
     @Binding var editingTextID: UUID?
 
+    /// UI-004: while an object is dragged the scene is drawn from the editor's transient frames, at once and as fast as the pointer moves.
+    /// The presentation, the grid's thumbnails and the live output are not involved: they change once, when the pointer is released.
+    private var shownContent: SlideContent {
+        guard !editor.dragFrames.isEmpty else { return content }
+        var shown = content
+        shown.objects = editor.objects
+        return shown
+    }
+
     var body: some View {
         let _ = app.sceneRevision          // follows theme and Look changes
-        ScenePreview(scene: app.thumbnailScene(for: content), width: 880, cached: false)
+        ScenePreview(scene: app.thumbnailScene(for: shownContent), width: 880, cached: false, follow: !editor.dragFrames.isEmpty)
             .overlay {
                 GeometryReader { geo in
                     ZStack(alignment: .topLeading) {
@@ -130,38 +139,55 @@ private struct ObjectBox: View {
     /// The frame when the current drag began, so a drag is measured from there and clamped by the model.
     @State private var dragStart: NormalizedRect?
     @State private var resizeStart: NormalizedRect?
+    /// True from the press until the release, so the object is selected on the press and not only on the release.
+    @State private var pressed = false
     @FocusState private var textFocused: Bool
 
     private let handle: CGFloat = 12
+    private var handleHit: CGFloat { CGFloat(SlideEditing.handleHitSize) }
 
     private var isText: Bool { if case .text = object.content { true } else { false } }
     private var text: String { if case .text(let t) = object.content { t.text } else { "" } }
 
     var body: some View {
-        let f = object.frame
+        // UI-004: while the pointer is down the model keeps the dragged frame apart (nothing is saved or redrawn per event), and this
+        // box follows it at once; the picture under it is redrawn once, when the pointer is released.
+        let f = editor.dragFrames[object.id] ?? object.frame
         let size = CGSize(width: f.width * canvas.width, height: f.height * canvas.height)
         ZStack(alignment: .bottomTrailing) {
             Rectangle()
                 .fill(selected ? Color.accentColor.opacity(0.10) : Color.clear)
                 .overlay(Rectangle().stroke(selected ? Color.accentColor : Color.white.opacity(0.35),
                                             style: StrokeStyle(lineWidth: selected ? 2 : 1, dash: selected ? [] : [4, 3])))
+                .overlay(Rectangle().fill(Color.accentColor.opacity(dragStart == nil ? 0 : 0.18)))
                 .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    editor.select(object.id)
-                    if isText { beginEditing() }
-                }
-                .onTapGesture { editor.select(object.id) }
-                .gesture(DragGesture(minimumDistance: 3).onChanged { value in
-                    if dragStart == nil {
+                // One gesture does the press, the click and the drag. Separate single- and double-tap gestures on the same view made
+                // the drag wait for them to fail, so it started late or not at all. The press selects at once; the drag starts on the
+                // first movement past a few points; a press that does not move is a click.
+                .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                    if !pressed {
+                        pressed = true
+                        if editor.selectedObjectID != object.id { editor.select(object.id) }
+                    }
+                    if dragStart == nil, !editing,
+                       SlideEditing.dragHasStarted(dx: value.translation.width, dy: value.translation.height) {
                         dragStart = object.frame
-                        editor.select(object.id)
                         editor.beginInteraction()
                     }
-                    editor.move(object.id, from: dragStart ?? object.frame,
-                                dx: value.translation.width / canvas.width, dy: value.translation.height / canvas.height)
+                    if let start = dragStart {
+                        editor.move(object.id, from: start,
+                                    dx: value.translation.width / canvas.width, dy: value.translation.height / canvas.height)
+                    }
                 }.onEnded { _ in
-                    dragStart = nil
-                    editor.endInteraction()
+                    pressed = false
+                    if dragStart != nil {
+                        dragStart = nil
+                        editor.endInteraction()
+                    }
+                })
+                .simultaneousGesture(TapGesture(count: 2).onEnded {
+                    editor.select(object.id)
+                    if isText { beginEditing() }
                 })
             if editing, isText {
                 TextField("Text", text: Binding(get: { text }, set: { editor.setText(object.id, $0) }), axis: .vertical)
@@ -180,7 +206,9 @@ private struct ObjectBox: View {
             }
             if selected {
                 Rectangle().fill(Color.accentColor).frame(width: handle, height: handle)
-                    .overlay(Rectangle().stroke(Color.white, lineWidth: 1))
+                    .overlay(Rectangle().strokeBorder(Color.white, lineWidth: 1))
+                    .frame(width: handleHit, height: handleHit, alignment: .bottomTrailing)     // a bigger area than the square to grab it by
+                    .contentShape(Rectangle())
                     .gesture(DragGesture(minimumDistance: 1).onChanged { value in
                         if resizeStart == nil {
                             resizeStart = object.frame

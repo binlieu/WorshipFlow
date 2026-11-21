@@ -5,7 +5,7 @@ For a person at the Mac. About 30 minutes. Tick each line or write what happened
 Build and open:
 
 ```bash
-cd /Volumes/Storage/chilt/worshipflow && ./scripts/check.sh && open ~/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-check/Build/Products/Debug/WORSHIPFLOW.app
+cd /Volumes/Storage/chilt/worshipflow && ./scripts/check.sh && open ~/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-check/Build/Products/Debug/WorshipFlow.app
 ```
 
 This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Library.sqlite`.
@@ -133,7 +133,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 
 - [ ] Open the Hardware Test window (Help menu) with a show running in the operator window: Space, Return, the arrows and B do nothing to the show while the Hardware Test window is in front.
 - [ ] Start a test, then try to open the screens from the operator window: the app refuses and says the Hardware Test is running.
-- [ ] Quit the app during a test (Force Quit is fine). A folder ending `WORSHIPFLOW-hardware-test-unfinished` is on the Desktop. Open the Hardware Test window again: it offers "Save its report...". Save it, and the folder disappears.
+- [ ] Quit the app during a test (Force Quit is fine). A folder ending `WorshipFlow-hardware-test-unfinished` (`WORSHIPFLOW-` on a report from an older build) is on the Desktop. Open the Hardware Test window again: it offers "Save its report...". Save it, and the folder disappears.
 - [ ] Play a video clip with sound over a live slide, press B: the sound stops with the picture. Press B again: the sound is back at the same level.
 - [ ] In a playlist, click a countdown, then click a slide of the song above it, then Go Live (Return): the slide goes live, not the countdown.
 
@@ -180,7 +180,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 Use a scratch library on both "Macs" (two `--library` files), and a folder standing for a USB stick. Do not use the real library for the first run.
 
 - [ ] Build a short program at home: a song with a picture object on a slide, a song with a section order, a header, a countdown, a Bible passage, a slide action that plays a clip. File > Export Program…: the sheet lists items, media files and total size. Put a file on a drive, unplug the drive, and open the sheet again: the file is listed as unreadable and the button says "Export without the missing files…".
-- [ ] Export: a save panel appears and asks before replacing a file. The result is one file in Finder (a package, not a folder), with the WORSHIPFLOW icon behaviour of a document. Cancel in the middle of a large export: nothing is left at the destination or next to it.
+- [ ] Export: a save panel appears and asks before replacing a file. The result is one file in Finder (a package, not a folder), with the WorshipFlow icon behaviour of a document. Cancel in the middle of a large export: nothing is left at the destination or next to it.
 - [ ] On the other library: File > Import Program…, then again by double-clicking the file in Finder, then by dropping it on the window. Each shows the summary first. Import: the playlist plays slide for slide, the picture and the clip are there, with the original drive disconnected. Quit, move the whole library folder to another place, reopen with `--library` there: the pictures and clips are still found.
 - [ ] Import the same file again: the summary says nothing to import and the button is off.
 - [ ] Change a lyric at church, change it differently at home, export again, import: the summary lists the song as having different content. Try each answer: Keep both (copy titled "(imported)" and a "(imported)" playlist that plays it), Keep mine, Use the imported one.
@@ -197,3 +197,11 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Media mode, Folders, +: choose a folder of videos. They appear as a source. Copy a new video into the folder: it appears when the copy is complete (not while it is growing). Rename and delete one in Finder: the bin follows. Play folder on the background: the videos play one after another in name order and start again. Rename the folder in Finder: it shows as missing; "Point to the folder again…" fixes it. The show is never held up.
 - [ ] Drag a video from the bin onto one slide's thumbnail in Show or Edit, then drag a picture from Finder onto another: each shows a small mark. Go live on a slide with a mark: its background plays. Right-click it, "Use the presentation's background": the mark goes. Command-Z with that slide selected in Edit undoes a drop. Quit and reopen: the marks are still there.
 - [ ] Check what was not seen by the coordinator's run: the drag and drop gestures themselves, the folder open panel, the double click, the real Clear menu popup and the player's video picture.
+
+## UI-004 name, About, rounded borders, editor drag
+
+- [ ] The app is called WorshipFlow in the menu bar, the Dock, the window title and the About window (WorshipFlow.app in Finder). The library is the same one as before: your songs and playlists are there. Nothing moved.
+- [ ] Menu WorshipFlow > About WorshipFlow, and Help > About and version...: the icon, a short paragraph, one version line (version, build number, commit, build date), Copy puts that line on the clipboard, "Developed by Simon Lieu" with a mail link, the licence, the project link and the third-party notices. It follows Dark and Light. Press Space or Return in it: the show does not move.
+- [ ] Hardware Test: the report's environment section and `summary.txt` carry the same version line as About.
+- [ ] Look at the mode switcher, the AUD, STG and BRD pills, the timers, and the AUD pill at the end of the media controller, in Dark and Light, on a normal and a Retina display: every outline is complete and round, nothing is cut off at the ends, and the last pill is not clipped by the window edge.
+- [ ] Edit mode: insert a rectangle and a text box. Press on one and drag slowly and fast: it follows the pointer with no lag and starts after a few points of movement; letting go leaves it where you dropped it; one Undo puts it back. The thumbnails and the saved file change when you let go, not during. With another slide live, dragging never changes the live screens. Grab the corner square by its general area (not only the tiny square). Double-click a text box to type in it. A click without moving only selects.

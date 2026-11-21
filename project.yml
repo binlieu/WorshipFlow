@@ -53,21 +53,44 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDocumentTypes:
-          - CFBundleTypeName: WORSHIPFLOW Program
+          - CFBundleTypeName: WorshipFlow Program
             CFBundleTypeRole: Editor
             LSHandlerRank: Owner
             LSTypeIsPackage: true
             LSItemContentTypes: [org.worshipflow.program]
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: org.worshipflow.program
-            UTTypeDescription: WORSHIPFLOW Program
+            UTTypeDescription: WorshipFlow Program
             UTTypeConformsTo: [com.apple.package]
             UTTypeTagSpecification:
               public.filename-extension: [worshipflowprogram]
+    # UI-004: which build this is. After the plist is processed, the build writes the short git commit, the build date and the
+    # commit count (as the build number) into the BUILT Info.plist only. Nothing is written to a tracked file. Without git
+    # (a source archive, a clean copy with no history) it writes nothing and the app reads as a development build.
+    postBuildScripts:
+      - name: Stamp build info
+        basedOnDependencyAnalysis: false
+        script: |
+          PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+          [ -f "$PLIST" ] || exit 0
+          PB=/usr/libexec/PlistBuddy
+          "$PB" -c "Delete :WFBuildCommit" "$PLIST" 2>/dev/null || true
+          "$PB" -c "Delete :WFBuildDate" "$PLIST" 2>/dev/null || true
+          cd "${SRCROOT}" || exit 0
+          COMMIT="$(git rev-parse --short HEAD 2>/dev/null || true)"
+          if [ -n "$COMMIT" ]; then
+            git diff --quiet HEAD -- 2>/dev/null || COMMIT="${COMMIT}-dirty"
+            COUNT="$(git rev-list --count HEAD 2>/dev/null || true)"
+            "$PB" -c "Add :WFBuildCommit string $COMMIT" "$PLIST"
+            "$PB" -c "Add :WFBuildDate string $(date +%Y-%m-%d)" "$PLIST"
+            [ -n "$COUNT" ] && "$PB" -c "Set :CFBundleVersion $COUNT" "$PLIST"
+          fi
+          exit 0
     settings:
       base:
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app
-        PRODUCT_NAME: WORSHIPFLOW
+        PRODUCT_NAME: WorshipFlow
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.0.1"
         CURRENT_PROJECT_VERSION: "1"

@@ -268,9 +268,7 @@ struct ShowInspector: View {
                     }
                     // The roles whose screens show the props layer under the active Look: what is true, not decoration.
                     ForEach(roles, id: \.self) { role in
-                        Text(role == .audience ? "AUD" : "BRD").font(.system(size: 11, weight: .bold)).tracking(0.4)
-                            .foregroundStyle(role.tokenColor).padding(.horizontal, 8).frame(height: 20)
-                            .overlay(Capsule().stroke(role.tokenColor, lineWidth: 1)).fixedSize()
+                        PillTag(text: role == .audience ? "AUD" : "BRD", color: role.tokenColor)
                             .accessibilityLabel("\(role.rawValue) screens show props")
                     }
                     Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { app.setProp(prop.id, isOn: $0) }))
@@ -302,8 +300,7 @@ struct QuickEditTab: View {
                     Text("Slide \(index + 1) of \(workspace.slides.count)").font(.system(size: 14, weight: .semibold))
                     if let section = sectionName(slide) { Text(section).font(.system(size: 12)).foregroundStyle(Tok.muted) }
                     Spacer(minLength: 4)
-                    Text(QuickEditLabels.previewChip).font(.system(size: 12, weight: .medium)).foregroundStyle(Tok.blue)
-                        .padding(.horizontal, 9).frame(height: 22).overlay(Capsule().stroke(Tok.blue, lineWidth: 1))
+                    PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 22, weight: .medium, size: 12, tracking: 0)
                         .accessibilityLabel("Preview only. The screens do not change until this slide goes live.")
                     Button { app.closeQuickEdit() } label: { HStack(spacing: 5) { Text("Done"); KeyHint(key: "esc") } }
                         .buttonStyle(HeaderButtonStyle()).keyboardShortcut(.cancelAction)

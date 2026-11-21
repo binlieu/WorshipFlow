@@ -47,7 +47,7 @@ struct ScreensModeView: View {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.zip]
         panel.nameFieldStringValue = HardwareTestBundle.fileName(simulated: app.showSimulatedSDIDevice)
-        panel.message = "Saves the environment and the SDI devices WORSHIPFLOW can see. No video is sent."
+        panel.message = "Saves the environment and the SDI devices WorshipFlow can see. No video is sent."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { @MainActor in
             let problem = await app.exportDiagnosticBundle(to: url)
@@ -199,7 +199,7 @@ private struct SignalMapSection: View {
         VStack(alignment: .leading, spacing: 3) {
             Image(systemName: "cpu").font(.system(size: 20)).foregroundStyle(Tok.muted)
             Text(map.hostTitle).font(.system(size: 14, weight: .bold)).lineLimit(2)
-            Text("WORSHIPFLOW render engine").font(.system(size: 12)).foregroundStyle(Tok.muted)
+            Text("WorshipFlow render engine").font(.system(size: 12)).foregroundStyle(Tok.muted)
             Text(map.summary).font(.wfMonoData).foregroundStyle(Tok.muted)
         }
         .padding(Space.s4).frame(width: 190, alignment: .leading)
@@ -317,7 +317,7 @@ private struct SignalMapSection: View {
             }
             ForEach(p.notes, id: \.self) { Text($0).font(.system(size: 12)).foregroundStyle(Tok.warning) }
             if p.isAvailable, !p.changes.isEmpty {
-                Text("Changing a card's profile can interrupt its outputs for a few seconds. WORSHIPFLOW asks before it does that.")
+                Text("Changing a card's profile can interrupt its outputs for a few seconds. WorshipFlow asks before it does that.")
                     .font(.wfCaption).foregroundStyle(Tok.muted)
             }
             HStack {
@@ -395,7 +395,7 @@ private struct ScreenDetail: View {
             Text(text).font(.system(size: 12, weight: .medium)).foregroundStyle(color)
         }
         .padding(.horizontal, 9).frame(height: 22)
-        .overlay(Capsule().stroke(color, lineWidth: 1))
+        .wfOutline(Capsule(style: .circular), stroke: color)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Status: \(text)")
     }

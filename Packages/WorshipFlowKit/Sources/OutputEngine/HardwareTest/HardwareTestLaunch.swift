@@ -63,7 +63,7 @@ public enum HardwareTestHeadless {
         let target = URL(fileURLWithPath: path)
         let zip = target.pathExtension.lowercased() == "zip"
             ? target : target.appendingPathComponent(HardwareTestBundle.fileName(simulated: launch.simulated))
-        let work = FileManager.default.temporaryDirectory.appendingPathComponent("WORSHIPFLOW-hardware-test-\(UUID().uuidString)", isDirectory: true)
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("WorshipFlow-hardware-test-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: work) }
         do {
             let writer = try HardwareTestBundleWriter(directory: work.appendingPathComponent("bundle"))

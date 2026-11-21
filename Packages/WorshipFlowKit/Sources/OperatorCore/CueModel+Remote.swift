@@ -224,7 +224,7 @@ extension CueModel {
 
     private func reportRevokeWrite(what: String) async {
         guard let problem = await remoteTokens?.flush(.revokes) else { return }
-        let text = "\(what) is not saved: \(problem) The device is refused now, but it may be able to connect again after WORSHIPFLOW restarts. Revoke it again."
+        let text = "\(what) is not saved: \(problem) The device is refused now, but it may be able to connect again after WorshipFlow restarts. Revoke it again."
         note(text)
         append(ActivityLine(time: wallClock(), source: .button, text: text, isProblem: true))
     }

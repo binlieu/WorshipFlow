@@ -220,7 +220,7 @@ enum HWTestSamples {
         let date = cal.date(from: DateComponents(year: 2026, month: 11, day: 20, hour: 9, minute: 5))!
         let real = HardwareTestBundle.fileName(simulated: false, date: date, calendar: cal)
         let sim = HardwareTestBundle.fileName(simulated: true, date: date, calendar: cal)
-        #expect(real == "2026-11-20-0905-WORSHIPFLOW-hardware-test.zip")
-        #expect(sim == "2026-11-20-0905-SIMULATED-WORSHIPFLOW-hardware-test.zip")
+        #expect(real == "2026-11-20-0905-WorshipFlow-hardware-test.zip")
+        #expect(sim == "2026-11-20-0905-SIMULATED-WorshipFlow-hardware-test.zip")
     }
 }

@@ -51,7 +51,7 @@ import RemoteControl
         r.flaky.failDeletes(99)
         await r.cue.revokeDevice(id)
         let notice = try #require(r.cue.notices.first { $0.text.contains("not saved") })
-        #expect(notice.text.contains("connect again after WORSHIPFLOW restarts"))
+        #expect(notice.text.contains("connect again after WorshipFlow restarts"))
         #expect(r.cue.activity.contains { $0.isProblem && $0.text.contains("not saved") })
         #expect(try await transport(r, port: port, token: token) == 401)          // refused now, whatever the disk did
         await r.cue.stopRemote()

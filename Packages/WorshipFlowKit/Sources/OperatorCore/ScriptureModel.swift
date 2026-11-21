@@ -122,10 +122,10 @@ public final class ScriptureModel {
     public var isEmpty: Bool { hasLoaded && translations.isEmpty }
 
     /// The second sentence of the empty state, under its title.
-    public static let emptyHint = "WORSHIPFLOW comes with no Bible text. Import a translation file you are allowed to use; it stays in your library."
+    public static let emptyHint = "WorshipFlow comes with no Bible text. Import a translation file you are allowed to use; it stays in your library."
 
     public var emptyMessage: String {
-        "No Bible translation is installed on this Mac. WORSHIPFLOW comes with no Bible text: import a translation file you are allowed to use, and it stays in your library."
+        "No Bible translation is installed on this Mac. WorshipFlow comes with no Bible text: import a translation file you are allowed to use, and it stays in your library."
     }
 
     public func load() async {

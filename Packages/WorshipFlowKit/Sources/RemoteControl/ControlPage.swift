@@ -232,7 +232,7 @@ enum ControlPage {
 
     static let body = #"""
 
-    <h1>WORSHIPFLOW remote</h1>
+    <h1>WorshipFlow remote</h1>
     <section id="pair" aria-labelledby="pair-title">
       <h2 id="pair-title">Pair this phone</h2>
       <form id="pair-form" autocomplete="off">
@@ -271,7 +271,7 @@ enum ControlPage {
     static var html: String {
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
         + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-        + "<title>WORSHIPFLOW remote</title><style>" + style + "</style></head><body>" + body
+        + "<title>WorshipFlow remote</title><style>" + style + "</style></head><body>" + body
         + "<script>" + script + "</script></body></html>"
     }
 

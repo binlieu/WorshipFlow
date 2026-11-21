@@ -11,7 +11,7 @@ import ScriptureStore
     panel.allowedContentTypes = [.json]
     panel.allowsMultipleSelection = false
     panel.canChooseDirectories = false
-    panel.message = "Choose a WORSHIPFLOW translation file (.json) you have the right to use"
+    panel.message = "Choose a WorshipFlow translation file (.json) you have the right to use"
     panel.begin { response in
         guard response == .OK, let url = panel.url else { return }
         Task { @MainActor in await scripture.importTranslation(from: url) }
