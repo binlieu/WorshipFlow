@@ -19,3 +19,6 @@ design/*.zip
 
 # Translation files produced by the importer: never committed unless ADR-0008 says so
 Bibles/
+
+# Packaged builds
+dist/
