@@ -9,10 +9,17 @@ public struct PublishedScenes: Sendable, Equatable {
 
     /// - Parameter presentationThemeID: the theme of the presentation that is live (PRES-06). `ThemeResolver`
     ///   applies it to audience screens only, after the screen's own Look theme.
+    /// - Parameter stageScenes: ready-made scenes (from `StageModel`) for stage screens, which ignore themes and Looks.
+    ///   A stage screen without an entry falls back to the built-in stage scene.
     public init(state: ShowState, clockText: String?, profiles: [ScreenProfile] = [], themes: [Theme] = Theme.builtIn,
-                look: Look? = nil, props: [Prop] = [], presentationThemeID: UUID? = nil) {
+                look: Look? = nil, props: [Prop] = [], presentationThemeID: UUID? = nil,
+                stageScenes: [UUID: SceneDescription] = [:]) {
         var composed: [UUID: SceneDescription] = [:]
         for profile in profiles {
+            if profile.role == .stage, let stage = stageScenes[profile.id] {
+                composed[profile.id] = stage
+                continue
+            }
             let screenLook = look?.screenLook(for: profile.id) ?? .standard
             let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
                                             presentationThemeID: presentationThemeID, themes: themes)

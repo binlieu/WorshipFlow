@@ -16,6 +16,7 @@
 		4EE6208509993801D9FEEFD6 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166181C03E3555D4CD67FBC /* AppModel.swift */; };
 		54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74BA46590DEC0370D1EB32F /* VideoSupport.swift */; };
 		576E09591E49C59544BE4CAF /* RenderEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E1928B54159EDD76AFACDC58 /* RenderEngine */; };
+		5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38CD5DB50486CAC827308DF /* TimersPanel.swift */; };
 		631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904015CE5BD7D12564A3BED /* LiveScenes.swift */; };
 		655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28162D8810237DB29AB3177 /* CentrePane.swift */; };
 		71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 2C12DD02A64F9ED92363C486 /* OutputEngine */; };
@@ -24,6 +25,7 @@
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
 		A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */; };
 		ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1320EF2993E56B2BB360523 /* SoakConfig.swift */; };
+		D6CE067582DE1F7890B2DEF4 /* StageEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92887A47810546C7EED2629 /* StageEditorSheet.swift */; };
 		E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2BB235B612B4475C266D56AE /* OperatorCore */; };
 		EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB63AA09191D65308E97C971 /* ContentView.swift */; };
 		EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 38C4944754161B6B1C9FE40D /* Persistence */; };
@@ -41,8 +43,10 @@
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
 		993D2499578DAFEB14C92990 /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		9948423E632AF221937A9EB6 /* ImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSheet.swift; sourceTree = "<group>"; };
+		A38CD5DB50486CAC827308DF /* TimersPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersPanel.swift; sourceTree = "<group>"; };
 		A5A678A91491B09E5E7F46D5 /* WorshipFlowKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WorshipFlowKit; path = Packages/WorshipFlowKit; sourceTree = SOURCE_ROOT; };
 		B4324BEB75E64640972B783F /* LibrarySidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySidebar.swift; sourceTree = "<group>"; };
+		B92887A47810546C7EED2629 /* StageEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageEditorSheet.swift; sourceTree = "<group>"; };
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D74BA46590DEC0370D1EB32F /* VideoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSupport.swift; sourceTree = "<group>"; };
 		DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeEditorSheet.swift; sourceTree = "<group>"; };
@@ -90,8 +94,10 @@
 				4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */,
 				0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */,
 				F1320EF2993E56B2BB360523 /* SoakConfig.swift */,
+				B92887A47810546C7EED2629 /* StageEditorSheet.swift */,
 				DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */,
 				2031232049BA8C27AA077B2D /* Thumbnails.swift */,
+				A38CD5DB50486CAC827308DF /* TimersPanel.swift */,
 				993D2499578DAFEB14C92990 /* TransportBar.swift */,
 				D74BA46590DEC0370D1EB32F /* VideoSupport.swift */,
 				FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */,
@@ -203,8 +209,10 @@
 				1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */,
 				FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */,
 				ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */,
+				D6CE067582DE1F7890B2DEF4 /* StageEditorSheet.swift in Sources */,
 				A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */,
 				304DC2408548D72CDAC4B5C8 /* Thumbnails.swift in Sources */,
+				5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */,
 				F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */,
 				54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */,
 				13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */,

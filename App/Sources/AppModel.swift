@@ -36,6 +36,8 @@ final class AppModel {
     /// Screen profiles, Looks, props and custom themes, stored in the library (APP-001). Nil in a soak run, or when
     /// the library file could not be opened.
     private(set) var settings: SettingsModel?
+    /// Stage layouts, timers and the stage clock (STAGE-001b). Nil in a soak run, or when the library could not be opened.
+    private(set) var stage: StageModel?
     /// The one screen a soak run drives; a soak never reads or writes settings.
     @ObservationIgnored private var soakProfiles: [ScreenProfile] = []
     /// Image files that are missing or unreadable: from the files checked here and from what the outputs reported.
@@ -47,6 +49,8 @@ final class AppModel {
     private(set) var libraryProblem: LibraryProblem?
     /// Bumped on every publish, so previews know to re-read their scene.
     private(set) var sceneRevision = 0
+    /// Bumped on every publish including the stage's one-second ones, for the live previews only.
+    private(set) var liveRevision = 0
     /// Sheets and focus requests shared by the menus and the views.
     let ui = WorkspaceUIState()
 
@@ -56,6 +60,8 @@ final class AppModel {
     @ObservationIgnored private var video: LoopingVideoSource?
     @ObservationIgnored private var clockText = ""
     @ObservationIgnored private var timer: Timer?
+    /// Republishes the stage scenes every second, and exists only while a stage screen shows a clock or timer.
+    @ObservationIgnored private var stageTicker: Timer?
     @ObservationIgnored private var keyMonitor: Any?
     @ObservationIgnored private var screenObserver: NSObjectProtocol?
     @ObservationIgnored private var soakTask: Task<Void, Never>?
@@ -97,6 +103,9 @@ final class AppModel {
             settings.onProfilesChange = { [weak self] in self?.profilesChanged() }
             settings.onAppearanceChange = { [weak self] in self?.lookChanged() }
             self.settings = settings
+            let stage = StageModel(store: store)
+            stage.onChange = { [weak self] in self?.publish() }
+            self.stage = stage
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
             libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
@@ -108,6 +117,7 @@ final class AppModel {
         guard let workspace, !workspaceLoaded else { return }
         Task { @MainActor in
             await settings?.load()
+            await stage?.load()
             await resolvePropBookmarks()
             coordinator.setProfiles(profiles)
             publish()
@@ -133,7 +143,10 @@ final class AppModel {
     }
 
     /// Writes unsaved typing and the saved place. Called when the app loses focus and before it quits.
-    func flushWorkspace() async { await workspace?.flush() }
+    func flushWorkspace() async {
+        await workspace?.flush()
+        await stage?.flush()
+    }
 
     /// The scene a screen is showing now, for the live thumbnails.
     func scene(forScreen id: UUID) -> SceneDescription { sceneBox.read().scene(forScreen: id) }
@@ -287,8 +300,11 @@ final class AppModel {
     /// Built-in themes and the operator's own: what the per-screen picker and the editor offer.
     var themes: [Theme] { settings?.themes ?? Theme.builtIn }
     /// A message from the settings store (a failed save), for the error bar.
-    var settingsError: String? { settings?.lastError }
-    func dismissSettingsError() { settings?.dismissError() }
+    var settingsError: String? { settings?.lastError ?? stage?.lastError }
+    func dismissSettingsError() {
+        settings?.dismissError()
+        stage?.dismissError()
+    }
 
     func updateProfile(_ profile: ScreenProfile) {
         if let settings {
@@ -483,15 +499,55 @@ final class AppModel {
 
     private func publish() {
         sceneRevision &+= 1
-        sceneBox.publish(PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
-                                         look: currentLook, props: props, presentationThemeID: workspace?.liveThemeID))
+        liveRevision &+= 1
+        sceneBox.publish(makeSnapshot())
+        updateStageTicker()
     }
+
+    /// One immutable snapshot: every screen's scene for the state, Look, themes, props and stage layouts right now.
+    private func makeSnapshot() -> PublishedScenes {
+        let stageIDs = profiles.filter { $0.role == .stage }.map(\.id)
+        let stageScenes = stage?.stageScenes(forScreens: stageIDs, state: show, notes: workspace?.liveNotes) ?? [:]
+        return PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
+                               look: currentLook, props: props, presentationThemeID: workspace?.liveThemeID,
+                               stageScenes: stageScenes)
+    }
+
+    /// The stage's one-second republish. Skipped when nothing on any screen changed, and it does not touch the slide
+    /// thumbnails (`sceneRevision`).
+    private func stageTick() {
+        let snapshot = makeSnapshot()
+        guard snapshot != sceneBox.read() else { return }
+        liveRevision &+= 1
+        sceneBox.publish(snapshot)
+    }
+
+    /// Runs the ticker only while an enabled stage screen has a clock or a timer in its layout (LIVE-04).
+    private func updateStageTicker() {
+        let ids = profiles.filter { $0.role == .stage && $0.isEnabled }.map(\.id)
+        let needed = stage?.needsPerSecondRefresh(forScreens: ids) ?? false
+        if needed, stageTicker == nil {
+            // First fire on the next whole second of the wall clock, so the clock text changes when the clock does.
+            let next = Date(timeIntervalSinceReferenceDate: Date.now.timeIntervalSinceReferenceDate.rounded(.down) + 1)
+            let ticker = Timer(fire: next, interval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.stageTick() }
+            }
+            RunLoop.main.add(ticker, forMode: .common)   // keeps running while a menu or a drag is open
+            stageTicker = ticker
+        } else if !needed, let ticker = stageTicker {
+            ticker.invalidate()
+            stageTicker = nil
+        }
+    }
+
+    /// True while the one-second stage republish is running (shown in the timers panel).
+    var stageTickerRunning: Bool { stageTicker != nil }
 
     private func updateClock(force: Bool) {
         let text = Date.now.formatted(date: .omitted, time: .shortened)
         guard force || text != clockText else { return }
         clockText = text
-        publish()
+        if stage == nil { publish() }     // with stage layouts the stage clock comes from the stage model, not from here
     }
 
     // MARK: Screens

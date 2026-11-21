@@ -111,7 +111,7 @@ struct LiveScreenPreview: View {
     let screenID: UUID
 
     var body: some View {
-        let _ = app.sceneRevision
+        let _ = app.liveRevision
         ScenePreview(scene: app.scene(forScreen: screenID), width: 320, cached: false)
             .clipShape(RoundedRectangle(cornerRadius: 3))
             .overlay(RoundedRectangle(cornerRadius: 3).stroke(.quaternary))

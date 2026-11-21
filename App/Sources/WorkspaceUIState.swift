@@ -11,8 +11,9 @@ final class WorkspaceUIState {
     var showQuickEdit = false
     var showSectionOrders = false
     var showThemeEditor = false
+    var showStageEditor = false
     /// True while anything is open over the workspace, so the transport keys stay out of its way (KI-021).
-    var anySheetOpen: Bool { showImport || showQuickEdit || showSectionOrders || showThemeEditor }
+    var anySheetOpen: Bool { showImport || showQuickEdit || showSectionOrders || showThemeEditor || showStageEditor }
     /// Counters: a view reacts to a change in the number, so a menu command can ask for focus.
     var focusSearch = 0
     var focusTitle = 0

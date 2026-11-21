@@ -59,6 +59,8 @@ public final class WorkspaceModel {
     @ObservationIgnored var liveItemID: UUID?
     /// Ids of the slides in the live deck, in the same order, so a quick edit can be saved.
     @ObservationIgnored var liveSlideIDs: [UUID] = []
+    /// Speaker notes of those slides as they were when the deck went live (STAGE-001b); used when another presentation is open.
+    @ObservationIgnored var liveSlideNotes: [String] = []
     @ObservationIgnored var pendingDrafts: [UUID: Slide] = [:]
     @ObservationIgnored var searchToken = 0
     @ObservationIgnored var stepping = false

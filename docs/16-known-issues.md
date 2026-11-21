@@ -30,3 +30,6 @@
 | KI-026 | Keyboard control (Return, Space, arrows, Escape, Command-F) and launch focus are implemented with a tested routing rule but have never been pressed in the running app: background automation cannot send keys to it. | Open. Needs a person at the keyboard, or a UI test run when the Mac is free. |
 | KI-027 | Editing a custom theme that is in use changes the live audience screen immediately. | Accepted (matches PRES-06); revisit if operators want a staged edit. |
 | KI-028 | In the theme editor the "Background video" segment label is clipped. | Open. Cosmetic. |
+| KI-029 | Stage layout editor: dragging and resizing on the canvas, the layout picker popup, typing in fields and the colour picker have not been exercised in the running app (the helpers they call are unit tested). | Open. Part of the hands-on pass with KI-026. |
+| KI-030 | A timer started mid-second can show up to one second behind on stage, because the stage picture refreshes on whole seconds. | Open. Minor. |
+| KI-031 | Deleting a timer leaves its element in stage layouts, drawing nothing until re-pointed. | Accepted. |

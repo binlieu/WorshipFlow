@@ -16,7 +16,8 @@ Phase 0 (render spike) is implemented and unit tested; its timing exit criterion
 | OUT-003/SLIDE-002 themes, Looks, props, image layers | Yes | Yes | n/a | Not Verified | Not Verified |
 | OUT-004 operator workspace (with LIB-001, LIB-002, LIB-003, SLIDE-005) | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
 | APP-001 integration pass (settings in SQLite, focus, section orders, theme editor) | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
-| STAGE-001a stage layouts, timers, time formatting (rules and storage) | Yes (no interface) | Yes | n/a | n/a | Not Verified |
+| STAGE-001b stage layout editor, timers panel, clock setting | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
+| STAGE-001a stage layouts, timers, time formatting (rules and storage) | Yes | Yes | n/a | n/a | Not Verified |
 | SYS-002 settings and media references in SQLite (schema v3) | Yes (store only; app still reads JSON) | Yes | n/a | n/a | Not Verified |
 | SLIDE-003/004 sections, arrangements, reflow | Yes (rules and storage; no editor UI yet) | Yes | n/a | n/a | Not Verified |
 

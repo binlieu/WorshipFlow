@@ -108,6 +108,9 @@ struct WorkspaceView: View {
         .sheet(isPresented: Binding(get: { app.ui.showThemeEditor }, set: { app.ui.showThemeEditor = $0 })) {
             ThemeEditorSheet(app: app, workspace: workspace)
         }
+        .sheet(isPresented: Binding(get: { app.ui.showStageEditor }, set: { app.ui.showStageEditor = $0 })) {
+            if let stage = app.stage { StageEditorSheet(app: app, stage: stage) }
+        }
         .toolbar {
             ToolbarItemGroup {
                 Button { app.newPresentation() } label: { Label("New presentation", systemImage: "doc.badge.plus") }
@@ -119,6 +122,9 @@ struct WorkspaceView: View {
                     .disabled(workspace.openPresentationID == nil)
                 Button { app.ui.showThemeEditor = true } label: { Label("Themes", systemImage: "paintpalette") }
                     .help("Create and edit themes")
+                Button { app.ui.showStageEditor = true } label: { Label("Stage layouts", systemImage: "rectangle.3.group") }
+                    .help("Create and edit stage screen layouts")
+                    .disabled(app.stage == nil)
             }
         }
     }
@@ -176,6 +182,10 @@ struct RightColumn: View {
                 Divider()
                 ScreensPanel(model: app)
                 Divider()
+                if let stage = app.stage {
+                    TimersPanel(app: app, stage: stage)
+                    Divider()
+                }
                 LookPanel(model: app)
                 Divider()
                 PropsPanel(model: app)

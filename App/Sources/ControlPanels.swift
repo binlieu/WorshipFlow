@@ -67,6 +67,16 @@ struct ScreenRow: View {
                     layerToggle("Slide", .slide)
                     layerToggle("Props", .props)
                 }
+            } else if let stage = model.stage {
+                HStack {
+                    Picker("Stage layout", selection: Binding(get: { stage.layoutID(forScreen: profile.id) },
+                                                              set: { stage.setLayout($0, forScreen: profile.id) })) {
+                        ForEach(stage.layouts) { Text($0.name).tag($0.id) }
+                    }.frame(maxWidth: 320).accessibilityLabel("Stage layout for \(profile.name)")
+                    Button("Edit layouts…") { model.ui.showStageEditor = true }
+                }
+                Text("The stage screen uses a stage layout: themes, Looks and props do not apply.")
+                    .font(.caption).foregroundStyle(.secondary)
             } else {
                 Text("The stage screen uses its own layout: themes, Looks and props do not apply.")
                     .font(.caption).foregroundStyle(.secondary)

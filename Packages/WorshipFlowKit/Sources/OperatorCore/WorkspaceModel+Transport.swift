@@ -23,6 +23,7 @@ extension WorkspaceModel {
     func recordLiveSource() {
         guard show.liveDeck != nil, show.liveDeck?.presentationID == openPresentationID else { return }
         liveSlideIDs = slides.map(\.id)
+        liveSlideNotes = slides.map(\.notes)
         liveItemID = selectedPlaylistItemID
     }
 
@@ -51,6 +52,21 @@ extension WorkspaceModel {
         apply(.stop)
         liveItemID = nil
         liveSlideIDs = []
+        liveSlideNotes = []
+    }
+
+    /// Speaker notes of the slide that is live, for the stage screen (LIVE-02); nil when nothing is live or the
+    /// slide has none. Follows edits while the live presentation is the open one.
+    public var liveNotes: String? {
+        guard let i = show.liveIndex, show.liveSlide != nil, liveSlideIDs.indices.contains(i) else { return nil }
+        let text: String?
+        if show.liveDeck?.presentationID == openPresentationID, let slide = slides.first(where: { $0.id == liveSlideIDs[i] }) {
+            text = slide.notes
+        } else {
+            text = liveSlideNotes.indices.contains(i) ? liveSlideNotes[i] : nil
+        }
+        guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return text
     }
 
     /// Moves live into the neighbouring playlist item that has slides. Returns false if there is none.
