@@ -7,6 +7,21 @@ public struct Translation: Sendable {
     public let versification: Versification
     let verses: [BookID: [Int: [Int: String]]]
 
+    init(metadata: TranslationMetadata, versification: Versification, verses: [BookID: [Int: [Int: String]]]) {
+        self.metadata = metadata
+        self.versification = versification
+        self.verses = verses
+    }
+
+    /// Builds a translation from verses read elsewhere (the store's rows, or only the verses a slide needs). Nothing is
+    /// validated; a later row for the same verse replaces an earlier one.
+    public init<Rows: Sequence>(metadata: TranslationMetadata, versification: Versification, verses rows: Rows)
+        where Rows.Element == (ref: VerseRef, text: String) {
+        var verses: [BookID: [Int: [Int: String]]] = [:]
+        for row in rows { verses[row.ref.book, default: [:]][row.ref.chapter, default: [:]][row.ref.verse] = row.text }
+        self.init(metadata: metadata, versification: versification, verses: verses)
+    }
+
     public var language: ScriptureLanguage { ScriptureLanguage(languageTag: metadata.language) }
     public var verseCount: Int { verses.values.reduce(0) { $0 + $1.values.reduce(0) { $0 + $1.count } } }
 
@@ -74,6 +89,11 @@ public enum TranslationLoader {
 
     /// Reads and validates JSON. Throws only when the file as a whole cannot be used.
     public static func load(from data: Data) throws -> LoadedTranslation {
+        validate(try decode(from: data))
+    }
+
+    /// Reads the file's structure without checking its verses. Throws when the file as a whole cannot be used.
+    public static func decode(from data: Data) throws -> TranslationFile {
         let decoder = JSONDecoder()
         let header: Header
         do { header = try decoder.decode(Header.self, from: data) } catch {
@@ -83,7 +103,7 @@ public enum TranslationLoader {
         guard let version = header.version else { throw TranslationLoadError.missingVersion }
         guard version <= TranslationFile.currentVersion else { throw TranslationLoadError.unsupportedVersion(version) }
         do {
-            return validate(try decoder.decode(TranslationFile.self, from: data))
+            return try decoder.decode(TranslationFile.self, from: data)
         } catch let error as DecodingError {
             throw TranslationLoadError.invalid(describe(error))
         }
@@ -129,7 +149,18 @@ public enum TranslationLoader {
 
         // Table in use.
         var table = Versification.kjv
-        if let name = file.metadata.versification {
+        var ownTable = false
+        if let raw = file.metadata.versificationTable {
+            if let custom = Versification(id: file.metadata.versification ?? "CUSTOM", table: raw) {
+                table = custom
+                ownTable = true
+            } else {
+                report.messages.append("The verse-count table in the file is not valid (counts must be 0 or more and no larger than the last verse number, for books of the 66-book canon); the named table was used instead.")
+            }
+        }
+        if ownTable {
+            // The file's own table is in use; its name is only a label.
+        } else if let name = file.metadata.versification {
             if let named = Versification.named(name) { table = named } else {
                 report.messages.append("The versification “\(name)” is not known; the KJV verse-count table was used.")
             }
@@ -170,7 +201,7 @@ public enum TranslationLoader {
             var missing: [Int] = []
             for (index, info) in tableChapters.enumerated() {
                 let number = index + 1
-                guard let items = chapters[number] else { missing.append(number); continue }
+                guard let items = chapters[number] else { if info.highest > 0 { missing.append(number) }; continue }
                 let present = items.keys.filter { $0 >= 1 && $0 <= info.highest }.count
                 report.missingVerseCount += max(0, info.count - present)
             }

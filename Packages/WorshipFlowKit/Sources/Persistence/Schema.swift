@@ -181,6 +181,38 @@ enum Schema {
                 t.add(column: "extra", .text)
             }
         }
+
+        // LIB-004b: Bible translations imported into the library (ADR-0008) and their verses. The full-text index over the
+        // folded verse text is derived data, created at open when FTS5 exists (see `ScriptureIndex`), not here.
+        migrator.registerMigration("v7") { db in
+            try db.create(table: "scriptureTranslation") { t in
+                t.column("id", .text).primaryKey()
+                // The translation file's id ("kjv", "VI1925"). Unique ignoring case.
+                t.column("code", .text).notNull().unique().collate(.nocase)
+                t.column("name", .text).notNull()
+                t.column("language", .text).notNull()
+                t.column("abbreviation", .text).notNull()
+                t.column("copyright", .text)
+                t.column("licence", .text)
+                t.column("sourceDescription", .text)
+                t.column("isPublicDomain", .boolean).notNull()
+                t.column("ownerApprovalJSON", .text)
+                t.column("versificationID", .text).notNull()
+                t.column("versificationJSON", .text)
+                t.column("versificationNote", .text)
+                t.column("verseCount", .integer).notNull()
+                t.column("importedAt", .datetime).notNull()
+            }
+            try db.create(table: "scriptureVerse", options: [.withoutRowID]) { t in
+                t.column("translationID", .text).notNull().references("scriptureTranslation", onDelete: .cascade)
+                t.column("bookOrder", .integer).notNull()
+                t.column("chapter", .integer).notNull()
+                t.column("verse", .integer).notNull()
+                t.column("text", .text).notNull()
+                t.column("textFolded", .text).notNull()
+                t.primaryKey(["translationID", "bookOrder", "chapter", "verse"])
+            }
+        }
         return migrator
     }
 }

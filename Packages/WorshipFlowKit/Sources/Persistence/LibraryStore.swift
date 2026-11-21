@@ -72,7 +72,10 @@ public final class LibraryStore: Sendable {
             try SearchIndex.fts5IsAvailable(db) ? .fts5 : .like
         }
         let backend = forced ?? available
-        try writer.write { db in try SearchIndex.prepare(db, backend: backend) }
+        try writer.write { db in
+            try SearchIndex.prepare(db, backend: backend)
+            try ScriptureIndex.prepare(db, backend: backend)
+        }
         return LibraryStore(writer: writer, searchBackend: backend)
     }
 

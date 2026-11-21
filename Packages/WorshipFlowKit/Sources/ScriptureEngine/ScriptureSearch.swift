@@ -13,7 +13,8 @@ public struct ScriptureSearchHit: Equatable, Sendable {
     private let terms: [String]
     private let snippetLength: Int
 
-    init(ref: VerseRef, text: String, terms: [String], snippetLength: Int) {
+    /// `terms` are folded query terms, as returned by `ScriptureSearchIndex.queryTerms`.
+    public init(ref: VerseRef, text: String, terms: [String], snippetLength: Int) {
         self.ref = ref
         self.text = text
         self.terms = terms
@@ -28,6 +29,11 @@ public struct ScriptureSearchResult: Equatable, Sendable {
     public var hits: [ScriptureSearchHit]
     /// True when more verses matched than `limit` allowed.
     public var truncated: Bool
+
+    public init(hits: [ScriptureSearchHit], truncated: Bool) {
+        self.hits = hits
+        self.truncated = truncated
+    }
 }
 
 public struct ScriptureSearchIndex: Sendable {
@@ -64,6 +70,8 @@ public struct ScriptureSearchIndex: Sendable {
     // MARK: Query
 
     /// Folded words and folded phrases (phrases keep single spaces between words). Empty ones are dropped.
+    public static func queryTerms(_ query: String) -> [String] { terms(from: query) }
+
     static func terms(from query: String) -> [String] {
         var out: [String] = []
         var current = ""

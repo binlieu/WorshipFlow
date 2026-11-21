@@ -39,6 +39,50 @@ public struct Versification: Sendable, Equatable {
         return Versification(id: "VI1925", books: books)
     }()
 
+    /// A table from its stored form: book code -> `[count, highest]` per chapter (see `tableRepresentation`).
+    /// Nil when a book is not in the canon, a chapter is not a pair, or a count is negative or above its highest verse.
+    public init?(id: String, table: [String: [[Int]]]) {
+        var books: [BookID: [Chapter]] = [:]
+        for (code, rows) in table {
+            let book = BookID(code)
+            guard Canon.book(book) != nil else { return nil }
+            var chapters: [Chapter] = []
+            for row in rows {
+                guard row.count == 2, row[0] >= 0, row[0] <= row[1] else { return nil }
+                chapters.append(Chapter(count: row[0], highest: row[1]))
+            }
+            books[book] = chapters
+        }
+        self.init(id: id, books: books)
+    }
+
+    /// Book code -> `[count, highest]` per chapter: the form kept in a translation file and in the library.
+    public var tableRepresentation: [String: [[Int]]] {
+        Dictionary(uniqueKeysWithValues: books.map { ($0.key.rawValue, $0.value.map { [$0.count, $0.highest] }) })
+    }
+
+    /// The table a set of verses implies: for each book that has any verse, chapters 1 to the highest chapter present;
+    /// a chapter has the number of verses present and the highest verse number present, and a chapter with no verses
+    /// is `[0, 0]`. Used to describe a translation that follows no built-in table.
+    public static func derived(id: String, from refs: some Sequence<VerseRef>) -> Versification {
+        var counts: [BookID: [Int: (count: Int, highest: Int)]] = [:]
+        var seen = Set<VerseRef>()
+        for ref in refs where ref.chapter >= 1 && ref.verse >= 1 && seen.insert(ref).inserted {
+            var entry = counts[ref.book, default: [:]][ref.chapter] ?? (0, 0)
+            entry.count += 1
+            entry.highest = max(entry.highest, ref.verse)
+            counts[ref.book, default: [:]][ref.chapter] = entry
+        }
+        var books: [BookID: [Chapter]] = [:]
+        for (book, chapters) in counts {
+            let top = chapters.keys.max() ?? 0
+            books[book] = (1...max(top, 1)).map { number in
+                chapters[number].map { Chapter(count: $0.count, highest: $0.highest) } ?? Chapter(count: 0, highest: 0)
+            }
+        }
+        return Versification(id: id, books: books)
+    }
+
     /// A built-in table by id, ignoring case.
     public static func named(_ id: String) -> Versification? {
         switch id.uppercased() {

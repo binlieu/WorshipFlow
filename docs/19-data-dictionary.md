@@ -218,3 +218,42 @@ Media playback state and per-presentation media are not persisted yet; they arri
 | Table | Column | Type | Notes |
 |---|---|---|---|
 | screenProfile | extra | TEXT, nullable | JSON for settings added after v3: mirrors, SDI destination details, video mode. NULL for a plain profile. |
+
+## Schema v7 (migration `v7`, LIB-004b)
+
+Bible translations imported into the church's library (ADR-0008 decision 4). Written only by `ScriptureStore`, through the library's one connection pool. Nothing here is created by an older file until it is opened with this version; rows in v1 to v6 tables are not touched.
+
+### scriptureTranslation
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID. Kept when a translation is replaced |
+| code | TEXT NOT NULL UNIQUE (NOCASE) | The translation file's `id` ("kjv", "VI1925"). Unique ignoring case. This is what the app and the importer call the translation |
+| name | TEXT NOT NULL | |
+| language | TEXT NOT NULL | BCP 47 tag ("en", "vi") |
+| abbreviation | TEXT NOT NULL | Shown on slides |
+| copyright | TEXT, nullable | As stated in the file; the exporter writes "not stated" when it was not given |
+| licence | TEXT, nullable | The file's `license` |
+| sourceDescription | TEXT, nullable | The file's `sourceURL`: where the church got the text |
+| isPublicDomain | BOOLEAN NOT NULL | False unless the file says so |
+| ownerApprovalJSON | TEXT, nullable | `OwnerApproval` as JSON: `approved`, `date` (ISO 8601), `note` |
+| versificationID | TEXT NOT NULL | "KJV", "VI1925", or the label of the translation's own table |
+| versificationJSON | TEXT, nullable | NULL when the translation follows the built-in table named by `versificationID` exactly. Otherwise the table: `{"id": "...", "books": {"GEN": [[count, highest], ...]}}`, one `[count, highest]` pair per chapter (`[0, 0]` for a chapter the table does not have) |
+| versificationNote | TEXT, nullable | The file's `versificationNote` |
+| verseCount | INTEGER NOT NULL | Verses stored |
+| importedAt | DATETIME NOT NULL | |
+
+### scriptureVerse (WITHOUT ROWID)
+| Column | Type | Notes |
+|---|---|---|
+| translationID | TEXT NOT NULL | References `scriptureTranslation(id)`, ON DELETE CASCADE |
+| bookOrder | INTEGER NOT NULL | 1 to 66, canon order (`Canon.books`) |
+| chapter | INTEGER NOT NULL | |
+| verse | INTEGER NOT NULL | |
+| text | TEXT NOT NULL | The verse exactly as imported (no normalisation of diacritics) |
+| textFolded | TEXT NOT NULL | `SearchFolding.fold(text)`: source of truth for search, like `presentation.bodyFolded` |
+
+Primary key `(translationID, bookOrder, chapter, verse)`. A full Bible is about 31,000 rows.
+
+### Derived scripture search index (not a migration)
+
+`scriptureSearch` is an FTS5 virtual table `(textFolded, translationID UNINDEXED, bookOrder UNINDEXED, chapter UNINDEXED, verse UNINDEXED)`, tokenizer `unicode61 remove_diacritics 0`. Created at open when the system SQLite has FTS5 and rebuilt from `scriptureVerse` if missing; dropped when FTS5 is absent, in which case search uses `LIKE` on `textFolded`. It is only read through a join to `scriptureVerse`, so a stale row cannot produce a result. `ScriptureStore` writes it in the same transaction as the verses.

@@ -14,7 +14,9 @@
 //
 // Book keys are USFM codes (GEN ... REV). Chapter and verse keys are decimal strings. Required metadata:
 // id, name, language (a BCP 47 tag such as "en" or "vi"), abbreviation. Everything else is optional.
-// `versification` names the table the verse numbers follow ("KJV" when absent, or "VI1925").
+// `versification` names the table the verse numbers follow ("KJV" when absent, or "VI1925"). LIB-004b: a file that
+// follows neither may carry its own table in `metadata.versificationTable` (book code -> one [count, highest] pair per
+// chapter, [0, 0] for a chapter the table lacks); `versification` is then only its label.
 // A partial translation (a New Testament only, say) is allowed. No Bible text is ever stored in this repository
 // except tiny test fixtures; files are supplied by the owner (see docs/features/LIB-004-scripture-engine.md).
 import Foundation
@@ -47,11 +49,17 @@ public struct TranslationMetadata: Codable, Equatable, Sendable {
     /// Name of the verse-count table the text follows: "KJV" (default) or "VI1925".
     public var versification: String?
     public var ownerApproval: OwnerApproval?
+    /// Optional own verse-count table (LIB-004b) for a translation that follows neither built-in table: book code ->
+    /// one `[count, highest]` pair per chapter. `count` is the number of verses the chapter has, `highest` its last
+    /// verse number (larger when numbers are skipped); `[0, 0]` marks a chapter the table does not have. When present
+    /// it is used instead of the table `versification` names, which then only labels it.
+    public var versificationTable: [String: [[Int]]]?
 
     public init(id: String, name: String, language: String, abbreviation: String,
                 copyright: String? = nil, license: String? = nil, sourceURL: String? = nil,
                 isPublicDomain: Bool = false, versificationNote: String? = nil,
-                versification: String? = nil, ownerApproval: OwnerApproval? = nil) {
+                versification: String? = nil, ownerApproval: OwnerApproval? = nil,
+                versificationTable: [String: [[Int]]]? = nil) {
         self.id = id
         self.name = name
         self.language = language
@@ -63,11 +71,12 @@ public struct TranslationMetadata: Codable, Equatable, Sendable {
         self.versificationNote = versificationNote
         self.versification = versification
         self.ownerApproval = ownerApproval
+        self.versificationTable = versificationTable
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, language, abbreviation, copyright, license, sourceURL
-        case isPublicDomain, versificationNote, versification, ownerApproval
+        case isPublicDomain, versificationNote, versification, ownerApproval, versificationTable
     }
 
     public init(from decoder: Decoder) throws {
@@ -82,7 +91,8 @@ public struct TranslationMetadata: Codable, Equatable, Sendable {
                   isPublicDomain: try c.decodeIfPresent(Bool.self, forKey: .isPublicDomain) ?? false,
                   versificationNote: try c.decodeIfPresent(String.self, forKey: .versificationNote),
                   versification: try c.decodeIfPresent(String.self, forKey: .versification),
-                  ownerApproval: try c.decodeIfPresent(OwnerApproval.self, forKey: .ownerApproval))
+                  ownerApproval: try c.decodeIfPresent(OwnerApproval.self, forKey: .ownerApproval),
+                  versificationTable: try c.decodeIfPresent([String: [[Int]]].self, forKey: .versificationTable))
     }
 }
 

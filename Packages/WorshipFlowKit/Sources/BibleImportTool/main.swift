@@ -1,2 +1,4 @@
-// LIB-004b: placeholder entry point. The implementing agent replaces this.
-print("wf-bible-import: not implemented yet")
+// LIB-004b: wf-bible-import. The work is in Core/, which the tests compile too.
+import Foundation
+
+exit(await ImportToolCLI.run(Array(CommandLine.arguments.dropFirst()), environment: .live()))
