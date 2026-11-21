@@ -47,4 +47,8 @@ This runs the package tests, regenerates the Xcode project from `project.yml`, a
 
 ## Licence
 
-No licence has been chosen yet. Until one is added, all rights are reserved.
+WorshipFlow is released under the [Apache License 2.0](LICENSE); see also [NOTICE](NOTICE). The licence does not grant use of the WorshipFlow name or logo for modified versions. The Blackmagic SDK include files noted above are under Blackmagic Design's own licence.
+
+## Contributing
+
+Bug reports from running the app are the most useful help right now. See [CONTRIBUTING.md](CONTRIBUTING.md).

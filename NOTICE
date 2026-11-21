@@ -1,0 +1,19 @@
+WorshipFlow
+Copyright 2026 Simon Lieu
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+"WorshipFlow" and the WorshipFlow logo and app icon are not licensed for use
+as the name or branding of modified versions (Apache License 2.0, section 6).
+
+Third-party material
+--------------------
+
+Blackmagic DeckLink SDK include files
+  Location: Packages/WorshipFlowKit/Sources/DeckLinkC/sdk/
+  Copyright (c) Blackmagic Design. Distributed unmodified under the licence
+  notice carried in each file. Not covered by the Apache License.
+
+GRDB.swift (https://github.com/groue/GRDB.swift)
+  Copyright (C) Gwendal Roué. MIT License. Fetched by the Swift Package
+  Manager at build time; not included in this repository.
