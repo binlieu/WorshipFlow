@@ -24,7 +24,7 @@ struct TimersPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Timers and clock").font(.headline)
+                SectionLabel("Timers and clock")
                 Spacer()
                 Button(adding ? "Cancel" : "Add timer…") { adding.toggle() }
             }
@@ -41,7 +41,7 @@ struct TimersPanel: View {
             Divider()
             Text("Stage clock").font(.subheadline.bold())
             HStack {
-                Picker("Hours", selection: Binding(get: { stage.clockStyle.twentyFourHour },
+                Picker("", selection: Binding(get: { stage.clockStyle.twentyFourHour },
                                                    set: { stage.setClockStyle(twentyFourHour: $0) })) {
                     Text("12 hour").tag(false)
                     Text("24 hour").tag(true)

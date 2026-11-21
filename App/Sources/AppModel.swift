@@ -12,7 +12,7 @@ import DeckLinkSDI
 import Persistence
 import OperatorCore
 
-enum LiveMode: Equatable { case stopped, live, cleared }
+enum LiveMode: Equatable { case stopped, live, cleared, blackout }
 
 struct LibraryProblem: Equatable {
     var path: String
@@ -207,6 +207,8 @@ final class AppModel {
             updateReadouts()
             await workspace.load()
             workspaceLoaded = true
+            // Test hook for runs that cannot scroll: start with the Screens panel in view.
+            if CommandLine.arguments.contains("--show-screens-panel") { workspace.setMode(.screens) }
             // Test hook for runs that cannot click: open the screens as soon as the workspace is loaded.
             if CommandLine.arguments.contains("--open-screens") { startScreens() }
         }
@@ -232,13 +234,13 @@ final class AppModel {
     /// Insert menu: adds the object to the selected slide and shows the objects editor.
     func insertObject(_ template: NewSlideObject) {
         guard slideEditor?.slide != nil else { return }
-        ui.editorMode = .objects
+        workspace?.setMode(.edit)          // the objects editor lives in Edit
         slideEditor?.add(template)
     }
 
     func insertImage() {
         guard slideEditor?.slide != nil else { return }
-        ui.editorMode = .objects
+        workspace?.setMode(.edit)
         Task { @MainActor in await slideEditor?.addImage() }
     }
 
@@ -257,13 +259,13 @@ final class AppModel {
 
     /// Command-D.
     func duplicateObject() {
-        guard ui.editorMode == .objects else { return }
+        guard workspace?.mode == .edit else { return }
         slideEditor?.duplicateSelected()
     }
 
     /// The Delete key, only while the objects editor is showing.
     func deleteSelectedObject() -> Bool {
-        guard ui.editorMode == .objects else { return false }
+        guard workspace?.mode == .edit else { return false }
         return slideEditor?.deleteSelected() ?? false
     }
 
@@ -392,7 +394,23 @@ final class AppModel {
     var slides: [SlideContent] { show.previewDeck?.slides ?? [] }
     var selectedIndex: Int { show.selectedIndex }
     var liveIndex: Int? { show.liveIndex }
-    var mode: LiveMode { show.isStopped ? .stopped : (show.isCleared ? .cleared : .live) }
+    var mode: LiveMode { show.isStopped ? .stopped : (show.isBlackedOut ? .blackout : (show.isCleared ? .cleared : .live)) }
+
+    /// UI-001: the AUD, STG and BRD pills of the toolbar.
+    var rolePills: [RolePill] {
+        RolePills.pills(from: readouts.map { ScreenStatusInput(role: $0.role, isEnabled: $0.isEnabled, run: Self.runState($0.state)) })
+    }
+
+    /// UI-001: frame rate, dropped and late frames for the transport bar; nil while no screen runs.
+    var outputHealth: OutputHealthSummary? {
+        OutputHealth.summary(from: readouts.map {
+            OutputHealthSample(role: $0.role, run: Self.runState($0.state), refreshRate: $0.refreshRate, dropped: $0.dropped, late: $0.late)
+        })
+    }
+
+    private static func runState(_ state: ScreenState) -> ScreenRunState {
+        switch state { case .stopped: .stopped; case .running: .running; case .hidden: .hidden; case .faulted: .faulted }
+    }
 
     // MARK: Setup
 
@@ -422,6 +440,7 @@ final class AppModel {
                     case .previous: self.previous()
                     case .clear: self.clear()
                     case .clearAll: self.clearAll()
+                    case .blackout: self.blackout()
                     }
                     return true
                 case .leaveSearch:
@@ -798,6 +817,15 @@ final class AppModel {
     func clearAll() {
         if let w = workspace { w.clearAll() } else { send(.clearAll) }
     }
+    /// Command-E: the quick edit popover lives in the Show mode, so go there first.
+    func requestQuickEdit() {
+        guard workspace?.show.liveSlide != nil else { return }
+        workspace?.setMode(.show)
+        ui.showQuickEdit = true
+    }
+
+    /// UI-001: Blackout (the B key, the transport bar).
+    func blackout() { if let w = workspace { w.blackout() } else { send(.blackout) } }
     func stopShow() { if let w = workspace { w.stop() } else { send(.stop) } }
 
     private func publish() {

@@ -10,6 +10,20 @@ cd /Volumes/Storage/chilt/worshipflow && ./scripts/check.sh && open ~/Library/De
 
 This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Library.sqlite`.
 
+## Modes, Blackout and transport (UI-001)
+
+- [ ] The toolbar switcher shows Show, Edit, Media, Stage, Cues, Screens. Command-1 to Command-6 switch to each, also while the cursor is in a text field. Quit and reopen: the last mode is back.
+- [ ] The transport bar (LIVE or STOPPED badge, the live words, "Song · Section · slide 3 of 9", Previous, Go Live, Next, Clear with its menu, Blackout, Stop, frame rate and dropped or late counts) is visible in every mode.
+- [ ] With a song live, switch to Screens, then to Media: Space and Right arrow still advance, Left arrow goes back, Escape clears, Return goes live. In a text field they type instead.
+- [ ] Press B with the slide grid focused: Audience goes black, Broadcast goes transparent (not black), Stage keeps its words and shows BLACKOUT. The transport badge reads BLACKOUT and the place is kept. Press B again: the same slide is back.
+- [ ] While blacked out, press Next, or click a slide twice: the picture comes back on that slide. While blacked out, Escape then B: the screens come back with the words still cleared. Stop ends Blackout.
+- [ ] Holding B does not flicker the screens. B in the search field or a text box types the letter. B does nothing with no slide live.
+- [ ] A clip playing over the slide keeps playing through Blackout (check the clip strip above the transport bar).
+- [ ] AUD, STG and BRD pills: on while that role's screen runs, off when closed or disabled; unplug a display and its pill shows a warning triangle and the word fault to VoiceOver.
+- [ ] Screens mode: "Run signal test…" opens the Hardware Test window. Cues mode shows only the one-line note.
+- [ ] Show mode: Preview (blue ring) and Live (red ring, only while words are on screen) sit side by side; the Screens summary shows each screen with its role, destination and a Simulated badge for the simulated card; Look buttons switch the Look; props toggle; timers run.
+- [ ] Quick edit (Command-E, or the header button) works from any mode and changes the live words.
+
 ## Keyboard
 
 - [ ] On launch, without clicking anything, Space does not type into the search field.
@@ -33,7 +47,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 
 ## Screens (needs the second display free)
 
-- [ ] Screens panel: set Audience to the second display, Stage to Window. Open screens.
+- [ ] Screens mode (Command-6): set Audience to the second display, Stage to Window. Open screens.
 - [ ] The second display shows lyrics full-screen; the stage window shows current and next.
 - [ ] Unplug the second display's cable: the app keeps running and reports the fault. Plug it back: the output returns on that display.
 - [ ] Drag the stage window behind another window: its readout says "hidden", not an error.
@@ -46,7 +60,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 
 ## Stage
 
-- [ ] Stage layouts: duplicate Standard, drag the clock, resize the current-slide box, add a timer element.
+- [ ] Stage mode (Command-4): duplicate Standard, drag the clock, resize the current-slide box, add a timer element.
 - [ ] Timers: add a 1-minute countdown, start it, let it pass zero: it shows a minus sign in the warning colour.
 
 ## Media
@@ -65,7 +79,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 
 ## Slide objects
 
-- [ ] Objects mode: insert a rectangle, drag it, resize by its corner, change fill and opacity.
+- [ ] Edit mode (Command-2): insert a rectangle, drag it, resize by its corner, change fill and opacity.
 - [ ] Insert a text box, double-click to edit its text, add a shadow.
 - [ ] Insert an image. Command-D duplicates, Delete removes, Command-Z undoes, Shift-Command-Z redoes.
 

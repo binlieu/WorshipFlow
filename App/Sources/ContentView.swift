@@ -71,36 +71,34 @@ struct WorkspaceView: View {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
-            NavigationSplitView {
-                LibrarySidebar(app: app, workspace: workspace)
-                    .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 380)
-            } detail: {
-                HSplitView {
-                    CentrePane(app: app, workspace: workspace, query: query, clearQuery: { query = "" })
-                        .frame(minWidth: 460)
-                        .focusable()
-                        .focused($gridFocused)
-                        .focusEffectDisabled()
-                    RightColumn(app: app)
-                        .frame(minWidth: 340, idealWidth: 380, maxWidth: 520)
-                }
-            }
-            .searchable(text: $query, placement: .toolbar, prompt: "Search titles and lyrics")
-            .searchFocused($searchFocused)
+            modeContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The clip strip and the transport bar are in every mode: an operator in Screens can still advance the service.
             if let media = app.media, media.layers.foreground != nil {
                 Divider()
                 MediaTransportStrip(media: media)
             }
-            Divider()
             TransportBar(app: app, workspace: workspace)
         }
-        .onChange(of: query) { _, new in Task { await workspace.search(new) } }
+        .background(Tok.bg)
+        .searchable(text: $query, placement: .toolbar, prompt: "Search titles and lyrics")
+        .searchFocused($searchFocused)
+        .toolbar {
+            ToolbarItem(placement: .navigation) { serviceTitle }
+            ToolbarItem(placement: .principal) { modeSwitcher }
+            ToolbarItem(placement: .primaryAction) { pills }
+        }
+        .onChange(of: query) { _, new in
+            if !new.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { workspace.setMode(.show) }   // results show in Show
+            Task { await workspace.search(new) }
+        }
         .onChange(of: app.ui.focusSearch) { _, _ in searchFocused = true }
         // Keyboard focus belongs on the slide grid: at launch, after a sheet closes, and when Escape leaves the search.
         .onAppear { focusGridSoon() }
         .onChange(of: app.workspaceLoaded) { _, _ in focusGridSoon() }
         .onChange(of: app.ui.focusGrid) { _, _ in focusGridSoon() }
         .onChange(of: app.ui.anySheetOpen) { was, now in if was && !now { focusGridSoon() } }
+        .onChange(of: workspace.mode) { _, _ in focusGridSoon() }
         .onChange(of: app.ui.leaveSearch) { _, _ in
             query = ""
             focusGridSoon()
@@ -114,25 +112,75 @@ struct WorkspaceView: View {
         .sheet(isPresented: Binding(get: { app.ui.showThemeEditor }, set: { app.ui.showThemeEditor = $0 })) {
             ThemeEditorSheet(app: app, workspace: workspace)
         }
-        .sheet(isPresented: Binding(get: { app.ui.showStageEditor }, set: { app.ui.showStageEditor = $0 })) {
-            if let stage = app.stage { StageEditorSheet(app: app, stage: stage) }
+    }
+
+    @ViewBuilder private var modeContent: some View {
+        switch workspace.mode {
+        case .show:
+            ShowModeView(app: app, workspace: workspace, query: query, clearQuery: { query = "" }, gridFocused: $gridFocused)
+        case .edit: EditModeView(app: app, workspace: workspace)
+        case .media: MediaModeView(app: app)
+        case .stage: StageModeView(app: app)
+        case .cues: CuesModeView()
+        case .screens: ScreensModeView(app: app)
         }
-        .toolbar {
-            ToolbarItemGroup {
-                Button { app.newPresentation() } label: { Label("New presentation", systemImage: "doc.badge.plus") }
-                    .help("New presentation (Command-N)")
-                Button { app.openImport(existing: nil) } label: { Label("Import lyrics", systemImage: "text.badge.plus") }
-                    .help("Import lyrics (Command-I)")
-                Button { app.ui.showSectionOrders = true } label: { Label("Section orders", systemImage: "list.number") }
-                    .help("Section orders of the open song")
-                    .disabled(workspace.openPresentationID == nil)
-                Button { app.ui.showThemeEditor = true } label: { Label("Themes", systemImage: "paintpalette") }
-                    .help("Create and edit themes")
-                Button { app.ui.showStageEditor = true } label: { Label("Stage layouts", systemImage: "rectangle.3.group") }
-                    .help("Create and edit stage screen layouts")
-                    .disabled(app.stage == nil)
+    }
+
+    // MARK: Toolbar
+
+    private var serviceTitle: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(workspace.playlists.first { $0.id == workspace.selectedPlaylistID }?.name ?? "No playlist")
+                .font(.system(size: 13, weight: .semibold)).lineLimit(1)
+            Text("WORSHIPFLOW · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")")
+                .font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(1)
+        }
+        .frame(minWidth: 120, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The segmented mode switcher: icon and word per mode, Command-1 to Command-6.
+    private var modeSwitcher: some View {
+        HStack(spacing: Space.s1) {
+            ForEach(WorkspaceMode.allCases) { mode in
+                let selected = workspace.mode == mode
+                Button { workspace.setMode(mode) } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: Self.symbol(mode)).font(.system(size: 11))
+                        Text(mode.title).font(.system(size: 12, weight: selected ? .semibold : .regular))
+                    }
+                    .padding(.horizontal, 10).frame(height: 24)
+                    .foregroundStyle(selected ? Tok.text : Tok.muted)
+                    .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("\(mode.title) (Command-\(mode.commandDigit))")
+                .accessibilityLabel(mode.title)
+                .accessibilityHint("Command-\(mode.commandDigit)")
+                .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             }
         }
+        .padding(Space.s1)
+        .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.lg))
+        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.border, lineWidth: 1))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Mode")
+    }
+
+    static func symbol(_ mode: WorkspaceMode) -> String {
+        switch mode {
+        case .show: "play.fill"
+        case .edit: "pencil"
+        case .media: "film"
+        case .stage: "music.mic"
+        case .cues: "bolt"
+        case .screens: "display"
+        }
+    }
+
+    private var pills: some View {
+        HStack(spacing: 6) { ForEach(app.rolePills) { RolePillView(pill: $0) } }
     }
 }
 
@@ -156,13 +204,13 @@ struct ErrorBar: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).accessibilityHidden(true)
             Text(message).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             Spacer()
             Button("Dismiss", action: dismiss)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(Color.orange.opacity(0.18))
+        .background(Tok.warning.opacity(0.16))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Error: \(message)")
     }
@@ -174,69 +222,13 @@ struct UnsavedBar: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red).accessibilityHidden(true)
+            Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(Tok.warning).accessibilityHidden(true)
             Text(message).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             Spacer()
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(Color.red.opacity(0.15))
+        .background(Tok.warning.opacity(0.22))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Not saved: \(message)")
-    }
-}
-
-/// Everything on the right: a live picture of each screen, then the media bin, the screens panel, Looks and props.
-struct RightColumn: View {
-    @Bindable var app: AppModel
-
-    var body: some View {
-        ScrollViewReader { proxy in
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Live screens").font(.headline)
-                ForEach(app.profiles.filter(\.isEnabled)) { profile in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(profile.name).font(.subheadline.bold())
-                            Text(profile.role.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
-                        }
-                        LiveScreenPreview(app: app, screenID: profile.id)
-                    }
-                }
-                Divider()
-                if let media = app.media {
-                    MediaBinPanel(app: app, media: media)
-                    Divider()
-                }
-                if let audio = app.audio {
-                    AudioPanel(audio: audio)
-                    Divider()
-                }
-                ScreensPanel(model: app).id("screens-panel")
-                Divider()
-                if let stage = app.stage {
-                    TimersPanel(app: app, stage: stage)
-                    Divider()
-                }
-                LookPanel(model: app)
-                Divider()
-                PropsPanel(model: app)
-                if !app.messages.isEmpty {
-                    Divider()
-                    ForEach(Array(app.messages.enumerated()), id: \.offset) { _, m in
-                        Text(m).font(.caption).foregroundStyle(.orange)
-                    }
-                }
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .task {
-            // Test hook for runs that cannot scroll: start with the Screens panel in view.
-            guard CommandLine.arguments.contains("--show-screens-panel") else { return }
-            try? await Task.sleep(for: .seconds(1))
-            proxy.scrollTo("screens-panel", anchor: .top)
-        }
-        }
     }
 }

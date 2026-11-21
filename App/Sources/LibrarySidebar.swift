@@ -35,12 +35,14 @@ struct LibrarySidebar: View {
     @State private var prompt: NamePrompt?
     @State private var promptText = ""
     @State private var pendingDelete: PendingDelete?
+    @State private var filter = ""
 
     var body: some View {
         VSplitView {
-            librarySection.frame(minHeight: 160)
-            playlistSection.frame(minHeight: 140)
+            librarySection.frame(minHeight: 220)
+            playlistSection.frame(minHeight: 160)
         }
+        .background(Tok.surface)
         .alert(prompt?.title ?? "", isPresented: Binding(get: { prompt != nil }, set: { if !$0 { prompt = nil } })) {
             TextField("Name", text: $promptText)
             Button("Cancel", role: .cancel) {}
@@ -55,40 +57,68 @@ struct LibrarySidebar: View {
 
     // MARK: Library
 
+    private var visiblePresentations: [Presentation] { LibraryFilter.apply(filter, to: workspace.presentations, title: \.title) }
+
     private var librarySection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Picker("Library", selection: Binding(get: { workspace.selectedLibraryID ?? UUID() },
-                                                     set: { id in Task { await workspace.selectLibrary(id) } })) {
-                    ForEach(workspace.libraries) { Text($0.name).tag($0.id) }
-                }.labelsHidden()
+                SectionLabel("Libraries")
+                Spacer()
                 Menu {
+                    Button("New presentation") { app.newPresentation() }
+                    Button("Import lyrics…") { app.openImport(existing: nil) }
+                    Divider()
                     Button("New library…") { ask(.newLibrary, "") }
                     if let library = currentLibrary {
                         Button("Rename library…") { ask(.renameLibrary(library.id), library.name) }
                         Button("Delete library…", role: .destructive) { pendingDelete = .library(library.id, library.name) }
                             .disabled(workspace.libraries.count < 2)
                     }
-                } label: { Image(systemName: "ellipsis.circle") }
-                    .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Library actions")
+                } label: { Image(systemName: "plus") }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    .help("New presentation (Command-N), import lyrics (Command-I), library actions")
+                    .accessibilityLabel("Library actions")
             }
+            .padding(.horizontal, 8)
+            VStack(spacing: 2) {
+                ForEach(workspace.libraries) { library in libraryRow(library) }
+            }
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Tok.muted)
+                TextField("Filter songs", text: $filter).textFieldStyle(.plain)
+                    .accessibilityLabel("Filter the presentations of this library")
+            }
+            .padding(.horizontal, 8).frame(height: Space.controlHeight)
+            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+            .padding(.horizontal, 4)
             List(selection: Binding(get: { workspace.openPresentationID },
                                     set: { id in if let id { Task { await workspace.openPresentation(id) } } })) {
-                ForEach(workspace.presentations) { p in
-                    Label(p.title, systemImage: "music.note.list")
-                        .tag(p.id)
-                        .contextMenu {
-                            Button("Add to playlist") { Task { await workspace.addToPlaylist(p.id) } }
-                            Button("Rename…") { ask(.renamePresentation(p.id), p.title) }
-                            Divider()
-                            Button("Delete…", role: .destructive) { pendingDelete = .presentation(p.id, p.title) }
+                ForEach(visiblePresentations) { p in
+                    HStack(spacing: 8) {
+                        Image(systemName: "music.note").foregroundStyle(Tok.muted).frame(width: 16)
+                        Text(p.title).lineLimit(1)
+                        Spacer(minLength: 4)
+                        if workspace.bilingualPresentationIDs.contains(p.id) {
+                            Text("EN · VI").font(.wfMonoData).foregroundStyle(Tok.muted)
+                                .accessibilityLabel("Two languages")
                         }
+                    }
+                    .tag(p.id)
+                    .contextMenu {
+                        Button("Add to playlist") { Task { await workspace.addToPlaylist(p.id) } }
+                        Button("Rename…") { ask(.renamePresentation(p.id), p.title) }
+                        Divider()
+                        Button("Delete…", role: .destructive) { pendingDelete = .presentation(p.id, p.title) }
+                    }
                 }
             }
+            .listStyle(.sidebar).scrollContentBackground(.hidden)
             .overlay {
                 if workspace.presentations.isEmpty {
                     Text("No presentations yet.\nImport lyrics with Command-I.")
-                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
+                } else if visiblePresentations.isEmpty {
+                    Text("No title matches.").font(.caption).foregroundStyle(Tok.muted)
                 }
             }
             .accessibilityLabel("Presentations")
@@ -96,39 +126,64 @@ struct LibrarySidebar: View {
         .padding(8)
     }
 
+    private func libraryRow(_ library: Library) -> some View {
+        let selected = library.id == workspace.selectedLibraryID
+        return Button { Task { await workspace.selectLibrary(library.id) } } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "music.note.list").frame(width: 16).foregroundStyle(selected ? Tok.text : Tok.muted)
+                Text(library.name).lineLimit(1)
+                Spacer()
+                if let count = workspace.libraryCounts[library.id] {
+                    Text("\(count)").font(.system(size: 12, design: .monospaced)).foregroundStyle(Tok.muted)
+                }
+            }
+            .padding(.horizontal, 8).frame(height: 28)
+            .background(selected ? Tok.surface3 : Color.clear, in: RoundedRectangle(cornerRadius: Radius.md))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Library \(library.name), \(workspace.libraryCounts[library.id] ?? 0) presentations")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
     // MARK: Playlist
 
     private var playlistSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
+                SectionLabel("Playlist")
                 Picker("Playlist", selection: Binding(get: { workspace.selectedPlaylistID ?? UUID() },
                                                       set: { id in Task { await workspace.selectPlaylist(id) } })) {
                     ForEach(workspace.playlists) { Text($0.name).tag($0.id) }
-                }.labelsHidden()
+                }.labelsHidden().fixedSize()
+                Spacer()
                 Menu {
                     Button("New playlist…") { ask(.newPlaylist, "") }
                     if let playlist = currentPlaylist {
                         Button("Rename playlist…") { ask(.renamePlaylist(playlist.id), playlist.name) }
                         Button("Delete playlist…", role: .destructive) { pendingDelete = .playlist(playlist.id, playlist.name) }
                     }
-                } label: { Image(systemName: "ellipsis.circle") }
-                    .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Playlist actions")
+                } label: { Image(systemName: "ellipsis") }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().accessibilityLabel("Playlist actions")
             }
             List(selection: Binding(get: { workspace.selectedPlaylistItemID },
                                     set: { id in if let id { Task { await workspace.openPlaylistItem(id) } } })) {
                 ForEach(Array(workspace.playlistItems.enumerated()), id: \.element.id) { index, item in
-                    HStack {
-                        Text("\(index + 1)").font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 22)
-                        Text(item.title)
+                    HStack(spacing: 8) {
+                        Text("\(index + 1)").font(.caption.monospacedDigit()).foregroundStyle(Tok.muted).frame(width: 18)
+                        Text(item.title).lineLimit(1)
                         if workspace.emptyPlaylistItemIDs.contains(item.id) {
-                            Text("empty").font(.caption2.bold()).foregroundStyle(.orange)
+                            Text("empty").font(.caption2.bold()).foregroundStyle(Tok.warning)
                                 .help("This item has no slides to show. Its section order may be empty.")
                                 .accessibilityLabel("Empty: no slides to show")
                         }
                         Spacer()
                         if app.show.liveDeck?.presentationID == item.presentationID {
-                            Image(systemName: "circle.fill").font(.caption2).foregroundStyle(.red)
-                                .accessibilityLabel("On screen")
+                            HStack(spacing: 4) {
+                                Circle().fill(Tok.live).frame(width: 6, height: 6)
+                                Text("LIVE").font(.wfMonoData).foregroundStyle(Tok.live)
+                            }
+                            .accessibilityLabel("On screen")
                         }
                     }
                     .tag(item.id)
@@ -151,10 +206,11 @@ struct LibrarySidebar: View {
                     Task { await workspace.movePlaylistItem(id: id, to: to) }
                 }
             }
+            .listStyle(.sidebar).scrollContentBackground(.hidden)
             .overlay {
                 if workspace.playlistItems.isEmpty {
                     Text("Empty playlist.\nRight-click a song, then Add to playlist.")
-                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
                 }
             }
             .accessibilityLabel("Playlist items")

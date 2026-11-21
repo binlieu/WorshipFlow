@@ -46,6 +46,11 @@ public final class WorkspaceModel {
     public internal(set) var searchResults: [SearchHit] = []
     public internal(set) var show = ShowState()
     public internal(set) var lastError: String?
+    /// UI-001: which of the six modes the window shows. Restored on relaunch; changing it never touches the show.
+    public internal(set) var mode: WorkspaceMode = .show
+    /// UI-001: presentations per library, and the presentations that carry a second language (sidebar rows).
+    public internal(set) var libraryCounts: [UUID: Int] = [:]
+    public internal(set) var bilingualPresentationIDs: Set<UUID> = []
     /// The theme each known presentation uses (PRES-06); absent means the role default. Filled as presentations load.
     public internal(set) var presentationThemes: [UUID: UUID] = [:]
 
@@ -67,6 +72,9 @@ public final class WorkspaceModel {
     @ObservationIgnored var liveSlideIDs: [UUID] = []
     /// Speaker notes of those slides as they were when the deck went live (STAGE-001b); used when another presentation is open.
     @ObservationIgnored var liveSlideNotes: [String] = []
+    /// UI-001: the live deck's title and the section name of each live slide, for the transport bar's position line.
+    public internal(set) var liveTitle: String?
+    public internal(set) var liveSectionNames: [String?] = []
     @ObservationIgnored var pendingDrafts: [UUID: Slide] = [:]
     /// R3: set while typed text could not be written, with the reason. Stays until every draft is saved, and is not
     /// cleared by dismissing the error bar, so the operator always knows the typing is not on disk yet.
@@ -89,9 +97,11 @@ public final class WorkspaceModel {
     @ObservationIgnored var transportEpoch = 0
     @ObservationIgnored private var editSaver: DebouncedSaver<Int>?
     @ObservationIgnored private var placeSaver: DebouncedSaver<WorkspacePlace>?
+    @ObservationIgnored private var modeSaver: DebouncedSaver<WorkspaceMode>?
     @ObservationIgnored private var restoring = false
 
     static let placeKey = "workspace.place"
+    public static let modeKey = "workspace.mode"
 
     public init(store: LibraryStore, clock: any SaveClock = RealSaveClock()) {
         self.store = store
@@ -102,6 +112,17 @@ public final class WorkspaceModel {
         placeSaver = DebouncedSaver<WorkspacePlace>(delay: 0.5, maximumDelay: 2, clock: clock) { [weak self] place in
             await self?.writePlace(place)
         }
+        modeSaver = DebouncedSaver<WorkspaceMode>(delay: 0.3, maximumDelay: 1, clock: clock) { [weak self] mode in
+            // A convenience like the place: not worth interrupting the operator if it cannot be written.
+            try? await self?.store.setState(mode.rawValue, for: Self.modeKey)
+        }
+    }
+
+    /// UI-001: switches the mode (Command-1 to 6, the switcher) and remembers it for the next launch.
+    public func setMode(_ new: WorkspaceMode) {
+        guard new != mode else { return }
+        mode = new
+        modeSaver?.schedule(new)
     }
 
     // MARK: Loading
@@ -110,6 +131,7 @@ public final class WorkspaceModel {
     public func load() async {
         restoring = true
         defer { restoring = false }
+        mode = WorkspaceMode.restored(from: try? await store.state(for: Self.modeKey))
         guard let libs = await attempt("read the libraries", { try await self.store.libraries() }) else { return }
         var firstRun = false
         var all = libs
@@ -143,6 +165,7 @@ public final class WorkspaceModel {
     public func flush() async {
         await flushDrafts()
         await placeSaver?.flush()
+        await modeSaver?.flush()
     }
 
     public func dismissError() { lastError = nil }

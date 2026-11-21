@@ -173,7 +173,7 @@ struct ScreenRow: View {
                                                               set: { stage.setLayout($0, forScreen: profile.id) })) {
                         ForEach(stage.layouts) { Text($0.name).tag($0.id) }
                     }.frame(maxWidth: 320).accessibilityLabel("Stage layout for \(profile.name)")
-                    Button("Edit layouts…") { model.ui.showStageEditor = true }
+                    Button("Edit layouts…") { model.workspace?.setMode(.stage) }
                 }
                 Text("The stage screen uses a stage layout: themes, Looks and props do not apply.")
                     .font(.caption).foregroundStyle(.secondary)

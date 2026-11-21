@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppModel.shared.installSystemHooks()
             AppModel.shared.startWorkspace()
             AppModel.shared.startSoakIfRequested()
+            AppModel.shared.runUISnapshotsIfRequested()
         }
     }
 
@@ -122,7 +123,14 @@ struct WorkspaceCommands: Commands {
             Button("Hardware Test…") { openWindow(id: "hardware-test") }
         }
         CommandGroup(after: .textEditing) {
-            Button("Find Songs") { app.ui.focusSearch += 1 }.keyboardShortcut("f")
+            Button("Find Songs") { app.workspace?.setMode(.show); app.ui.focusSearch += 1 }.keyboardShortcut("f")
+        }
+        // UI-001: the six modes, Command-1 to Command-6 (the digits come from `WorkspaceMode`).
+        CommandMenu("Mode") {
+            ForEach(WorkspaceMode.allCases) { mode in
+                Button(mode.title) { app.workspace?.setMode(mode) }
+                    .keyboardShortcut(KeyEquivalent(Character("\(mode.commandDigit)")), modifiers: .command)
+            }
         }
         CommandMenu("Show") {
             Button("Go Live (Return)") { app.goLive() }
@@ -130,9 +138,10 @@ struct WorkspaceCommands: Commands {
             Button("Previous (Left arrow)") { app.previous() }
             Button("Clear (Escape)") { app.clear() }
             Button("Clear All (Shift-Escape)") { app.clearAll() }
+            Button("Blackout (B)") { app.blackout() }
             Button("Stop") { app.stopShow() }
             Divider()
-            Button("Quick Edit Live Slide…") { app.ui.showQuickEdit = true }.keyboardShortcut("e")
+            Button("Quick Edit Live Slide…") { app.requestQuickEdit() }.keyboardShortcut("e")
         }
     }
 }

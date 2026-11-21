@@ -10,27 +10,33 @@ struct CentrePane: View {
     let clearQuery: () -> Void
 
     var body: some View {
-        if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            SearchResultsView(workspace: workspace, query: query, open: { hit in
-                clearQuery()
-                Task { await workspace.openSearchResult(hit) }
-            })
-        } else if workspace.openPresentationID == nil {
-            VStack(spacing: 8) {
-                Image(systemName: "music.note.list").font(.largeTitle).foregroundStyle(.secondary)
-                Text("Choose a song from the library or the playlist").font(.title3)
-                Text("Command-N makes a new presentation. Command-I imports lyrics. Command-F searches.")
-                    .font(.caption).foregroundStyle(.secondary)
+        Group {
+            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                SearchResultsView(workspace: workspace, query: query, open: { hit in
+                    clearQuery()
+                    Task { await workspace.openSearchResult(hit) }
+                })
+            } else if workspace.openPresentationID == nil {
+                VStack(spacing: 8) {
+                    Image(systemName: "music.note.list").font(.largeTitle).foregroundStyle(Tok.muted)
+                    Text("Choose a song from the library or the playlist").font(.title3)
+                    Text("Command-N makes a new presentation. Command-I imports lyrics. Command-F searches.")
+                        .font(.caption).foregroundStyle(Tok.muted)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 0) {
+                    ShowHeader(app: app, workspace: workspace)
+                    Divider()
+                    if app.ui.gridAsList { SlideList(app: app, workspace: workspace) } else { SlideGrid(app: app, workspace: workspace) }
+                    Divider()
+                    CompactWordsEditor(workspace: workspace)
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            VStack(spacing: 0) {
-                PresentationHeader(app: app, workspace: workspace)
-                Divider()
-                SlideGrid(app: app, workspace: workspace)
-                Divider()
-                SlideEditor(app: app, workspace: workspace)
-            }
+        }
+        // Quick edit (Command-E) opens here, whichever of the above is showing, so it can never be left open off screen.
+        .popover(isPresented: Binding(get: { app.ui.showQuickEdit }, set: { app.ui.showQuickEdit = $0 }), arrowEdge: .top) {
+            QuickEditView(workspace: workspace) { app.ui.showQuickEdit = false }
         }
     }
 }
@@ -64,7 +70,8 @@ struct SearchResultsView: View {
     }
 }
 
-struct PresentationHeader: View {
+/// The Show mode's header: title, arrangement, language marker, Add slide, Re-flow, Quick edit, grid or list.
+struct ShowHeader: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
     @State private var title = ""
@@ -73,45 +80,71 @@ struct PresentationHeader: View {
     private var presentation: Presentation? { workspace.presentations.first { $0.id == workspace.openPresentationID } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                TextField("Title", text: $title)
-                    .textFieldStyle(.roundedBorder).font(.title3.bold()).frame(maxWidth: 360)
-                    .focused($titleFocused)
-                    .onSubmit { commitTitle() }
-                    .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
-                Spacer()
-                Button { Task { await workspace.addSlide(SlideContent(primary: "")) } } label: { Label("Add slide", systemImage: "plus.rectangle") }
-                Button { if let id = workspace.openPresentationID { app.openImport(existing: id) } } label: {
-                    Label("Re-flow lyrics…", systemImage: "text.alignleft")
+        HStack(spacing: Space.s3) {
+            TextField("Title", text: $title)
+                .textFieldStyle(.plain).font(.system(size: 20, weight: .bold)).frame(minWidth: 100, maxWidth: 300)
+                .focused($titleFocused)
+                .onSubmit { commitTitle() }
+                .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
+                .accessibilityLabel("Presentation title")
+            if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }) {
+                Menu {
+                    Button("Natural order") { Task { await workspace.setArrangement(nil, forPlaylistItem: itemID) } }
+                    ForEach(workspace.arrangements) { a in
+                        Button(a.name) { Task { await workspace.setArrangement(a.id, forPlaylistItem: itemID) } }
+                    }
+                } label: {
+                    Text("Arrangement: \(workspace.arrangements.first { $0.id == item.arrangementID }?.name ?? "Natural order")")
+                        .lineLimit(1)
                 }
-                Button {
-                    if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
-                } label: { Label("Add to playlist", systemImage: "text.badge.plus") }
+                .menuStyle(.button).fixedSize()
+                .help("The section order this playlist item plays")
             }
-            HStack(spacing: 10) {
-                Picker("Theme", selection: Binding(get: { workspace.openThemeID },
-                                                   set: { id in if let open = workspace.openPresentationID { app.setPresentationTheme(id, forPresentation: open) } })) {
-                    Text("Default").tag(UUID?.none)
-                    ForEach(app.themes) { Text($0.name).tag(UUID?.some($0.id)) }
-                }.frame(maxWidth: 260)
-                    .help("The look of this song on the audience screen")
-                if let itemID = workspace.selectedPlaylistItemID,
-                   let item = workspace.playlistItems.first(where: { $0.id == itemID }) {
-                    Picker("Section order", selection: Binding(get: { item.arrangementID },
-                                                               set: { id in Task { await workspace.setArrangement(id, forPlaylistItem: itemID) } })) {
-                        Text("Natural order").tag(UUID?.none)
-                        ForEach(workspace.arrangements) { Text($0.name).tag(UUID?.some($0.id)) }
-                    }.frame(maxWidth: 260)
-                }
-                Spacer()
+            if let id = workspace.openPresentationID, workspace.bilingualPresentationIDs.contains(id) {
+                Badge(text: "EN + VI", style: .outline(Tok.borderStrong)).foregroundStyle(Tok.muted)
+                    .accessibilityLabel("Two languages")
+            }
+            Spacer(minLength: 4)
+            ViewThatFits(in: .horizontal) {
+                controls(compact: false)
+                controls(compact: true)
             }
         }
-        .padding(10)
+        .padding(.horizontal, Space.s5).padding(.vertical, 10)
         .onAppear { title = presentation?.title ?? "" }
         .onChange(of: workspace.openPresentationID) { _, _ in title = presentation?.title ?? "" }
         .onChange(of: presentation?.title) { _, new in if !titleFocused { title = new ?? "" } }
         .onChange(of: app.ui.focusTitle) { _, _ in titleFocused = true }
+    }
+
+    /// The header buttons with words, or (when the window is narrow) as icons with help text.
+    private func controls(compact: Bool) -> some View {
+        HStack(spacing: Space.s3) {
+            Button { Task { await workspace.addSlide(SlideContent(primary: "")) } } label: { label("Add slide", "plus", compact) }
+                .buttonStyle(HeaderButtonStyle()).help("Add slide")
+            Button { if let id = workspace.openPresentationID { app.openImport(existing: id) } } label: { label("Reflow…", "text.alignleft", compact) }
+                .buttonStyle(HeaderButtonStyle()).help("Re-flow lyrics")
+            Button { if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } } } label: {
+                Image(systemName: "text.badge.plus")
+            }
+            .buttonStyle(HeaderButtonStyle()).help("Add to playlist").accessibilityLabel("Add to playlist")
+            Button { app.ui.showQuickEdit = true } label: {
+                HStack(spacing: 6) { Image(systemName: "pencil"); if !compact { Text("Quick edit"); KeyHint(key: "⌘E") } }
+            }
+            .buttonStyle(HeaderButtonStyle())
+            .disabled(workspace.show.liveSlide == nil)
+            .help("Quick edit (Command-E): change the words on screen right now. This is the one edit that reaches the live screens.")
+            .accessibilityLabel("Quick edit")
+            Picker("View", selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 })) {
+                Image(systemName: "square.grid.2x2").tag(false).accessibilityLabel("Grid")
+                Image(systemName: "list.bullet").tag(true).accessibilityLabel("List")
+            }
+            .pickerStyle(.segmented).labelsHidden().fixedSize().accessibilityLabel("Slide view")
+        }
+    }
+
+    @ViewBuilder private func label(_ title: String, _ symbol: String, _ compact: Bool) -> some View {
+        if compact { Image(systemName: symbol) } else { Label(title, systemImage: symbol) }
     }
 
     private func commitTitle() {
@@ -124,13 +157,33 @@ struct PresentationHeader: View {
 
 // MARK: Slide grid
 
-private let groupPalette: [Color] = [.blue, .green, .orange, .purple, .teal, .pink, .indigo, .brown]
+/// Shared by the grid and the list: the sections of the open presentation, repeats counted.
+@MainActor private func sectionRuns(_ workspace: WorkspaceModel) -> [SectionRun] {
+    SectionRuns.runs(slideGroupIDs: workspace.slides.map(\.groupID), groups: workspace.groups,
+                     groupSlideCounts: workspace.groupSlideCounts)
+}
 
-private struct SlideRun: Identifiable {
-    var id: Int
-    var name: String?
-    var color: Color
-    var indices: [Int]
+private struct SectionHeader: View {
+    let run: SectionRun
+    var body: some View {
+        if let name = run.name {
+            HStack(spacing: 6) {
+                Circle().fill(run.tone.color).frame(width: 8, height: 8)
+                Text(name).font(.system(size: 13, weight: .semibold)).foregroundStyle(run.tone.color)
+                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.system(size: 12)).foregroundStyle(Tok.muted) }
+            }
+            .padding(.top, 6)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(run.repeatCount > 1 ? "\(name), played \(run.repeatCount) times" : name)
+            .accessibilityAddTraits(.isHeader)
+        }
+    }
+}
+
+/// The live slide's index, only while what is live is the presentation that is open.
+@MainActor private func liveIndex(_ app: AppModel, _ workspace: WorkspaceModel) -> Int? {
+    guard app.show.liveDeck?.presentationID == workspace.openPresentationID else { return nil }
+    return app.show.liveIndex
 }
 
 struct SlideGrid: View {
@@ -138,99 +191,73 @@ struct SlideGrid: View {
     @Bindable var workspace: WorkspaceModel
     @State private var pendingDelete: Int?
 
-    private var runs: [SlideRun] {
-        var result: [SlideRun] = []
-        for (i, slide) in workspace.slides.enumerated() {
-            if let last = result.last, last.name == name(of: slide), sameGroup(result, slide, i) {
-                result[result.count - 1].indices.append(i)
-            } else {
-                result.append(SlideRun(id: result.count, name: name(of: slide), color: color(of: slide), indices: [i]))
-            }
-        }
-        return result
-    }
-
-    private func sameGroup(_ runs: [SlideRun], _ slide: Slide, _ index: Int) -> Bool {
-        guard let previous = runs.last?.indices.last else { return false }
-        return workspace.slides[previous].groupID == slide.groupID
-    }
-
-    private func name(of slide: Slide) -> String? {
-        slide.groupID.flatMap { id in workspace.groups.first { $0.id == id }?.name }
-    }
-
-    private func color(of slide: Slide) -> Color {
-        guard let id = slide.groupID, let i = workspace.groups.firstIndex(where: { $0.id == id }) else { return .gray }
-        return groupPalette[i % groupPalette.count]
-    }
-
-    /// The live slide's index, only while what is live is the presentation that is open.
-    private var liveIndex: Int? {
-        guard app.show.liveDeck?.presentationID == workspace.openPresentationID else { return nil }
-        return app.show.liveIndex
-    }
+    /// Red means on screen now: while cleared or blacked out the live place is marked in the warning colour instead.
+    private var ringColor: Color { app.mode == .live ? Tok.liveFill : Tok.warning }
 
     var body: some View {
+        GeometryReader { geo in grid(width: geo.size.width) }
+            .frame(minHeight: 140)
+            .background(Tok.bg)
+            .confirmationDialog("Delete this slide?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+                                titleVisibility: .visible) {
+                Button("Delete slide", role: .destructive) {
+                    if let i = pendingDelete { Task { await workspace.deleteSlide(at: i) } }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+    }
+
+    /// As many columns as fit with thumbnails at least 190 pt wide, so a row of slides never collapses to one column.
+    private func columns(for width: CGFloat) -> [GridItem] {
+        let usable = max(0, width - 2 * Space.s5)
+        let count = max(1, Int((usable + Space.s4) / (190 + Space.s4)))
+        return Array(repeating: GridItem(.flexible(minimum: 120, maximum: 300), spacing: Space.s4, alignment: .top), count: count)
+    }
+
+    @ViewBuilder private func grid(width: CGFloat) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 if workspace.slides.isEmpty {
-                    Text("This presentation has no slides. Use Add slide, or Re-flow lyrics to paste the words.")
-                        .foregroundStyle(.secondary).padding(24)
+                    Text("This presentation has no slides. Use Add slide, or Reflow to paste the words.")
+                        .foregroundStyle(Tok.muted).padding(24)
                 }
                 LazyVStack(alignment: .leading, spacing: 10) {
-                    ForEach(runs) { run in
-                        if let name = run.name {
-                            HStack(spacing: 6) {
-                                Circle().fill(run.color).frame(width: 9, height: 9)
-                                Text(name).font(.subheadline.bold()).foregroundStyle(run.color)
-                            }
-                            .padding(.top, 6)
-                            .accessibilityAddTraits(.isHeader)
-                        }
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 190, maximum: 260), spacing: 10)], alignment: .leading, spacing: 10) {
+                    ForEach(sectionRuns(workspace)) { run in
+                        SectionHeader(run: run)
+                        LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: Space.s4) {
                             ForEach(run.indices, id: \.self) { i in
-                                cell(i, color: run.color).id(i)
+                                cell(i, color: run.tone.color).id(i)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Space.s5)
             }
             .onChange(of: workspace.show.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
-        }
-        .frame(minHeight: 140)
-        .confirmationDialog("Delete this slide?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
-                            titleVisibility: .visible) {
-            Button("Delete slide", role: .destructive) {
-                if let i = pendingDelete { Task { await workspace.deleteSlide(at: i) } }
-            }
-            Button("Cancel", role: .cancel) {}
         }
     }
 
     private func cell(_ i: Int, color: Color) -> some View {
         let slide = workspace.slides[i]
         let selected = workspace.show.selectedIndex == i
-        let live = liveIndex == i
-        return VStack(alignment: .leading, spacing: 3) {
+        let live = liveIndex(app, workspace) == i
+        return VStack(alignment: .leading, spacing: 4) {
+            // The rings are drawn outside the picture (never over the words): blue for preview, 3 pt red for live.
             SlideThumbnail(app: app, slide: slide.content)
-                .overlay(RoundedRectangle(cornerRadius: 3).stroke(live ? Color.red : (selected ? Color.accentColor : Color.clear), lineWidth: 3))
-                .overlay(alignment: .topLeading) {
-                    if live {
-                        Text(app.mode == .cleared ? "CLEARED" : "LIVE").font(.caption2.bold()).foregroundStyle(.white)
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(app.mode == .cleared ? Color.orange : Color.red, in: Capsule()).padding(4)
-                    }
-                }
-            HStack(spacing: 4) {
-                Rectangle().fill(color).frame(width: 3, height: 12)
-                Text("\(i + 1)").font(.caption.monospacedDigit().bold())
-                Text(slide.content.primary.replacingOccurrences(of: "\n", with: " "))
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                .overlay(alignment: .topLeading) { tags(live: live, selected: selected).padding(5) }
+                .padding(3)
+                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.blue : .clear, lineWidth: 2))
+                .padding(live ? 4 : 0)
+                .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(live ? ringColor : .clear, lineWidth: 3))
+            HStack(spacing: 6) {
+                Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit()).foregroundStyle(Tok.text)
+                Text(slide.content.primary.split(whereSeparator: \.isNewline).first.map(String.init) ?? "")
+                    .font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(1)
             }
+            .padding(.horizontal, 4)
         }
-        .padding(4)
-        .background(selected ? Color.accentColor.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { workspace.goLive(at: i) }
         .onTapGesture { workspace.selectSlide(i) }
@@ -240,59 +267,121 @@ struct SlideGrid: View {
             Task { await workspace.moveSlide(from: from, to: i) }
             return true
         }
-        .contextMenu {
-            Button("Go Live") { workspace.goLive(at: i) }
-            Divider()
-            Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
-            Button("Move later") { Task { await workspace.moveSlide(from: i, to: i + 1) } }.disabled(i == workspace.slides.count - 1)
-            Divider()
-            Button("Delete slide…", role: .destructive) { pendingDelete = i }
-        }
+        .contextMenu { slideMenu(i) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
-        .accessibilityValue(live ? (app.mode == .cleared ? "live place, cleared" : "live") : "")
+        .accessibilityValue(stateWord(live: live, selected: selected))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    @ViewBuilder private func tags(live: Bool, selected: Bool) -> some View {
+        if live {
+            switch app.mode {
+            case .cleared: Badge(text: "CLEARED", style: .warning)
+            case .blackout: Badge(text: "BLACKOUT", style: .warning)
+            default: Badge(text: "LIVE", style: .live)
+            }
+        } else if selected {
+            Badge(text: "PREVIEW", style: .preview)
+        }
+    }
+
+    private func stateWord(live: Bool, selected: Bool) -> String {
+        var words: [String] = []
+        if live { words.append(app.mode == .cleared ? "live place, cleared" : (app.mode == .blackout ? "live place, blackout" : "live")) }
+        if selected { words.append("in preview") }
+        return words.joined(separator: ", ")
+    }
+
+    @ViewBuilder private func slideMenu(_ i: Int) -> some View {
+        Button("Go Live") { workspace.goLive(at: i) }
+        Divider()
+        Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
+        Button("Move later") { Task { await workspace.moveSlide(from: i, to: i + 1) } }.disabled(i == workspace.slides.count - 1)
+        Divider()
+        Button("Delete slide…", role: .destructive) { pendingDelete = i }
+    }
+}
+
+/// The list form of the grid: one row per slide.
+struct SlideList: View {
+    let app: AppModel
+    @Bindable var workspace: WorkspaceModel
+    private var ringColor: Color { app.mode == .live ? Tok.liveFill : Tok.warning }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 2) {
+                ForEach(sectionRuns(workspace)) { run in
+                    SectionHeader(run: run).padding(.horizontal, Space.s3)
+                    ForEach(run.indices, id: \.self) { i in row(i, color: run.tone.color) }
+                }
+            }
+            .padding(Space.s3)
+        }
+        .background(Tok.bg)
+    }
+
+    private func row(_ i: Int, color: Color) -> some View {
+        let slide = workspace.slides[i]
+        let selected = workspace.show.selectedIndex == i
+        let live = liveIndex(app, workspace) == i
+        return HStack(spacing: 8) {
+            Rectangle().fill(color).frame(width: 3, height: 16)
+            Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit()).frame(width: 24, alignment: .trailing)
+            Text(slide.content.primary.replacingOccurrences(of: "\n", with: " ")).lineLimit(1)
+            Spacer()
+            if live { Badge(text: app.mode == .live ? "LIVE" : app.mode == .blackout ? "BLACKOUT" : "CLEARED", style: app.mode == .live ? .live : .warning) }
+            if selected { Badge(text: "PREVIEW", style: .preview) }
+        }
+        .padding(.horizontal, Space.s3).frame(height: 30)
+        .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(live ? ringColor : .clear, lineWidth: 2))
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { workspace.goLive(at: i) }
+        .onTapGesture { workspace.selectSlide(i) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
-// MARK: Editor
+// MARK: Editors
 
-struct SlideEditor: View {
-    let app: AppModel
+/// The compact words editor under the Show grid: the first language, the second language and the speaker notes of
+/// the selected slide. It edits the preview only.
+struct CompactWordsEditor: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
         let index = workspace.show.selectedIndex
-        let objectsMode = app.ui.editorMode == .objects
         VStack(alignment: .leading, spacing: 6) {
             if workspace.slides.indices.contains(index) {
-                let slide = workspace.slides[index]
-                HStack {
-                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.headline)
-                    Picker("Edit", selection: Binding(get: { app.ui.editorMode }, set: { app.ui.editorMode = $0 })) {
-                        ForEach(WorkspaceUIState.EditorMode.allCases) { Text($0.rawValue).tag($0) }
-                    }
-                    .pickerStyle(.segmented).labelsHidden().fixedSize()
-                    .accessibilityLabel("Editor mode")
+                HStack(spacing: 8) {
+                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.system(size: 14, weight: .semibold))
+                    Badge(text: "IN PREVIEW", style: .outline(Tok.blue))
                     Spacer()
-                    Text("Editing here changes the preview only. The audience sees the change when you go live again.")
-                        .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    Text("Editing here changes Preview only. The audience sees it when you go live again.")
+                        .font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(1)
                 }
-                if objectsMode, let editor = app.slideEditor {
-                    SlideObjectsEditor(app: app, editor: editor)
-                } else {
-                    wordsEditor(slide)
-                }
+                WordsFields(workspace: workspace, slide: workspace.slides[index], minHeight: 52)
             } else {
-                Text("Select a slide to edit its words.").foregroundStyle(.secondary)
+                Text("Select a slide to edit its words.").foregroundStyle(Tok.muted)
             }
         }
-        .padding(10)
-        .frame(height: objectsMode ? 360 : 220)
+        .padding(Space.s4)
+        .frame(height: 158)
+        .background(Tok.surface)
     }
+}
 
-    /// Words keep the slide's objects: only the text changes.
-    @ViewBuilder private func wordsEditor(_ slide: Slide) -> some View {
+/// Three fields that keep the slide's objects: only the text changes.
+struct WordsFields: View {
+    @Bindable var workspace: WorkspaceModel
+    let slide: Slide
+    var minHeight: CGFloat = 90
+
+    var body: some View {
         HStack(alignment: .top, spacing: 10) {
             field("First language", text: Binding(
                 get: { slide.content.primary },
@@ -308,20 +397,54 @@ struct SlideEditor: View {
                     content.secondary = new.isEmpty ? nil : new
                     workspace.editSlide(id: slide.id, content: content)
                 }))
+            field("Speaker notes — stage screens only", text: Binding(
+                get: { slide.notes },
+                set: { workspace.editSlide(id: slide.id, content: slide.content, notes: $0) }))
         }
-        TextField("Speaker notes", text: Binding(
-            get: { slide.notes },
-            set: { workspace.editSlide(id: slide.id, content: slide.content, notes: $0) }))
-            .textFieldStyle(.roundedBorder)
     }
 
     private func field(_ label: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            TextEditor(text: text).font(.body)
-                .frame(minHeight: 90)
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(.quaternary))
-                .accessibilityLabel(label)
+        TextEditor(text: text).font(.system(size: 13)).scrollContentBackground(.hidden)
+            .padding(4)
+            .frame(minHeight: minHeight)
+            .background(Tok.bg, in: RoundedRectangle(cornerRadius: Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+            .overlay(alignment: .topLeading) {
+                if text.wrappedValue.isEmpty {
+                    Text(label).font(.system(size: 13)).foregroundStyle(Tok.muted).padding(.horizontal, 9).padding(.vertical, 12)
+                        .allowsHitTesting(false)
+                }
+            }
+            .accessibilityLabel(label)
+    }
+}
+
+/// The Edit mode's editor: the words row, then the objects canvas with its inspector, at full size.
+struct SlideEditor: View {
+    let app: AppModel
+    @Bindable var workspace: WorkspaceModel
+
+    var body: some View {
+        let index = workspace.show.selectedIndex
+        VStack(alignment: .leading, spacing: 8) {
+            if workspace.slides.indices.contains(index) {
+                HStack {
+                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.headline)
+                    Spacer()
+                    Text("Editing here changes the preview only. The audience sees the change when you go live again.")
+                        .font(.caption).foregroundStyle(Tok.muted).lineLimit(2)
+                }
+                WordsFields(workspace: workspace, slide: workspace.slides[index], minHeight: 64)
+                    .frame(height: 96)
+                if let editor = app.slideEditor {
+                    SlideObjectsEditor(app: app, editor: editor)
+                        .frame(maxHeight: .infinity)
+                }
+            } else {
+                Text("Select a slide to edit it.").foregroundStyle(Tok.muted)
+                Spacer(minLength: 0)
+            }
         }
+        .padding(Space.s4)
     }
 }

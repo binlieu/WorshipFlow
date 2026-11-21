@@ -4,13 +4,15 @@ import Foundation
 
 public enum TransportCommand: Sendable, Equatable {
     case goLive, next, previous, clear
+    /// UI-001: the B key. Toggles Blackout.
+    case blackout
     /// Shift-Escape (R8): hides the words like `clear` and also stops the clip playing over the slide.
     case clearAll
 }
 
 /// The keys the operator window cares about. `init(keyCode:)` maps macOS virtual key codes.
 public enum KeyboardKey: Sendable, Equatable {
-    case returnKey, keypadEnter, space, leftArrow, rightArrow, upArrow, downArrow, escape, deleteKey, other
+    case returnKey, keypadEnter, space, leftArrow, rightArrow, upArrow, downArrow, escape, deleteKey, b, other
 
     public init(keyCode: UInt16) {
         switch keyCode {
@@ -22,6 +24,7 @@ public enum KeyboardKey: Sendable, Equatable {
         case 126: self = .upArrow
         case 125: self = .downArrow
         case 53: self = .escape
+        case 11: self = .b
         case 51, 117: self = .deleteKey          // Delete (backspace) and forward delete
         default: self = .other
         }
@@ -70,6 +73,7 @@ public enum KeyRouting {
         case .leftArrow, .upArrow: return .transport(.previous)
         case .escape: return .transport(shiftDown ? .clearAll : .clear)
         case .deleteKey: return .deleteSelectedObject
+        case .b: return shiftDown ? .passThrough : .transport(.blackout)
         case .other: return .passThrough
         }
     }

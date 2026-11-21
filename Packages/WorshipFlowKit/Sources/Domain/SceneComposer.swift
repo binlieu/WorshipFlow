@@ -78,7 +78,8 @@ public enum SceneComposer {
     private static func themed(_ state: ShowState, theme: Theme, look: ScreenLook, props: [Prop], media: MediaLayers?,
                                 isBroadcast: Bool) -> SceneDescription {
         // A stopped show is empty: black (audience) or transparent (broadcast), no video, no text, no props.
-        guard !state.isStopped else {
+        // Blackout (UI-001) is the same picture: black, or transparent on broadcast, whatever is live.
+        guard !state.isStopped, !state.isBlackedOut else {
             return SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
         }
         var scene = SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
@@ -135,6 +136,7 @@ public enum SceneComposer {
             layers.append(TextLayer(text: clock, style: s.stageClock, frame: s.stageClockFrame,
                                     alignment: .trailing, verticalAlignment: .top))
         }
+        if state.isBlackedOut { layers.append(StageComposer.blackoutLayer(warning: StageLayout.standard.warningColor)) }
         return SceneDescription(backgroundColor: s.stageBackground, showsVideo: false, textLayers: layers)
     }
 

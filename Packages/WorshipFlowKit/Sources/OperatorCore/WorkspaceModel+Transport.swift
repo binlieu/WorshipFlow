@@ -27,6 +27,8 @@ extension WorkspaceModel {
         guard show.liveDeck != nil, show.liveDeck?.presentationID == openPresentationID else { return }
         liveSlideIDs = slides.map(\.id)
         liveSlideNotes = slides.map(\.notes)
+        liveTitle = presentations.first { $0.id == openPresentationID }?.title
+        liveSectionNames = slides.map { slide in slide.groupID.flatMap { id in groups.first { $0.id == id }?.name } }
         liveItemID = selectedPlaylistItemID
     }
 
@@ -85,12 +87,27 @@ extension WorkspaceModel {
         onClearAll?()
     }
 
+    /// UI-001: toggles Blackout. The place and the live deck are kept; a trigger, Next or Previous lifts it.
+    public func blackout() {
+        transportEpoch &+= 1
+        apply(.blackout)
+    }
+
     public func stop() {
         transportEpoch &+= 1
         apply(.stop)
         liveItemID = nil
         liveSlideIDs = []
         liveSlideNotes = []
+        liveTitle = nil
+        liveSectionNames = []
+    }
+
+    /// UI-001: "Amazing Grace · Chorus · slide 3 of 9" for the transport bar; nil when nothing is live.
+    public var livePositionLine: String? {
+        guard let deck = show.liveDeck, let i = show.liveIndex else { return nil }
+        return LiveSummary.positionLine(title: liveTitle, section: liveSectionNames.indices.contains(i) ? liveSectionNames[i] : nil,
+                                        index: i, count: deck.slides.count)
     }
 
     /// Speaker notes of the slide that is live, for the stage screen (LIVE-02); nil when nothing is live or the

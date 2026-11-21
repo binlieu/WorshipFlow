@@ -11,15 +11,10 @@ final class WorkspaceUIState {
     var showQuickEdit = false
     var showSectionOrders = false
     var showThemeEditor = false
-    var showStageEditor = false
-    /// SLIDE-001b: what the editor under the slide grid shows, the slide's words or its objects.
-    enum EditorMode: String, CaseIterable, Identifiable {
-        case words = "Words", objects = "Objects"
-        var id: String { rawValue }
-    }
-    var editorMode = EditorMode.words
+    /// UI-001: the slide grid as thumbnails or as a list.
+    var gridAsList = false
     /// True while anything is open over the workspace, so the transport keys stay out of its way (KI-021).
-    var anySheetOpen: Bool { showImport || showQuickEdit || showSectionOrders || showThemeEditor || showStageEditor }
+    var anySheetOpen: Bool { showImport || showQuickEdit || showSectionOrders || showThemeEditor }
     /// Counters: a view reacts to a change in the number, so a menu command can ask for focus.
     var focusSearch = 0
     var focusTitle = 0

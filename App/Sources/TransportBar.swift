@@ -8,55 +8,153 @@ struct TransportBar: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text(modeText).font(.headline).foregroundStyle(modeColor)
-                .frame(width: 90, alignment: .leading)
-                .accessibilityLabel("Show state: \(modeText)")
-            Text(liveSummary).lineLimit(1).truncationMode(.tail).foregroundStyle(.secondary)
-            Spacer()
-            Button { Task { await workspace.previous() } } label: { Label("Previous", systemImage: "backward.fill") }
-                .help("Left arrow")
-            Button { Task { await workspace.goLive() } } label: { Label("Go Live", systemImage: "play.fill") }
-                .help("Return: take the selected slide live").tint(.red)
-            Button { Task { await workspace.next() } } label: { Label("Next", systemImage: "forward.fill") }
-                .help("Right arrow or Space")
-            Button { workspace.clear() } label: { Label("Clear", systemImage: "rectangle.slash") }
-                .disabled(workspace.show.isStopped).help("Escape: hide the slide on every screen")
-            Button { app.clearAll() } label: { Label("Clear all", systemImage: "rectangle.slash.fill") }
-                .disabled(workspace.show.isStopped).help("Shift-Escape: hide the slide and stop any video playing over it")
-            Button { workspace.stop() } label: { Label("Stop", systemImage: "stop.fill") }
-                .disabled(workspace.show.isStopped).help("Empty every screen")
-            Divider().frame(height: 20)
-            Button { app.ui.showQuickEdit = true } label: { Label("Quick edit live slide", systemImage: "pencil.line") }
-                .disabled(workspace.show.liveSlide == nil)
-                .help("Change the words on screen right now (Command-E)")
-                .popover(isPresented: Binding(get: { app.ui.showQuickEdit }, set: { app.ui.showQuickEdit = $0 }), arrowEdge: .top) {
-                    QuickEditView(workspace: workspace) { app.ui.showQuickEdit = false }
+        HStack(spacing: Space.s3) {
+            stateBadge
+            VStack(alignment: .leading, spacing: 1) {
+                Text(headline).font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.tail)
+                    .foregroundStyle(Tok.text)
+                if let detail { Text(detail).font(.wfCaption).lineLimit(1).truncationMode(.tail).foregroundStyle(Tok.muted) }
+            }
+            .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            Button { Task { await workspace.previous() } } label: { hinted("backward.fill", "Previous", "←") }
+                .buttonStyle(TransportButtonStyle()).help("Left arrow")
+            Button { Task { await workspace.goLive() } } label: { hinted("play.fill", "Go Live", "↩", onFill: true) }
+                .buttonStyle(TransportButtonStyle(prominent: true)).help("Return: take the selected slide live")
+            Button { Task { await workspace.next() } } label: { hinted("forward.fill", "Next", "→") }
+                .buttonStyle(TransportButtonStyle()).help("Right arrow or Space")
+            Divider().frame(height: 26)
+            HStack(spacing: Space.s1) {
+                Button { workspace.clear() } label: { hinted("rectangle.slash", "Clear", "esc") }
+                    .buttonStyle(TransportButtonStyle())
+                    .help("Escape: hide the words on every screen")
+                Menu {
+                    Button("Clear all (also stops a clip)  Shift-Escape") { app.clearAll() }
+                } label: { Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).frame(width: 14).transportChrome() }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    .help("Clear all: hide the words and stop a clip playing over them")
+                    .accessibilityLabel("More clear options")
+            }
+            .disabled(workspace.show.isStopped)
+            Button { app.blackout() } label: { hinted("rectangle.fill", "Blackout", "B") }
+                .buttonStyle(TransportButtonStyle(active: workspace.show.isBlackedOut))
+                .disabled(workspace.show.isStopped)
+                .help("B: every audience screen goes black and every broadcast screen transparent. Press again, or go to another slide, to bring the picture back.")
+                .accessibilityValue(workspace.show.isBlackedOut ? "on" : "off")
+            Button { workspace.stop() } label: { hinted("stop.fill", "Stop", nil) }
+                .buttonStyle(TransportButtonStyle())
+                .disabled(workspace.show.isStopped).help("Empty every screen and drop the live slide")
+            Divider().frame(height: 26)
+            screensButton
+            health
+        }
+        .padding(.horizontal, Space.s5)
+        .frame(height: Space.transportBarHeight)
+        .background(Tok.surface)
+        .overlay(alignment: .top) { Rectangle().fill(Tok.border).frame(height: 1) }
+    }
+
+    private func hinted(_ symbol: String, _ title: String, _ key: String?, onFill: Bool = false) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+            Text(title)
+            if let key { KeyHint(key: key, onFill: onFill) }
+        }
+    }
+
+    // MARK: Pieces
+
+    @ViewBuilder private var stateBadge: some View {
+        switch app.mode {
+        case .live: Text("LIVE").font(.system(size: 12, weight: .bold)).tracking(0.6).foregroundStyle(Tok.onLive)
+            .padding(.horizontal, 10).frame(height: 28).background(Tok.liveFill, in: RoundedRectangle(cornerRadius: Radius.xs))
+            .accessibilityLabel("Show state: live")
+        case .stopped: badge("STOPPED", Tok.muted)
+        case .cleared: badge("CLEARED", Tok.warning)
+        case .blackout: badge("BLACKOUT", Tok.warning)
+        }
+    }
+
+    private func badge(_ text: String, _ color: Color) -> some View {
+        Text(text).font(.system(size: 12, weight: .bold)).tracking(0.6).foregroundStyle(color)
+            .padding(.horizontal, 10).frame(height: 28)
+            .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(color, lineWidth: 1))
+            .accessibilityLabel("Show state: \(text.lowercased())")
+    }
+
+    private var headline: String {
+        switch app.mode {
+        case .stopped: return "Nothing is on the screens"
+        case .cleared: return "Cleared: the screens are blank, your place is kept"
+        case .blackout: return "Blackout: audience screens are black, your place is kept"
+        case .live: return workspace.show.liveSlide.map(LiveSummary.line(for:)) ?? ""
+        }
+    }
+
+    private var detail: String? { app.mode == .stopped ? nil : workspace.livePositionLine }
+
+    private var screensButton: some View {
+        Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
+            Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display")
+        }
+        .buttonStyle(HeaderButtonStyle())
+        .help(app.screensOn ? "Close screens" : "Open screens")
+        .accessibilityLabel(app.screensOn ? "Close screens" : "Open screens")
+    }
+
+    @ViewBuilder private var health: some View {
+        if let h = app.outputHealth {
+            HStack(spacing: 8) {
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(h.rateText).font(.wfMonoData).foregroundStyle(h.needsAttention ? Tok.warning : Tok.text)
+                    Text(h.countsText).font(.wfMonoData).foregroundStyle(Tok.muted)
                 }
-            Divider().frame(height: 20)
-            if app.screensOn {
-                Button("Close screens") { app.stopScreens() }
-            } else {
-                Button("Open screens") { app.startScreens() }
+                if let audio = app.audio { MiniMeter(audio: audio) }
+            }
+            .fixedSize()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Output health: \(h.rateText), \(h.countsText)")
+        } else {
+            Text("screens closed").font(.wfMonoData).foregroundStyle(Tok.muted).fixedSize()
+        }
+    }
+}
+
+extension View {
+    /// The look of a transport button, for controls that are not a plain Button (the Clear menu).
+    func transportChrome() -> some View {
+        self.font(.system(size: 13, weight: .semibold)).foregroundStyle(Tok.text)
+            .padding(.horizontal, 12).frame(height: Space.transportHeight)
+            .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.lg))
+            .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.borderStrong, lineWidth: 1))
+    }
+}
+
+/// Two thin bars: the programme audio level (cyan, never red: red means on screen).
+private struct MiniMeter: View {
+    @Bindable var audio: AudioModel
+
+    var body: some View {
+        let levels = audio.levels
+        HStack(spacing: 2) {
+            ForEach(0..<2, id: \.self) { channel in
+                let rms = channel < levels.rms.count ? levels.rms[channel] : 0
+                GeometryReader { geo in
+                    ZStack(alignment: .bottom) {
+                        RoundedRectangle(cornerRadius: 2).fill(Tok.surface3)
+                        RoundedRectangle(cornerRadius: 2).fill(Tok.cyan).frame(height: geo.size.height * Self.position(rms))
+                    }
+                }
+                .frame(width: 5, height: 30)
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(.bar)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sound level")
     }
 
-    private var modeText: String {
-        switch app.mode { case .stopped: "STOPPED"; case .live: "LIVE"; case .cleared: "CLEARED" }
-    }
-
-    private var modeColor: Color {
-        switch app.mode { case .stopped: .secondary; case .live: .red; case .cleared: .orange }
-    }
-
-    private var liveSummary: String {
-        if let slide = workspace.show.liveSlide {
-            return slide.primary.replacingOccurrences(of: "\n", with: " ")
-        }
-        return app.mode == .cleared ? "Cleared: the screens are blank, your place is kept" : "Nothing is on the screens"
+    private static func position(_ amplitude: Float) -> CGFloat {
+        guard amplitude > 0.000_001 else { return 0 }
+        return CGFloat(min(1, max(0, (20 * log10(Double(amplitude)) + 60) / 60)))
     }
 }
 

@@ -8,6 +8,15 @@ extension WorkspaceModel {
 
     func reloadLibraries() async {
         if let list = await attempt("read the libraries", { try await self.store.libraries() }) { libraries = list }
+        await reloadOverview()
+    }
+
+    /// UI-001: the sidebar's counts and bilingual markers. A failed read leaves the old values: they are decoration.
+    func reloadOverview() async {
+        if let counts = try? await store.presentationCounts() {
+            libraryCounts = Dictionary(uniqueKeysWithValues: libraries.map { ($0.id, counts[$0.id] ?? 0) })
+        }
+        if let ids = try? await store.bilingualPresentationIDs() { bilingualPresentationIDs = ids }
     }
 
     func reloadPresentations() async {
@@ -15,6 +24,7 @@ extension WorkspaceModel {
         if let list = await attempt("read the presentations", { try await self.store.presentations(in: id) }) {
             presentations = list
             learnThemes(of: list)
+            await reloadOverview()
         }
     }
 

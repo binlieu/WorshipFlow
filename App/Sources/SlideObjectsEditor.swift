@@ -16,7 +16,7 @@ struct SlideObjectsEditor: View {
     var body: some View {
         GeometryReader { geo in
             // The canvas takes about half the width (at most 440 points) and the inspector the rest.
-            let canvasWidth = max(220, min(440, geo.size.width * 0.52))
+            let canvasWidth = max(220, min(860, geo.size.width * 0.58, (geo.size.height - 90) * 16 / 9))
             HStack(alignment: .top, spacing: 12) {
                 canvasColumn(width: canvasWidth)
                 Divider()

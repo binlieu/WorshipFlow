@@ -26,7 +26,12 @@ public enum ShowCommand: Sendable, Equatable {
     /// Hides the slide on every screen and keeps the place, like `clear`. The show state is the same; the difference
     /// is outside it: the operator model also stops the foreground clip (R8, "Clear all").
     case clearAll
-    /// Drops the live deck; screens go empty. Preview is kept.
+    /// UI-001: toggles Blackout. Every audience screen goes black and every broadcast screen transparent, background and
+    /// media included; the place, the live deck and the clip transport are kept (stage screens keep their words). Trigger,
+    /// next and previous (when they move), and a second blackout lift it; Clear keeps it and takes effect when it lifts.
+    /// Ignored while nothing is live.
+    case blackout
+    /// Drops the live deck (and ends Blackout); screens go empty. Preview is kept.
     case stop
     /// The one deliberate way to change live text (PRES-07).
     case quickEdit(index: Int, content: SlideContent)
@@ -42,8 +47,13 @@ public struct ShowState: Sendable, Equatable {
     /// Position in `liveDeck`; nil when stopped, kept while cleared.
     public private(set) var liveIndex: Int?
     private var cleared = false
+    private var blackedOut = false
 
     public init() {}
+
+    /// UI-001: Blackout is on. `liveSlide` and `nextSlide` are unchanged (the stage still needs them); the composers
+    /// read this to draw nothing on audience and broadcast screens.
+    public var isBlackedOut: Bool { liveDeck != nil && blackedOut }
 
     public var isStopped: Bool { liveDeck == nil }
     public var isCleared: Bool { liveDeck != nil && cleared }
@@ -73,6 +83,7 @@ public struct ShowState: Sendable, Equatable {
             liveDeck = deck
             liveIndex = index
             cleared = false
+            blackedOut = false
             selectedIndex = index
 
         case .next:
@@ -91,10 +102,15 @@ public struct ShowState: Sendable, Equatable {
             guard liveDeck != nil else { return }
             cleared = true
 
+        case .blackout:
+            guard liveDeck != nil else { return }
+            blackedOut.toggle()
+
         case .stop:
             liveDeck = nil
             liveIndex = nil
             cleared = false
+            blackedOut = false
 
         case .quickEdit(let index, let content):
             guard var deck = liveDeck, deck.slides.indices.contains(index) else { return }
@@ -114,6 +130,7 @@ public struct ShowState: Sendable, Equatable {
     private mutating func moveLive(to index: Int) {
         liveIndex = index
         cleared = false
+        blackedOut = false
         if let live = liveDeck, let preview = previewDeck, live.presentationID == preview.presentationID {
             selectedIndex = index   // the preview follows the show only while it shows the same presentation
         }

@@ -9,12 +9,14 @@ public struct LiveOutputKey: Equatable, Sendable {
     var liveDeck: ShowDeck?
     var liveIndex: Int?
     var isCleared: Bool
+    var isBlackedOut: Bool
     var notes: String?
 
     public init(state: ShowState, notes: String?) {
         liveDeck = state.liveDeck
         liveIndex = state.liveIndex
         isCleared = state.isCleared
+        isBlackedOut = state.isBlackedOut
         self.notes = notes
     }
 }

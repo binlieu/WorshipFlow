@@ -137,7 +137,16 @@ public enum StageComposer {
                                         verticalAlignment: element.verticalAlignment))
             }
         }
+        if context.state.isBlackedOut { layers.append(blackoutLayer(warning: layout.warningColor)) }
         return SceneDescription(backgroundColor: layout.background, showsVideo: false, textLayers: layers)
+    }
+
+    /// UI-001: the word the stage shows while Blackout is on, so the band knows the other screens are dark.
+    static func blackoutLayer(warning: ColorRGBA) -> TextLayer {
+        TextLayer(text: "BLACKOUT",
+                  style: TextStyle(fontName: "Helvetica Neue", fontSize: 48, color: warning),
+                  frame: NormalizedRect(x: 0.30, y: 0.01, width: 0.40, height: 0.08),
+                  alignment: .center, verticalAlignment: .top)
     }
 
     private static func visible(_ text: String?) -> String? {

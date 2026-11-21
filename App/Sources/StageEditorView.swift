@@ -1,4 +1,4 @@
-// STAGE-001b (LIVE-01, SCRN-03): the stage layout editor. The built-in layout is read-only (Duplicate it to edit).
+// STAGE-001b (LIVE-01, SCRN-03) / UI-001: the stage layout editor, now the Stage mode (it was a sheet). The built-in layout is read-only (Duplicate it to edit).
 // Every change is saved at once; the canvas is drawn by the same compositor the screens use. The rules (clamping,
 // read-only, saving) live in `StageModel`; this file only draws and forwards gestures.
 import SwiftUI
@@ -8,10 +8,9 @@ import OperatorCore
 
 private typealias StageAlignment = Domain.TextAlignment
 
-struct StageEditorSheet: View {
+struct StageEditorView: View {
     let app: AppModel
     @Bindable var stage: StageModel
-    @Environment(\.dismiss) private var dismiss
     @State private var layoutID = StageLayout.standardID
     @State private var elementID: UUID?
     @State private var nameText = ""
@@ -29,7 +28,6 @@ struct StageEditorSheet: View {
             HStack {
                 Text("Stage layouts").font(.title3.bold())
                 Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             HStack(alignment: .top, spacing: 16) {
                 layoutList.frame(width: 210)
@@ -46,7 +44,7 @@ struct StageEditorSheet: View {
             }
         }
         .padding(18)
-        .frame(width: 1120, height: 700)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear { nameText = layout.name }
         .onChange(of: layoutID) { _, _ in
             elementID = nil
