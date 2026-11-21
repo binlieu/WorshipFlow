@@ -114,7 +114,8 @@ public enum StageEditing {
         state.apply(.load(deck))
         state.apply(.trigger(index: 0))
         let context = StageContext(state: state, now: now, timeOfDayText: timeOfDayText, timers: timers,
-                                   message: sampleLines.message, notes: sampleLines.notes)
+                                   message: layout.elements.contains { $0.kind == .message } ? sampleLines.message : nil,   // the canvas shows the layout, not the banner a layout without a message element gets
+                                   notes: sampleLines.notes)
         return StageComposer.scene(layout: layout, context: context)
     }
 }

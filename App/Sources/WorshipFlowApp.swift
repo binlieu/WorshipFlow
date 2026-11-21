@@ -148,7 +148,8 @@ struct WorkspaceCommands: Commands {
             Button("Blackout (B)") { app.blackout() }
             Button("Stop") { app.stopShow() }
             Divider()
-            Button("Quick Edit Live Slide…") { app.requestQuickEdit() }.keyboardShortcut("e")
+            Button("Quick Edit…") { app.openQuickEdit() }.keyboardShortcut("e")
+            Button(QuickEditLabels.liveMenuTitle) { app.requestLiveQuickEdit() }.keyboardShortcut("e", modifiers: [.command, .option])
         }
     }
 }

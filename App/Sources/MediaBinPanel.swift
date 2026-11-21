@@ -20,6 +20,20 @@ struct MediaBinPanel: View {
             HStack {
                 Text(MediaBinCategories.title(for: media.kindFilter)).font(.system(size: 20, weight: .bold))
                 Spacer()
+                // UI-003: the same choice as the Show dock. It decides what a double-click on a tile does.
+                HStack(spacing: 0) {
+                    ForEach(MediaLayerChoice.allCases) { choice in
+                        let on = app.ui.dockLayer == choice
+                        Button { app.ui.dockLayer = choice } label: {
+                            Text(choice.title).font(.system(size: 12, weight: on ? .semibold : .regular)).fixedSize()
+                                .padding(.horizontal, 9).frame(height: 22).foregroundStyle(on ? Tok.text : Tok.muted)
+                                .background(on ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.sm))
+                        }.buttonStyle(.plain).accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+                    }
+                }
+                .padding(2).background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
+                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.border, lineWidth: 1))
+                .help("Double-click a tile: put it behind the words, or play it over them")
                 Button { app.chooseMedia() } label: { Label("Import…", systemImage: "plus") }
                     .buttonStyle(HeaderButtonStyle())
                     .help("Add pictures and videos to the bin (or drop files here)")
@@ -39,7 +53,7 @@ struct MediaBinPanel: View {
                             .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(live(asset) ? Tok.liveFill : (selected == asset.id ? Tok.blue : .clear), lineWidth: 2))
                             .contentShape(Rectangle())
                             .contextMenu { menu(for: asset) }
-                            .onTapGesture(count: 2) { selected = asset.id; if asset.kind != .audio { media.setBackground(asset.id) } }
+                            .onTapGesture(count: 2) { selected = asset.id; app.performDockAction(MediaDock.action(for: asset, layer: app.ui.dockLayer)) }
                             .onTapGesture { selected = asset.id }
                             .accessibilityAddTraits(selected == asset.id ? [.isSelected, .isButton] : .isButton)
                             .accessibilityAction { selected = asset.id }
@@ -68,7 +82,7 @@ struct MediaBinPanel: View {
                     Button("Clear background") { media.clearBackground() }.controlSize(.small)
                 }
             }
-            Text("Double-click sets the background. Right-click for more. Backgrounds show on screens whose theme uses a motion background.")
+            Text("Double-click does what the layer choice above says. Right-click for more. Backgrounds show on screens whose theme uses a motion background.")
                 .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(6)

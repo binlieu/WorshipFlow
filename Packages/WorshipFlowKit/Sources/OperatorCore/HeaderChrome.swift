@@ -7,25 +7,29 @@ public enum HeaderChrome {
     public static func showsLabels(availableWidth: Double, labelledWidth: Double) -> Bool { availableWidth >= labelledWidth }
 
     public enum Control: CaseIterable, Sendable {
-        case addSlide, reflow, addToPlaylist, quickEdit, themes, sectionOrders
+        case addSlide, reflow, addToPlaylist, quickEdit, editLiveSlide, themes, sectionOrders
 
         public var title: String {
             switch self {
             case .addSlide: "Add slide"
             case .reflow: "Reflow…"
             case .addToPlaylist: "Add to playlist"
-            case .quickEdit: "Quick edit"
+            case .quickEdit: QuickEditLabels.previewTitle
+            case .editLiveSlide: QuickEditLabels.liveTitle
             case .themes: "Themes…"
             case .sectionOrders: "Section orders…"
             }
         }
-        public var keyHint: String? { self == .quickEdit ? "⌘E" : nil }
+        public var keyHint: String? {
+            switch self { case .quickEdit: QuickEditLabels.previewShortcut; case .editLiveSlide: QuickEditLabels.liveShortcut; default: nil }
+        }
         public var tooltip: String {
             switch self {
             case .addSlide: "Add a slide after the selected one"
             case .reflow: "Re-flow the lyrics of this song"
             case .addToPlaylist: "Add this song to the playlist"
-            case .quickEdit: "Quick edit (Command-E): change the words on screen right now. This is the one edit that reaches the live screens."
+            case .quickEdit: "Quick edit (Command-E): edit the selected slide in the side panel. Preview only; the screens change when you go live with it. To change what is on screen now, use Edit live slide (Option-Command-E)."
+            case .editLiveSlide: "Edit live slide (Option-Command-E): \(QuickEditLabels.liveWarning)"
             case .themes: "Create and edit themes"
             case .sectionOrders: "Section orders of the open song"
             }

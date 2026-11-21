@@ -5,13 +5,13 @@ Updated: 2026-11-21 (afternoon)
 ## State
 
 - Public repository: github.com/binlieu/WorshipFlow, Apache 2.0, every commit authored as Simon Lieu <me@simonlieu.com> (repo-local git config). A local-only tag `backup/pre-rewrite-2026-11-21` holds the pre-rewrite history and must never be pushed. Push `main` only.
-- 1935 package tests; `./scripts/check.sh` passes except for one intermittent failure under load (KI-079), being fixed in UI-003.
+- Package tests: see `AI/reports/UI-003-report.md` for the count and the five consecutive full runs after the UI-003 work. KI-079 is closed (a test rig race).
 - The owner used the app on 2026-11-21 (imported a song; "everything working so far") and has a real library at `~/Library/Application Support/WORSHIPFLOW/`. **Never launch the app without a temporary `--library`; never touch that folder.**
 - The owner's design session (a cloud session, not reachable by SendMessage) writes into `docs/UI`. Design revision 2 is committed. Do not edit `docs/UI`; commit the owner's changes to it separately.
 
 ## In flight
 
-- **UI-003** (brief `AI/specs/UI-003-design-revision-2.md`): bring the app to design revision 2 (media dock and controller in Show, search in the sidebar, timers in the toolbar, tabbed inspector, quick edit tab, stage message) and fix KI-079. Report lands in `AI/reports/UI-003-report.md`. Coordinator then re-runs the check, confirms coordinator-owned tests, `docs/UI`, `docs/adr` and vendor files are untouched, commits and pushes.
+- **UI-003 is implemented and waiting for review and commit** (report `AI/reports/UI-003-report.md`). Brief `AI/specs/UI-003-design-revision-2.md`): bring the app to design revision 2 (media dock and controller in Show, search in the sidebar, timers in the toolbar, tabbed inspector, quick edit tab, stage message) and fix KI-079. Report lands in `AI/reports/UI-003-report.md`. Coordinator then re-runs the check, confirms coordinator-owned tests, `docs/UI`, `docs/adr` and vendor files are untouched, commits and pushes.
 
 ## Next safe tasks, in order
 

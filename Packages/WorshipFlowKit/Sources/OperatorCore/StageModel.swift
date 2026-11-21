@@ -33,6 +33,15 @@ public final class StageModel {
     public internal(set) var isLoaded = false
     /// Which layout each stage screen shows. A screen that is not here shows the built-in layout.
     public internal(set) var layoutChoices: [UUID: UUID] = [:]
+    /// UI-003 (LIVE-03): the message on the stage screens now, nil when none. Never stored: a relaunch starts without one.
+    public internal(set) var stageMessage: String?
+    /// The last few messages sent, newest first, for reuse.
+    public internal(set) var recentMessages: [String] = []
+    /// UI-003: the timers the operator marked for the toolbar; nil means the defaults (first elapsed, first countdown).
+    @ObservationIgnored var toolbarMarks: [UUID]?
+    /// Read by the toolbar: bumped when the choice changes.
+    public internal(set) var toolbarRevision = 0
+    @ObservationIgnored var showWasStopped = true
 
     /// The built-in layout first, then the operator's own.
     public var layouts: [StageLayout] { [StageLayout.standard] + customLayouts }
@@ -50,10 +59,13 @@ public final class StageModel {
 
     static let choicesKey = "stage.layoutChoices"
     static let clockKey = "stage.clockStyle"
+    static let messagesKey = "stage.recentMessages"
+    static let toolbarKey = "stage.toolbarTimers"
+    public static let recentMessageLimit = 5
     public static let readOnlyMessage = "The built-in layout cannot be changed. Choose Duplicate to make your own copy, then edit that."
 
-    private enum Write: Equatable {
-        case layout(UUID), timer(UUID), deleteLayout(UUID), deleteTimer(UUID), choices, clock
+    enum Write: Equatable {
+        case layout(UUID), timer(UUID), deleteLayout(UUID), deleteTimer(UUID), choices, clock, messages, toolbar
     }
 
     /// - Parameters:
@@ -83,6 +95,14 @@ public final class StageModel {
         if let text = try? await store.state(for: Self.clockKey), let data = text.data(using: .utf8),
            let style = try? JSONDecoder().decode(ClockStyle.self, from: data) {
             clockStyle = style
+        }
+        if let text = try? await store.state(for: Self.messagesKey), let data = text.data(using: .utf8),
+           let stored = try? JSONDecoder().decode([String].self, from: data) {
+            recentMessages = Array(stored.prefix(Self.recentMessageLimit))
+        }
+        if let text = try? await store.state(for: Self.toolbarKey), let data = text.data(using: .utf8),
+           let stored = try? JSONDecoder().decode([String].self, from: data) {
+            toolbarMarks = stored.compactMap(UUID.init(uuidString:))
         }
         isLoaded = true
     }
@@ -355,6 +375,11 @@ public final class StageModel {
         timers.remove(at: i)
         queue.removeAll { $0 == .timer(id) }
         enqueue(.deleteTimer(id))
+        if let marks = toolbarMarks, marks.contains(id) {
+            toolbarMarks = marks.filter { $0 != id }
+            toolbarRevision &+= 1
+            enqueue(.toolbar)
+        }
         onChange?()
     }
 
@@ -392,7 +417,7 @@ public final class StageModel {
 
     // MARK: Scenes (LIVE-02, SCRN-03)
 
-    /// The scene of one stage screen. `notes` are the live slide's speaker notes; the stage message is not used yet.
+    /// The scene of one stage screen. `notes` are the live slide's speaker notes; the stage message is the one sent from the Show inspector.
     public func stageScene(forScreen screenID: UUID, state: ShowState, notes: String?) -> SceneDescription {
         scene(layout: layout(forScreen: screenID), state: state, notes: notes)
     }
@@ -400,7 +425,7 @@ public final class StageModel {
     public func scene(layout: StageLayout, state: ShowState, notes: String?) -> SceneDescription {
         let date = now
         let context = StageContext(state: state, now: date.timeIntervalSinceReferenceDate,
-                                   timeOfDayText: timeOfDayText(at: date), timers: timers, message: nil, notes: notes)
+                                   timeOfDayText: timeOfDayText(at: date), timers: timers, message: stageMessage, notes: notes)
         return StageComposer.scene(layout: layout, context: context)
     }
 
@@ -424,6 +449,8 @@ public final class StageModel {
     }
 
     // MARK: Writing
+
+    func enqueueWrite(_ write: Write) { enqueue(write) }
 
     private func enqueue(_ write: Write) {
         if !queue.contains(write) { queue.append(write) }
@@ -459,6 +486,13 @@ public final class StageModel {
             let stored = Dictionary(uniqueKeysWithValues: layoutChoices.map { ($0.key.uuidString, $0.value.uuidString) })
             guard let data = try? JSONEncoder().encode(stored), let text = String(data: data, encoding: .utf8) else { return }
             _ = await attempt("remember the stage layouts") { try await self.store.setState(text, for: Self.choicesKey) }
+        case .messages:
+            guard let data = try? JSONEncoder().encode(recentMessages), let text = String(data: data, encoding: .utf8) else { return }
+            _ = await attempt("remember the stage messages") { try await self.store.setState(text, for: Self.messagesKey) }
+        case .toolbar:
+            guard let marks = toolbarMarks, let data = try? JSONEncoder().encode(marks.map(\.uuidString)),
+                  let text = String(data: data, encoding: .utf8) else { return }
+            _ = await attempt("remember the toolbar timers") { try await self.store.setState(text, for: Self.toolbarKey) }
         case .clock:
             guard let data = try? JSONEncoder().encode(clockStyle), let text = String(data: data, encoding: .utf8) else { return }
             _ = await attempt("remember the clock style") { try await self.store.setState(text, for: Self.clockKey) }

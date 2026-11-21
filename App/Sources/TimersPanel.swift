@@ -74,6 +74,11 @@ struct TimersPanel: View {
                     }
                     HStack(spacing: 6) {
                         Text(row.kindLabel).font(.caption).foregroundStyle(.secondary)
+                        Toggle(isOn: Binding(get: { stage.isShownInToolbar(row.id) }, set: { stage.setShownInToolbar(row.id, $0) })) {
+                            Image(systemName: "menubar.rectangle")
+                        }
+                        .toggleStyle(.button).help("Show this timer in the toolbar, in every mode")
+                        .accessibilityLabel("Show \(row.name) in the toolbar")
                         Spacer()
                         if !row.followsClock {
                             if row.isRunning {

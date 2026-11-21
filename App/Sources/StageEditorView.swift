@@ -86,6 +86,9 @@ struct StageEditorView: View {
                 Button { pendingDelete = true } label: { Text("Delete…") }.buttonStyle(HeaderButtonStyle()).disabled(!editable)
             }
             .padding(Space.s4)
+            // UI-003: the stage message composer is here too (the design's Stage mode), the same one the Show inspector has.
+            Rectangle().fill(Tok.border).frame(height: 1)
+            StageMessageView(stage: stage).padding(Space.s4)
         }
         .background(Tok.surface)
     }

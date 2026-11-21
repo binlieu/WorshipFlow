@@ -6,65 +6,22 @@ import OperatorCore
 struct CentrePane: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
-    let query: String
-    let clearQuery: () -> Void
 
     var body: some View {
-        Group {
-            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                SearchResultsView(workspace: workspace, query: query, open: { hit in
-                    clearQuery()
-                    Task { await workspace.openSearchResult(hit) }
-                })
-            } else if workspace.openPresentationID == nil {
-                VStack(spacing: 8) {
-                    Image(systemName: "music.note.list").font(.largeTitle).foregroundStyle(Tok.muted)
-                    Text("Choose a song from the library or the playlist").font(.title3)
-                    Text("Command-N makes a new presentation. Command-I imports lyrics. Command-F searches.")
-                        .font(.caption).foregroundStyle(Tok.muted)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                VStack(spacing: 0) {
-                    ShowHeader(app: app, workspace: workspace)
-                    Divider()
-                    if app.ui.gridAsList { SlideList(app: app, workspace: workspace) } else { SlideGrid(app: app, workspace: workspace) }
-                    Divider()
-                    CompactWordsEditor(workspace: workspace)
-                }
+        // Search lives at the top of the sidebar's Libraries section (UI-003); this pane is the open presentation only.
+        if workspace.openPresentationID == nil {
+            VStack(spacing: 8) {
+                Image(systemName: "music.note.list").font(.largeTitle).foregroundStyle(Tok.muted)
+                Text("Choose a song from the library or the playlist").font(.title3)
+                Text("Command-N makes a new presentation. Command-I imports lyrics. Command-F searches.")
+                    .font(.caption).foregroundStyle(Tok.muted)
             }
-        }
-        // Quick edit (Command-E) opens here, whichever of the above is showing, so it can never be left open off screen.
-        .popover(isPresented: Binding(get: { app.ui.showQuickEdit }, set: { app.ui.showQuickEdit = $0 }), arrowEdge: .top) {
-            QuickEditView(workspace: workspace) { app.ui.showQuickEdit = false }
-        }
-    }
-}
-
-struct SearchResultsView: View {
-    let workspace: WorkspaceModel
-    let query: String
-    let open: (SearchHit) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Results for \"\(query)\"").font(.headline).padding(12)
-            Divider()
-            if workspace.searchResults.isEmpty {
-                Text("Nothing found. Searching ignores accents and capital letters.")
-                    .foregroundStyle(.secondary).padding(16)
-                Spacer()
-            } else {
-                List(workspace.searchResults) { hit in
-                    Button { open(hit) } label: {
-                        HStack {
-                            Image(systemName: hit.matchedTitle ? "textformat" : "text.alignleft").foregroundStyle(.secondary)
-                            Text(hit.title)
-                            Spacer()
-                            Text(hit.matchedTitle ? "Title" : "Lyrics").font(.caption).foregroundStyle(.secondary)
-                        }.contentShape(Rectangle())
-                    }.buttonStyle(.plain)
-                }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(spacing: 0) {
+                ShowHeader(app: app, workspace: workspace)
+                Divider()
+                if app.ui.gridAsList { SlideList(app: app, workspace: workspace) } else { SlideGrid(app: app, workspace: workspace) }
             }
         }
     }
@@ -129,8 +86,8 @@ struct ShowHeader: View {
             HeaderControlButton(control: .addToPlaylist, symbol: "text.badge.plus", compact: true) {
                 if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
             }
-            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact) { app.ui.showQuickEdit = true }
-                .disabled(workspace.show.liveSlide == nil)
+            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact) { app.openQuickEdit() }
+                .disabled(workspace.slides.isEmpty)
             Picker("View", selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 })) {
                 Image(systemName: "square.grid.2x2").tag(false).accessibilityLabel("Grid")
                 Image(systemName: "list.bullet").tag(true).accessibilityLabel("List")
@@ -199,11 +156,10 @@ struct SlideGrid: View {
             }
     }
 
-    /// As many columns as fit with thumbnails at least 190 pt wide, so a row of slides never collapses to one column.
+    /// Five thumbnails across at the design's window size, more when wider, never fewer than one (`SlideGridLayout`).
     private func columns(for width: CGFloat) -> [GridItem] {
-        let usable = max(0, width - 2 * Space.s5)
-        let count = max(1, Int((usable + Space.s4) / (190 + Space.s4)))
-        return Array(repeating: GridItem(.flexible(minimum: 120, maximum: 300), spacing: Space.s4, alignment: .top), count: count)
+        let count = SlideGridLayout.columnCount(width: Double(width))
+        return Array(repeating: GridItem(.flexible(minimum: 100, maximum: 300), spacing: SlideGridLayout.spacing, alignment: .top), count: count)
     }
 
     @ViewBuilder private func grid(width: CGFloat) -> some View {
@@ -216,7 +172,7 @@ struct SlideGrid: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(sectionRuns(workspace)) { run in
                         SectionHeader(run: run)
-                        LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: Space.s4) {
+                        LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: SlideGridLayout.spacing) {
                             ForEach(run.indices, id: \.self) { i in
                                 cell(i, color: run.tone.color).id(i)
                             }
@@ -287,6 +243,7 @@ struct SlideGrid: View {
 
     @ViewBuilder private func slideMenu(_ i: Int) -> some View {
         Button("Go Live") { workspace.goLive(at: i) }
+        Button("Quick edit") { workspace.selectSlide(i); app.openQuickEdit() }
         Divider()
         Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
         Button("Move later") { Task { await workspace.moveSlide(from: i, to: i + 1) } }.disabled(i == workspace.slides.count - 1)
@@ -340,33 +297,6 @@ struct SlideList: View {
 
 // MARK: Editors
 
-/// The compact words editor under the Show grid: the first language, the second language and the speaker notes of
-/// the selected slide. It edits the preview only.
-struct CompactWordsEditor: View {
-    @Bindable var workspace: WorkspaceModel
-
-    var body: some View {
-        let index = workspace.show.selectedIndex
-        VStack(alignment: .leading, spacing: 6) {
-            if workspace.slides.indices.contains(index) {
-                HStack(spacing: 8) {
-                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.system(size: 14, weight: .semibold))
-                    Badge(text: "IN PREVIEW", style: .outline(Tok.blue))
-                    Spacer()
-                    Text("Editing here changes Preview only. The audience sees it when you go live again.")
-                        .font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(1)
-                }
-                WordsFields(workspace: workspace, slide: workspace.slides[index], minHeight: 52)
-            } else {
-                Text("Select a slide to edit its words.").foregroundStyle(Tok.muted)
-            }
-        }
-        .padding(Space.s4)
-        .frame(height: 158)
-        .background(Tok.surface)
-    }
-}
-
 /// Three fields that keep the slide's objects: only the text changes.
 struct WordsFields: View {
     @Bindable var workspace: WorkspaceModel
@@ -396,13 +326,24 @@ struct WordsFields: View {
     }
 
     private func field(_ label: String, text: Binding<String>) -> some View {
-        TextEditor(text: text).font(.system(size: 13)).scrollContentBackground(.hidden)
+        WordsEditorField(label: label, text: text, minHeight: minHeight)
+    }
+}
+
+/// One multi-line words field: used by the Edit mode's three fields and by the Quick edit tab.
+struct WordsEditorField: View {
+    let label: String
+    @Binding var text: String
+    var minHeight: CGFloat = 52
+
+    var body: some View {
+        TextEditor(text: $text).font(.system(size: 13)).scrollContentBackground(.hidden)
             .padding(4)
             .frame(minHeight: minHeight)
             .background(Tok.bg, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
             .overlay(alignment: .topLeading) {
-                if text.wrappedValue.isEmpty {
+                if text.isEmpty {
                     Text(label).font(.system(size: 13)).foregroundStyle(Tok.muted).padding(.horizontal, 9).padding(.vertical, 12)
                         .allowsHitTesting(false)
                 }

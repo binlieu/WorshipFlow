@@ -70,6 +70,13 @@ public final class MediaModel {
     public private(set) var isMutedByBlackout = false
     /// True while a slide is live or cleared. A clip is only played over a running show, and stops with it.
     public private(set) var showIsLive = false
+    /// UI-003: the clip over the slide starts again when it ends, until it is stopped or replaced. Only ever true while
+    /// the clip it was chosen for is still the foreground.
+    public var foregroundLoops: Bool {
+        guard let id = loopingAssetID else { return false }
+        return layers.foreground?.selection.assetID == id
+    }
+    private var loopingAssetID: UUID?
 
     public var visibleAssets: [MediaAsset] {
         guard let kindFilter else { return assets }
@@ -229,7 +236,22 @@ public final class MediaModel {
             lastError = "Take a slide live first, then play \"\(asset.name)\": the screens are stopped, so nobody would see it."
             return
         }
+        loopingAssetID = nil                      // a new clip plays once unless the operator asks otherwise
         layers.startForeground(MediaSelection(asset: asset), at: now())
+        layersChanged()
+    }
+
+    /// UI-003: loop or stop looping the clip over the slide. Nothing is playing: nothing to loop.
+    public func setForegroundLoops(_ on: Bool) {
+        guard let f = layers.foreground else { loopingAssetID = nil; return }
+        loopingAssetID = on ? f.selection.assetID : nil
+    }
+
+    /// UI-003: back to the start of the clip, playing.
+    public func restartForeground() {
+        guard layers.foreground != nil else { return }
+        layers.seekForeground(to: 0, at: now())
+        layers.resumeForeground(at: now())
         layersChanged()
     }
 
@@ -252,15 +274,54 @@ public final class MediaModel {
     }
 
     public func stopForeground() {
+        loopingAssetID = nil
         guard layers.foreground != nil else { return }
         layers.stopForeground()
         layersChanged()
     }
 
+    // MARK: Background loop controls (UI-003)
+
+    public func pauseBackground() {
+        guard layers.background != nil else { return }
+        layers.pauseBackground(at: now())
+        layersChanged()
+    }
+
+    public func resumeBackground() {
+        guard layers.background != nil else { return }
+        layers.resumeBackground(at: now())
+        layersChanged()
+    }
+
+    public func seekBackground(to seconds: Double) {
+        guard layers.background != nil else { return }
+        layers.seekBackground(to: seconds, at: now())
+        layersChanged()
+    }
+
+    public func restartBackground() {
+        guard layers.background != nil else { return }
+        layers.seekBackground(to: 0, at: now())
+        layers.resumeBackground(at: now())
+        layersChanged()
+    }
+
+    /// The background video's clock for the controller row. Nil for a picture, or with no background.
+    public func backgroundReadout(at time: Double? = nil) -> ForegroundReadout? {
+        guard let b = layers.background, b.selection.kind == .video else { return nil }
+        let t = time ?? now()
+        return ForegroundReadout(assetID: b.selection.assetID, name: asset(b.selection.assetID)?.name ?? "Background",
+                                 status: b.transport.status(at: t), position: b.transport.position(at: t),
+                                 duration: b.transport.duration, remaining: b.transport.remaining(at: t))
+    }
+
     /// Ends a clip that has finished. Returns true when something changed (the words come back on the screens).
     @discardableResult
     public func tick(now at: Double? = nil) -> Bool {
-        guard layers.tick(at: at ?? now()) else { return false }
+        let t = at ?? now()
+        if restartLoopingClipIfEnded(at: t) { return true }
+        guard layers.tick(at: t) else { return false }
         layersChanged()
         return true
     }
@@ -274,9 +335,22 @@ public final class MediaModel {
         let t = at ?? now()
         let transport = foreground.transport
         if transport.duration > 0, transport.remaining(at: t) > 1.0 { return false }
+        if foregroundLoops { restartForegroundNow(foreground, at: t); return true }
         layers.stopForeground()
         layersChanged()
         return true
+    }
+
+    /// A clip set to loop that reached its end plays again from the start instead of leaving the screens.
+    private func restartLoopingClipIfEnded(at t: Double) -> Bool {
+        guard foregroundLoops, let f = layers.foreground, f.transport.status(at: t) == .ended else { return false }
+        restartForegroundNow(f, at: t)
+        return true
+    }
+
+    private func restartForegroundNow(_ f: MediaLayer, at t: Double) {
+        layers.startForeground(f.selection, at: t)
+        layersChanged()
     }
 
     /// Position, duration and status of the foreground clip at `time` (now by default); nil when there is none.

@@ -14,17 +14,21 @@ import Persistence
         let store: LibraryStore
         let model: WorkspaceModel
         let clock = Clock()
+        /// UI-003 (KI-079): the model saves its place on this clock, which only moves when a test moves it, so no write
+        /// from the first session can land at a random moment of a later relaunch.
+        let saveClock: ManualSaveClock
         let songA: Presentation
         let songB: Presentation
     }
 
     func rig() async throws -> Rig {
         let store = try LibraryStore.inMemory()
-        let model = WorkspaceModel(store: store)
+        let saveClock = ManualSaveClock()
+        let model = WorkspaceModel(store: store, clock: saveClock)
         await model.load()
         let a = try #require(await model.importLyrics(title: "A", primaryText: "a1\n\na2", secondaryText: nil, maxLines: 1))
         let b = try #require(await model.importLyrics(title: "B", primaryText: "b1\n\nb2", secondaryText: nil, maxLines: 1))
-        let r = Rig(store: store, model: model, songA: a, songB: b)
+        let r = Rig(store: store, model: model, saveClock: saveClock, songA: a, songB: b)
         model.countdownClock = { [clock = r.clock] in clock.now }
         return r
     }
@@ -151,13 +155,35 @@ import Persistence
         #expect(r.model.liveCountdown == nil && r.model.show.isStopped)
     }
 
+    /// Stores `place` as the last saved place, the way a quit would have left it. The first session's own pending place
+    /// write goes first (a real quit flushes it), so nothing older can overwrite the stored value afterwards.
+    func leaveBehind(_ place: WorkspacePlace, in r: Rig) async throws {
+        await r.model.flush()
+        try await r.store.setState(String(data: JSONEncoder().encode(place), encoding: .utf8) ?? "", for: WorkspaceModel.placeKey)
+    }
+
+    /// KI-079, deterministic: the earlier session's debounced place write used to fire at an arbitrary moment (a real
+    /// half-second timer) and replace the stored place between the test storing it and the relaunch reading it. Here
+    /// the timer is driven by hand, in the worst order: the delay passes between storing the place and relaunching.
+    @Test func anEarlierSessionsPendingPlaceWriteCannotReplaceTheStoredPlace() async throws {
+        let r = try await rig()
+        await build(r, ["H", "A"])
+        let header = r.model.playlistItems[0].id
+        try await leaveBehind(WorkspacePlace(libraryID: r.model.selectedLibraryID, playlistID: r.model.selectedPlaylistID,
+                                             playlistItemID: header, presentationID: nil, slideIndex: 0), in: r)
+        await r.saveClock.advance(by: 10)
+        let second = WorkspaceModel(store: r.store)
+        await second.load()
+        #expect(second.selectedPlaylistItemID == second.playlistItems[1].id)
+    }
+
     @Test func relaunchOnAHeaderLandsOnTheNextPlayableItem() async throws {
         let r = try await rig()
         await build(r, ["H", "A"])
         let header = r.model.playlistItems[0].id
         let place = WorkspacePlace(libraryID: r.model.selectedLibraryID, playlistID: r.model.selectedPlaylistID,
                                    playlistItemID: header, presentationID: nil, slideIndex: 0)
-        try await r.store.setState(String(data: JSONEncoder().encode(place), encoding: .utf8) ?? "", for: WorkspaceModel.placeKey)
+        try await leaveBehind(place, in: r)
         let second = WorkspaceModel(store: r.store)
         await second.load()
         #expect(second.selectedPlaylistItemID == second.playlistItems[1].id)
@@ -170,7 +196,7 @@ import Persistence
         let countdown = r.model.playlistItems[1].id
         let place = WorkspacePlace(libraryID: r.model.selectedLibraryID, playlistID: r.model.selectedPlaylistID,
                                    playlistItemID: countdown, presentationID: nil, slideIndex: 0)
-        try await r.store.setState(String(data: JSONEncoder().encode(place), encoding: .utf8) ?? "", for: WorkspaceModel.placeKey)
+        try await leaveBehind(place, in: r)
         let second = WorkspaceModel(store: r.store)
         await second.load()
         #expect(second.selectedPlaylistItemID == countdown && second.show.isStopped && second.liveCountdown == nil)

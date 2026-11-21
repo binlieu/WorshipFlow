@@ -72,6 +72,11 @@ public struct MediaLayers: Sendable, Equatable, Codable, Hashable {
     public mutating func seekForeground(to seconds: Double, at now: Double) { foreground?.transport.seek(to: seconds, at: now) }
     public mutating func stopForeground() { foreground = nil }
 
+    // UI-003: the background loop answers to the same controls as the clip (the media controller row drives either).
+    public mutating func pauseBackground(at now: Double) { background?.transport.pause(at: now) }
+    public mutating func resumeBackground(at now: Double) { background?.transport.play(at: now) }
+    public mutating func seekBackground(to seconds: Double, at now: Double) { background?.transport.seek(to: seconds, at: now) }
+
     /// Removes a foreground that has ended. Returns true when something changed.
     @discardableResult
     public mutating func tick(at now: Double) -> Bool {

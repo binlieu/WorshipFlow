@@ -30,6 +30,8 @@ public final class SettingsModel {
     public internal(set) var showSimulatedSDIDevice = false
     /// UI-002: System, Dark or Light. Output colours never follow it.
     public internal(set) var appearance = AppearanceChoice.default
+    /// UI-003: the media dock under the slide grid in Show: height and collapsed state.
+    public internal(set) var mediaDock = MediaDockState()
 
     /// Built-in themes first, then the custom ones.
     public var themes: [Theme] { Theme.builtIn + customThemes }
@@ -57,6 +59,7 @@ public final class SettingsModel {
     static let legacyImportKey = "settings.legacyImport"
     static let simulatedSDIKey = "developer.showSimulatedSDI"
     static let appearanceKey = "settings.appearance"
+    static let mediaDockKey = "settings.mediaDock"
 
     /// - Parameters:
     ///   - legacy: the old JSON files to import once into empty tables; nil skips the import.
@@ -111,6 +114,10 @@ public final class SettingsModel {
             ?? stored[0].id
         showSimulatedSDIDevice = (try? await store.state(for: Self.simulatedSDIKey)) == "on"
         appearance = AppearanceChoice.restored(from: try? await store.state(for: Self.appearanceKey))
+        if let text = try? await store.state(for: Self.mediaDockKey), let data = text.data(using: .utf8),
+           let stored = try? JSONDecoder().decode(MediaDockState.self, from: data), stored.height.isFinite, stored.height > 0 {
+            mediaDock = stored
+        }
         isLoaded = true
     }
 
@@ -193,6 +200,26 @@ public final class SettingsModel {
         guard choice != appearance else { return }
         appearance = choice
         persist(key: "appearance", "remember the appearance") { [store] in try await store.setState(choice.rawValue, for: Self.appearanceKey) }
+    }
+
+    // MARK: Media dock (UI-003)
+
+    public func setMediaDock(height: Double) {
+        guard height.isFinite, height > 0, height != mediaDock.height else { return }
+        mediaDock.height = height
+        persistMediaDock()
+    }
+
+    public func setMediaDock(collapsed: Bool) {
+        guard collapsed != mediaDock.isCollapsed else { return }
+        mediaDock.isCollapsed = collapsed
+        persistMediaDock()
+    }
+
+    private func persistMediaDock() {
+        let state = mediaDock
+        guard let data = try? JSONEncoder().encode(state), let text = String(data: data, encoding: .utf8) else { return }
+        persist(key: "mediaDock", "remember the media dock") { [store] in try await store.setState(text, for: Self.mediaDockKey) }
     }
 
     // MARK: Developer settings (HW-002)

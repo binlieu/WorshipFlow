@@ -3,7 +3,7 @@
 # The app is ad-hoc signed (no Apple Developer account): the tester approves it once in System Settings.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DD="$HOME/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-release"
+DD="$HOME/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-package"   # its own folder, so packaging never rebuilds an app that is running
 STAMP="$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
 OUT="dist/WORSHIPFLOW-hardware-test-$STAMP"
 xcodegen generate --quiet

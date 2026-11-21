@@ -34,10 +34,12 @@ private enum PendingDelete: Equatable {
 struct LibrarySidebar: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
+    /// The search text (UI-003): owned by the window, so Command-F and Escape can reach it.
+    @Binding var query: String
+    var searchFocused: FocusState<Bool>.Binding
     @State private var prompt: NamePrompt?
     @State private var promptText = ""
     @State private var pendingDelete: PendingDelete?
-    @State private var filter = ""
     @State private var countdownEditing: CountdownEdit?
 
     var body: some View {
@@ -68,7 +70,10 @@ struct LibrarySidebar: View {
 
     // MARK: Library
 
-    private var visiblePresentations: [Presentation] { LibraryFilter.apply(filter, to: workspace.presentations, title: \.title) }
+    /// The library, or while a search is typed the presentations whose title or lyrics match, in the order the search gave.
+    private var rows: [LibraryListing.Row] {
+        LibraryListing.rows(query: query, presentations: workspace.presentations, hits: workspace.searchResults)
+    }
 
     private var librarySection: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -91,36 +96,33 @@ struct LibrarySidebar: View {
                     .accessibilityLabel("Library actions")
             }
             .padding(.horizontal, 8)
+            searchField
             VStack(spacing: 2) {
                 ForEach(workspace.libraries) { library in libraryRow(library) }
             }
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass").foregroundStyle(Tok.muted)
-                TextField("Filter songs", text: $filter).textFieldStyle(.plain)
-                    .accessibilityLabel("Filter the presentations of this library")
-            }
-            .padding(.horizontal, 8).frame(height: Space.controlHeight)
-            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
-            .padding(.horizontal, 4)
             List(selection: Binding(get: { workspace.openPresentationID },
-                                    set: { id in if let id { Task { await workspace.openPresentation(id) } } })) {
-                ForEach(visiblePresentations) { p in
+                                    set: { id in if let id { open(id) } })) {
+                ForEach(rows) { row in
                     HStack(spacing: 8) {
                         Image(systemName: "music.note").foregroundStyle(Tok.muted).frame(width: 16)
-                        Text(p.title).lineLimit(1)
+                        Text(row.title).lineLimit(1)
                         Spacer(minLength: 4)
-                        if workspace.bilingualPresentationIDs.contains(p.id) {
+                        if let match = row.match {
+                            Text(match == .title ? "Title" : "Lyrics").font(.caption).foregroundStyle(Tok.muted)
+                        } else if workspace.bilingualPresentationIDs.contains(row.id) {
                             Text("EN · VI").font(.wfMonoData).foregroundStyle(Tok.muted)
                                 .accessibilityLabel("Two languages")
                         }
                     }
-                    .tag(p.id)
-                    .listRowBackground(RoundedRectangle(cornerRadius: Radius.md).fill(workspace.openPresentationID == p.id ? Tok.surface3 : .clear).padding(.horizontal, 4))
+                    .tag(row.id)
+                    .listRowBackground(RoundedRectangle(cornerRadius: Radius.md).fill(workspace.openPresentationID == row.id ? Tok.surface3 : .clear).padding(.horizontal, 4))
                     .contextMenu {
-                        Button("Add to playlist") { Task { await workspace.addToPlaylist(p.id) } }
-                        Button("Rename…") { ask(.renamePresentation(p.id), p.title) }
-                        Divider()
-                        Button("Delete…", role: .destructive) { pendingDelete = .presentation(p.id, p.title) }
+                        Button("Add to playlist") { Task { await workspace.addToPlaylist(row.id) } }
+                        if let p = workspace.presentations.first(where: { $0.id == row.id }) {
+                            Button("Rename…") { ask(.renamePresentation(p.id), p.title) }
+                            Divider()
+                            Button("Delete…", role: .destructive) { pendingDelete = .presentation(p.id, p.title) }
+                        }
                     }
                 }
             }
@@ -129,13 +131,44 @@ struct LibrarySidebar: View {
                 if workspace.presentations.isEmpty {
                     Text("No presentations yet.\nImport lyrics with Command-I.")
                         .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
-                } else if visiblePresentations.isEmpty {
-                    Text("No title matches.").font(.caption).foregroundStyle(Tok.muted)
+                } else if rows.isEmpty {
+                    Text("Nothing found. Searching ignores accents and capital letters.")
+                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
                 }
             }
             .accessibilityLabel("Presentations")
         }
         .padding(8)
+    }
+
+    /// Search titles and lyrics (Command-F). It sits at the top of Libraries and filters the list beneath it. Escape clears it
+    /// and puts keyboard focus back on the slide grid.
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass").foregroundStyle(Tok.muted).accessibilityHidden(true)
+            TextField("Search titles and lyrics", text: $query).textFieldStyle(.plain)
+                .focused(searchFocused)
+                .accessibilityLabel("Search titles and lyrics")
+            if LibraryListing.hasQuery(query) {
+                Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Tok.muted) }
+                    .buttonStyle(.plain).help("Clear the search").accessibilityLabel("Clear the search")
+            } else {
+                KeyHint(key: "⌘F")
+            }
+        }
+        .padding(.horizontal, 8).frame(height: Space.controlHeight)
+        .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(searchFocused.wrappedValue ? Tok.cyan : Tok.borderStrong, lineWidth: 1))
+        .padding(.horizontal, 4)
+    }
+
+    /// Opens a row: a search hit through the search (it may be in another library), a plain row directly.
+    private func open(_ id: UUID) {
+        if LibraryListing.hasQuery(query), let hit = workspace.searchResults.first(where: { $0.presentationID == id }) {
+            query = ""
+            Task { await workspace.openSearchResult(hit) }
+        } else {
+            Task { await workspace.openPresentation(id) }
+        }
     }
 
     private func libraryRow(_ library: Library) -> some View {

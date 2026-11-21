@@ -340,6 +340,7 @@ final class AppModel {
         // (every scene composed again) only when what they show changed.
         scheduleImageWarm()
         if publicationGate.shouldPublish(LiveOutputKey(state: state, notes: workspace?.liveNotes)) { publish() }
+        stage?.showStateChanged(isStopped: state.isStopped)      // Stop takes the stage message off the stage screens
         if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
 
@@ -436,7 +437,7 @@ final class AppModel {
                                                  launchedWithHardwareTest: HardwareTestLaunchMode.opensHardwareTest) else { return event }
             let responder = window.firstResponder
             let textInput = responder is NSText || responder is NSTextField
-            let inSearch = textInput && Self.isInsideSearchField(responder)
+            let inNativeSearch = textInput && Self.isInsideSearchField(responder)
             let held = !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
             let shift = event.modifierFlags.contains(.shift)
             let key = KeyboardKey(keyCode: event.keyCode)
@@ -444,6 +445,7 @@ final class AppModel {
             let handled: Bool = MainActor.assumeIsolated {
                 guard let self else { return false }
                 let sheetOpen = self.ui.anySheetOpen || window.attachedSheet != nil
+                let inSearch = inNativeSearch || (textInput && self.ui.searchHasFocus)
                 switch KeyRouting.decision(for: key, textInputFocused: textInput, searchFieldFocused: inSearch,
                                            sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
                 case .ignore:
@@ -833,11 +835,25 @@ final class AppModel {
     func clearAll() {
         if let w = workspace { w.clearAll() } else { send(.clearAll) }
     }
-    /// Command-E: the quick edit popover lives in the Show mode, so go there first.
-    func requestQuickEdit() {
+    /// Command-E (UI-003): the Quick edit tab, for the SELECTED slide, in preview. Never touches what is on screen.
+    func openQuickEdit() {
+        guard let w = workspace, !w.slides.isEmpty else { return }
+        w.setMode(.show)                      // the tab lives in the Show inspector
+        if ui.tabs.openQuickEdit(hasSelectedSlide: true) { ui.focusQuickEdit += 1 }
+    }
+
+    /// Done (Escape) in the Quick edit tab: the tab goes, keyboard focus returns to the slide grid.
+    func closeQuickEdit() {
+        ui.tabs.closeQuickEdit()
+        ui.focusGrid += 1
+    }
+
+    /// Option-Command-E: the popover that deliberately changes the LIVE slide. It lives on the Live monitor in Show.
+    func requestLiveQuickEdit() {
         guard workspace?.show.liveSlide != nil else { return }
+        ui.liveQuickEditRequests += 1
         workspace?.setMode(.show)
-        ui.showQuickEdit = true
+        ui.showLiveQuickEdit = true
     }
 
     /// UI-001: Blackout (the B key, the transport bar).
@@ -1086,6 +1102,35 @@ final class AppModel {
         refreshSDIEnvironment()
         coordinator.devicesChanged()
         updateReadouts()
+    }
+
+    // MARK: Show revision 2 (UI-003)
+
+    var mediaDock: MediaDockState { settings?.mediaDock ?? MediaDockState() }
+    func setMediaDock(height: Double) { settings?.setMediaDock(height: height) }
+    func setMediaDock(collapsed: Bool) { settings?.setMediaDock(collapsed: collapsed) }
+
+    /// Per enabled screen: which layers its Look shows and whether its theme draws a motion background. What the props
+    /// chips and the media controller's screen chips are drawn from, so they only say what is true.
+    var layerInputs: [ScreenLayerInput] {
+        profiles.map { profile in
+            let screenLook = currentLook?.screenLook(for: profile.id) ?? .standard
+            let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
+                                            presentationThemeID: workspace?.shownThemeID, themes: themes)
+            var isMedia = false
+            if case .media = theme.background { isMedia = true }
+            return ScreenLayerInput(role: profile.role, isEnabled: profile.isEnabled, visibleLayers: screenLook.visibleLayers,
+                                    backgroundIsMedia: isMedia)
+        }
+    }
+
+    /// What a click on a media tile does (UI-003). Sound plays as a cue; a picture or video follows the layer choice.
+    func performDockAction(_ action: MediaDockAction) {
+        switch action {
+        case .setBackground(let id): media?.setBackground(id)
+        case .playForeground(let id): media?.playForeground(id)
+        case .playAudio(let id): audio?.play(id)
+        }
     }
 
     /// UI-002: System, Dark or Light for the operator window (outputs never follow it).

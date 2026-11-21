@@ -80,8 +80,9 @@ struct WorkspaceView: View {
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
             modeContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // The clip strip and the transport bar are in every mode: an operator in Screens can still advance the service.
-            if let media = app.media, media.layers.foreground != nil {
+            // The transport bar is in every mode: an operator in Screens can still advance the service. The clip strip
+            // is in every mode but Show, where the media controller row under the dock replaces it (UI-003).
+            if workspace.mode != .show, let media = app.media, media.layers.foreground != nil {
                 Divider()
                 MediaTransportStrip(media: media)
             }
@@ -90,11 +91,9 @@ struct WorkspaceView: View {
         .background(Tok.bg)
         .navigationTitle(serviceName)
         .navigationSubtitle(serviceSubtitle)
-        .searchable(text: $query, placement: .toolbar, prompt: "Search titles and lyrics")
-        .searchFocused($searchFocused)
         .toolbar {
             ToolbarItem(placement: .principal) { modeSwitcher }
-            ToolbarItem(placement: .primaryAction) { pills }
+            ToolbarItem(placement: .primaryAction) { toolbarStatus }
         }
         // UI-002: while a countdown is live its time is rewritten as it changes. It never moves the show on.
         .task(id: workspace.liveCountdown?.itemID) {
@@ -104,11 +103,17 @@ struct WorkspaceView: View {
                 try? await Task.sleep(for: .milliseconds(250))
             }
         }
-        .onChange(of: query) { _, new in
-            if !new.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { workspace.setMode(.show) }   // results show in Show
-            Task { await workspace.search(new) }
+        .onChange(of: query) { _, new in Task { await workspace.search(new) } }
+        .onChange(of: app.ui.focusSearch) { _, ticket in
+            searchFocused = true
+            // Coming from another mode, the sidebar appears a moment later and the grid focus request of the mode change
+            // runs first, so ask again once both are done (unless another request or a Escape came in meanwhile).
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(300))
+                if app.ui.focusSearch == ticket, workspace.mode == .show { searchFocused = true }
+            }
         }
-        .onChange(of: app.ui.focusSearch) { _, _ in searchFocused = true }
+        .onChange(of: searchFocused) { _, now in app.ui.searchHasFocus = now }
         // Keyboard focus belongs on the slide grid: at launch, after a sheet closes, and when Escape leaves the search.
         .onAppear { focusGridSoon() }
         .onChange(of: app.workspaceLoaded) { _, _ in focusGridSoon() }
@@ -133,7 +138,7 @@ struct WorkspaceView: View {
     @ViewBuilder private var modeContent: some View {
         switch workspace.mode {
         case .show:
-            ShowModeView(app: app, workspace: workspace, query: query, clearQuery: { query = "" }, gridFocused: $gridFocused)
+            ShowModeView(app: app, workspace: workspace, query: $query, gridFocused: $gridFocused, searchFocused: $searchFocused)
         case .edit: EditModeView(app: app, workspace: workspace)
         case .media: MediaModeView(app: app)
         case .stage: StageModeView(app: app)
@@ -192,8 +197,12 @@ struct WorkspaceView: View {
         }
     }
 
-    private var pills: some View {
-        HStack(spacing: 6) { ForEach(app.rolePills) { RolePillView(pill: $0) } }
+    /// Timers, then the AUD, STG and BRD pills: visible in every mode.
+    private var toolbarStatus: some View {
+        HStack(spacing: Space.s4) {
+            if let stage = app.stage { ToolbarTimersView(stage: stage) }
+            HStack(spacing: 6) { ForEach(app.rolePills) { RolePillView(pill: $0) } }
+        }
     }
 }
 

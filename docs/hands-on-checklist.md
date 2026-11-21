@@ -18,11 +18,11 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Press B with the slide grid focused: Audience goes black, Broadcast goes transparent (not black), Stage keeps its words and shows BLACKOUT. The transport badge reads BLACKOUT and the place is kept. Press B again: the same slide is back.
 - [ ] While blacked out, press Next, or click a slide twice: the picture comes back on that slide. While blacked out, Escape then B: the screens come back with the words still cleared. Stop ends Blackout.
 - [ ] Holding B does not flicker the screens. B in the search field or a text box types the letter. B does nothing with no slide live.
-- [ ] A clip playing over the slide keeps playing through Blackout (check the clip strip above the transport bar).
+- [ ] A clip playing over the slide keeps playing through Blackout (check the media controller row under the dock in Show, or the clip strip above the transport bar in the other modes).
 - [ ] AUD, STG and BRD pills: on while that role's screen runs, off when closed or disabled; unplug a display and its pill shows a warning triangle and the word fault to VoiceOver.
 - [ ] Screens mode: "Run signal test…" opens the Hardware Test window. Cues mode shows only the one-line note.
-- [ ] Show mode: Preview (blue ring) and Live (red ring, only while words are on screen) sit side by side; the Screens summary shows each screen with its role, destination and a Simulated badge for the simulated card; Look buttons switch the Look; props toggle; timers run.
-- [ ] Quick edit (Command-E, or the header button) works from any mode and changes the live words.
+- [ ] Show mode: Preview (blue ring) and Live (red ring, only while words are on screen) sit side by side at the top of the right column; Stage and Broadcast (every other enabled screen) are beneath, each captioned with its destination and a SIM badge for the simulated card; the Look row switches the Look (the rest are in its chevron menu); props toggle in the Props tab; the timers in the toolbar run.
+- [ ] Quick edit (Command-E, the header button or the button under Preview) opens the Quick edit tab for the SELECTED slide and changes Preview only. "Edit live slide…" (Option-Command-E, the button under Live, or the Edit header) is the one that changes the live words, from any mode.
 
 ## Keyboard
 
@@ -32,7 +32,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Space and Right arrow go to the next slide; Left arrow goes back.
 - [ ] Escape clears the words; the background stays.
 - [ ] While typing in the slide's text field, Space types a space and does not advance the slide.
-- [ ] Command-F puts the cursor in search; type a Vietnamese word without accents; the song appears; Escape returns to the grid.
+- [ ] Command-F puts the cursor in the search field at the top of Libraries in the sidebar (from any mode); type a Vietnamese word without accents; the song appears in the list beneath; Escape clears it and returns to the grid. There is no search field in the toolbar.
 
 ## Libraries and playlists
 
@@ -43,7 +43,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 ## Editing while live
 
 - [ ] With a slide live, change a word in the editor: the thumbnail changes, the Audience preview does not.
-- [ ] Quick edit live slide, change a word, Apply: the Audience preview changes.
+- [ ] Edit live slide…, change a word, Apply to live: the Audience preview changes. (The Quick edit tab, by contrast, never changes it.)
 
 ## Screens (needs the second display free)
 
@@ -80,6 +80,18 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Appearance (View > Appearance): System, Dark, Light; the choice is kept after a relaunch; every mode is readable in Light (selected rows, chips, the transport bar); the output screens do not change colour.
 - [ ] Playlist "+": Add header… and Add countdown…; headers are not numbered and cannot be selected; Next and Previous skip them; drag reorder works across songs, headers and countdowns.
 - [ ] Countdown: Go Live on it shows the time on the audience screen in the theme's main text style and on the stage screen; at 0:00 it stays at 0:00 until you press Next; it never moves on by itself; deleting it while live clears the screens; relaunch with a header selected lands on the next song.
+
+## Show mode, design revision 2 (UI-003)
+
+- [ ] The slide grid shows five thumbnails across at a 1440-point window and more when wider; sections keep their coloured labels.
+- [ ] Media dock under the grid: tabs Backgrounds, Videos, Images, Audio; Background / Foreground choice; "+" adds files; the chevron folds it away. Click a picture or video with Background chosen: it plays behind the words at once, without leaving Show. With Foreground chosen (and a slide live) it plays over the words. A sound plays as a cue whichever choice is on. Drag the top edge of the dock to resize; quit and reopen: the height and the folded state are kept.
+- [ ] A tile on screen now has the red ring and LIVE; a tile you chose that is not on screen is blue; red never appears on anything else.
+- [ ] Media controller row (only while a clip, a sound or a background video is loaded): restart, play or pause, stop, name, elapsed and remaining, scrubber, loop, mute and volume, and the screens it is on (AUD, BRD). Loop on a clip makes it start again at its end. It stays visible when the dock is folded. In Edit, Media, Stage, Cues and Screens the clip strip above the transport bar still shows while a clip plays.
+- [ ] Toolbar timers: by default the first elapsed timer and the first countdown, beside AUD, STG and BRD, in every mode. A countdown has a start or pause button. Past zero it turns the warning colour (not red). The Timers panel (Stage mode) has a toolbar toggle per timer. With no timers nothing is drawn.
+- [ ] Quick edit tab: Command-E opens a fourth tab with the selected slide's two languages and notes, a "Preview only" chip and Done (Escape). Typing there changes the Preview slide, not the Audience screen. Escape or Done closes the tab and puts the focus on the grid. The tab is absent when nothing is being edited.
+- [ ] Stage message (bottom of the right column, and in Stage mode): type and Send: it appears on the Stage screen only (a banner when the layout has no message element), never on Audience or Broadcast; it stays when you change slides; Clear removes it; Stop removes it; the clock icon lists the last five messages.
+- [ ] Props tab: the AUD and BRD chips show only the roles whose screens show the props layer under the current Look; hide the layer for a screen in Screens and the chip goes. Cues tab: a note that nothing is wired yet. Audio tab: the audio panel.
+- [ ] "Configure…" under the monitors opens the Screens mode.
 
 ## Media
 

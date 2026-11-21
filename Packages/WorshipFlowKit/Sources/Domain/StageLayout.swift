@@ -137,8 +137,21 @@ public enum StageComposer {
                                         verticalAlignment: element.verticalAlignment))
             }
         }
+        // UI-003 (LIVE-03): a layout that has no message element still shows a message that was sent, as a banner along
+        // the bottom, so a message sent from the Show inspector is never silently lost.
+        if !layout.elements.contains(where: { $0.kind == .message }), let banner = visible(context.message) {
+            layers.append(bannerLayer(banner, warning: layout.warningColor))
+        }
         if context.state.isBlackedOut { layers.append(blackoutLayer(warning: layout.warningColor)) }
         return SceneDescription(backgroundColor: layout.background, showsVideo: false, textLayers: layers)
+    }
+
+    /// The stage message of a layout that has no message element: large warning-coloured text along the bottom.
+    static func bannerLayer(_ text: String, warning: ColorRGBA) -> TextLayer {
+        TextLayer(text: text,
+                  style: TextStyle(fontName: "Helvetica Neue", fontSize: 64, color: warning),
+                  frame: NormalizedRect(x: 0.04, y: 0.84, width: 0.92, height: 0.14),
+                  alignment: .center, verticalAlignment: .center)
     }
 
     /// UI-001: the word the stage shows while Blackout is on, so the band knows the other screens are dark.

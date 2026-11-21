@@ -61,6 +61,14 @@ Library file: `~/Library/Application Support/WORSHIPFLOW/Library.sqlite` by defa
 | value | TEXT NOT NULL | Setting a key to nil deletes the row |
 | updatedAt | DATETIME NOT NULL | |
 
+Keys added by UI-003 (no schema change; all JSON text in `appState`):
+
+| Key | Value | Notes |
+|---|---|---|
+| `settings.mediaDock` | `{"height": 176, "isCollapsed": false}` | Height and collapsed state of the media dock in Show. A damaged value falls back to the defaults |
+| `stage.recentMessages` | JSON array of up to 5 strings, newest first | The last stage messages sent, for reuse. The message that is on stage now is never stored (a relaunch starts without one) |
+| `stage.toolbarTimers` | JSON array of timer ids (UUID strings) | The timers the operator marked for the toolbar. Absent: the defaults (first elapsed timer, first countdown). An empty array means none |
+
 ## Schema v2 (migration `v2`, SLIDE-003 and SLIDE-004)
 
 Adds song sections and arrangements. Rows written under v1 are untouched: their slides have `groupID` NULL.

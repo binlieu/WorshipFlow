@@ -9,9 +9,15 @@ import OperatorCore
 
 extension AppModel {
     static var snapshotDirectory: String? {
+        // UI-003: `UI_SNAPSHOT_DIR` is the same thing as `--ui-snapshots <dir>`. On this macOS an extra path argument on the
+        // command line stopped the main window from opening at all, so the environment is the safer way to pass it.
+        if let dir = ProcessInfo.processInfo.environment["UI_SNAPSHOT_DIR"], !dir.isEmpty { return dir }
         guard let i = CommandLine.arguments.firstIndex(of: "--ui-snapshots"), i + 1 < CommandLine.arguments.count else { return nil }
         return CommandLine.arguments[i + 1]
     }
+
+    func app_dockTab(_ tab: MediaDockTab) { ui.dockTab = tab }
+    var app_isCleared: Bool { show.isCleared }
 
     func runUISnapshotsIfRequested() {
         guard let dir = Self.snapshotDirectory, let workspace else { return }
@@ -21,7 +27,9 @@ extension AppModel {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
             while !workspaceLoaded { try? await Task.sleep(for: .milliseconds(100)) }
             try? await Task.sleep(for: .seconds(1.5))
+            for _ in 0..<60 where NSApp.windows.isEmpty { try? await Task.sleep(for: .milliseconds(250)) }
             let window = Self.operatorWindow
+            note("policy \(NSApp.activationPolicy().rawValue) active \(NSApp.isActive) windows: \(NSApp.windows.map { "\($0.title)|\($0.identifier?.rawValue ?? "-")|vis=\($0.isVisible)" })")
             window?.setContentSize(NSSize(width: 1440, height: 860))
             window?.center()
             window?.orderFrontRegardless()
@@ -71,10 +79,17 @@ extension AppModel {
                 }
                 await workspace.addToPlaylist(p.id)
             } else { note("import failed: \(workspace.lastError ?? "?")") }
-            if let path = ProcessInfo.processInfo.environment["UI_SNAPSHOT_MEDIA"] {
-                addMedia([URL(fileURLWithPath: path)])
-                try? await Task.sleep(for: .seconds(1.5))
-                if let asset = media?.assets.first { media?.setBackground(asset.id) }
+            // UI-003: several files in the bin (comma separated paths); the first video becomes the background that plays.
+            if let list = ProcessInfo.processInfo.environment["UI_SNAPSHOT_MEDIA"] {
+                addMedia(list.split(separator: ",").map { URL(fileURLWithPath: String($0)) })
+                try? await Task.sleep(for: .seconds(2.5))
+                if let asset = media?.assets.first(where: { $0.kind == .video }) { media?.setBackground(asset.id) }
+            }
+            // UI-003: a prop (image), timers (service elapsed running, sermon countdown stopped) and a stage message.
+            if let path = ProcessInfo.processInfo.environment["UI_SNAPSHOT_PROP"] { addProp(URL(fileURLWithPath: path)) }
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_TIMERS"] != nil, let stage {
+                if let service = stage.addElapsed(name: "Service") { stage.startTimer(service.id) }
+                _ = stage.addCountdown(name: "Sermon", minutes: 25, seconds: 0)
             }
             // Window outputs only: never a display.
             for var profile in profiles where profile.role != .broadcast {
@@ -143,16 +158,23 @@ extension AppModel {
                 }
             }
 
-            @MainActor func key(_ code: UInt16, _ chars: String, command: Bool = false) {
+            @MainActor func key(_ code: UInt16, _ chars: String, command: Bool = false, shift: Bool = false) {
                 guard let window else { return }
-                let flags: NSEvent.ModifierFlags = command ? [.command] : []
+                var flags: NSEvent.ModifierFlags = command ? [.command] : []
+                if shift { flags.insert(.shift) }
                 for type in [NSEvent.EventType.keyDown, .keyUp] {
                     guard let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime,
-                                                       windowNumber: window.windowNumber, context: nil, characters: chars,
-                                                       charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code) else { continue }
+                                                       windowNumber: window.windowNumber, context: nil, characters: shift ? chars.uppercased() : chars,
+                                                       charactersIgnoringModifiers: shift ? chars.uppercased() : chars, isARepeat: false, keyCode: code) else { continue }
                     if command, type == .keyDown { _ = NSApp.mainMenu?.performKeyEquivalent(with: event) } else { NSApp.sendEvent(event) }
                 }
             }
+
+            // Extra Looks so the compact row has something to hold.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil {
+                for name in ["Notes", "Lower 3rd", "BG only", "Sermon"] { addLook(); if let last = looks.last { renameLook(last.id, to: name) } }
+            }
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGEMSG"] != nil { stage?.sendMessage("Wrap up in 2 min") }
 
             // Command-1 to 6 through the real menu, then a picture of each mode.
             let digitCodes: [UInt16] = [18, 19, 20, 21, 23, 22]
@@ -161,6 +183,83 @@ extension AppModel {
                 try? await Task.sleep(for: .milliseconds(300))
                 note("Command-\(i + 1) -> mode \(workspace.mode.title) (expected \(mode.title))")
                 await capture(mode.rawValue)
+            }
+            // UI-003: Show with a clip over the words, with a sound, with the Quick edit tab, with the dock folded, and in light.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_EXTRAS"] != nil {
+                workspace.setMode(.show)
+                if let clip = media?.assets.filter({ $0.kind == .video }).dropFirst().first {
+                    media?.playForeground(clip.id)
+                    media?.setForegroundLoops(true)
+                    try? await Task.sleep(for: .seconds(1.5))
+                    note("clip controller: foreground \(media?.foregroundReadout()?.name ?? "none"), loops \(media?.foregroundLoops ?? false)")
+                    await capture("show-clip")
+                    // The loop choice: near the end of the 20 s clip, wait past it; a looping clip must still be playing, from the start.
+                    media?.seek(to: max(0, (media?.foregroundReadout()?.duration ?? 20) - 1.5))
+                    try? await Task.sleep(for: .seconds(3.2))
+                    let r = media?.foregroundReadout()
+                    note("looping clip after its end: still there \(r != nil), playing \(r?.isPlaying ?? false), position \(r.map { String(format: "%.1f", $0.position) } ?? "-") (expected a few seconds in)")
+                    media?.stopForeground()
+                }
+                if let sound = media?.assets.first(where: { $0.kind == .audio }) {
+                    audio?.play(sound.id)
+                    try? await Task.sleep(for: .seconds(1.5))
+                    note("sound controller: \(audio?.currentID != nil) position \(audio?.currentID.flatMap { audio?.readout(for: $0)?.position } ?? -1)")
+                    app_dockTab(.audio)
+                    await capture("show-sound")
+                    if let id = audio?.currentID { audio?.stop(id) }
+                    app_dockTab(.backgrounds)
+                }
+                // Search through the real keys: Command-F focuses the sidebar field, typing filters, Escape clears and returns to the grid.
+                workspace.setMode(.show)
+                key(3, "f", command: true)
+                try? await Task.sleep(for: .milliseconds(700))
+                note("Command-F -> search field focused: \(ui.searchHasFocus) (expected true)")
+                for (code, ch) in [(5, "g"), (15, "r"), (0, "a"), (8, "c"), (14, "e")] { key(UInt16(code), ch); try? await Task.sleep(for: .milliseconds(80)) }
+                try? await Task.sleep(for: .milliseconds(700))
+                note("typed 'grace': results \(workspace.searchResults.map(\.title)) (expected the two songs only if lyrics match)")
+                await capture("show-search")
+                key(53, "\u{1B}")
+                try? await Task.sleep(for: .milliseconds(700))
+                note("Escape in search -> focused \(ui.searchHasFocus) (expected false), results \(workspace.searchResults.count) (expected 0)")
+                workspace.selectSlide(3)
+                // Command-E through the real menu: the tab opens on the SELECTED slide; typing goes into its first field.
+                key(14, "e", command: true)
+                try? await Task.sleep(for: .milliseconds(700))
+                note("Command-E -> tab open \(ui.tabs.quickEditIsOpen), selected \(ui.tabs.selected.rawValue), live slide \(workspace.show.liveSlide?.primary.prefix(12) ?? "-")")
+                let before = workspace.slides[3].content.primary
+                let liveWords = workspace.show.liveSlide?.primary
+                key(7, "x")
+                try? await Task.sleep(for: .milliseconds(500))
+                note("typed x in the tab: selected slide changed \(workspace.slides[3].content.primary != before) (expected true), live slide changed \(workspace.show.liveSlide?.primary != liveWords) (expected false)")
+                await capture("show-quick-edit")
+                key(53, "\u{1B}")
+                try? await Task.sleep(for: .milliseconds(600))
+                note("Escape in the tab -> tab open \(ui.tabs.quickEditIsOpen) (expected false), show cleared \(app_isCleared)")
+                // The live-edit shortcut, tried the ways a keyboard can describe Option-Command-E (the menu must pick the right item).
+                for (chars, ignoring) in [("´", "e"), ("e", "e")] {
+                    guard let window else { break }
+                    let before = ui.liveQuickEditRequests
+                    let wasOpen = ui.tabs.quickEditIsOpen
+                    for type in [NSEvent.EventType.keyDown, .keyUp] {
+                        guard let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: [.command, .option], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                           windowNumber: window.windowNumber, context: nil, characters: chars,
+                                                           charactersIgnoringModifiers: ignoring, isARepeat: false, keyCode: 14) else { continue }
+                        if type == .keyDown { _ = NSApp.mainMenu?.performKeyEquivalent(with: event) } else { NSApp.sendEvent(event) }
+                    }
+                    note("Option-Command-E as characters '\(chars)' ignoring '\(ignoring)': live edit requests \(before) -> \(ui.liveQuickEditRequests), tab open \(wasOpen) -> \(ui.tabs.quickEditIsOpen)")
+                    ui.tabs.closeQuickEdit()
+                }
+                ui.showLiveQuickEdit = false
+                openQuickEdit()
+                try? await Task.sleep(for: .milliseconds(300))
+                closeQuickEdit()
+                note("quick edit closed: \(!ui.tabs.quickEditIsOpen), tabs \(ui.tabs.visible.map(\.rawValue))")
+                setMediaDock(collapsed: true)
+                await capture("show-dock-collapsed")
+                setMediaDock(collapsed: false)
+                setAppearance(.light)
+                await capture("show-light")
+                setAppearance(.dark)
             }
             // B through the real key monitor, from a non-Show mode (transport keys work in every mode).
             workspace.setMode(.screens)
@@ -210,6 +309,10 @@ extension AppModel {
                 note("countdown live: \(workspace.show.liveSlide?.primary ?? "none")")
                 await capture("countdown")
             }
+            // Stop clears the stage message (it was sent at the start of the run).
+            let messageBeforeStop = stage?.stageMessage
+            stopShow()
+            note("stage message before Stop \(messageBeforeStop ?? "none"), after Stop \(stage?.stageMessage ?? "none") (expected none)")
             try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
             await flushWorkspace()
             shutdown()

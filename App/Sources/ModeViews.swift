@@ -132,7 +132,7 @@ struct EditModeView: View {
                 HeaderControlButton(control: .reflow, symbol: "text.alignleft", compact: compact) {
                     if let id = workspace.openPresentationID { app.openImport(existing: id) }
                 }
-                HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact) { app.ui.showQuickEdit = true }
+                HeaderControlButton(control: .editLiveSlide, symbol: "pencil.and.outline", compact: compact) { app.requestLiveQuickEdit() }
                     .disabled(workspace.show.liveSlide == nil)
             }
         }
