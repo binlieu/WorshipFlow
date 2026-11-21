@@ -17,11 +17,11 @@ struct TransportBar: View {
             }
             .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
-            Button { Task { await workspace.previous() } } label: { hinted("backward.fill", "Previous", "←") }
+            Button { app.previous() } label: { hinted("backward.fill", "Previous", "←") }
                 .buttonStyle(TransportButtonStyle()).help("Left arrow")
-            Button { Task { await workspace.goLive() } } label: { hinted("play.fill", "Go Live", "↩", onFill: true) }
+            Button { app.goLive() } label: { hinted("play.fill", "Go Live", "↩", onFill: true) }
                 .buttonStyle(TransportButtonStyle(prominent: true)).help("Return: take the selected slide live")
-            Button { Task { await workspace.next() } } label: { hinted("forward.fill", "Next", "→") }
+            Button { app.next() } label: { hinted("forward.fill", "Next", "→") }
                 .buttonStyle(TransportButtonStyle()).help("Right arrow or Space")
             Divider().frame(height: 26)
             clearControl
@@ -30,7 +30,7 @@ struct TransportBar: View {
                 .disabled(workspace.show.isStopped)
                 .help("B: every audience screen goes black and every broadcast screen transparent. Press again, or go to another slide, to bring the picture back.")
                 .accessibilityValue(workspace.show.isBlackedOut ? "on" : "off")
-            Button { workspace.stop() } label: { hinted("stop.fill", "Stop", nil) }
+            Button { app.stopShow() } label: { hinted("stop.fill", "Stop", nil) }
                 .buttonStyle(TransportButtonStyle())
                 .disabled(workspace.show.isStopped).help("Empty every screen and drop the live slide")
             Divider().frame(height: 26)
@@ -56,7 +56,7 @@ struct TransportBar: View {
     /// One split control: click clears the words; the attached menu offers Clear all.
     private var clearControl: some View {
         HStack(spacing: 0) {
-            Button { workspace.clear() } label: { hinted("rectangle.slash", ClearControl.primary.title, "esc") }
+            Button { app.clear() } label: { hinted("rectangle.slash", ClearControl.primary.title, "esc") }
                 .buttonStyle(SplitLeadingStyle())
                 .help("Escape: \(ClearControl.primary.detail)")
             Rectangle().fill(Tok.borderStrong).frame(width: 1, height: Space.transportHeight)

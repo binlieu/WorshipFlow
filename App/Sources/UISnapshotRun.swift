@@ -176,6 +176,15 @@ extension AppModel {
             }
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGEMSG"] != nil { stage?.sendMessage("Wrap up in 2 min") }
 
+            // CUE-002b: the cue wiring in the running app (macro, slide action, schedule, MIDI note, remote request), then out.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_CUES"] != nil {
+                await runCuesScenario(note: { note($0) }, capture: { await capture($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // Command-1 to 6 through the real menu, then a picture of each mode.
             let digitCodes: [UInt16] = [18, 19, 20, 21, 23, 22]
             for (i, mode) in WorkspaceMode.allCases.enumerated() {
@@ -315,6 +324,7 @@ extension AppModel {
             note("stage message before Stop \(messageBeforeStop ?? "none"), after Stop \(stage?.stageMessage ?? "none") (expected none)")
             try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
             await flushWorkspace()
+            await stopCue()
             shutdown()
             exit(0)
         }

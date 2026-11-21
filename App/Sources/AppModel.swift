@@ -11,6 +11,10 @@ import SDIEngine
 import DeckLinkSDI
 import Persistence
 import OperatorCore
+import CueEngine
+import CueStore
+import MIDIIO
+import RemoteControl
 
 enum LiveMode: Equatable { case stopped, live, cleared, blackout }
 
@@ -69,6 +73,9 @@ final class AppModel {
     private(set) var media: MediaModel?
     /// The audio list, cues and programme audio device (MEDIA-005 / MEDIA-006). Nil under the same conditions.
     private(set) var audio: AudioModel?
+    /// Macros, slide actions, the schedule, MIDI and the remote control, and the one command path every show command goes through
+    /// (CUE-002b). Nil under the same conditions.
+    private(set) var cue: CueModel?
     /// Set when the library file could not be opened: the path and a message. The file is left untouched.
     private(set) var libraryProblem: LibraryProblem?
     /// Bumped on every publish, so previews know to re-read their scene.
@@ -102,6 +109,8 @@ final class AppModel {
     @ObservationIgnored private var audioTicker: Timer?
     @ObservationIgnored private var clockText = ""
     @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var cueTimer: Timer?
+    @ObservationIgnored private var wakeObserver: NSObjectProtocol?
     /// Republishes the stage scenes every second, and exists only while a stage screen shows a clock or timer.
     @ObservationIgnored private var stageTicker: Timer?
     @ObservationIgnored private var keyMonitor: Any?
@@ -199,11 +208,30 @@ final class AppModel {
             }
             self.media = media
             makeAudio(store: store)
+            makeCue(library: store, workspace: model, settings: settings, stage: stage, media: media)
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
             libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
             log("The library at \(url.path) could not be opened: \(error.localizedDescription)")
         }
+    }
+
+    /// CUE-002b: the cue wiring. MIDI and the remote server exist only when the operator turns them on in the Cues mode.
+    private func makeCue(library: LibraryStore, workspace: WorkspaceModel, settings: SettingsModel, stage: StageModel, media: MediaModel) {
+        let ports = CuePorts(transport: workspace, looks: settings, stage: stage, media: MediaCueAdapter(media: media, audio: audio), midiOut: { nil })
+        let cue = CueModel(store: CueStore(library: library), ports: ports, settingsStore: library)
+        cue.connect(workspace)
+        cue.midiPortsFactory = { try CoreMIDIPorts() }
+        cue.hardwareTestIsRunning = { [weak self] in self?.hardwareTestRunning ?? false }
+        // Runs and tests may keep the server to the loopback interface and a free port: `--remote-loopback-only`, `--remote-port <n>`.
+        let args = CommandLine.arguments
+        cue.remoteLoopbackOnly = args.contains("--remote-loopback-only")
+        if let i = args.firstIndex(of: "--remote-port"), i + 1 < args.count, let port = UInt16(args[i + 1]) { cue.remotePortOverride = port }
+        cue.remoteStateSource = { [weak workspace, weak stage, weak cue] in
+            guard let workspace, let cue else { return RemoteState() }
+            return RemoteStateBuilder.make(workspace: workspace, stage: stage, macros: cue.macros)
+        }
+        self.cue = cue
     }
 
     func startWorkspace() {
@@ -218,6 +246,7 @@ final class AppModel {
             publish()
             updateReadouts()
             await workspace.load()
+            await cue?.start()
             workspaceLoaded = true
             // Test hook for runs that cannot scroll: start with the Screens panel in view.
             if CommandLine.arguments.contains("--show-screens-panel") { workspace.setMode(.screens) }
@@ -303,6 +332,16 @@ final class AppModel {
         await settings?.flush()
         await media?.flush()
         await audio?.flush()
+        await cue?.flushSchedule()
+        await cue?.flushRemote()
+    }
+
+    /// CUE-002b: before the app goes away, remember the schedule's last look, stop the remote server (the port is released) and
+    /// release MIDI (the virtual ports are disposed).
+    func stopCue() async {
+        await cue?.flushSchedule(force: true)
+        await cue?.stopRemote()
+        cue?.shutdown()
     }
 
     /// R4: what may happen now, given whether any screen is open. A soak run counts as open.
@@ -340,6 +379,7 @@ final class AppModel {
         // (every scene composed again) only when what they show changed.
         scheduleImageWarm()
         if publicationGate.shouldPublish(LiveOutputKey(state: state, notes: workspace?.liveNotes)) { publish() }
+        cue?.remoteStateMayHaveChanged()     // CUE-002b: phones connected to the remote server see the new slide at once
         stage?.showStateChanged(isStopped: state.isStopped)      // Stop takes the stage message off the stage screens
         if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
@@ -452,12 +492,12 @@ final class AppModel {
                     return true                   // swallowed: not a second Next, and not a beep either
                 case .transport(let command):
                     switch command {
-                    case .goLive: self.goLive()
-                    case .next: self.next()
-                    case .previous: self.previous()
-                    case .clear: self.clear()
-                    case .clearAll: self.clearAll()
-                    case .blackout: self.blackout()
+                    case .goLive: self.goLive(from: .key)
+                    case .next: self.next(from: .key)
+                    case .previous: self.previous(from: .key)
+                    case .clear: self.clear(from: .key)
+                    case .clearAll: self.clearAll(from: .key)
+                    case .blackout: self.blackout(from: .key)
                     }
                     return true
                 case .leaveSearch:
@@ -478,7 +518,22 @@ final class AppModel {
             MainActor.assumeIsolated {
                 self?.updateClock(force: false)
                 self?.updateReadouts()
+                self?.cue?.tick()                    // CUE-002b: delivers waited stages of macros that have come due
             }
+        }
+        // CUE-002b: once a second the schedule looks at the wall clock, MIDI devices and the remote server report their state; a
+        // Mac that wakes from sleep looks at once, so what was missed in its sleep is reported.
+        cueTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let cue = self?.cue else { return }
+                cue.pollSchedule()
+                cue.refreshMIDI()
+                cue.refreshRemote()
+                cue.remoteStateMayHaveChanged()
+            }
+        }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.cue?.wakeFromSleep() }
         }
     }
 
@@ -827,13 +882,25 @@ final class AppModel {
     }
 
     // With a workspace these go through it (playlist stepping, live bookkeeping); a soak run has none.
-    func goLive() { if let w = workspace { Task { await w.goLive() } } else { send(.trigger(index: show.selectedIndex)) } }
-    func next() { if let w = workspace { Task { await w.next() } } else { send(.next) } }
-    func previous() { if let w = workspace { Task { await w.previous() } } else { send(.previous) } }
-    func clear() { if let w = workspace { w.clear() } else { send(.clear) } }
+    // CUE-002b: with the cue wiring every one of them goes through its one serial command path, whatever the source.
+    func goLive(from source: CommandSource = .button) {
+        if let cue { cue.submit(.goLive, from: source) } else if let w = workspace { Task { await w.goLive() } } else { send(.trigger(index: show.selectedIndex)) }
+    }
+    func triggerSlide(_ index: Int) {
+        if let cue { cue.submit(.triggerSlide(index), from: .button) } else { workspace?.goLive(at: index) }
+    }
+    func next(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.next), from: source) } else if let w = workspace { Task { await w.next() } } else { send(.next) }
+    }
+    func previous(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.previous), from: source) } else if let w = workspace { Task { await w.previous() } } else { send(.previous) }
+    }
+    func clear(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.clear), from: source) } else if let w = workspace { w.clear() } else { send(.clear) }
+    }
     /// R8: Clear plus stopping the clip that plays over the slide.
-    func clearAll() {
-        if let w = workspace { w.clearAll() } else { send(.clearAll) }
+    func clearAll(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.clearAll), from: source) } else if let w = workspace { w.clearAll() } else { send(.clearAll) }
     }
     /// Command-E (UI-003): the Quick edit tab, for the SELECTED slide, in preview. Never touches what is on screen.
     func openQuickEdit() {
@@ -857,8 +924,12 @@ final class AppModel {
     }
 
     /// UI-001: Blackout (the B key, the transport bar).
-    func blackout() { if let w = workspace { w.blackout() } else { send(.blackout) } }
-    func stopShow() { if let w = workspace { w.stop() } else { send(.stop) } }
+    func blackout(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.blackout(.toggle)), from: source) } else if let w = workspace { w.blackout() } else { send(.blackout) }
+    }
+    func stopShow(from source: CommandSource = .button) {
+        if let cue { cue.submit(.transport(.stop), from: source) } else if let w = workspace { w.stop() } else { send(.stop) }
+    }
 
     private func publish() {
         sceneRevision &+= 1
@@ -1001,6 +1072,9 @@ final class AppModel {
     }
 
     func shutdown() {
+        cueTimer?.invalidate()
+        cueTimer = nil
+        cue?.shutdown()
         audioTicker?.invalidate()
         audioTicker = nil
         audio?.shutdown()
@@ -1169,7 +1243,15 @@ final class AppModel {
         let names = Dictionary(uniqueKeysWithValues: displayChoices.map { ($0.id, $0.name) })
         return SignalMapPresenter.map(SignalMapInput(
             profiles: profiles, devices: sdiStatuses, maps: connectorMapsByDevice, states: states,
-            displayName: { names[$0] ?? "Display \($0) (not connected)" }, hostName: Host.current().localizedName ?? "This Mac"))
+            displayName: { names[$0] ?? "Display \($0) (not connected)" }, hostName: Self.signalMapHostName()))
+    }
+
+    /// The Mac's own name for the signal map. A debug run that writes pictures (the repository is public) shows a neutral name (KI-085).
+    private static func signalMapHostName() -> String {
+        #if DEBUG
+        if snapshotDirectory != nil { return "This Mac" }
+        #endif
+        return Host.current().localizedName ?? "This Mac"
     }
 
     /// Applies a preset the operator has read: each changed screen goes through the ordinary profile update, so the

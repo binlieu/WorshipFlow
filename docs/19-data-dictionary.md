@@ -320,3 +320,19 @@ No sort column: events list in insertion order (`rowid`), which the engine uses 
 | id | TEXT PK | UUID |
 | definition | TEXT NOT NULL | `MIDIBinding` JSON: `{"version", "id", "name", "pattern", "command"}` |
 | sortOrder | INTEGER NOT NULL | Dense 0...n-1; the engine uses the first binding in this order that matches. Index `cueMIDIBinding_on_sortOrder` |
+
+## Schema v10 (migration `v10`, CUE-002b)
+
+### remoteToken
+One row per phone paired with the remote control server. A salted hash of the token; the token itself is never stored.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID, the first half of the token the phone holds |
+| label | TEXT NOT NULL | The name the phone gave when pairing |
+| salt | BLOB NOT NULL | 16 random bytes |
+| hash | BLOB NOT NULL | SHA-256 over salt then the token's secret |
+| createdAt | DATETIME NOT NULL | |
+| lastUsed | DATETIME | Written at most once every 30 seconds per token |
+
+Other app state keys added: `cue.midi.settings` (MIDI on or off, chosen input and output by stable id and name, virtual ports) and `cue.remote.settings` (remote control on or off, port), both JSON in `appState`.

@@ -279,6 +279,19 @@ enum Schema {
             try db.create(index: "cueMIDIBinding_on_sortOrder", on: "cueMIDIBinding", columns: ["sortOrder"])
         }
 
+        // CUE-002b: the paired devices of the remote control server. A salted hash of each token, never the token. Rows of the
+        // other tables are untouched.
+        migrator.registerMigration("v10") { db in
+            try db.create(table: "remoteToken") { t in
+                t.column("id", .text).primaryKey()
+                t.column("label", .text).notNull()
+                t.column("salt", .blob).notNull()
+                t.column("hash", .blob).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("lastUsed", .datetime)
+            }
+        }
+
         return migrator
     }
 }

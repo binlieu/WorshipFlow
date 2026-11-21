@@ -72,8 +72,9 @@ let package = Package(
         .target(name: "RemoteControl", dependencies: ["CueEngine", "Domain"]),
         .testTarget(name: "RemoteControlTests", dependencies: ["RemoteControl", "CueEngine", "Domain"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
-        .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
-        .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
+        // CUE-002b: OperatorCore also wires the cue rules, their storage, MIDI and the remote server into the app.
+        .target(name: "OperatorCore", dependencies: ["Domain", "Persistence", "CueEngine", "CueStore", "MIDIIO", "RemoteControl"]),
+        .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence", "CueEngine", "CueStore", "MIDIIO", "RemoteControl"]),
         // Themes, Looks and props. Separate from DomainTests so slices built in parallel do not block each other.
         .testTarget(name: "CompositionTests", dependencies: ["Domain"]),
         .testTarget(name: "DomainTests", dependencies: ["Domain"]),

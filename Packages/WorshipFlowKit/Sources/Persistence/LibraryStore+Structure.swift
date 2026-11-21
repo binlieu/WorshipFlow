@@ -205,7 +205,7 @@ extension LibraryStore {
 
     // MARK: Helpers
 
-    private static func fetchGroups(_ db: Database, presentationID: UUID) throws -> [SlideGroup] {
+    static func fetchGroups(_ db: Database, presentationID: UUID) throws -> [SlideGroup] {
         try Row.fetchAll(db, sql: """
             SELECT id, name, sortOrder FROM slideGroup WHERE presentationID = ? ORDER BY sortOrder, rowid
             """, arguments: [presentationID.dbText]).compactMap { row in

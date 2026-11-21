@@ -221,8 +221,7 @@ struct ShowInspector: View {
         switch app.ui.tabs.selected {
         case .props: props
         case .cues:
-            Text("Macros, slide actions and control surfaces arrive in a later version. Nothing here is wired yet.")
-                .font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            CuesTabView(app: app, workspace: workspace)
         case .audio:
             if let audio = app.audio { AudioPanel(audio: audio) } else { Text("Audio is not available.").foregroundStyle(Tok.muted) }
         case .quickEdit:

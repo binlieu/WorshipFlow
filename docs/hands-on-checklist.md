@@ -136,3 +136,21 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Quit the app during a test (Force Quit is fine). A folder ending `WORSHIPFLOW-hardware-test-unfinished` is on the Desktop. Open the Hardware Test window again: it offers "Save its report...". Save it, and the folder disappears.
 - [ ] Play a video clip with sound over a live slide, press B: the sound stops with the picture. Press B again: the sound is back at the same level.
 - [ ] In a playlist, click a countdown, then click a slide of the song above it, then Go Live (Return): the slide goes live, not the countdown.
+
+## Cues (CUE-002b)
+
+- [ ] Cues mode (Command-5): press + under Macros, name it, add three actions (a Look, a stage message, a timer). Press Run: the Look changes, the message shows on the Stage screen, the timer runs. The Activity list says what ran.
+- [ ] Make a macro, then open Show and its Cues tab: the macro is a button; clicking it runs it. "Next scheduled event" names the next event, or says there is none.
+- [ ] Slide actions: give one slide a Look change. Click the slide (preview only): nothing changes. Double-click it: the Look changes. Quick edit it, or press Escape: it does not run again.
+- [ ] A slide action list refuses "Next slide" and similar, and says why.
+- [ ] Delete a macro that a MIDI binding or another macro uses: you are told what uses it, and "Delete anyway" removes those references.
+- [ ] Re-flow a song whose slides have actions (Command-I on it, change one slide's words): the sheet lists the actions that will be dropped; unchanged slides keep theirs.
+- [ ] Schedule: add an event a minute ahead that runs a macro: it runs once. Close the app, wait past a second event, reopen: it is not run late and a notice says it was missed.
+- [ ] Close the lid (sleep) over a scheduled time and wake: the missed event is reported, not run.
+- [ ] Start a Hardware Test, then let a scheduled event come due: it does not run, and a notice says why.
+- [ ] MIDI is off on a fresh library. Turn it on, choose your pad controller, press Learn and tap a pad: a binding appears. Tap it: the command runs once even if you hold the pad. Bind the same pad twice: both rows show a warning.
+- [ ] Unplug the controller: the status says it is offline. Plug it back in: it reconnects by itself.
+- [ ] Send a MIDI note from another program to "WorshipFlow In" with Virtual ports on: it runs its binding.
+- [ ] Remote control is off on a fresh library. Turn it on: the pairing code, a countdown and the address are shown, with the plain-HTTP sentence. On a phone on the same Wi-Fi open the address, enter the code: the phone pairs, shows the slide, and Next works.
+- [ ] Press Next on the phone and Space on the Mac at the same time many times: the show advances once per press, in order, never twice at once.
+- [ ] Revoke the phone: its next tap is refused. Revoke all with two phones: both are refused. Turn remote control off: the phone cannot reach the page.

@@ -234,18 +234,3 @@ struct StageModeView: View {
         }
     }
 }
-
-// MARK: Cues
-
-struct CuesModeView: View {
-    var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "bolt").font(.system(size: 28)).foregroundStyle(Tok.muted)
-            Text("Macros, slide actions and control surfaces arrive in a later version.")
-                .font(.system(size: 15)).foregroundStyle(Tok.muted).multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .combine)
-    }
-}
-

@@ -18,11 +18,37 @@ extension LibraryStore {
     }
 }
 
+/// CUE-002b (KI-075): a slide whose actions a re-flow would drop, for the warning before the re-flow is saved.
+public struct SlideActionLoss: Sendable, Equatable {
+    public var sectionName: String?
+    /// The first words of the old slide, so the operator can tell which one it was.
+    public var primary: String
+    public var actionCount: Int
+
+    public init(sectionName: String?, primary: String, actionCount: Int) {
+        self.sectionName = sectionName
+        self.primary = primary
+        self.actionCount = actionCount
+    }
+}
+
 extension LibraryStore {
+    /// Slide actions that re-flowing with `results` would drop: the slides that have actions and that no new slide takes over,
+    /// by the same matching `replaceContent` uses. Reads only.
+    public func slideActionLosses(of presentationID: UUID, with results: [ReflowResult]) async throws -> [SlideActionLoss] {
+        try await writer.read { db in
+            try Self.requireExists(db, table: "presentation", id: presentationID)
+            let groups = try Self.fetchGroups(db, presentationID: presentationID)
+            return try Self.slideActionCarry(db, presentationID: presentationID, groups: groups, results: results).losses
+        }
+    }
+
     /// A slide's stored actions, taken out before a reflow deletes the slide.
     struct SlideActionCarry {
         /// For each new slide in order: the row of the old slide whose words it kept, or nil.
         var rows: [Row?]
+        /// Old slides that have actions and that no new slide takes over.
+        var losses: [SlideActionLoss] = []
     }
 
     /// Which old slide's actions each new slide takes over. The matching is `Reflow.carryOver`'s own (same words, same
@@ -38,17 +64,25 @@ extension LibraryStore {
         let stored = Dictionary(try Row.fetchAll(db, sql: """
             SELECT a.* FROM cueSlideActions a JOIN slide s ON s.id = a.slideID WHERE s.presentationID = ?
             """, arguments: [presentationID.dbText]).map { ($0["slideID"] as String, $0) }, uniquingKeysWith: { first, _ in first })
-        guard !stored.isEmpty else { return SlideActionCarry(rows: []) }
+        guard !stored.isEmpty else { return SlideActionCarry(rows: [], losses: []) }
         let existing = old.enumerated().map { index, slide in
             ExistingSlide(sectionName: slide.groupID.flatMap { names[$0] }, content: SlideContent(primary: slide.content.primary),
                           notes: String(index))
         }
         let carry = Reflow.carryOver(from: existing, to: results)
+        var kept: Set<Int> = []
         let rows: [Row?] = carry.notes.map { marker in
             guard let index = Int(marker), old.indices.contains(index) else { return nil }
+            kept.insert(index)
             return stored[old[index].id.dbText]
         }
-        return SlideActionCarry(rows: rows)
+        var losses: [SlideActionLoss] = []
+        for (index, slide) in old.enumerated() where !kept.contains(index) {
+            guard let row = stored[slide.id.dbText] else { continue }
+            losses.append(SlideActionLoss(sectionName: slide.groupID.flatMap { names[$0] }, primary: slide.content.primary,
+                                          actionCount: Self.actionCount(in: row["definition"] as String)))
+        }
+        return SlideActionCarry(rows: rows, losses: losses)
     }
 
     /// Writes the carried rows against the new slides, which `replaceContent` has just inserted in order.
@@ -60,5 +94,14 @@ extension LibraryStore {
                 """, arguments: [newSlideIDs[index].dbText, row["definition"] as String, row["createdAt"] as DatabaseValue,
                                  row["updatedAt"] as DatabaseValue])
         }
+    }
+}
+
+extension LibraryStore {
+    /// How many actions a stored definition lists. The definition is JSON with an "actions" array; an unreadable one counts as 1.
+    static func actionCount(in definition: String) -> Int {
+        guard let data = definition.data(using: .utf8), let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let actions = object["actions"] as? [Any] else { return 1 }
+        return actions.count
     }
 }

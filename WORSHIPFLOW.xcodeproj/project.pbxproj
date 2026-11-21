@@ -23,47 +23,61 @@
 		5064BE52904C3EE8C418611E /* AudioPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C339254CFC75C60002280994 /* AudioPanel.swift */; };
 		54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74BA46590DEC0370D1EB32F /* VideoSupport.swift */; };
 		576E09591E49C59544BE4CAF /* RenderEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E1928B54159EDD76AFACDC58 /* RenderEngine */; };
+		593571E1E225EBBCD1EB5085 /* CuesActionList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA03DB2E7DB067956098B6 /* CuesActionList.swift */; };
 		5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38CD5DB50486CAC827308DF /* TimersPanel.swift */; };
+		6017D22BEDF0AA7E1FC420AB /* CueEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E21596084D094E4330D3996C /* CueEngine */; };
 		631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904015CE5BD7D12564A3BED /* LiveScenes.swift */; };
 		655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28162D8810237DB29AB3177 /* CentrePane.swift */; };
 		6665FC5F7E9C7BB83C0801E5 /* ModeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0E2BC56276AF5141501882 /* ModeViews.swift */; };
+		67E0E90136F49F8817A24D7B /* CuesEditors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3E0BA6ED027775B81E509B /* CuesEditors.swift */; };
+		681C9CA7F7769B2188A1B181 /* UISnapshotCues.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */; };
 		6B9D90BE5D4246BD564E26B9 /* DeckLinkSDI in Frameworks */ = {isa = PBXBuildFile; productRef = 1935C82D7238921CB54F7254 /* DeckLinkSDI */; };
 		70CF61C4B13414CFCDBCA8BA /* SDIProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94C7D2528DCC2560168C824 /* SDIProviders.swift */; };
 		71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 2C12DD02A64F9ED92363C486 /* OutputEngine */; };
 		7E995D6D0D133D3BCFDE45AB /* ShowInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */; };
 		8131FE6CEDA6419FB54B34CC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C06648FD1853A2071017E9D1 /* Assets.xcassets */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
+		87F91E1F669FE74AC56179D7 /* CuesMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AFAF5674771E5C1B9889797 /* CuesMode.swift */; };
 		8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */; };
 		9265D0121221C24948323389 /* StageMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EBE480BA6AD2725A3CA353 /* StageMessageView.swift */; };
 		9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4324BEB75E64640972B783F /* LibrarySidebar.swift */; };
+		932E756E00CFAAE618412EB6 /* CueStore in Frameworks */ = {isa = PBXBuildFile; productRef = 928CE345DBD0F607AE5BF650 /* CueStore */; };
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
 		9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */; };
 		A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */; };
+		A9243219076E8B694FCB4280 /* MIDIIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4EDCB0899697781D4FB48D05 /* MIDIIO */; };
 		ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1320EF2993E56B2BB360523 /* SoakConfig.swift */; };
 		B73CCFD90200075DBEFABA61 /* MediaSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D677F8D362BB899C12954273 /* MediaSupport.swift */; };
 		BA5C53C44C796A053A70D317 /* StageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B05143AD9A31F5DD17A7FB2 /* StageEditorView.swift */; };
 		BA87BFAC597CB9D387BAEEDF /* AudioSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5155C53E346262B7C544622F /* AudioSupport.swift */; };
 		D023CE93211A0306A400C70A /* MediaTransportStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */; };
+		D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B845A215193778B503237BC /* CuesTab.swift */; };
 		DB57A7075229EB502A101210 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B1B6A1952D317922E741F6 /* Components.swift */; };
 		E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2BB235B612B4475C266D56AE /* OperatorCore */; };
+		E6AC32C651CBFBA1F460BFB0 /* RemoteControl in Frameworks */ = {isa = PBXBuildFile; productRef = 932ADBAD73F2F55585D0BB0A /* RemoteControl */; };
 		EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB63AA09191D65308E97C971 /* ContentView.swift */; };
+		EE221F114B71A58BF1F1386D /* CueSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972BF78C395FB49A1F9F52DC /* CueSupport.swift */; };
 		EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 38C4944754161B6B1C9FE40D /* Persistence */; };
 		F645D9BDDC5E72FA4E85F317 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */; };
 		F82100F982A1C5D2902F7509 /* MediaDockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 092AFE512585CDC4273F3A1D /* MediaDockView.swift */; };
 		F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993D2499578DAFEB14C92990 /* TransportBar.swift */; };
+		FE6620B4CED48BF0F7DB3300 /* CuesControlInputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE40339A5D9BF1D0E036D63 /* CuesControlInputs.swift */; };
 		FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */; };
 		FF51555D896D21DE037B9CC8 /* ToolbarTimersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6862694E560546A6DA8686B /* ToolbarTimersView.swift */; };
 		FFB6A960780DA6CCD5E3BB9D /* HardwareTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotCues.swift; sourceTree = "<group>"; };
 		092AFE512585CDC4273F3A1D /* MediaDockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDockView.swift; sourceTree = "<group>"; };
+		0AFAF5674771E5C1B9889797 /* CuesMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesMode.swift; sourceTree = "<group>"; };
 		0B05143AD9A31F5DD17A7FB2 /* StageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageEditorView.swift; sourceTree = "<group>"; };
 		0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionOrderSheet.swift; sourceTree = "<group>"; };
 		12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanels.swift; sourceTree = "<group>"; };
 		14ACF4576DE699F2593C66FE /* ScreensMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensMode.swift; sourceTree = "<group>"; };
 		1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WORSHIPFLOW.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2031232049BA8C27AA077B2D /* Thumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thumbnails.swift; sourceTree = "<group>"; };
+		25CA03DB2E7DB067956098B6 /* CuesActionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesActionList.swift; sourceTree = "<group>"; };
 		32295D478AF06FE6654E71DA /* ShowMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowMode.swift; sourceTree = "<group>"; };
 		3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestView.swift; sourceTree = "<group>"; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
@@ -71,6 +85,8 @@
 		7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
+		8B845A215193778B503237BC /* CuesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesTab.swift; sourceTree = "<group>"; };
+		972BF78C395FB49A1F9F52DC /* CueSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueSupport.swift; sourceTree = "<group>"; };
 		993D2499578DAFEB14C92990 /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		9948423E632AF221937A9EB6 /* ImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSheet.swift; sourceTree = "<group>"; };
 		9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowInspector.swift; sourceTree = "<group>"; };
@@ -80,12 +96,14 @@
 		B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideObjectsEditor.swift; sourceTree = "<group>"; };
 		B94C7D2528DCC2560168C824 /* SDIProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDIProviders.swift; sourceTree = "<group>"; };
 		BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperatorWindowGuard.swift; sourceTree = "<group>"; };
+		BA3E0BA6ED027775B81E509B /* CuesEditors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesEditors.swift; sourceTree = "<group>"; };
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C06648FD1853A2071017E9D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C339254CFC75C60002280994 /* AudioPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPanel.swift; sourceTree = "<group>"; };
 		C6862694E560546A6DA8686B /* ToolbarTimersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarTimersView.swift; sourceTree = "<group>"; };
 		C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTransportStrip.swift; sourceTree = "<group>"; };
 		C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestSupport.swift; sourceTree = "<group>"; };
+		CBE40339A5D9BF1D0E036D63 /* CuesControlInputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesControlInputs.swift; sourceTree = "<group>"; };
 		D4B1B6A1952D317922E741F6 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		D677F8D362BB899C12954273 /* MediaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSupport.swift; sourceTree = "<group>"; };
 		D74BA46590DEC0370D1EB32F /* VideoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSupport.swift; sourceTree = "<group>"; };
@@ -113,6 +131,10 @@
 				E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */,
 				0DAC4AA819C3A8A075C56CC4 /* SDIEngine in Frameworks */,
 				6B9D90BE5D4246BD564E26B9 /* DeckLinkSDI in Frameworks */,
+				6017D22BEDF0AA7E1FC420AB /* CueEngine in Frameworks */,
+				932E756E00CFAAE618412EB6 /* CueStore in Frameworks */,
+				A9243219076E8B694FCB4280 /* MIDIIO in Frameworks */,
+				E6AC32C651CBFBA1F460BFB0 /* RemoteControl in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +159,12 @@
 				D4B1B6A1952D317922E741F6 /* Components.swift */,
 				BB63AA09191D65308E97C971 /* ContentView.swift */,
 				12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */,
+				25CA03DB2E7DB067956098B6 /* CuesActionList.swift */,
+				CBE40339A5D9BF1D0E036D63 /* CuesControlInputs.swift */,
+				BA3E0BA6ED027775B81E509B /* CuesEditors.swift */,
+				0AFAF5674771E5C1B9889797 /* CuesMode.swift */,
+				8B845A215193778B503237BC /* CuesTab.swift */,
+				972BF78C395FB49A1F9F52DC /* CueSupport.swift */,
 				7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */,
 				C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */,
 				3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */,
@@ -164,6 +192,7 @@
 				A38CD5DB50486CAC827308DF /* TimersPanel.swift */,
 				C6862694E560546A6DA8686B /* ToolbarTimersView.swift */,
 				993D2499578DAFEB14C92990 /* TransportBar.swift */,
+				01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */,
 				E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */,
 				D74BA46590DEC0370D1EB32F /* VideoSupport.swift */,
 				FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */,
@@ -231,6 +260,10 @@
 				2BB235B612B4475C266D56AE /* OperatorCore */,
 				1AE80C07788ADC1FC558D02D /* SDIEngine */,
 				1935C82D7238921CB54F7254 /* DeckLinkSDI */,
+				E21596084D094E4330D3996C /* CueEngine */,
+				928CE345DBD0F607AE5BF650 /* CueStore */,
+				4EDCB0899697781D4FB48D05 /* MIDIIO */,
+				932ADBAD73F2F55585D0BB0A /* RemoteControl */,
 			);
 			productName = WORSHIPFLOW;
 			productReference = 1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */;
@@ -295,6 +328,12 @@
 				DB57A7075229EB502A101210 /* Components.swift in Sources */,
 				EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */,
 				1463D5B1D7A0AF1207FB6EE3 /* ControlPanels.swift in Sources */,
+				EE221F114B71A58BF1F1386D /* CueSupport.swift in Sources */,
+				593571E1E225EBBCD1EB5085 /* CuesActionList.swift in Sources */,
+				FE6620B4CED48BF0F7DB3300 /* CuesControlInputs.swift in Sources */,
+				67E0E90136F49F8817A24D7B /* CuesEditors.swift in Sources */,
+				87F91E1F669FE74AC56179D7 /* CuesMode.swift in Sources */,
+				D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */,
 				F645D9BDDC5E72FA4E85F317 /* DesignTokens.swift in Sources */,
 				FFB6A960780DA6CCD5E3BB9D /* HardwareTestSupport.swift in Sources */,
 				8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */,
@@ -322,6 +361,7 @@
 				5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */,
 				FF51555D896D21DE037B9CC8 /* ToolbarTimersView.swift in Sources */,
 				F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */,
+				681C9CA7F7769B2188A1B181 /* UISnapshotCues.swift in Sources */,
 				36FF51F147353E7711DB6517 /* UISnapshotRun.swift in Sources */,
 				54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */,
 				13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */,
@@ -556,13 +596,29 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = Persistence;
 		};
+		4EDCB0899697781D4FB48D05 /* MIDIIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MIDIIO;
+		};
 		7392E34C444186C64745A079 /* Domain */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Domain;
 		};
+		928CE345DBD0F607AE5BF650 /* CueStore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CueStore;
+		};
+		932ADBAD73F2F55585D0BB0A /* RemoteControl */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RemoteControl;
+		};
 		E1928B54159EDD76AFACDC58 /* RenderEngine */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RenderEngine;
+		};
+		E21596084D094E4330D3996C /* CueEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CueEngine;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

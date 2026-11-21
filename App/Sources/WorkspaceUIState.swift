@@ -3,9 +3,18 @@ import Foundation
 import Observation
 import OperatorCore
 
+/// CUE-002b: what the Cues mode's centre shows.
+enum CuesSelection: Hashable {
+    case macro(UUID), slideActions, schedule, midi, remote
+}
+
 @MainActor
 @Observable
 final class WorkspaceUIState {
+    /// CUE-002b: the macro, the slide actions, the schedule, MIDI or the remote control, in the Cues mode.
+    var cuesSelection: CuesSelection?
+    /// The slide whose actions the Cues mode edits (an index into the open song).
+    var cuesSlideID: UUID?
     var showImport = false
     /// Set when the import sheet re-flows an existing presentation instead of creating one.
     var importExistingID: UUID?

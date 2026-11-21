@@ -207,7 +207,7 @@ struct SlideGrid: View {
             .padding(.horizontal, 4)
         }
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) { workspace.goLive(at: i) }
+        .onTapGesture(count: 2) { app.triggerSlide(i) }
         .onTapGesture { workspace.selectSlide(i) }
         .draggable("\(i)")
         .dropDestination(for: String.self) { items, _ in
@@ -242,7 +242,7 @@ struct SlideGrid: View {
     }
 
     @ViewBuilder private func slideMenu(_ i: Int) -> some View {
-        Button("Go Live") { workspace.goLive(at: i) }
+        Button("Go Live") { app.triggerSlide(i) }
         Button("Quick edit") { workspace.selectSlide(i); app.openQuickEdit() }
         Divider()
         Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
@@ -287,7 +287,7 @@ struct SlideList: View {
         .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
         .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(live ? ringColor : .clear, lineWidth: 2))
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) { workspace.goLive(at: i) }
+        .onTapGesture(count: 2) { app.triggerSlide(i) }
         .onTapGesture { workspace.selectSlide(i) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")

@@ -3,6 +3,7 @@
 import SwiftUI
 import Domain
 import OperatorCore
+import Persistence
 
 struct ImportSheet: View {
     let app: AppModel
@@ -20,6 +21,8 @@ struct ImportSheet: View {
     @State private var lossToken = 0
     /// R11: section orders (and the playlist items that play them) the replacement would shorten or empty.
     @State private var impact: [SectionOrderLoss] = []
+    /// CUE-002b (KI-075): slides whose actions this re-flow would drop.
+    @State private var actionLosses: [SlideActionLoss] = []
 
     private var isReflow: Bool { existingID != nil }
 
@@ -47,10 +50,11 @@ struct ImportSheet: View {
             preview
             if !impact.isEmpty { impactList }
             if !losses.isEmpty { lossList }
+            if !actionLosses.isEmpty { actionLossList }
             HStack {
                 Spacer()
                 Button("Cancel") { app.ui.showImport = false }.keyboardShortcut(.cancelAction)
-                Button(isReflow ? (losses.isEmpty && impact.isEmpty ? "Replace slides" : "Replace slides and discard these") : "Save presentation") { save() }
+                Button(isReflow ? (losses.isEmpty && impact.isEmpty && actionLosses.isEmpty ? "Replace slides" : "Replace slides and discard these") : "Save presentation") { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(saving || plan.slides.isEmpty || (!isReflow && title.trimmingCharacters(in: .whitespaces).isEmpty))
             }
@@ -88,7 +92,8 @@ struct ImportSheet: View {
         Task {
             let found = results.isEmpty ? [] : await workspace.reflowLosses(id: id, results: results)
             let damaged = results.isEmpty ? [] : await workspace.reflowImpact(id: id, results: results)
-            if token == lossToken { losses = found; impact = damaged }
+            let dropped = results.isEmpty ? [] : await workspace.reflowSlideActionLosses(id: id, results: results)
+            if token == lossToken { losses = found; impact = damaged; actionLosses = dropped }
         }
     }
 
@@ -132,6 +137,28 @@ struct ImportSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(losses.enumerated()), id: \.offset) { _, loss in
                         Text(describe(loss)).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.frame(maxHeight: 64)
+        }
+        .padding(6)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+        .accessibilityElement(children: .combine)
+    }
+
+    /// CUE-002b (KI-075): slide actions are kept with a slide whose words did not change; the others are dropped.
+    private var actionLossList: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label("These slide actions will be dropped, because their slide\u{2019}s words changed or moved to another section:",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.caption.bold()).foregroundStyle(.orange)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(actionLosses.enumerated()), id: \.offset) { _, loss in
+                        let section = loss.sectionName.map { "\($0): " } ?? ""
+                        let words = loss.primary.replacingOccurrences(of: "\n", with: " ")
+                        Text("\(section)\"\(words)\" had \(loss.actionCount) action\(loss.actionCount == 1 ? "" : "s")")
+                            .font(.caption).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }.frame(maxHeight: 64)

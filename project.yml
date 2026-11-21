@@ -31,6 +31,14 @@ targets:
         product: SDIEngine
       - package: WorshipFlowKit
         product: DeckLinkSDI
+      - package: WorshipFlowKit
+        product: CueEngine
+      - package: WorshipFlowKit
+        product: CueStore
+      - package: WorshipFlowKit
+        product: MIDIIO
+      - package: WorshipFlowKit
+        product: RemoteControl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app

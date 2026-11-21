@@ -78,6 +78,11 @@ struct WorkspaceView: View {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
+            if let cue = app.cue {
+                // CUE-002b: a failed action, a skipped scheduled event, a refused edit. Inside the operator window, never on an output.
+                if let error = cue.lastError { ErrorBar(message: error) { cue.dismissError() } }
+                ForEach(cue.notices) { notice in ErrorBar(message: notice.text) { cue.dismissNotice(notice.id) } }
+            }
             modeContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The transport bar is in every mode: an operator in Screens can still advance the service. The clip strip
@@ -142,7 +147,7 @@ struct WorkspaceView: View {
         case .edit: EditModeView(app: app, workspace: workspace)
         case .media: MediaModeView(app: app)
         case .stage: StageModeView(app: app)
-        case .cues: CuesModeView()
+        case .cues: CuesModeView(app: app, workspace: workspace)
         case .screens: ScreensModeView(app: app)
         }
     }

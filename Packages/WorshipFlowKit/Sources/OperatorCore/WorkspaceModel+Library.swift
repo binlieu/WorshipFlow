@@ -253,6 +253,12 @@ extension WorkspaceModel {
         return (try? await store.reflowLosses(of: id, with: results)) ?? []
     }
 
+    /// CUE-002b (KI-075): the slides whose actions re-flowing with `results` would drop, to be read before saving. Slides whose
+    /// words are unchanged keep theirs. A read that fails says nothing is lost: saving would fail too.
+    public func reflowSlideActionLosses(id: UUID, results: [ReflowResult]) async -> [SlideActionLoss] {
+        (try? await store.slideActionLosses(of: id, with: results)) ?? []
+    }
+
     /// Section orders (and the playlist items that play them) that re-flowing with `results` would shorten or empty (R11),
     /// for the sheet to show before the operator saves. A read that fails says nothing is lost: saving would fail too.
     public func reflowImpact(id: UUID, results: [ReflowResult]) async -> [SectionOrderLoss] {
@@ -269,6 +275,7 @@ extension WorkspaceModel {
         guard await attempt("re-flow the song", { try await self.store.replaceContent(of: id, with: results) }) != nil else { return false }
         await reloadPlaylistItems()                // an emptied section order shows as an empty item
         if openPresentationID == id { await reloadOpen() }
+        onContentReplaced?()                       // CUE-002b: the slides have new ids; their actions were carried over by the store
         return true
     }
 

@@ -5,6 +5,7 @@ import Foundation
 import Observation
 import Domain
 import Persistence
+import CueEngine
 
 /// Where the operator was, saved so a relaunch can bring it back to preview (NFR-06).
 struct WorkspacePlace: Codable, Equatable, Sendable {
@@ -62,6 +63,13 @@ public final class WorkspaceModel {
 
     /// Called on the main actor after every change to `show`, so the app can publish scenes to the outputs.
     @ObservationIgnored public var onShowChange: (@MainActor (ShowState) -> Void)?
+
+    /// CUE-002b: called on the main actor after a command that took a slide live (a trigger, or a Next or Previous that moved
+    /// the live slide). Not for preview, quick edit, clear or stop. The cue wiring hangs slide actions on it.
+    @ObservationIgnored public var onSlideWentLive: (@MainActor (SlideLiveEvent) -> Void)?
+
+    /// CUE-002b: called on the main actor after a re-flow replaced a presentation's slides (their ids changed).
+    @ObservationIgnored public var onContentReplaced: (@MainActor () -> Void)?
 
     /// Called on the main actor by `clearAll()`, after the show state changed, so the app can stop the foreground clip.
     @ObservationIgnored public var onClearAll: (@MainActor () -> Void)?
@@ -211,7 +219,11 @@ public final class WorkspaceModel {
     /// The one place `show` changes, so the app is always told.
     func apply(_ command: ShowCommand) {
         let wasStopped = show.isStopped
+        let before = show
         show.apply(command)
+        defer {
+            if let event = SlideLiveEvent.detect(command: command, before: before, after: show) { onSlideWentLive?(event) }
+        }
         switch command {
         case .trigger: captureLiveTheme()
         case .next where wasStopped: captureLiveTheme()        // the first Next of a stopped show triggers the preview deck

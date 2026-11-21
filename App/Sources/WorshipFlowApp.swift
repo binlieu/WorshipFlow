@@ -55,6 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard proceed else { return .terminateCancel }
         Task { @MainActor in
             await AppModel.shared.flushWorkspace()
+            await AppModel.shared.stopCue()
             NSApp.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
