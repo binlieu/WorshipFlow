@@ -173,6 +173,14 @@ enum Schema {
                 t.add(column: "objects", .text)
             }
         }
+
+        // HW-002 / OUT-005: SDI destinations, mirrors and the SDI video mode. One JSON column holds everything a plain
+        // display or window profile does not need; it stays NULL for them, so rows written by v5 read unchanged.
+        migrator.registerMigration("v6") { db in
+            try db.alter(table: "screenProfile") { t in
+                t.add(column: "extra", .text)
+            }
+        }
         return migrator
     }
 }

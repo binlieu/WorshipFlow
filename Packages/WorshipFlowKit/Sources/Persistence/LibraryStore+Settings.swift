@@ -7,6 +7,22 @@ import Foundation
 import GRDB
 import Domain
 
+/// What a screen profile stores beyond the v3 columns (schema v6). Nil in the column when a profile has none of it.
+struct ScreenProfileExtras: Codable {
+    /// Set only when the primary destination is SDI.
+    var destination: OutputDestination?
+    var mirrors: [OutputDestination]
+    var videoMode: VideoModeDescription
+
+    init?(_ profile: ScreenProfile) {
+        let sdi = profile.destination.isSDI ? profile.destination : nil
+        guard sdi != nil || !profile.mirrors.isEmpty || profile.videoMode != .standard else { return nil }
+        destination = sdi
+        mirrors = profile.mirrors
+        videoMode = profile.videoMode
+    }
+}
+
 enum SettingsJSON {
     static func encode<T: Encodable>(_ value: T) throws -> String {
         let encoder = JSONEncoder()
@@ -196,8 +212,12 @@ extension LibraryStore {
             try Row.fetchAll(db, sql: "SELECT * FROM screenProfile ORDER BY sortOrder, rowid").map { row in
                 guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("screen id") }
                 guard let role = ScreenRole(rawValue: row["role"]) else { throw SettingsJSON.corrupt("screen role") }
+                let extras: ScreenProfileExtras? = try (row["extra"] as String?).map { try SettingsJSON.decode(ScreenProfileExtras.self, from: $0) }
                 let destination: OutputDestination
                 switch row["destination"] as String {
+                case "sdi":
+                    guard let sdi = extras?.destination else { throw SettingsJSON.corrupt("screen sdi destination") }
+                    destination = sdi
                 case "window": destination = .window
                 case "display":
                     guard let display = row["displayID"] as Int64?, let value = UInt32(exactly: display) else {
@@ -206,7 +226,8 @@ extension LibraryStore {
                     destination = .display(value)
                 default: throw SettingsJSON.corrupt("screen destination")
                 }
-                return ScreenProfile(id: id, name: row["name"], role: role, destination: destination, isEnabled: row["isEnabled"])
+                return ScreenProfile(id: id, name: row["name"], role: role, destination: destination, isEnabled: row["isEnabled"],
+                                     mirrors: extras?.mirrors ?? [], videoMode: extras?.videoMode ?? .standard)
             }
         }
     }
@@ -222,11 +243,14 @@ extension LibraryStore {
                 switch profile.destination {
                 case .window: kind = "window"
                 case .display(let id): kind = "display"; display = Int64(id)
+                case .sdi: kind = "sdi"
                 }
+                let extras = ScreenProfileExtras(profile)
+                let extra: String? = try extras.map { try SettingsJSON.encode($0) }
                 try db.execute(sql: """
-                    INSERT INTO screenProfile (id, sortOrder, name, role, destination, displayID, isEnabled)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, arguments: [profile.id.dbText, index, profile.name, profile.role.rawValue, kind, display, profile.isEnabled])
+                    INSERT INTO screenProfile (id, sortOrder, name, role, destination, displayID, isEnabled, extra)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, arguments: [profile.id.dbText, index, profile.name, profile.role.rawValue, kind, display, profile.isEnabled, extra])
             }
         }
     }

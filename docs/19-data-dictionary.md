@@ -212,3 +212,9 @@ The words of text objects are folded into `presentation.bodyFolded` and the sear
 ## Not yet persisted
 
 Media playback state and per-presentation media are not persisted yet; they arrive with the features that use them (no placeholder tables).
+
+## Schema v6 (HW-002)
+
+| Table | Column | Type | Notes |
+|---|---|---|---|
+| screenProfile | extra | TEXT, nullable | JSON for settings added after v3: mirrors, SDI destination details, video mode. NULL for a plain profile. |

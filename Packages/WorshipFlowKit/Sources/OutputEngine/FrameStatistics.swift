@@ -27,6 +27,15 @@ public struct FrameStatistics: Sendable, Equatable {
         lastPresentation = time
     }
 
+    /// Counters from outside a display link: an SDI output reads them from its session (HW-002).
+    public init(targetInterval: Double, presentedFrames: Int, droppedFrames: Int, lateFrames: Int, maxInterval: Double = 0) {
+        self.targetInterval = targetInterval
+        self.presentedFrames = presentedFrames
+        self.droppedFrames = droppedFrames
+        self.lateFrames = lateFrames
+        self.maxInterval = maxInterval
+    }
+
     public mutating func reset() {
         presentedFrames = 0
         droppedFrames = 0

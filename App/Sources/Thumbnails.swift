@@ -107,11 +107,14 @@ struct ScenePreview: View {
     /// Where to get the pictures of background and foreground media. When the scene shows a video, the preview
     /// redraws about four times a second so it moves.
     var frames: (any MediaFrameSource)?
+    /// A keyed screen (fill and key) is transparent where nothing is drawn: show the checkerboard-over-transparency
+    /// convention behind it, so the operator can see what is transparent (HW-002 / SCRN-10).
+    var keyed = false
     @State private var picture: PreviewImage?
 
     var body: some View {
         ZStack {
-            Color(white: 0.16)          // shows through transparent (broadcast) scenes
+            if keyed { CheckerboardView() } else { Color(white: 0.16) }     // shows through transparent (broadcast) scenes
             if let picture {
                 Image(decorative: picture.image, scale: 1).resizable().interpolation(.medium)
             }
@@ -131,6 +134,24 @@ struct ScenePreview: View {
                       let next = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: false, frames: frames),
                       !Task.isCancelled else { return }
                 picture = next
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The grey-and-white squares that mean "transparent".
+struct CheckerboardView: View {
+    var body: some View {
+        Canvas { context, size in
+            let square: CGFloat = 8
+            let columns = Int((size.width / square).rounded(.up)), rows = Int((size.height / square).rounded(.up))
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(white: 0.82)))
+            for row in 0..<rows {
+                for column in 0..<columns where (row + column) % 2 == 1 {
+                    context.fill(Path(CGRect(x: CGFloat(column) * square, y: CGFloat(row) * square, width: square, height: square)),
+                                 with: .color(Color(white: 0.55)))
+                }
             }
         }
         .accessibilityHidden(true)
@@ -162,7 +183,8 @@ struct LiveScreenPreview: View {
 
     var body: some View {
         let _ = app.liveRevision
-        ScenePreview(scene: app.scene(forScreen: screenID), width: 320, cached: false, frames: app.mediaFrames)
+        let keyed = app.profiles.first { $0.id == screenID }?.destination.isKeyed ?? false
+        ScenePreview(scene: app.scene(forScreen: screenID), width: 320, cached: false, frames: app.mediaFrames, keyed: keyed)
             .clipShape(RoundedRectangle(cornerRadius: 3))
             .overlay(RoundedRectangle(cornerRadius: 3).stroke(.quaternary))
     }

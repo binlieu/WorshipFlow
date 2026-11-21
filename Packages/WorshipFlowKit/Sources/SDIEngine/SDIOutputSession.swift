@@ -36,6 +36,7 @@ public final class SDIOutputSession: @unchecked Sendable {
     private var currentState: SDISessionState = .idle
     private var repeated = 0
     private var lastFrame: SDIFrame?
+    private var stopHandler: (@Sendable (SDIStopReason) -> Void)?
 
     public init(port: any SDIOutputPort, mode: SDIVideoMode, keying: SDIKeying = .none,
                 prerollFrames: Int = 3, maxBufferedFrames: Int = 5, frameProvider: @escaping SDIFrameProvider) {
@@ -44,6 +45,13 @@ public final class SDIOutputSession: @unchecked Sendable {
         self.keying = keying
         self.frameProvider = frameProvider
         self.scheduler = SDIScheduler(prerollFrames: prerollFrames, maxBufferedFrames: maxBufferedFrames)
+    }
+
+    /// Called once, from whichever thread caused it and never under the session's lock, when the session stops: on
+    /// `stop()`, or because the card failed or refused to start. Set it before `start()`.
+    public var onStop: (@Sendable (SDIStopReason) -> Void)? {
+        get { lock.withLock { stopHandler } }
+        set { lock.withLock { stopHandler = newValue } }
     }
 
     public var state: SDISessionState { lock.withLock { currentState } }
@@ -126,16 +134,19 @@ public final class SDIOutputSession: @unchecked Sendable {
     }
 
     private func finish(reason: SDIStopReason) {
-        let wasRunning: Bool = lock.withLock {
+        let outcome: (wasRunning: Bool, changed: Bool, handler: (@Sendable (SDIStopReason) -> Void)?) = lock.withLock {
             let running = currentState == .running
-            if running || currentState == .idle { currentState = .stopped(reason) }
+            let changed = running || currentState == .idle
+            if changed { currentState = .stopped(reason) }
             if running { scheduler.stop() }
-            return running
+            return (running, changed, changed ? stopHandler : nil)
         }
-        guard wasRunning else { return }
-        port.onFrameCompleted = nil
-        port.onFailure = nil
-        port.stopPlayback()
-        port.disable()
+        if outcome.wasRunning {
+            port.onFrameCompleted = nil
+            port.onFailure = nil
+            port.stopPlayback()
+            port.disable()
+        }
+        outcome.handler?(reason)
     }
 }

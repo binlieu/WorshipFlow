@@ -2,6 +2,7 @@
 import Foundation
 import Metal
 import Domain
+import SDIEngine
 
 /// Supplies the scene an output should draw. Called on the output's render thread for every frame.
 public typealias SceneProvider = @Sendable () -> SceneDescription
@@ -51,6 +52,11 @@ public protocol OutputTarget: AnyObject {
     var isOccluded: Bool { get }
     /// Layers the output skipped because they could not be drawn, de-duplicated; empty when the last frame had none (R2).
     var renderProblems: [String] { get }
+    /// What only an SDI output has to say (HW-002): health, repeated frames, warnings. Nil for displays and windows.
+    var sdiReport: SDIOutputReport? { get }
+    /// True when the output stopped because its device went away (an SDI card unplugged), so the coordinator should
+    /// bring it back when that device returns (KI-012).
+    var stoppedByDeviceLoss: Bool { get }
     /// Called on the main actor whenever the status changes (including when the window is closed or the display disappears).
     var onStatusChange: (@MainActor (OutputStatus) -> Void)? { get set }
     func start() throws
@@ -61,4 +67,26 @@ extension OutputTarget {
     public var isOccluded: Bool { false }
     public var unavailableImagePaths: [String] { [] }
     public var renderProblems: [String] { [] }
+    public var sdiReport: SDIOutputReport? { nil }
+    public var stoppedByDeviceLoss: Bool { false }
+}
+
+/// The SDI-specific part of a screen's readout (HW-002).
+public struct SDIOutputReport: Sendable, Equatable {
+    public var health: SDIHealth
+    /// Frames where nothing new was ready in time and the previous frame was sent again.
+    public var repeatedFrames: Int
+    /// For example "Nothing will key: background is opaque". Empty when there is nothing to warn about.
+    public var warnings: [String]
+    /// True when the card is a simulator, so the interface can say so wherever it is shown.
+    public var isSimulated: Bool
+    public var modeName: String
+
+    public init(health: SDIHealth, repeatedFrames: Int, warnings: [String], isSimulated: Bool, modeName: String) {
+        self.health = health
+        self.repeatedFrames = repeatedFrames
+        self.warnings = warnings
+        self.isSimulated = isSimulated
+        self.modeName = modeName
+    }
 }

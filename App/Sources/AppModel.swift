@@ -7,6 +7,7 @@ import Domain
 import MediaEngine
 import OutputEngine
 import RenderEngine
+import SDIEngine
 import Persistence
 import OperatorCore
 
@@ -32,6 +33,9 @@ final class AppModel {
     private(set) var readouts: [ScreenReadout] = []
     private(set) var displayChoices: [DisplayChoice] = []
     private(set) var screensOn = false
+    /// SDI cards the coordinator can see now (HW-002), and what each connector of each carries.
+    private(set) var sdiDevices: [SDIDeviceSummary] = []
+    private(set) var connectorRows: [String: [ConnectorRow]] = [:]
     private(set) var videoURL: URL?
     private(set) var messages: [String] = []
     /// Screen profiles, Looks, props and custom themes, stored in the library (APP-001). Nil in a soak run, or when
@@ -67,6 +71,11 @@ final class AppModel {
     @ObservationIgnored private let sceneBox: SceneBox
     @ObservationIgnored private var scopedURLs: [UUID: URL] = [:]   // security-scoped access held while the prop exists
     @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
+    /// The simulated SDI card and its real-time clock (HW-002). There is no real provider yet, so this is the only card, and
+    /// only while the "Show simulated SDI device" developer setting is on.
+    @ObservationIgnored private let simulatedCard = SimulatedSDIDevice()
+    @ObservationIgnored private var simulatedClock: SimulatedClockDriver?
+    static let simulatedCardID = "simulated-sdi-duo2"
     @ObservationIgnored private var video: LoopingVideoSource?
     /// Opens and closes the players for the media layers; every output reads frames from it (MEDIA-001).
     @ObservationIgnored let mediaRegistry = MediaRegistry()
@@ -136,6 +145,7 @@ final class AppModel {
             })
             settings.onProfilesChange = { [weak self] in self?.profilesChanged() }
             settings.onAppearanceChange = { [weak self] in self?.lookChanged() }
+            settings.onSimulatedSDIDeviceChange = { [weak self] in self?.sdiDevicesChanged() }
             self.settings = settings
             let stage = StageModel(store: store)
             stage.onChange = { [weak self] in self?.publish() }
@@ -185,6 +195,8 @@ final class AppModel {
             updateReadouts()
             await workspace.load()
             workspaceLoaded = true
+            // Test hook for runs that cannot click: open the screens as soon as the workspace is loaded.
+            if CommandLine.arguments.contains("--open-screens") { startScreens() }
         }
     }
 
@@ -335,23 +347,30 @@ final class AppModel {
     }
 
     private func makeCoordinator() -> OutputCoordinator {
+        let sdi = SDIEnvironment(
+            devices: { [weak self] in self?.sdiHandles() ?? [] },
+            makeTarget: { [weak self] profile, setup in
+                guard let self else { throw OutputSetupError.modelGone }
+                return try self.makeSDITarget(profile, setup)
+            })
         let c = OutputCoordinator(
             displays: { [weak self] in self?.displaySnapshot() ?? DisplaySnapshot(available: [], operatorDisplay: nil) },
-            makeTarget: { [weak self] profile, destination in
+            makeSlotTarget: { [weak self] profile, slot, destination in
                 guard let self else { throw OutputSetupError.modelGone }
-                return try self.makeTarget(profile, destination)
+                return try self.makeTarget(profile, slot, destination)
             },
-            sleepGuard: SleepGuard())
+            sleepGuard: SleepGuard(), sdi: sdi)
         c.onChange = { [weak self] in self?.updateReadouts() }
         return c
     }
 
     private enum OutputSetupError: Error, LocalizedError {
-        case modelGone, displayGone
+        case modelGone, displayGone, sdiNotPlanned
         var errorDescription: String? {
             switch self {
             case .modelGone: "The app is shutting down."
             case .displayGone: "The display is no longer connected."
+            case .sdiNotPlanned: "This SDI output was not set up through a card."
             }
         }
     }
@@ -453,9 +472,8 @@ final class AppModel {
     }
 
     func destinationName(_ destination: OutputDestination) -> String {
-        switch destination {
-        case .window: return "Window"
-        case .display(let id): return displayChoices.first { $0.id == id }?.name ?? "Display \(id) (not connected)"
+        ScreenEditing.destinationLabel(destination, devices: sdiDevices) { id in
+            displayChoices.first { $0.id == id }?.name ?? "Display \(id) (not connected)"
         }
     }
 
@@ -850,7 +868,7 @@ final class AppModel {
         mediaAccess.removeAll()
     }
 
-    private func makeTarget(_ profile: ScreenProfile, _ destination: OutputDestination) throws -> any OutputTarget {
+    private func makeTarget(_ profile: ScreenProfile, _ slot: OutputSlot, _ destination: OutputDestination) throws -> any OutputTarget {
         let box = sceneBox
         let role = profile.role
         let screenID = profile.id
@@ -858,19 +876,80 @@ final class AppModel {
         let source: (any VideoSourceFactory)? = role != .stage ? video : nil
         // The stage scene never names media, so it never asks; passing the registry to every output is still harmless.
         let mediaSource: (any MediaFrameSource)? = mediaRegistry
+        let name = slot.mirror.map { "\(profile.name) mirror \($0 + 1)" } ?? profile.name
         switch destination {
         case .display(let id):
             guard let screen = NSScreen.screens.first(where: { DisplayOutput.displayID(of: $0) == id }) else {
                 throw OutputSetupError.displayGone
             }
-            return DisplayOutput(screen: screen, name: profile.name, sceneProvider: provider, videoSource: source,
+            return DisplayOutput(screen: screen, name: name, sceneProvider: provider, videoSource: source,
                                  mediaSource: mediaSource)
         case .window:
-            let index = profiles.filter { $0.destination == .window }.firstIndex { $0.id == profile.id } ?? 0
-            return WindowOutput(name: profile.name, sceneProvider: provider, videoSource: source, cascadeIndex: index,
+            // Each window output, primary or mirror, opens a little lower and to the right of the one before it.
+            var index = 0
+            outer: for p in profiles {
+                for (i, d) in ([p.destination] + p.mirrors).enumerated() where d == .window {
+                    if p.id == slot.screenID && (i == 0 ? nil : i - 1) == slot.mirror { break outer }
+                    index += 1
+                }
+            }
+            return WindowOutput(name: name, sceneProvider: provider, videoSource: source, cascadeIndex: index,
                                 mediaSource: mediaSource)
+        case .sdi:
+            // The coordinator routes SDI through `makeSDITarget`, which needs an opened port.
+            throw OutputSetupError.sdiNotPlanned
         }
     }
+
+    // MARK: SDI (HW-002)
+
+    private func sdiHandles() -> [SDIDeviceHandle] {
+        guard settings?.showSimulatedSDIDevice == true else { return [] }
+        return [SDIDeviceHandle(id: Self.simulatedCardID, device: simulatedCard)]
+    }
+
+    /// One clock per simulated card: every connector ticks at the rate of the first output's mode.
+    private func simulatedClock(for mode: SDIVideoMode) -> SimulatedClockDriver {
+        if let existing = simulatedClock, existing.isRunning || existing.mode == mode { return existing }
+        let driver = SimulatedClockDriver(device: simulatedCard, mode: mode)
+        simulatedClock = driver
+        return driver
+    }
+
+    private func makeSDITarget(_ profile: ScreenProfile, _ setup: SDIOutputSetup) throws -> any OutputTarget {
+        let box = sceneBox
+        let screenID = profile.id
+        let name = setup.slot.mirror.map { "\(profile.name) mirror \($0 + 1)" } ?? profile.name
+        return SDIOutput(name: name, port: setup.port, mode: setup.planned.mode, keying: setup.planned.keying,
+                         isSimulated: setup.info.isSimulated, sceneProvider: { box.read().scene(forScreen: screenID) },
+                         videoSource: profile.role != .stage ? video : nil, mediaSource: mediaRegistry,
+                         clock: setup.info.isSimulated ? simulatedClock(for: setup.planned.mode) : nil)
+    }
+
+    private func sdiDevicesChanged() {
+        coordinator.devicesChanged()
+        updateReadouts()
+    }
+
+    var showSimulatedSDIDevice: Bool { settings?.showSimulatedSDIDevice ?? false }
+
+    func setShowSimulatedSDIDevice(_ on: Bool) { settings?.setShowSimulatedSDIDevice(on) }
+
+    /// Developer control: the simulated card disappears, as if its cable were pulled.
+    func simulateSDIUnplug() {
+        guard showSimulatedSDIDevice else { return }
+        simulatedCard.simulateUnplug()
+        updateReadouts()
+    }
+
+    /// Developer control: the simulated card comes back; screens that were running on it resume (KI-012).
+    func simulateSDIReplug() {
+        guard showSimulatedSDIDevice else { return }
+        simulatedCard.simulateReplug()
+        sdiDevicesChanged()
+    }
+
+    func sdiDevice(id: String) -> SDIDeviceSummary? { sdiDevices.first { $0.id == id } }
 
     func updateReadouts() {
         let r = coordinator.readouts()
@@ -881,6 +960,14 @@ final class AppModel {
                                                  presentationThemeID: workspace?.shownThemeID))
         refreshUnavailableImages()
         if screensOn != coordinator.isActive { screensOn = coordinator.isActive }
+        let summaries = coordinator.sdiDevices().map { d in
+            SDIDeviceSummary(id: d.id, name: d.info.displayName, connectorCount: d.info.connectorCount,
+                             supportsKeying: d.info.supportsExternalKeying, isSimulated: d.info.isSimulated,
+                             supportedModes: d.supportedModes.map { VideoModeDescription($0) }, isConnected: d.isConnected)
+        }
+        if summaries != sdiDevices { sdiDevices = summaries }
+        let rows = coordinator.connectorMaps().mapValues { ConnectorMapPresenter.rows(map: $0, profiles: profiles) }
+        if rows != connectorRows { connectorRows = rows }
     }
 
     private func log(_ message: String) {

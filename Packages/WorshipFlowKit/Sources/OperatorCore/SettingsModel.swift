@@ -25,6 +25,9 @@ public final class SettingsModel {
     /// Things that happened at load that the operator may want to know (an old file that could not be read).
     public internal(set) var notices: [String] = []
     public internal(set) var isLoaded = false
+    /// Developer setting (HW-002): offer the simulated SDI card. Off by default, so a real operator never sees a fake
+    /// device by accident. Kept in the library file with the other settings.
+    public internal(set) var showSimulatedSDIDevice = false
 
     /// Built-in themes first, then the custom ones.
     public var themes: [Theme] { Theme.builtIn + customThemes }
@@ -32,6 +35,8 @@ public final class SettingsModel {
 
     /// Called on the main actor after a change to the screen profiles, so the app can re-plan its outputs.
     @ObservationIgnored public var onProfilesChange: (@MainActor () -> Void)?
+    /// Called on the main actor after "Show simulated SDI device" changes, so the app can re-plan its outputs.
+    @ObservationIgnored public var onSimulatedSDIDeviceChange: (@MainActor () -> Void)?
     /// Called after a change to Looks, props or themes, so the app can publish scenes again.
     @ObservationIgnored public var onAppearanceChange: (@MainActor () -> Void)?
 
@@ -48,6 +53,7 @@ public final class SettingsModel {
 
     static let selectedLookKey = "settings.selectedLook"
     static let legacyImportKey = "settings.legacyImport"
+    static let simulatedSDIKey = "developer.showSimulatedSDI"
 
     /// - Parameters:
     ///   - legacy: the old JSON files to import once into empty tables; nil skips the import.
@@ -100,6 +106,7 @@ public final class SettingsModel {
         let saved = try? await store.state(for: Self.selectedLookKey)
         selectedLookID = saved.flatMap(UUID.init(uuidString:)).flatMap { id in stored.contains { $0.id == id } ? id : nil }
             ?? stored[0].id
+        showSimulatedSDIDevice = (try? await store.state(for: Self.simulatedSDIKey)) == "on"
         isLoaded = true
     }
 
@@ -174,6 +181,17 @@ public final class SettingsModel {
         guard profilesWritable else { return }
         let snapshot = profiles
         persist(key: "profiles", "save the screen settings") { [store] in try await store.saveScreenProfiles(snapshot) }
+    }
+
+    // MARK: Developer settings (HW-002)
+
+    public func setShowSimulatedSDIDevice(_ on: Bool) {
+        guard on != showSimulatedSDIDevice else { return }
+        showSimulatedSDIDevice = on
+        persist(key: "developer.simulatedSDI", "remember the developer setting") { [store] in
+            try await store.setState(on ? "on" : "off", for: Self.simulatedSDIKey)
+        }
+        onSimulatedSDIDeviceChange?()
     }
 
     // MARK: Looks (SCRN-08)

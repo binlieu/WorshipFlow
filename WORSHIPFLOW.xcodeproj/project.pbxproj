@@ -23,6 +23,7 @@
 		5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38CD5DB50486CAC827308DF /* TimersPanel.swift */; };
 		631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904015CE5BD7D12564A3BED /* LiveScenes.swift */; };
 		655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28162D8810237DB29AB3177 /* CentrePane.swift */; };
+		6B9D90BE5D4246BD564E26B9 /* DeckLinkSDI in Frameworks */ = {isa = PBXBuildFile; productRef = 1935C82D7238921CB54F7254 /* DeckLinkSDI */; };
 		71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 2C12DD02A64F9ED92363C486 /* OutputEngine */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
 		9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4324BEB75E64640972B783F /* LibrarySidebar.swift */; };
@@ -83,6 +84,7 @@
 				EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */,
 				E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */,
 				0DAC4AA819C3A8A075C56CC4 /* SDIEngine in Frameworks */,
+				6B9D90BE5D4246BD564E26B9 /* DeckLinkSDI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -177,6 +179,7 @@
 				38C4944754161B6B1C9FE40D /* Persistence */,
 				2BB235B612B4475C266D56AE /* OperatorCore */,
 				1AE80C07788ADC1FC558D02D /* SDIEngine */,
+				1935C82D7238921CB54F7254 /* DeckLinkSDI */,
 			);
 			productName = WORSHIPFLOW;
 			productReference = 1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */;
@@ -455,6 +458,10 @@
 		0A1491D9F0D3D5753C2F3408 /* MediaEngine */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MediaEngine;
+		};
+		1935C82D7238921CB54F7254 /* DeckLinkSDI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DeckLinkSDI;
 		};
 		1AE80C07788ADC1FC558D02D /* SDIEngine */ = {
 			isa = XCSwiftPackageProductDependency;

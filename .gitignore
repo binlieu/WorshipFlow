@@ -11,3 +11,6 @@ AI/reports/soak-*.log
 
 # Blackmagic SDK: owner-downloaded, licence not yet reviewed (ADR-0005)
 Vendor/DeckLinkSDK/*
+
+# Owner-downloaded SDK archive
+Blackmagic_DeckLink_SDK_*.zip

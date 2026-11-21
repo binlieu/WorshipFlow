@@ -190,6 +190,7 @@ struct RightColumn: View {
     @Bindable var app: AppModel
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Live screens").font(.headline)
@@ -211,7 +212,7 @@ struct RightColumn: View {
                     AudioPanel(audio: audio)
                     Divider()
                 }
-                ScreensPanel(model: app)
+                ScreensPanel(model: app).id("screens-panel")
                 Divider()
                 if let stage = app.stage {
                     TimersPanel(app: app, stage: stage)
@@ -229,6 +230,13 @@ struct RightColumn: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .task {
+            // Test hook for runs that cannot scroll: start with the Screens panel in view.
+            guard CommandLine.arguments.contains("--show-screens-panel") else { return }
+            try? await Task.sleep(for: .seconds(1))
+            proxy.scrollTo("screens-panel", anchor: .top)
+        }
         }
     }
 }
