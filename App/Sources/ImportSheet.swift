@@ -18,6 +18,8 @@ struct ImportSheet: View {
     /// Speaker notes and objects the replacement would discard (KI-019), listed before saving.
     @State private var losses: [ReflowLoss] = []
     @State private var lossToken = 0
+    /// R11: section orders (and the playlist items that play them) the replacement would shorten or empty.
+    @State private var impact: [SectionOrderLoss] = []
 
     private var isReflow: Bool { existingID != nil }
 
@@ -43,11 +45,12 @@ struct ImportSheet: View {
             Text("Start a section with a label line such as Verse 1 or Chorus. Leave a blank line between sections.")
                 .font(.caption).foregroundStyle(.secondary)
             preview
+            if !impact.isEmpty { impactList }
             if !losses.isEmpty { lossList }
             HStack {
                 Spacer()
                 Button("Cancel") { app.ui.showImport = false }.keyboardShortcut(.cancelAction)
-                Button(isReflow ? (losses.isEmpty ? "Replace slides" : "Replace slides and discard these") : "Save presentation") { save() }
+                Button(isReflow ? (losses.isEmpty && impact.isEmpty ? "Replace slides" : "Replace slides and discard these") : "Save presentation") { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(saving || plan.slides.isEmpty || (!isReflow && title.trimmingCharacters(in: .whitespaces).isEmpty))
             }
@@ -84,8 +87,39 @@ struct ImportSheet: View {
         let results = plan.results
         Task {
             let found = results.isEmpty ? [] : await workspace.reflowLosses(id: id, results: results)
-            if token == lossToken { losses = found }
+            let damaged = results.isEmpty ? [] : await workspace.reflowImpact(id: id, results: results)
+            if token == lossToken { losses = found; impact = damaged }
         }
+    }
+
+    /// R11: section orders that lose sections, and playlist items that would end up showing nothing.
+    private var impactList: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label("These section orders will lose sections, because their names are not in the new text:",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.caption.bold()).foregroundStyle(.orange)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(impact.enumerated()), id: \.offset) { _, loss in
+                        Text(describe(loss)).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.frame(maxHeight: 64)
+        }
+        .padding(6)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func describe(_ loss: SectionOrderLoss) -> String {
+        let lost = loss.lostSections.joined(separator: ", ")
+        var text = "Section order \"\(loss.arrangementName)\" loses \(lost)."
+        if loss.becomesEmpty { text += " It would be empty." }
+        if !loss.playlistItemTitles.isEmpty {
+            let titles = loss.playlistItemTitles.map { "\"\($0)\"" }.joined(separator: ", ")
+            text += loss.becomesEmpty ? " Playlist items \(titles) would show no slides." : " Used by playlist items \(titles)."
+        }
+        return text
     }
 
     /// Notes and objects on slides whose words changed. They are gone once the slides are replaced.

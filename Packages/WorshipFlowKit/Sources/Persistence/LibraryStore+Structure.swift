@@ -78,6 +78,30 @@ extension LibraryStore {
         }
     }
 
+    /// Section orders of the presentation that re-flowing with `results` would shorten or empty, with the playlist items
+    /// that play them, so the operator can be told before saving (R11).
+    public func reflowImpact(of presentationID: UUID, with results: [ReflowResult]) async throws -> [SectionOrderLoss] {
+        try await writer.read { db in
+            try Self.requireExists(db, table: "presentation", id: presentationID)
+            let groups = try Self.fetchGroups(db, presentationID: presentationID)
+            let orders = try Self.fetchArrangements(db, presentationID: presentationID)
+            var titles: [UUID: [String]] = [:]
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT pi.arrangementID AS arrangementID, p.title AS title
+                FROM playlistItem pi JOIN presentation p ON p.id = pi.presentationID
+                WHERE pi.presentationID = ? AND pi.arrangementID IS NOT NULL
+                ORDER BY pi.playlistID, pi.sortOrder
+                """, arguments: [presentationID.dbText])
+            for row in rows {
+                if let id = (row["arrangementID"] as String?).flatMap(UUID.init(uuidString:)) { titles[id, default: []].append(row["title"]) }
+            }
+            var names: [String] = []
+            for name in results.compactMap(\.sectionName) where !names.contains(name) { names.append(name) }
+            return ReflowImpact.sectionOrderLosses(groups: groups, arrangements: orders, newSectionNames: names,
+                                                   playlistTitlesByArrangement: titles)
+        }
+    }
+
     private static func carryOver(_ db: Database, presentationID: UUID, groups: [SlideGroup],
                                   results: [ReflowResult]) throws -> ReflowCarry {
         let names = Dictionary(groups.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })

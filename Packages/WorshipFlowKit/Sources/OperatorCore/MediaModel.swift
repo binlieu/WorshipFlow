@@ -23,6 +23,14 @@ public struct MediaProbeResult: Sendable, Equatable {
     }
 }
 
+/// How a player is doing, as the app reads it from the media registry. `.starting` is normal for a video until an
+/// output has pulled its first frame.
+public enum ClipAvailability: Sendable, Equatable {
+    case notOpen, starting, delivering
+    case failed(String)
+    case stalled
+}
+
 public protocol MediaProber: Sendable {
     /// Reads the file's header. Throws an error whose `localizedDescription` says what is wrong with the file.
     func probe(url: URL) async throws -> MediaProbeResult
@@ -52,6 +60,8 @@ public final class MediaModel {
     public var kindFilter: MediaKind?
     public private(set) var layers = MediaLayers()
     public internal(set) var lastError: String?
+    /// R12: set while a write (the remembered background) failed and is still waiting to succeed, with the reason.
+    public internal(set) var writeProblem: String?
     /// Foreground audio, 0...1 and mute (default output device). A background loop is always muted.
     public private(set) var volume: Double = 0.5
     public private(set) var isMuted = false
@@ -78,7 +88,7 @@ public final class MediaModel {
     @ObservationIgnored private let prober: any MediaProber
     @ObservationIgnored private let now: @Sendable () -> Double
     @ObservationIgnored private let isAvailable: @Sendable (MediaAsset) -> Bool
-    @ObservationIgnored private var tail: Task<Void, Never>?
+    @ObservationIgnored private let writes: RetryingWriteChain
 
     static let backgroundKey = "media.background"
 
@@ -87,11 +97,21 @@ public final class MediaModel {
     ///   - isAvailable: whether the file can be read now. Tests inject their own; the default asks the file system.
     public init(store: LibraryStore, prober: any MediaProber,
                 now: @escaping @Sendable () -> Double = { ProcessInfo.processInfo.systemUptime },
-                isAvailable: @escaping @Sendable (MediaAsset) -> Bool = { FileManager.default.isReadableFile(atPath: $0.path) }) {
+                isAvailable: @escaping @Sendable (MediaAsset) -> Bool = { FileManager.default.isReadableFile(atPath: $0.path) },
+                clock: any SaveClock = RealSaveClock()) {
         self.store = store
         self.prober = prober
         self.now = now
         self.isAvailable = isAvailable
+        writes = RetryingWriteChain(clock: clock, describe: { WorkspaceModel.message(for: $0, doing: $1) })
+        writes.onProblemChange = { [weak self] in self?.writeProblem = $0 }
+        writes.onFirstFailure = { [weak self] in self?.lastError = $0 }
+    }
+
+    /// Tests: called with the key of each write just before it runs; throwing makes it fail.
+    var writeInterceptor: (@Sendable (String) async throws -> Void)? {
+        get { writes.interceptor }
+        set { writes.interceptor = newValue }
     }
 
     // MARK: Loading
@@ -113,8 +133,8 @@ public final class MediaModel {
         layersChanged()
     }
 
-    /// Waits until every change made so far has been written.
-    public func flush() async { await tail?.value }
+    /// Waits until every change made so far has been written. A write that failed earlier is tried again now (R12).
+    public func flush() async { await writes.flush() }
 
     public func dismissError() { lastError = nil }
 
@@ -194,7 +214,7 @@ public final class MediaModel {
 
     private func persistBackground(_ id: UUID?) {
         let text = id?.uuidString
-        persist("remember the background") { [store] in try await store.setState(text, for: Self.backgroundKey) }
+        persist(key: "background", "remember the background") { [store] in try await store.setState(text, for: Self.backgroundKey) }
     }
 
     // MARK: Foreground
@@ -273,6 +293,10 @@ public final class MediaModel {
         if !isLive { stopForeground() }
     }
 
+    /// R17: the screens were closed. The clip playing over the slide stops (its sound with it); the background stays
+    /// chosen, so it plays again when the screens open.
+    public func screensClosed() { stopForeground() }
+
     public func setVolume(_ value: Double) {
         let v = value.isFinite ? min(1, max(0, value)) : 0
         guard v != volume else { return }
@@ -305,6 +329,30 @@ public final class MediaModel {
         if changed { layersChanged() }
     }
 
+    /// A player's availability changed. A foreground clip that failed or stalled ends, so the words come back, and the
+    /// operator is told which file. A background that failed or stalled is reported and taken out (the theme's own
+    /// background shows); its choice stays stored. Other states, and other assets, change nothing.
+    public func availabilityChanged(_ id: UUID, _ state: ClipAvailability) {
+        let why: String
+        switch state {
+        case .failed(let reason): why = reason
+        case .stalled: why = "it stopped playing and could not be restarted."
+        case .notOpen, .starting, .delivering: return
+        }
+        var changed = false
+        if let f = layers.foreground, f.selection.assetID == id {
+            layers.stopForeground()
+            lastError = Self.playbackMessage(asset(id), what: "The video or picture", why: why)
+            changed = true
+        }
+        if let b = layers.background, b.selection.assetID == id {
+            layers.setBackground(nil, at: now())
+            lastError = Self.playbackMessage(asset(id), what: "The background", why: why)
+            changed = true
+        }
+        if changed { layersChanged() }
+    }
+
     // MARK: Helpers
 
     private func usable(_ asset: MediaAsset, as use: String) -> Bool {
@@ -323,20 +371,19 @@ public final class MediaModel {
         "\(what) for \"\(asset.name)\" is missing or cannot be read: \(asset.path). Check that the drive or folder is connected, or remove it from the media bin and add it again."
     }
 
-    private static func playbackMessage(_ asset: MediaAsset?, what: String) -> String {
+    private static func playbackMessage(_ asset: MediaAsset?, what: String, why: String? = nil) -> String {
         let name = asset.map { "\"\($0.name)\"" } ?? "chosen"
         let path = asset.map { " (\($0.path))" } ?? ""
+        if let why {
+            return "\(what) \(name)\(path) stopped working: \(why) The screens show the slide as usual; choose another item from the media bin."
+        }
         return "\(what) \(name) could not be opened\(path). It may have been moved, deleted or damaged. The screens show the slide as usual; choose another item from the media bin."
     }
 
     private func layersChanged() { onLayersChange?(layers) }
 
-    private func persist(_ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
-        let previous = tail
-        tail = Task { [weak self] in
-            await previous?.value
-            do { try await operation() } catch { self?.lastError = WorkspaceModel.message(for: error, doing: what) }
-        }
+    private func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
+        writes.persist(key: key, what: what, operation)
     }
 
     private func attempt<T>(_ what: String, _ body: () async throws -> T) async -> T? {

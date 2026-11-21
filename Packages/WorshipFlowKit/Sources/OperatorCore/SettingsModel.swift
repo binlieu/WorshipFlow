@@ -19,6 +19,9 @@ public final class SettingsModel {
     /// Custom themes only, by folded name. Built-in themes live in code.
     public internal(set) var customThemes: [Theme] = []
     public internal(set) var lastError: String?
+    /// R12: set while a settings write has failed and is still waiting to succeed, with the reason. Dismissing the
+    /// error bar does not clear it.
+    public internal(set) var writeProblem: String?
     /// Things that happened at load that the operator may want to know (an old file that could not be read).
     public internal(set) var notices: [String] = []
     public internal(set) var isLoaded = false
@@ -37,7 +40,9 @@ public final class SettingsModel {
     @ObservationIgnored let store: LibraryStore
     @ObservationIgnored private let legacy: LegacySettingsFiles?
     @ObservationIgnored private let defaultProfiles: @MainActor () -> [ScreenProfile]
-    @ObservationIgnored private var tail: Task<Void, Never>?
+    @ObservationIgnored private let writes: RetryingWriteChain
+    /// Security-scoped bookmarks of props added in this run, so a failed add that a later change supersedes keeps its bookmark.
+    @ObservationIgnored private var propBookmarks: [UUID: Data] = [:]
     /// False when the stored profiles could not be read: writing the (replace-all) profile set would destroy them.
     @ObservationIgnored private var profilesWritable = true
 
@@ -48,10 +53,19 @@ public final class SettingsModel {
     ///   - legacy: the old JSON files to import once into empty tables; nil skips the import.
     ///   - defaultProfiles: the screens a first launch starts with.
     public init(store: LibraryStore, legacy: LegacySettingsFiles? = nil,
-                defaultProfiles: @escaping @MainActor () -> [ScreenProfile]) {
+                defaultProfiles: @escaping @MainActor () -> [ScreenProfile], clock: any SaveClock = RealSaveClock()) {
         self.store = store
         self.legacy = legacy
         self.defaultProfiles = defaultProfiles
+        writes = RetryingWriteChain(clock: clock, describe: { Self.message(for: $0, doing: $1) })
+        writes.onProblemChange = { [weak self] in self?.writeProblem = $0 }
+        writes.onFirstFailure = { [weak self] _ in self?.lastError = self?.writeProblem?.replacingOccurrences(of: "Not saved yet: ", with: "") }
+    }
+
+    /// Tests: called with the key of each write just before it runs; throwing makes it fail.
+    var writeInterceptor: (@Sendable (String) async throws -> Void)? {
+        get { writes.interceptor }
+        set { writes.interceptor = newValue }
     }
 
     // MARK: Loading
@@ -80,7 +94,7 @@ public final class SettingsModel {
         if stored.isEmpty {
             let standard = Look(id: UUID(), name: "Standard")
             stored = [standard]
-            persist("save the Look") { [store] in try await store.saveLook(standard) }
+            persist(key: "look:\(standard.id)", "save the Look") { [store] in try await store.saveLook(standard) }
         }
         looks = stored
         let saved = try? await store.state(for: Self.selectedLookKey)
@@ -89,8 +103,8 @@ public final class SettingsModel {
         isLoaded = true
     }
 
-    /// Waits until every change made so far has been written (or has failed and been reported).
-    public func flush() async { await tail?.value }
+    /// Waits until every change made so far has been written. A write that failed earlier is tried again now (R12).
+    public func flush() async { await writes.flush() }
 
     public func dismissError() { lastError = nil }
 
@@ -159,7 +173,7 @@ public final class SettingsModel {
     private func persistProfiles() {
         guard profilesWritable else { return }
         let snapshot = profiles
-        persist("save the screen settings") { [store] in try await store.saveScreenProfiles(snapshot) }
+        persist(key: "profiles", "save the screen settings") { [store] in try await store.saveScreenProfiles(snapshot) }
     }
 
     // MARK: Looks (SCRN-08)
@@ -201,7 +215,7 @@ public final class SettingsModel {
     public func deleteLook(_ id: UUID) {
         guard looks.count > 1, let i = looks.firstIndex(where: { $0.id == id }) else { return }
         looks.remove(at: i)
-        persist("delete the Look") { [store] in try await store.deleteLook(id: id) }
+        persist(key: "look:\(id)", "delete the Look") { [store] in try await store.deleteLook(id: id) }
         if selectedLookID == id {
             selectedLookID = looks[min(i, looks.count - 1)].id
             persistSelectedLook()
@@ -229,12 +243,12 @@ public final class SettingsModel {
     }
 
     private func persistLook(_ look: Look) {
-        persist("save the Look") { [store] in try await store.saveLook(look) }
+        persist(key: "look:\(look.id)", "save the Look") { [store] in try await store.saveLook(look) }
     }
 
     private func persistSelectedLook() {
         let text = selectedLookID?.uuidString
-        persist("remember the selected Look") { [store] in try await store.setState(text, for: Self.selectedLookKey) }
+        persist(key: "selectedLook", "remember the selected Look") { [store] in try await store.setState(text, for: Self.selectedLookKey) }
     }
 
     // MARK: Props (MEDIA-08)
@@ -243,7 +257,8 @@ public final class SettingsModel {
     public func addProp(_ prop: Prop, bookmark: Data?) {
         guard !props.contains(where: { $0.id == prop.id }) else { return }
         props.append(prop)
-        persist("save the prop") { [store] in try await store.saveProp(prop, bookmark: bookmark) }
+        if let bookmark { propBookmarks[prop.id] = bookmark }
+        persist(key: "prop:\(prop.id)", "save the prop") { [store] in try await store.saveProp(prop, bookmark: bookmark) }
         onAppearanceChange?()
     }
 
@@ -251,14 +266,16 @@ public final class SettingsModel {
         guard let i = props.firstIndex(where: { $0.id == id }), props[i].isOn != isOn else { return }
         props[i].isOn = isOn
         let prop = props[i]
-        persist("save the prop") { [store] in try await store.saveProp(prop, bookmark: nil) }
+        let bookmark = propBookmarks[id]
+        persist(key: "prop:\(id)", "save the prop") { [store] in try await store.saveProp(prop, bookmark: bookmark) }
         onAppearanceChange?()
     }
 
     public func removeProp(_ id: UUID) {
         guard let i = props.firstIndex(where: { $0.id == id }) else { return }
         props.remove(at: i)
-        persist("remove the prop") { [store] in try await store.deleteProp(id: id) }
+        propBookmarks[id] = nil
+        persist(key: "prop:\(id)", "remove the prop") { [store] in try await store.deleteProp(id: id) }
         onAppearanceChange?()
     }
 
@@ -267,7 +284,9 @@ public final class SettingsModel {
         guard let i = props.firstIndex(where: { $0.id == id }) else { return }
         props[i].imagePath = path
         let prop = props[i]
-        persist("save the prop") { [store] in try await store.saveProp(prop, bookmark: bookmark) }
+        if let bookmark { propBookmarks[id] = bookmark }
+        let kept = bookmark ?? propBookmarks[id]
+        persist(key: "prop:\(id)", "save the prop") { [store] in try await store.saveProp(prop, bookmark: kept) }
     }
 
     /// The stored bookmark for a prop, read from the library.
@@ -351,7 +370,7 @@ public final class SettingsModel {
 
     private func persistTheme(_ id: UUID) {
         guard let theme = customThemes.first(where: { $0.id == id }) else { return }
-        persist("save the theme") { [store] in try await store.saveTheme(theme) }
+        persist(key: "theme:\(id)", "save the theme") { [store] in try await store.saveTheme(theme) }
     }
 
     private func blankNameError(_ what: String) -> Theme? {
@@ -370,15 +389,10 @@ public final class SettingsModel {
 
     // MARK: Writing
 
-    /// Queues a write behind the earlier ones, so changes reach the file in the order they were made.
-    private func persist(_ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
-        let previous = tail
-        tail = Task { [weak self] in
-            await previous?.value
-            do { try await operation() } catch {
-                self?.lastError = Self.message(for: error, doing: what)
-            }
-        }
+    /// Queues a write behind the earlier ones, so changes reach the file in the order they were made. A write that
+    /// fails is kept, shown in `writeProblem` and tried again (see `RetryingWriteChain`); `key` names what it writes.
+    private func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
+        writes.persist(key: key, what: what, operation)
     }
 
     private func attempt<T>(_ what: String, _ body: () async throws -> T) async -> T? {

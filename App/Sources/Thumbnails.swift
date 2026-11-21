@@ -31,6 +31,10 @@ final class PreviewRenderer: @unchecked Sendable {
     private var cache: [RenderKey: PreviewImage] = [:]
     private var order: [RenderKey] = []
     private let cacheLimit = 200
+    /// R14: the converter's texture cache keeps every texture it hands out until it is flushed, which over a long
+    /// service of previews of video would grow without bound. Flushed this often (seconds) after a render that used it.
+    private static let textureFlushInterval = 2.0
+    private var lastTextureFlush = ProcessInfo.processInfo.systemUptime
 
     /// Renders `scene` at the given size. Thumbnails are cached by scene; live previews are not.
     /// `frames` supplies the current picture of the media the scene names (MEDIA-001, KI-022); without it the media
@@ -67,12 +71,21 @@ final class PreviewRenderer: @unchecked Sendable {
                                                       backgroundMedia: background?.texture, foregroundMedia: foreground?.texture),
               let image = Self.cgImage(from: frame) else { return nil }
         let result = PreviewImage(image: image)
+        flushTexturesIfDue()
         if cached {
             cache[key] = result
             order.append(key)
             if order.count > cacheLimit { cache[order.removeFirst()] = nil }
         }
         return result
+    }
+
+    /// Frees textures nothing uses any more (the render above has finished, so none is in use). Called on `queue`.
+    private func flushTexturesIfDue() {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard converter != nil, now - lastTextureFlush >= Self.textureFlushInterval else { return }
+        lastTextureFlush = now
+        converter?.flush()
     }
 
     private static func cgImage(from frame: RenderedFrame) -> CGImage? {
@@ -134,8 +147,9 @@ struct SlideThumbnail: View {
     let slide: SlideContent
 
     var body: some View {
-        // Reading `sceneRevision` makes the thumbnail follow Look, theme and prop changes.
-        let _ = app.sceneRevision
+        // Reading `appearanceRevision` makes the thumbnail follow Look, theme and prop changes, and nothing else:
+        // typing in one slide rebuilds that slide's thumbnail only (R15).
+        let _ = app.appearanceRevision
         ScenePreview(scene: app.thumbnailScene(for: slide), width: 320, cached: true)
             .clipShape(RoundedRectangle(cornerRadius: 3))
     }

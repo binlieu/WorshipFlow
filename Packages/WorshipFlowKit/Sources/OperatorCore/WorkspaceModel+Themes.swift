@@ -8,8 +8,14 @@ extension WorkspaceModel {
     /// The theme chosen for the open presentation; nil means the role default.
     public var openThemeID: UUID? { openPresentationID.flatMap { presentationThemes[$0] } }
 
-    /// The theme chosen for the presentation that is live. It reaches audience screens only (`ThemeResolver`).
+    /// The theme currently chosen for the presentation that is live (it follows `setTheme` at once). What the screens
+    /// show is `shownThemeID`. It reaches audience screens only (`ThemeResolver`).
     public var liveThemeID: UUID? { show.liveDeck.flatMap { presentationThemes[$0.presentationID] } }
+
+    /// R13: the theme the audience screens use for the live presentation. Captured when the show is triggered, so
+    /// choosing another theme for the live presentation changes preview at once and the screens from the next trigger.
+    /// `liveThemeID` is the theme currently chosen for the live presentation, which may be newer than this.
+    public var shownThemeID: UUID? { capturedLiveThemeID }
 
     func learnThemes(of list: [Presentation]) {
         for p in list { presentationThemes[p.id] = p.themeID }     // a nil theme removes the entry

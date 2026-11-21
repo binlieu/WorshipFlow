@@ -11,9 +11,12 @@ extension WorkspaceModel {
     }
 
     /// Takes the selected slide live. Edits made since the last trigger go out now.
-    public func goLive() async { goLive(at: show.selectedIndex) }
+    public func goLive() async {
+        await serialized { [self] in goLive(at: show.selectedIndex) }
+    }
 
     public func goLive(at index: Int) {
+        transportEpoch &+= 1
         apply(.trigger(index: index))
         recordLiveSource()
         placeChanged()
@@ -29,6 +32,25 @@ extension WorkspaceModel {
 
     /// Next slide; at the end of an item, the first slide of the next playlist item; at the end of the playlist, nothing.
     public func next() async {
+        let epoch = transportEpoch
+        await serialized { [self] in
+            guard epoch == transportEpoch else { return }       // Clear, Stop or a direct trigger came after this press
+            await nextNow(epoch: epoch)
+        }
+    }
+
+    /// Runs `body` after every earlier transport command has finished (R1).
+    private func serialized(_ body: @escaping @MainActor () async -> Void) async {
+        let previous = transportTail
+        let mine = Task { @MainActor in
+            await previous?.value
+            await body()
+        }
+        transportTail = mine
+        await mine.value
+    }
+
+    private func nextNow(epoch: Int) async {
         guard let live = show.liveDeck, let i = show.liveIndex else {
             apply(.next)                       // nothing live yet: the first slide of the preview goes live
             recordLiveSource()
@@ -36,19 +58,35 @@ extension WorkspaceModel {
             return
         }
         if i + 1 < live.slides.count { apply(.next); placeChanged(); return }
-        _ = await step(by: 1)
+        _ = await step(by: 1, epoch: epoch)
     }
 
     /// Previous slide; at the start of an item, the last slide of the previous playlist item.
     public func previous() async {
-        if show.liveDeck != nil, show.liveIndex == 0, await step(by: -1) { return }
-        apply(.previous)
-        placeChanged()
+        let epoch = transportEpoch
+        await serialized { [self] in
+            guard epoch == transportEpoch else { return }
+            if show.liveDeck != nil, show.liveIndex == 0, await step(by: -1, epoch: epoch) { return }
+            guard epoch == transportEpoch else { return }
+            apply(.previous)
+            placeChanged()
+        }
     }
 
-    public func clear() { apply(.clear) }
+    public func clear() {
+        transportEpoch &+= 1
+        apply(.clear)
+    }
+
+    /// R8, "Clear all": the words go (as with `clear`) and a clip playing over the slide stops. Clear alone leaves the clip.
+    public func clearAll() {
+        transportEpoch &+= 1
+        apply(.clearAll)
+        onClearAll?()
+    }
 
     public func stop() {
+        transportEpoch &+= 1
         apply(.stop)
         liveItemID = nil
         liveSlideIDs = []
@@ -69,25 +107,27 @@ extension WorkspaceModel {
         return text
     }
 
-    /// Moves live into the neighbouring playlist item that has slides. Returns false if there is none.
-    private func step(by direction: Int) async -> Bool {
-        guard !stepping, let current = liveItemID, var j = playlistItems.firstIndex(where: { $0.id == current }) else { return false }
+    /// Moves live into the neighbouring playlist item. Returns false if there is none, or if it has no slides (then
+    /// `lastError` says so: an item is never skipped silently, R11).
+    private func step(by direction: Int, epoch: Int) async -> Bool {
+        guard !stepping, let current = liveItemID, let here = playlistItems.firstIndex(where: { $0.id == current }) else { return false }
         stepping = true
         defer { stepping = false }
-        j += direction
-        while playlistItems.indices.contains(j) {
-            let item = playlistItems[j]
-            let count = (try? await store.slides(forPlaylistItem: item.id))?.count ?? 0
-            if count > 0 {
-                await openPlaylistItem(item.id)
-                guard selectedPlaylistItemID == item.id, !slides.isEmpty else { return false }
-                apply(.trigger(index: direction > 0 ? 0 : slides.count - 1))
-                recordLiveSource()
-                placeChanged()
-                return true
-            }
-            j += direction
+        let j = here + direction
+        guard playlistItems.indices.contains(j) else { return false }
+        let item = playlistItems[j]
+        let count = (try? await store.slides(forPlaylistItem: item.id))?.count ?? 0
+        guard epoch == transportEpoch else { return false }
+        guard count > 0 else {
+            let what = direction > 0 ? "Next" : "Previous"
+            lastError = "\(what) stopped: \"\(item.title)\" has no slides to show (its section order may be empty). Choose another song in the playlist and press Go Live, or fix its section order."
+            return false
         }
-        return false
+        await openPlaylistItem(item.id)
+        guard epoch == transportEpoch, selectedPlaylistItemID == item.id, !slides.isEmpty else { return false }
+        apply(.trigger(index: direction > 0 ? 0 : slides.count - 1))
+        recordLiveSource()
+        placeChanged()
+        return true
     }
 }

@@ -62,6 +62,17 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Insert a text box, double-click to edit its text, add a shadow.
 - [ ] Insert an image. Command-D duplicates, Delete removes, Command-Z undoes, Shift-Command-Z redoes.
 
+## Safety (review fixes, KI-043)
+
+- [ ] With a song live, hold Space for three seconds: it advances one slide only.
+- [ ] With screens open, press Command-Q: the app asks before quitting. Cancel keeps everything running.
+- [ ] With screens open, press Command-W or click the red button on the operator window: the app does not quit.
+- [ ] With screens open, Command-H is unavailable or leaves the outputs showing.
+- [ ] Shift-Escape during a foreground clip removes the words and stops the clip; plain Escape removes only the words.
+- [ ] Change the theme of the song that is live: the output changes only when you go live again.
+- [ ] Close screens during a clip with sound: the sound stops.
+- [ ] Change the second display's resolution in System Settings while it shows an output: the output still fills the display.
+
 ## Data safety
 
 - [ ] Type a word into a slide, wait six seconds, force-quit (Option-Command-Escape). Reopen: the word is there.

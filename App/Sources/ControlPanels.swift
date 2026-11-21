@@ -90,6 +90,14 @@ struct ScreenRow: View {
                     Button("Start") { model.restartScreen(profile.id) }
                 }
             }
+            if !readout.renderProblems.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Left out of this screen:").font(.caption.bold()).foregroundStyle(.orange)
+                    ForEach(readout.renderProblems, id: \.self) { problem in
+                        Text(problem).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
             if let message {
                 Text(message).font(.caption).foregroundStyle(statusColor).fixedSize(horizontal: false, vertical: true)
             }

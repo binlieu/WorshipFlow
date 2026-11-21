@@ -4,6 +4,8 @@ import Foundation
 
 public enum TransportCommand: Sendable, Equatable {
     case goLive, next, previous, clear
+    /// Shift-Escape (R8): hides the words like `clear` and also stops the clip playing over the slide.
+    case clearAll
 }
 
 /// The keys the operator window cares about. `init(keyCode:)` maps macOS virtual key codes.
@@ -34,6 +36,9 @@ public enum KeyDecision: Sendable, Equatable {
     /// SLIDE-001b: Delete with nothing being typed: remove the selected slide object, if there is one. The app lets
     /// the key through when no object is selected.
     case deleteSelectedObject
+    /// R1: a transport key that is being held down (auto-repeat). Consumed and ignored: only the first press of a key
+    /// moves the show, so holding Space or an arrow never runs the deck forward.
+    case ignore
     /// The key is not ours: let the focused control, menu or system have it.
     case passThrough
 }
@@ -44,25 +49,36 @@ public enum KeyRouting {
     ///   - searchFieldFocused: the search field is the one being edited.
     ///   - sheetOpen: a sheet, popover or dialog is open over the workspace.
     ///   - commandModifierDown: Command, Control or Option is held; those are menu shortcuts, never transport keys.
+    ///   - shiftDown: Shift is held (Shift-Escape is Clear all).
+    ///   - isRepeat: the event is an auto-repeat of a key that is still held (`NSEvent.isARepeat`).
     public static func decision(for key: KeyboardKey, textInputFocused: Bool, searchFieldFocused: Bool = false,
-                                sheetOpen: Bool, commandModifierDown: Bool = false) -> KeyDecision {
+                                sheetOpen: Bool, commandModifierDown: Bool = false, shiftDown: Bool = false,
+                                isRepeat: Bool = false) -> KeyDecision {
         guard !sheetOpen, !commandModifierDown else { return .passThrough }
         if textInputFocused {
             return searchFieldFocused && key == .escape ? .leaveSearch : .passThrough
+        }
+        if isRepeat {
+            switch key {
+            case .deleteKey, .other: return .passThrough
+            default: return .ignore
+            }
         }
         switch key {
         case .returnKey, .keypadEnter: return .transport(.goLive)
         case .space, .rightArrow, .downArrow: return .transport(.next)
         case .leftArrow, .upArrow: return .transport(.previous)
-        case .escape: return .transport(.clear)
+        case .escape: return .transport(shiftDown ? .clearAll : .clear)
         case .deleteKey: return .deleteSelectedObject
         case .other: return .passThrough
         }
     }
 
     /// The show command for a key, or nil if the key is not for the transport right now.
-    public static func transportCommand(for key: KeyboardKey, textInputFocused: Bool, sheetOpen: Bool) -> TransportCommand? {
-        if case .transport(let command) = decision(for: key, textInputFocused: textInputFocused, sheetOpen: sheetOpen) {
+    public static func transportCommand(for key: KeyboardKey, textInputFocused: Bool, sheetOpen: Bool,
+                                        isRepeat: Bool = false) -> TransportCommand? {
+        if case .transport(let command) = decision(for: key, textInputFocused: textInputFocused, sheetOpen: sheetOpen,
+                                                    isRepeat: isRepeat) {
             return command
         }
         return nil

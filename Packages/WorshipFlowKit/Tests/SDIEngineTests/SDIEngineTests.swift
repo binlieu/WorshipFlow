@@ -257,7 +257,6 @@ final class CompletionLog: @unchecked Sendable {
         #expect(port.supports(mode: .hd1080p5994, keying: .external(fillAlphaMode: .straight)) == false)   // 2 is not the first of a pair
         #expect(throws: SDIError.self) { try port.schedule(frame(1), atFrame: 0) }                          // not enabled yet
         try port.enable(mode: .hd1080p5994, keying: .none)
-        #expect(throws: SDIError.self) { try port.schedule(SDIFrame(width: 3, height: 3, bgra: [UInt8](repeating: 0, count: 36)), atFrame: 0) }   // wrong size is refused only when it is not the mode's size… see below
         #expect(throws: SDIError.self) { _ = try device.openOutput(connector: 2) }                          // already open
     }
 

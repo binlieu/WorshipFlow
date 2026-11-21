@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02DB272F53439307BF982418 /* OperatorWindowGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */; };
 		08082D4A09636B4A3A868426 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 7392E34C444186C64745A079 /* Domain */; };
 		13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */; };
 		1463D5B1D7A0AF1207FB6EE3 /* ControlPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */; };
@@ -52,6 +53,7 @@
 		B4324BEB75E64640972B783F /* LibrarySidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySidebar.swift; sourceTree = "<group>"; };
 		B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideObjectsEditor.swift; sourceTree = "<group>"; };
 		B92887A47810546C7EED2629 /* StageEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageEditorSheet.swift; sourceTree = "<group>"; };
+		BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperatorWindowGuard.swift; sourceTree = "<group>"; };
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTransportStrip.swift; sourceTree = "<group>"; };
 		D677F8D362BB899C12954273 /* MediaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSupport.swift; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 				D677F8D362BB899C12954273 /* MediaSupport.swift */,
 				C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */,
 				4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */,
+				BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */,
 				0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */,
 				B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */,
 				F1320EF2993E56B2BB360523 /* SoakConfig.swift */,
@@ -222,6 +225,7 @@
 				B73CCFD90200075DBEFABA61 /* MediaSupport.swift in Sources */,
 				D023CE93211A0306A400C70A /* MediaTransportStrip.swift in Sources */,
 				1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */,
+				02DB272F53439307BF982418 /* OperatorWindowGuard.swift in Sources */,
 				FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */,
 				9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */,
 				ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */,

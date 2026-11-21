@@ -23,6 +23,9 @@ public enum ShowCommand: Sendable, Equatable {
     case previous
     /// Hides the slide on every screen but keeps the place.
     case clear
+    /// Hides the slide on every screen and keeps the place, like `clear`. The show state is the same; the difference
+    /// is outside it: the operator model also stops the foreground clip (R8, "Clear all").
+    case clearAll
     /// Drops the live deck; screens go empty. Preview is kept.
     case stop
     /// The one deliberate way to change live text (PRES-07).
@@ -84,7 +87,7 @@ public struct ShowState: Sendable, Equatable {
             guard liveDeck != nil, let i = liveIndex, i > 0 else { return }
             moveLive(to: i - 1)
 
-        case .clear:
+        case .clear, .clearAll:
             guard liveDeck != nil else { return }
             cleared = true
 

@@ -4,10 +4,15 @@ Satisfies: SCRN-01, SCRN-02, SCRN-03, SCRN-04, NFR-03, NFR-04, NFR-05, NFR-08, N
 
 ## Behaviour
 
-1. **Show state.** One `ShowState` holds a preview deck and a live deck. Commands: load, trigger, next, previous, clear, stop, quick edit, restore.
+1. **Show state.** One `ShowState` holds a preview deck and a live deck. Commands: load, trigger, next, previous, clear, clear all, stop, quick edit, restore.
    - Loading or editing a deck changes preview only.
    - Trigger takes the preview deck live at a slide. Next and Previous follow the live deck and stop at its ends.
-   - Clear hides the slide on every screen but keeps the place; the audience background stays.
+   - Clear (Escape) hides the words on every screen but keeps the place; the audience background stays. It does **not** touch a video or picture playing over the slide: that keeps playing, with its sound.
+   - Clear all (Shift-Escape, or the Clear all button) does what Clear does and also stops the foreground clip and its sound. The background stays.
+   - Stop removes everything: words, foreground clip and props go off, and the show is stopped.
+   - Held keys never drive the show: only the first press of Return, Space, an arrow or Escape counts, so holding a key does not run the deck forward (R1). Go Live, Next and Previous run one at a time, in order; Clear, Clear all and Stop cancel a Next or Previous that has not finished.
+   - Closing the screens also stops the foreground clip and its sound (R17).
+   - The operator window does not close, and Hide is off, while screens are open. Quit asks for confirmation while screens are open and writes everything first (R4).
    - Stop drops the live deck; screens go empty.
    - Restore after a relaunch fills preview only. Nothing goes live by itself.
 2. **Composition per role.** The same live state yields three scenes: audience (both languages over the background), stage (current and next, opaque, optional clock), broadcast (transparent lower third).

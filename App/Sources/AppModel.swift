@@ -6,6 +6,7 @@ import Observation
 import Domain
 import MediaEngine
 import OutputEngine
+import RenderEngine
 import Persistence
 import OperatorCore
 
@@ -53,6 +54,9 @@ final class AppModel {
     private(set) var libraryProblem: LibraryProblem?
     /// Bumped on every publish, so previews know to re-read their scene.
     private(set) var sceneRevision = 0
+    /// R15: bumped only when something that changes how a slide looks changed (Look, theme, props, screens), so the
+    /// slide thumbnails are not rebuilt on every keystroke or every Next.
+    private(set) var appearanceRevision = 0
     /// Bumped on every publish including the stage's one-second ones, for the live previews only.
     private(set) var liveRevision = 0
     /// Sheets and focus requests shared by the menus and the views.
@@ -73,6 +77,13 @@ final class AppModel {
     /// Republishes the stage scenes every second, and exists only while a stage screen shows a clock or timer.
     @ObservationIgnored private var stageTicker: Timer?
     @ObservationIgnored private var keyMonitor: Any?
+    @ObservationIgnored private var publicationGate = LivePublicationGate()
+    /// R6: reads the file system for image availability, off the main thread.
+    @ObservationIgnored private let imageMonitor = ImageAvailabilityMonitor()
+    @ObservationIgnored private var reportedImages: [String] = []
+    /// Images of the preview scenes that could not be read when they were decoded ahead of time.
+    @ObservationIgnored private var warmedUnreadable: Set<String> = []
+    @ObservationIgnored private var warmTask: Task<Void, Never>?
     @ObservationIgnored private var screenObserver: NSObjectProtocol?
     @ObservationIgnored private var soakTask: Task<Void, Never>?
     @ObservationIgnored private(set) var soak: SoakConfig?
@@ -80,6 +91,7 @@ final class AppModel {
 
     private init() {
         sceneBox = SceneBox(PublishedScenes(state: ShowState(), clockText: nil))
+        imageMonitor.onChange = { [weak self] _ in self?.refreshUnavailableImages() }
         soak = SoakConfig.parse(CommandLine.arguments)   // known first, so a soak never opens a library or writes settings
         refreshDisplayChoices()
         updateClock(force: true)
@@ -105,6 +117,7 @@ final class AppModel {
             let model = WorkspaceModel(store: store)
             model.onShowChange = { [weak self] state in self?.showChanged(state) }
             model.onAppearanceChange = { [weak self] in self?.lookChanged() }
+            model.onClearAll = { [weak self] in self?.media?.stopForeground() }      // R8: Clear all also stops the clip
             workspace = model
             let editor = SlideEditorModel(workspace: model, imageChooser: { await Self.chooseImagePath() })
             editor.reservedFrames = { [weak self] content in
@@ -128,6 +141,18 @@ final class AppModel {
             media.onAssetsChange = { [weak self] assets in self?.mediaAssetsChanged(assets) }
             media.onAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setForegroundAudio(volume: volume, muted: muted) }
             mediaRegistry.setForegroundAudio(volume: Float(media.volume), muted: media.isMuted)
+            // A player that failed or stalled: end the clip so the words come back, and tell the operator (R9).
+            mediaRegistry.setOnAvailabilityChange { id, state in
+                let mapped: ClipAvailability
+                switch state {
+                case .notOpen: mapped = .notOpen
+                case .starting: mapped = .starting
+                case .delivering: mapped = .delivering
+                case .failed(let reason): mapped = .failed(reason)
+                case .stalled: mapped = .stalled
+                }
+                Task { @MainActor in AppModel.shared.media?.availabilityChanged(id, mapped) }
+            }
             mediaRegistry.setOnForegroundEnded {
                 Task { @MainActor in AppModel.shared.media?.playerReportedEnd() }
             }
@@ -223,11 +248,22 @@ final class AppModel {
         }
     }
 
-    /// Writes unsaved typing and the saved place. Called when the app loses focus and before it quits.
+    /// Writes everything that is waiting, in all four models: typed text and place, stage layouts and timers, settings
+    /// (screens, Looks, props, themes) and the media bin. Called when the app loses focus and before it quits (R12).
     func flushWorkspace() async {
         await workspace?.flush()
         await stage?.flush()
+        await settings?.flush()
+        await media?.flush()
     }
+
+    /// R4: what may happen now, given whether any screen is open. A soak run counts as open.
+    func quitDecision(for request: QuitRequest) -> QuitDecision {
+        QuitPolicy.decision(for: request, screensOpen: screensOn || soak != nil)
+    }
+
+    /// R4: Hide would take the screens' windows with it.
+    var mayHide: Bool { QuitPolicy.mayHide(screensOpen: screensOn || soak != nil) }
 
     /// The scene a screen is showing now, for the live thumbnails.
     func scene(forScreen id: UUID) -> SceneDescription { sceneBox.read().scene(forScreen: id) }
@@ -251,8 +287,40 @@ final class AppModel {
         let wasStopped = show.isStopped
         show = state
         media?.showStateChanged(isLive: !state.isStopped)     // Stop takes a playing clip off the screens too
-        publish()
+        // R15: typing, moving the selection and loading a deck change preview only; the screens are republished
+        // (every scene composed again) only when what they show changed.
+        scheduleImageWarm()
+        if publicationGate.shouldPublish(LiveOutputKey(state: state, notes: workspace?.liveNotes)) { publish() }
         if wasStopped, !show.isStopped, !screensOn { startScreens() }
+    }
+
+    /// Decodes the images of the preview scenes before they go live, so every screen draws them in its first frame
+    /// (R10). Debounced, off the main actor, and nothing waits for it: a trigger never blocks on this.
+    private func scheduleImageWarm() {
+        warmTask?.cancel()
+        warmTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let self, !Task.isCancelled else { return }
+            let scenes = self.previewScenes()
+            let missing = await ImageWarmer.warm(scenes: scenes)
+            guard !Task.isCancelled else { return }
+            if missing != self.warmedUnreadable {
+                self.warmedUnreadable = missing
+                self.refreshUnavailableImages()
+            }
+        }
+    }
+
+    /// What each enabled audience and broadcast screen would show if the selected preview slide went live now.
+    private func previewScenes() -> [SceneDescription] {
+        guard let deck = show.previewDeck, deck.slides.indices.contains(show.selectedIndex) else { return [] }
+        var state = ShowState()
+        state.apply(.load(deck))
+        state.apply(.trigger(index: show.selectedIndex))
+        let screens = profiles.filter { $0.isEnabled && $0.role != .stage }
+        let snapshot = PublishedScenes(state: state, clockText: nil, profiles: screens, themes: themes, look: currentLook,
+                                       props: props, presentationThemeID: workspace?.openThemeID)
+        return screens.map { snapshot.scene(forScreen: $0.id) }
     }
 
     private func makeCoordinator() -> OutputCoordinator {
@@ -295,18 +363,23 @@ final class AppModel {
             let textInput = responder is NSText || responder is NSTextField
             let inSearch = textInput && Self.isInsideSearchField(responder)
             let held = !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
+            let shift = event.modifierFlags.contains(.shift)
             let key = KeyboardKey(keyCode: event.keyCode)
+            let isRepeat = event.isARepeat      // R1: a held key never moves the show
             let handled: Bool = MainActor.assumeIsolated {
                 guard let self else { return false }
                 let sheetOpen = self.ui.anySheetOpen || window.attachedSheet != nil
                 switch KeyRouting.decision(for: key, textInputFocused: textInput, searchFieldFocused: inSearch,
-                                           sheetOpen: sheetOpen, commandModifierDown: held) {
+                                           sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
+                case .ignore:
+                    return true                   // swallowed: not a second Next, and not a beep either
                 case .transport(let command):
                     switch command {
                     case .goLive: self.goLive()
                     case .next: self.next()
                     case .previous: self.previous()
                     case .clear: self.clear()
+                    case .clearAll: self.clearAll()
                     }
                     return true
                 case .leaveSearch:
@@ -385,6 +458,11 @@ final class AppModel {
     var themes: [Theme] { settings?.themes ?? Theme.builtIn }
     /// A message from the settings store (a failed save), for the error bar.
     var settingsError: String? { settings?.lastError ?? stage?.lastError ?? media?.lastError }
+    /// R3 / R12: why typed text or settings are not on disk yet. Persistent: it has no Dismiss and goes away only when
+    /// the write succeeds.
+    var unsavedProblems: [String] {
+        [workspace?.draftSaveProblem, settings?.writeProblem, media?.writeProblem].compactMap { $0 }
+    }
     func dismissSettingsError() {
         settings?.dismissError()
         stage?.dismissError()
@@ -401,6 +479,7 @@ final class AppModel {
     }
 
     private func profilesChanged() {
+        appearanceRevision &+= 1
         publish()   // a role change composes a different scene
         coordinator.setProfiles(profiles)
         updateReadouts()
@@ -499,6 +578,8 @@ final class AppModel {
 
     /// One publish per operator change. Writing to the library is the settings model's job.
     private func lookChanged() {
+        appearanceRevision &+= 1
+        scheduleImageWarm()
         publish()
         updateReadouts()
     }
@@ -519,13 +600,11 @@ final class AppModel {
         }
     }
 
-    /// Files the live scenes need that cannot be read now, plus what the outputs reported. Sorted, no duplicates.
-    private func imageProblems(reported: [String]) -> [String] {
-        var paths = Set(reported)
-        var needed = Set(props.filter(\.isOn).map(\.imagePath))
-        for theme in themes { if case .image(let path) = theme.background { needed.insert(path) } }
-        for path in needed where !FileManager.default.isReadableFile(atPath: path) { paths.insert(path) }
-        return paths.sorted()
+    /// Files the live scenes need that cannot be read (checked off the main thread), plus what the outputs reported.
+    /// Sorted, no duplicates.
+    private func refreshUnavailableImages() {
+        let problems = Set(reportedImages).union(imageMonitor.unreadable).union(warmedUnreadable).sorted()
+        if problems != unavailableImages { unavailableImages = problems }
     }
 
     // MARK: Video
@@ -648,6 +727,10 @@ final class AppModel {
     func next() { if let w = workspace { Task { await w.next() } } else { send(.next) } }
     func previous() { if let w = workspace { Task { await w.previous() } } else { send(.previous) } }
     func clear() { if let w = workspace { w.clear() } else { send(.clear) } }
+    /// R8: Clear plus stopping the clip that plays over the slide.
+    func clearAll() {
+        if let w = workspace { w.clearAll() } else { send(.clearAll) }
+    }
     func stopShow() { if let w = workspace { w.stop() } else { send(.stop) } }
 
     private func publish() {
@@ -662,7 +745,7 @@ final class AppModel {
         let stageIDs = profiles.filter { $0.role == .stage }.map(\.id)
         let stageScenes = stage?.stageScenes(forScreens: stageIDs, state: show, notes: workspace?.liveNotes) ?? [:]
         return PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
-                               look: currentLook, props: props, presentationThemeID: workspace?.liveThemeID,
+                               look: currentLook, props: props, presentationThemeID: workspace?.shownThemeID,
                                stageScenes: stageScenes, media: media?.layers)
     }
 
@@ -715,6 +798,7 @@ final class AppModel {
     func stopScreens() {
         coordinator.stop()
         video?.stop()
+        media?.screensClosed()      // R17: the clip playing over the slide, and its sound, stop with the screens
         screensOn = false
         updateReadouts()
     }
@@ -751,8 +835,11 @@ final class AppModel {
     func updateReadouts() {
         let r = coordinator.readouts()
         if r != readouts { readouts = r }
-        let problems = imageProblems(reported: r.flatMap(\.unavailableImagePaths))
-        if problems != unavailableImages { unavailableImages = problems }
+        reportedImages = r.flatMap(\.unavailableImagePaths)
+        // R6: the file system is asked on a background thread, and only about images the screens draw now.
+        imageMonitor.check(ImageUsage.pathsInUse(props: props, themes: themes, profiles: profiles, look: currentLook,
+                                                 presentationThemeID: workspace?.shownThemeID))
+        refreshUnavailableImages()
         if screensOn != coordinator.isActive { screensOn = coordinator.isActive }
     }
 

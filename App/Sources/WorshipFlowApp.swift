@@ -1,9 +1,11 @@
 // OUT-004: app entry point, menus and lifecycle.
 import SwiftUI
 import OperatorCore
+import OutputEngine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        OutputCoordinator.warmUp()         // compiles the shaders on a background task, before any screen opens
         MainActor.assumeIsolated {
             NSApp.activate()
             AppModel.shared.installSystemHooks()
@@ -12,14 +14,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    /// R4: closing windows never ends the app while the screens are open.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        MainActor.assumeIsolated { AppModel.shared.quitDecision(for: .lastWindowClosed) == .allow }
+    }
 
     /// Typed text is written before the app goes away (NFR-07).
     func applicationDidResignActive(_ notification: Notification) {
         Task { @MainActor in await AppModel.shared.flushWorkspace() }
     }
 
+    /// R4: Quit asks first while the screens are open. R12: everything is written before the app goes away.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let proceed: Bool = MainActor.assumeIsolated {
+            switch AppModel.shared.quitDecision(for: .quitCommand) {
+            case .allow: return true
+            case .refuse: return false
+            case .confirm(let title, let message, let confirmTitle):
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = title
+                alert.informativeText = message
+                alert.addButton(withTitle: "Cancel")          // the default button is the safe one
+                alert.addButton(withTitle: confirmTitle)
+                return alert.runModal() == .alertSecondButtonReturn
+            }
+        }
+        guard proceed else { return .terminateCancel }
         Task { @MainActor in
             await AppModel.shared.flushWorkspace()
             NSApp.reply(toApplicationShouldTerminate: true)
@@ -56,6 +77,12 @@ struct WorkspaceCommands: Commands {
             Button("New Presentation") { app.newPresentation() }.keyboardShortcut("n")
             Button("Import Lyrics…") { app.openImport(existing: nil) }.keyboardShortcut("i")
         }
+        // R4: Command-H hides every window of the app, the screens included, so it is off while they are open.
+        CommandGroup(replacing: .appVisibility) {
+            Button("Hide WORSHIPFLOW") { NSApp.hide(nil) }.keyboardShortcut("h").disabled(!app.mayHide)
+            Button("Hide Others") { NSApp.hideOtherApplications(nil) }.keyboardShortcut("h", modifiers: [.command, .option])
+            Button("Show All") { NSApp.unhideAllApplications(nil) }
+        }
         CommandGroup(replacing: .undoRedo) {
             Button("Undo") { app.undoEdit() }.keyboardShortcut("z")
             Button("Redo") { app.redoEdit() }.keyboardShortcut("z", modifiers: [.command, .shift])
@@ -77,6 +104,7 @@ struct WorkspaceCommands: Commands {
             Button("Next (Right arrow or Space)") { app.next() }
             Button("Previous (Left arrow)") { app.previous() }
             Button("Clear (Escape)") { app.clear() }
+            Button("Clear All (Shift-Escape)") { app.clearAll() }
             Button("Stop") { app.stopShow() }
             Divider()
             Button("Quick Edit Live Slide…") { app.ui.showQuickEdit = true }.keyboardShortcut("e")

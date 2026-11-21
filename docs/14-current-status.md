@@ -4,7 +4,7 @@ Updated: 2026-11-20
 
 ## Summary
 
-Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 is under way: SYS-001 and OUT-002 are unit tested. 550 package tests pass. The workspace has been seen running (screenshot in `AI/reports/OUT-004-workspace.png`); keyboard control has not. Offscreen benchmark: four 1080p compositions per frame take about 0.64 ms mean on this Mac (no video layer, debug build). No video hardware is owned, so nothing is Hardware Verified.
+Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 is under way: SYS-001 and OUT-002 are unit tested. 658 package tests pass. The workspace has been seen running (screenshot in `AI/reports/OUT-004-workspace.png`); keyboard control has not. Offscreen benchmark: four 1080p compositions per frame take about 0.64 ms mean on this Mac (no video layer, debug build). No video hardware is owned, so nothing is Hardware Verified.
 
 ## Verification by slice
 

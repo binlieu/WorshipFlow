@@ -19,6 +19,7 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 1100, minHeight: 640)
+        .background(OperatorWindowGuardInstaller())     // R4: the window does not close while the screens are open
     }
 }
 
@@ -69,6 +70,7 @@ struct WorkspaceView: View {
             if let error = workspace.lastError ?? app.settingsError {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
+            ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
             NavigationSplitView {
                 LibrarySidebar(app: app, workspace: workspace)
                     .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 380)
@@ -163,6 +165,23 @@ struct ErrorBar: View {
         .background(Color.orange.opacity(0.18))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Error: \(message)")
+    }
+}
+
+/// R3 / R12: typed text or settings that are not on disk yet. Stays until the write succeeds; there is nothing to dismiss.
+struct UnsavedBar: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red).accessibilityHidden(true)
+            Text(message).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color.red.opacity(0.15))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Not saved: \(message)")
     }
 }
 

@@ -9,8 +9,13 @@ extension WorkspaceModel {
     }
 
     func reloadPlaylistItems() async {
-        guard let id = selectedPlaylistID else { playlistItems = []; return }
-        if let list = await attempt("read the playlist", { try await self.store.playlistItems(of: id) }) { playlistItems = list }
+        guard let id = selectedPlaylistID else { playlistItems = []; emptyPlaylistItemIDs = []; return }
+        if let list = await attempt("read the playlist", { try await self.store.playlistItems(of: id) }) {
+            playlistItems = list
+            var empty: Set<UUID> = []
+            for item in list where ((try? await store.slides(forPlaylistItem: item.id))?.count ?? 1) == 0 { empty.insert(item.id) }
+            emptyPlaylistItemIDs = empty
+        }
         if let open = selectedPlaylistItemID, !playlistItems.contains(where: { $0.id == open }) {
             selectedPlaylistItemID = nil      // the item went away; the presentation stays open
         }

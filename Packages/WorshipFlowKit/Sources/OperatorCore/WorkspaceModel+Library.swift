@@ -44,10 +44,10 @@ extension WorkspaceModel {
         }
         await flushDrafts()
         let ownedOpen: Bool
-        if let open = openPresentationID, let list = try? await store.presentations(in: id) {
-            ownedOpen = list.contains { $0.id == open }
-        } else { ownedOpen = false }
+        let doomed = Set((try? await store.presentations(in: id))?.map(\.id) ?? [])
+        if let open = openPresentationID { ownedOpen = doomed.contains(open) } else { ownedOpen = false }
         guard await attempt("delete the library", { try await self.store.deleteLibrary(id: id) }) != nil else { return }
+        dropDrafts(ofPresentations: doomed)        // their rows are gone; drafts of other libraries' songs stay
         await reloadLibraries()
         if selectedLibraryID == id || !libraries.contains(where: { $0.id == selectedLibraryID }) {
             selectedLibraryID = libraries.first?.id
@@ -82,6 +82,7 @@ extension WorkspaceModel {
     public func deletePresentation(id: UUID) async {
         await flushDrafts()
         guard await attempt("delete the presentation", { try await self.store.deletePresentation(id: id) }) != nil else { return }
+        dropDrafts(ofPresentations: [id])          // the write was attempted above; the row is gone now
         await reloadPresentations()
         await reloadPlaylistItems()
         if openPresentationID == id { closeOpenPresentation() }
@@ -98,7 +99,6 @@ extension WorkspaceModel {
         groups = []
         arrangements = []
         groupSlideCounts = [:]
-        pendingDrafts = [:]
         apply(.load(ShowDeck(presentationID: UUID(), slides: [])))
     }
 
@@ -115,6 +115,19 @@ extension WorkspaceModel {
         var groups: [SlideGroup]
         var arrangements: [Arrangement]
         var groupSlideCounts: [UUID: Int]
+
+        /// Typed text that is still waiting to be written shows over what the library holds (R3).
+        func applyingDrafts(_ drafts: [UUID: Slide]) -> LoadedContent {
+            guard !drafts.isEmpty else { return self }
+            var copy = self
+            for i in copy.slides.indices {
+                if let draft = drafts[copy.slides[i].id] {
+                    copy.slides[i].content = draft.content
+                    copy.slides[i].notes = draft.notes
+                }
+            }
+            return copy
+        }
     }
 
     func loadContent(of presentationID: UUID, itemID: UUID?) async -> LoadedContent? {
@@ -129,7 +142,7 @@ extension WorkspaceModel {
                                         arrangements: try await self.store.arrangements(of: presentationID),
                                         groupSlideCounts: SectionOrderEditing.slideCounts(of: natural))
             await self.learnTheme(ofPresentation: presentationID)
-            return content
+            return content.applyingDrafts(self.pendingDrafts)
         }
     }
 
@@ -228,6 +241,12 @@ extension WorkspaceModel {
         return (try? await store.reflowLosses(of: id, with: results)) ?? []
     }
 
+    /// Section orders (and the playlist items that play them) that re-flowing with `results` would shorten or empty (R11),
+    /// for the sheet to show before the operator saves. A read that fails says nothing is lost: saving would fail too.
+    public func reflowImpact(id: UUID, results: [ReflowResult]) async -> [SectionOrderLoss] {
+        (try? await store.reflowImpact(of: id, with: results)) ?? []
+    }
+
     @discardableResult
     public func reflowPresentation(id: UUID, results: [ReflowResult]) async -> Bool {
         guard !results.isEmpty else {
@@ -236,6 +255,7 @@ extension WorkspaceModel {
         }
         await flushDrafts()
         guard await attempt("re-flow the song", { try await self.store.replaceContent(of: id, with: results) }) != nil else { return false }
+        await reloadPlaylistItems()                // an emptied section order shows as an empty item
         if openPresentationID == id { await reloadOpen() }
         return true
     }

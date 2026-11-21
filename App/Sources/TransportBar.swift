@@ -22,6 +22,8 @@ struct TransportBar: View {
                 .help("Right arrow or Space")
             Button { workspace.clear() } label: { Label("Clear", systemImage: "rectangle.slash") }
                 .disabled(workspace.show.isStopped).help("Escape: hide the slide on every screen")
+            Button { app.clearAll() } label: { Label("Clear all", systemImage: "rectangle.slash.fill") }
+                .disabled(workspace.show.isStopped).help("Shift-Escape: hide the slide and stop any video playing over it")
             Button { workspace.stop() } label: { Label("Stop", systemImage: "stop.fill") }
                 .disabled(workspace.show.isStopped).help("Empty every screen")
             Divider().frame(height: 20)

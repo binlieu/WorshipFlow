@@ -120,6 +120,11 @@ struct LibrarySidebar: View {
                     HStack {
                         Text("\(index + 1)").font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 22)
                         Text(item.title)
+                        if workspace.emptyPlaylistItemIDs.contains(item.id) {
+                            Text("empty").font(.caption2.bold()).foregroundStyle(.orange)
+                                .help("This item has no slides to show. Its section order may be empty.")
+                                .accessibilityLabel("Empty: no slides to show")
+                        }
                         Spacer()
                         if app.show.liveDeck?.presentationID == item.presentationID {
                             Image(systemName: "circle.fill").font(.caption2).foregroundStyle(.red)

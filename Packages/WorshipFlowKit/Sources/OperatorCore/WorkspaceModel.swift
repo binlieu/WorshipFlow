@@ -31,6 +31,9 @@ public final class WorkspaceModel {
     public internal(set) var playlists: [Playlist] = []
     public internal(set) var selectedPlaylistID: UUID?
     public internal(set) var playlistItems: [PlaylistItem] = []
+    /// R11: playlist items that would show no slides (their section order has no sections left, or the song has no
+    /// slides). Shown as empty in the playlist; Next and Previous stop on them with a message.
+    public internal(set) var emptyPlaylistItemIDs: Set<UUID> = []
     /// Set only while the open presentation was opened from a playlist item.
     public internal(set) var selectedPlaylistItemID: UUID?
     public internal(set) var openPresentationID: UUID?
@@ -52,6 +55,9 @@ public final class WorkspaceModel {
     /// Called on the main actor after every change to `show`, so the app can publish scenes to the outputs.
     @ObservationIgnored public var onShowChange: (@MainActor (ShowState) -> Void)?
 
+    /// Called on the main actor by `clearAll()`, after the show state changed, so the app can stop the foreground clip.
+    @ObservationIgnored public var onClearAll: (@MainActor () -> Void)?
+
     // MARK: Internals
 
     @ObservationIgnored let store: LibraryStore
@@ -62,8 +68,25 @@ public final class WorkspaceModel {
     /// Speaker notes of those slides as they were when the deck went live (STAGE-001b); used when another presentation is open.
     @ObservationIgnored var liveSlideNotes: [String] = []
     @ObservationIgnored var pendingDrafts: [UUID: Slide] = [:]
+    /// R3: set while typed text could not be written, with the reason. Stays until every draft is saved, and is not
+    /// cleared by dismissing the error bar, so the operator always knows the typing is not on disk yet.
+    public internal(set) var draftSaveProblem: String?
+    /// True while typed text is waiting to be written (including text whose earlier write failed).
+    public var hasUnsavedDrafts: Bool { !pendingDrafts.isEmpty }
+    /// How one typed slide reaches the library. The store's own write; tests replace it with a failing one.
+    @ObservationIgnored lazy var draftWriter: @MainActor (Slide) async throws -> Void = { [store] slide in try await store.updateSlide(slide) }
+    @ObservationIgnored private var draftRetry: Task<Void, Never>?
+    @ObservationIgnored private var draftFailures = 0
+    @ObservationIgnored private let clock: any SaveClock
     @ObservationIgnored var searchToken = 0
     @ObservationIgnored var stepping = false
+    /// R13: the live presentation's theme as it was when the show was last triggered (see `shownThemeID`).
+    @ObservationIgnored var capturedLiveThemeID: UUID?
+    /// R1: transport commands (Go Live, Next, Previous) run one at a time, in the order they arrived.
+    @ObservationIgnored var transportTail: Task<Void, Never>?
+    /// R1: bumped by every immediate command (Clear, Stop, a direct trigger). A queued or running command that began
+    /// before the bump is abandoned, so a slow playlist step can never undo what the operator did after it.
+    @ObservationIgnored var transportEpoch = 0
     @ObservationIgnored private var editSaver: DebouncedSaver<Int>?
     @ObservationIgnored private var placeSaver: DebouncedSaver<WorkspacePlace>?
     @ObservationIgnored private var restoring = false
@@ -72,6 +95,7 @@ public final class WorkspaceModel {
 
     public init(store: LibraryStore, clock: any SaveClock = RealSaveClock()) {
         self.store = store
+        self.clock = clock
         editSaver = DebouncedSaver<Int>(delay: 2, maximumDelay: 5, clock: clock) { [weak self] _ in
             await self?.writeDrafts()
         }
@@ -117,7 +141,7 @@ public final class WorkspaceModel {
 
     /// Writes everything that is waiting: typed slide text and the saved place. Call when the app loses focus or quits.
     public func flush() async {
-        await editSaver?.flush()
+        await flushDrafts()
         await placeSaver?.flush()
     }
 
@@ -155,8 +179,19 @@ public final class WorkspaceModel {
 
     /// The one place `show` changes, so the app is always told.
     func apply(_ command: ShowCommand) {
+        let wasStopped = show.isStopped
         show.apply(command)
+        switch command {
+        case .trigger: captureLiveTheme()
+        case .next where wasStopped: captureLiveTheme()        // the first Next of a stopped show triggers the preview deck
+        case .stop: capturedLiveThemeID = nil
+        default: break
+        }
         onShowChange?(show)
+    }
+
+    private func captureLiveTheme() {
+        capturedLiveThemeID = show.liveDeck.flatMap { presentationThemes[$0.presentationID] }
     }
 
     func previewDeck() -> ShowDeck {
@@ -190,18 +225,66 @@ public final class WorkspaceModel {
         return "Could not \(what): \(error.localizedDescription) Nothing on the screens was changed. Try again; if it keeps failing, restart the app."
     }
 
+    /// R3: writes every waiting draft. A draft leaves `pendingDrafts` only when its write succeeded (or its slide no
+    /// longer exists), and only if it was not replaced by newer typing meanwhile. A failure keeps it, shows the reason
+    /// and schedules another try with back-off (2 s, 4 s, ... at most 30 s).
     private func writeDrafts() async {
-        let drafts = pendingDrafts
-        pendingDrafts = [:]
-        for slide in drafts.values {
-            do { try await store.updateSlide(slide) } catch {
-                // Put it back so the next flush retries and the typed text is not lost, unless the slide is gone.
-                if (error as? StoreError) != .notFound, pendingDrafts[slide.id] == nil { pendingDrafts[slide.id] = slide }
-                lastError = Self.message(for: error, doing: "save your typing")
+        var failure: Error?
+        for slide in pendingDrafts.values.sorted(by: { $0.sortOrder < $1.sortOrder }) {
+            do {
+                try await draftWriter(slide)
+                if pendingDrafts[slide.id] == slide { pendingDrafts[slide.id] = nil }
+            } catch StoreError.notFound {
+                // The row is gone (deleted elsewhere): nothing to save into. Dropped knowingly, and the operator is told.
+                if pendingDrafts[slide.id] == slide { pendingDrafts[slide.id] = nil }
+                lastError = "Some typing could not be saved: that slide no longer exists. It may have been deleted. The text was discarded."
+            } catch {
+                failure = error
             }
+        }
+        guard let failure else { draftsSettled(); return }
+        let first = draftSaveProblem == nil
+        draftSaveProblem = "Your typing is not saved yet: \(Self.reason(for: failure)) It is kept here and WORSHIPFLOW keeps trying."
+        if first { lastError = Self.message(for: failure, doing: "save your typing") }
+        scheduleDraftRetry()
+    }
+
+    private static func reason(for error: Error) -> String {
+        let text = (error as? StoreError).map { Self.message(for: $0, doing: "save") } ?? error.localizedDescription
+        return text.hasSuffix(".") || text.hasSuffix("!") ? text : text + "."
+    }
+
+    /// Called after a write round and after drafts were dropped: with nothing waiting, the warning and the retry end.
+    func draftsSettled() {
+        guard pendingDrafts.isEmpty else { return }
+        draftSaveProblem = nil
+        draftFailures = 0
+        draftRetry?.cancel()
+        draftRetry = nil
+    }
+
+    private func scheduleDraftRetry() {
+        draftFailures += 1
+        let delay = min(30.0, 2.0 * pow(2.0, Double(draftFailures - 1)))
+        draftRetry?.cancel()
+        draftRetry = Task { @MainActor [weak self, clock] in
+            do { try await clock.sleep(for: delay) } catch { return }
+            guard let self, !Task.isCancelled else { return }
+            self.draftRetry = nil
+            await self.flushDrafts()
         }
     }
 
+    /// Forgets the waiting drafts of slides that belong to presentations that were deleted (their rows are gone, so a
+    /// write could never succeed). Drafts of every other presentation stay.
+    func dropDrafts(ofPresentations ids: Set<UUID>) {
+        pendingDrafts = pendingDrafts.filter { !ids.contains($0.value.presentationID) }
+        draftsSettled()
+    }
+
     func scheduleDraftSave() { editSaver?.schedule(0) }
-    func flushDrafts() async { await editSaver?.flush() }
+    func flushDrafts() async {
+        if !pendingDrafts.isEmpty { editSaver?.schedule(0) }    // a draft whose earlier write failed is no longer scheduled
+        await editSaver?.flush()
+    }
 }
