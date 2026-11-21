@@ -42,7 +42,7 @@ import Domain
         try old.close()
 
         let new = try LibraryStore.open(at: url)
-        #expect(Array(try await new.appliedMigrations().suffix(1)) == ["v7"])
+        #expect(Array(try await new.appliedMigrations().prefix(7).suffix(1)) == ["v7"])   // UI-002: v8 follows; the prefix keeps this about v7
         #expect(try await new.slides(of: song.id).map(\.content.primary) == ["how sweet"])
         #expect(try await new.search("an dien", limit: 5).map(\.presentationID) == [song.id])
         #expect(try await new.tableNames().contains("scriptureTranslation"))

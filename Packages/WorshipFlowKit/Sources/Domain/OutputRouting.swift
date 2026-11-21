@@ -72,9 +72,13 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
     public var mirrors: [OutputDestination]
     /// The mode SDI destinations (primary and mirrors) run in. Ignored by displays and windows.
     public var videoMode: VideoModeDescription
+    /// UI-002: what the operator typed about where each destination goes ("ATEM input 5"). Index 0 is the primary
+    /// destination, index n + 1 is mirror n. Free text, never read by the engine; the app cannot know what is plugged in.
+    public var connectedTo: [String]
 
     public init(id: UUID = UUID(), name: String, role: ScreenRole, destination: OutputDestination, isEnabled: Bool = true,
-                mirrors: [OutputDestination] = [], videoMode: VideoModeDescription = .standard) {
+                mirrors: [OutputDestination] = [], videoMode: VideoModeDescription = .standard, connectedTo: [String] = []) {
+        self.connectedTo = connectedTo
         self.id = id
         self.name = name
         self.role = role
@@ -84,7 +88,7 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
         self.videoMode = videoMode
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, role, destination, isEnabled, mirrors, videoMode }
+    private enum CodingKeys: String, CodingKey { case id, name, role, destination, isEnabled, mirrors, videoMode, connectedTo }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -93,7 +97,26 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
                   destination: try c.decode(OutputDestination.self, forKey: .destination),
                   isEnabled: try c.decode(Bool.self, forKey: .isEnabled),
                   mirrors: try c.decodeIfPresent([OutputDestination].self, forKey: .mirrors) ?? [],
-                  videoMode: try c.decodeIfPresent(VideoModeDescription.self, forKey: .videoMode) ?? .standard)
+                  videoMode: try c.decodeIfPresent(VideoModeDescription.self, forKey: .videoMode) ?? .standard,
+                  connectedTo: try c.decodeIfPresent([String].self, forKey: .connectedTo) ?? [])
+    }
+
+    /// The typed "connected to" note of the primary destination (`mirror == nil`) or of a mirror; nil when empty.
+    public func connectedNote(mirror: Int?) -> String? {
+        let index = (mirror ?? -1) + 1
+        guard connectedTo.indices.contains(index) else { return nil }
+        let text = connectedTo[index].trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
+    }
+
+    /// Sets the note, trimmed. A mirror that does not exist takes no note.
+    public mutating func setConnectedNote(_ text: String, mirror: Int?) {
+        if let mirror, !mirrors.indices.contains(mirror) { return }
+        let index = (mirror ?? -1) + 1
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        while connectedTo.count <= index { connectedTo.append("") }
+        connectedTo[index] = trimmed
+        while connectedTo.last == "" { connectedTo.removeLast() }
     }
 }
 

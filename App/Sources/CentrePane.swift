@@ -80,14 +80,24 @@ struct ShowHeader: View {
     private var presentation: Presentation? { workspace.presentations.first { $0.id == workspace.openPresentationID } }
 
     var body: some View {
+        AdaptiveHeader(labelledWidth: 660) { compact in header(compact: compact) }
+            .padding(.horizontal, Space.s5)
+            .onAppear { title = presentation?.title ?? "" }
+            .onChange(of: workspace.openPresentationID) { _, _ in title = presentation?.title ?? "" }
+            .onChange(of: presentation?.title) { _, new in if !titleFocused { title = new ?? "" } }
+            .onChange(of: app.ui.focusTitle) { _, _ in titleFocused = true }
+    }
+
+    private func header(compact: Bool) -> some View {
         HStack(spacing: Space.s3) {
             TextField("Title", text: $title)
-                .textFieldStyle(.plain).font(.system(size: 20, weight: .bold)).frame(minWidth: 100, maxWidth: 300)
+                .textFieldStyle(.plain).font(.system(size: 20, weight: .bold)).frame(minWidth: 80, maxWidth: 300)
                 .focused($titleFocused)
+                .layoutPriority(-1)
                 .onSubmit { commitTitle() }
                 .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
                 .accessibilityLabel("Presentation title")
-            if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }) {
+            if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }), item.kind == .presentation {
                 Menu {
                     Button("Natural order") { Task { await workspace.setArrangement(nil, forPlaylistItem: itemID) } }
                     ForEach(workspace.arrangements) { a in
@@ -105,46 +115,28 @@ struct ShowHeader: View {
                     .accessibilityLabel("Two languages")
             }
             Spacer(minLength: 4)
-            ViewThatFits(in: .horizontal) {
-                controls(compact: false)
-                controls(compact: true)
-            }
+            controls(compact: compact).fixedSize()
         }
-        .padding(.horizontal, Space.s5).padding(.vertical, 10)
-        .onAppear { title = presentation?.title ?? "" }
-        .onChange(of: workspace.openPresentationID) { _, _ in title = presentation?.title ?? "" }
-        .onChange(of: presentation?.title) { _, new in if !titleFocused { title = new ?? "" } }
-        .onChange(of: app.ui.focusTitle) { _, _ in titleFocused = true }
     }
 
     /// The header buttons with words, or (when the window is narrow) as icons with help text.
     private func controls(compact: Bool) -> some View {
         HStack(spacing: Space.s3) {
-            Button { Task { await workspace.addSlide(SlideContent(primary: "")) } } label: { label("Add slide", "plus", compact) }
-                .buttonStyle(HeaderButtonStyle()).help("Add slide")
-            Button { if let id = workspace.openPresentationID { app.openImport(existing: id) } } label: { label("Reflow…", "text.alignleft", compact) }
-                .buttonStyle(HeaderButtonStyle()).help("Re-flow lyrics")
-            Button { if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } } } label: {
-                Image(systemName: "text.badge.plus")
+            HeaderControlButton(control: .addSlide, symbol: "plus", compact: compact) { Task { await workspace.addSlide(SlideContent(primary: "")) } }
+            HeaderControlButton(control: .reflow, symbol: "text.alignleft", compact: compact) {
+                if let id = workspace.openPresentationID { app.openImport(existing: id) }
             }
-            .buttonStyle(HeaderButtonStyle()).help("Add to playlist").accessibilityLabel("Add to playlist")
-            Button { app.ui.showQuickEdit = true } label: {
-                HStack(spacing: 6) { Image(systemName: "pencil"); if !compact { Text("Quick edit"); KeyHint(key: "⌘E") } }
+            HeaderControlButton(control: .addToPlaylist, symbol: "text.badge.plus", compact: true) {
+                if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
             }
-            .buttonStyle(HeaderButtonStyle())
-            .disabled(workspace.show.liveSlide == nil)
-            .help("Quick edit (Command-E): change the words on screen right now. This is the one edit that reaches the live screens.")
-            .accessibilityLabel("Quick edit")
+            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact) { app.ui.showQuickEdit = true }
+                .disabled(workspace.show.liveSlide == nil)
             Picker("View", selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 })) {
                 Image(systemName: "square.grid.2x2").tag(false).accessibilityLabel("Grid")
                 Image(systemName: "list.bullet").tag(true).accessibilityLabel("List")
             }
             .pickerStyle(.segmented).labelsHidden().fixedSize().accessibilityLabel("Slide view")
         }
-    }
-
-    @ViewBuilder private func label(_ title: String, _ symbol: String, _ compact: Bool) -> some View {
-        if compact { Image(systemName: symbol) } else { Label(title, systemImage: symbol) }
     }
 
     private func commitTitle() {
@@ -158,7 +150,7 @@ struct ShowHeader: View {
 // MARK: Slide grid
 
 /// Shared by the grid and the list: the sections of the open presentation, repeats counted.
-@MainActor private func sectionRuns(_ workspace: WorkspaceModel) -> [SectionRun] {
+@MainActor func sectionRuns(_ workspace: WorkspaceModel) -> [SectionRun] {
     SectionRuns.runs(slideGroupIDs: workspace.slides.map(\.groupID), groups: workspace.groups,
                      groupSlideCounts: workspace.groupSlideCounts)
 }

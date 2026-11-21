@@ -71,6 +71,7 @@ extension WorkspaceModel {
     public func removePlaylistItem(id: UUID) async {
         guard await attempt("remove the item", { try await self.store.removePlaylistItem(id: id) }) != nil else { return }
         if liveItemID == id { liveItemID = nil }
+        countdownItemRemoved(id)
         await reloadPlaylistItems()
         placeChanged()
     }
@@ -78,6 +79,11 @@ extension WorkspaceModel {
     /// Opens a playlist item in preview, with its arrangement applied.
     public func openPlaylistItem(_ id: UUID) async {
         guard let item = playlistItems.first(where: { $0.id == id }) else { return }
+        switch item.kind {
+        case .header: return                                  // a header is a label: it cannot be selected
+        case .countdown: selectedPlaylistItemID = id; placeChanged(); return    // selected for Go Live, not started
+        case .presentation: break
+        }
         await flushDrafts()
         guard let loaded = await loadContent(of: item.presentationID, itemID: id) else { return }
         selectedPlaylistItemID = id

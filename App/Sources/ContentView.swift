@@ -19,7 +19,14 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 1100, minHeight: 640)
+        .preferredColorScheme(Self.scheme(app.appearance))
         .background(OperatorWindowGuardInstaller())     // R4: the window does not close while the screens are open
+    }
+}
+
+extension ContentView {
+    static func scheme(_ choice: AppearanceChoice) -> ColorScheme? {
+        switch choice.forcedScheme { case nil: nil; case .dark?: .dark; case .light?: .light }
     }
 }
 
@@ -81,12 +88,21 @@ struct WorkspaceView: View {
             TransportBar(app: app, workspace: workspace)
         }
         .background(Tok.bg)
+        .navigationTitle(serviceName)
+        .navigationSubtitle(serviceSubtitle)
         .searchable(text: $query, placement: .toolbar, prompt: "Search titles and lyrics")
         .searchFocused($searchFocused)
         .toolbar {
-            ToolbarItem(placement: .navigation) { serviceTitle }
             ToolbarItem(placement: .principal) { modeSwitcher }
             ToolbarItem(placement: .primaryAction) { pills }
+        }
+        // UI-002: while a countdown is live its time is rewritten as it changes. It never moves the show on.
+        .task(id: workspace.liveCountdown?.itemID) {
+            guard workspace.liveCountdown != nil else { return }
+            while !Task.isCancelled {
+                workspace.countdownTick()
+                try? await Task.sleep(for: .milliseconds(250))
+            }
         }
         .onChange(of: query) { _, new in
             if !new.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { workspace.setMode(.show) }   // results show in Show
@@ -128,15 +144,12 @@ struct WorkspaceView: View {
 
     // MARK: Toolbar
 
-    private var serviceTitle: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(workspace.playlists.first { $0.id == workspace.selectedPlaylistID }?.name ?? "No playlist")
-                .font(.system(size: 13, weight: .semibold)).lineLimit(1)
-            Text("WORSHIPFLOW · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")")
-                .font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(1)
-        }
-        .frame(minWidth: 120, alignment: .leading)
-        .accessibilityElement(children: .combine)
+    /// The window's own title and subtitle carry the service and the library, so the name is shown once (KI-068).
+    private var serviceName: String {
+        workspace.playlists.first { $0.id == workspace.selectedPlaylistID }?.name ?? "No playlist"
+    }
+    private var serviceSubtitle: String {
+        "WORSHIPFLOW · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")"
     }
 
     /// The segmented mode switcher: icon and word per mode, Command-1 to Command-6.

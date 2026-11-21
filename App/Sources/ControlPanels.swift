@@ -79,7 +79,7 @@ struct ConnectorMapView: View {
                     .background(Capsule().fill(Color.purple.opacity(0.25))) }
             }
             if !device.isConnected {
-                Text("This SDI card is not connected.").font(.caption).foregroundStyle(.red)
+                Text("This SDI card is not connected.").font(.caption).foregroundStyle(Tok.warning)
             }
             ForEach(rows) { row in
                 HStack(spacing: 6) {
@@ -284,7 +284,7 @@ struct ScreenRow: View {
         case .stopped: .secondary
         case .running: .green
         case .hidden: .orange
-        case .faulted: .red
+        case .faulted: Tok.warning
         }
     }
 
@@ -337,7 +337,7 @@ struct SDIStatusLines: View {
         switch report.health { case .ok: "OK"; case .degraded: "degraded"; case .failing: "failing" }
     }
     private var healthColor: Color {
-        switch report.health { case .ok: .green; case .degraded: .orange; case .failing: .red }
+        switch report.health { case .ok: .green; case .degraded: .orange; case .failing: Tok.warning }
     }
 }
 
@@ -349,7 +349,7 @@ struct MirrorStatusLine: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(statusText).font(.caption.bold()).foregroundStyle(color)
             if case .faulted(let message) = mirror.state {
-                Text(message).font(.caption).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+                Text(message).font(.caption).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
             }
             if mirror.state == .running || mirror.state == .hidden {
                 Text(String(format: "presented %d   dropped %d   late %d", mirror.presented, mirror.dropped, mirror.late))
@@ -369,7 +369,7 @@ struct MirrorStatusLine: View {
     }
 
     private var color: Color {
-        switch mirror.state { case .stopped: .secondary; case .running: .green; case .hidden: .orange; case .faulted: .red }
+        switch mirror.state { case .stopped: .secondary; case .running: .green; case .hidden: .orange; case .faulted: Tok.warning }
     }
 }
 
@@ -399,6 +399,7 @@ struct DestinationEditor: View {
                     Text(model.destinationName(destination)).tag(destination)
                 }
             }
+            .labelsHidden()
             .accessibilityLabel("\(mirror == nil ? "Destination" : "Mirror destination") for \(profile.name)")
             if case .sdi(let deviceID, let connector, let keying, let alpha) = destination {
                 let device = model.sdiDevice(id: deviceID)

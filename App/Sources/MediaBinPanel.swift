@@ -13,23 +13,17 @@ struct MediaBinPanel: View {
     @State private var targeted = false
     @State private var selected: UUID?
 
-    private let columns = [GridItem(.adaptive(minimum: 104, maximum: 150), spacing: 8)]
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Media bin").font(.headline)
+                Text(MediaBinCategories.title(for: media.kindFilter)).font(.system(size: 20, weight: .bold))
                 Spacer()
-                Button { app.chooseMedia() } label: { Label("Add…", systemImage: "plus") }
+                Button { app.chooseMedia() } label: { Label("Import…", systemImage: "plus") }
+                    .buttonStyle(HeaderButtonStyle())
                     .help("Add pictures and videos to the bin (or drop files here)")
             }
-            Picker("Show", selection: $media.kindFilter) {
-                Text("All").tag(MediaKind?.none)
-                Text("Videos").tag(MediaKind?.some(.video))
-                Text("Pictures").tag(MediaKind?.some(.image))
-                Text("Sound").tag(MediaKind?.some(.audio))
-            }
-            .pickerStyle(.segmented).labelsHidden().accessibilityLabel("Show kind")
             if media.visibleAssets.isEmpty {
                 Text(media.assets.isEmpty
                      ? "The bin is empty. Add pictures and videos with the button above, or drop files here. The bin keeps a reference to each file; your files are never moved or deleted."
@@ -37,12 +31,12 @@ struct MediaBinPanel: View {
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
             } else {
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
                     ForEach(media.visibleAssets) { asset in
                         MediaTile(asset: asset, isBackground: media.layers.background?.selection.assetID == asset.id,
                                   isForeground: media.layers.foreground?.selection.assetID == asset.id)
                             .padding(3)
-                            .overlay(RoundedRectangle(cornerRadius: 5).stroke(selected == asset.id ? Color.accentColor : .clear, lineWidth: 2))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(live(asset) ? Tok.liveFill : (selected == asset.id ? Tok.blue : .clear), lineWidth: 2))
                             .contentShape(Rectangle())
                             .contextMenu { menu(for: asset) }
                             .onTapGesture(count: 2) { selected = asset.id; if asset.kind != .audio { media.setBackground(asset.id) } }
@@ -94,6 +88,11 @@ struct MediaBinPanel: View {
         }
     }
 
+    /// Red only while it is on screen now: the background of a live show, or a playing clip.
+    private func live(_ asset: MediaAsset) -> Bool {
+        media.showIsLive && (media.layers.background?.selection.assetID == asset.id || media.layers.foreground?.selection.assetID == asset.id)
+    }
+
     @ViewBuilder
     private func menu(for asset: MediaAsset) -> some View {
         if asset.kind != .audio {
@@ -135,17 +134,17 @@ struct MediaTile: View {
             .clipShape(RoundedRectangle(cornerRadius: 3))
             .overlay(alignment: .bottomTrailing) {
                 if let d = asset.duration, asset.kind != .image {
-                    Text(Self.clock(d)).font(.caption2.monospacedDigit()).padding(.horizontal, 4)
+                    Text(Self.clock(d)).font(.wfMonoData).padding(.horizontal, 4)
                         .background(.black.opacity(0.6)).foregroundStyle(.white).padding(3)
                 }
             }
             .overlay(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 2) {
-                    if isBackground { badge("BACKGROUND", .blue) }
-                    if isForeground { badge("PLAYING", .red) }
+                    if isBackground { badge("BACKGROUND", Tok.blue) }
+                    if isForeground { badge("PLAYING", Tok.liveFill) }
                 }.padding(3)
             }
-            Text(asset.name).font(.caption).lineLimit(1).truncationMode(.middle)
+            Text(asset.name).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
         }
         .task(id: asset.path) { result = await MediaThumbnails.shared.thumbnail(for: asset) }
         .accessibilityElement(children: .combine)

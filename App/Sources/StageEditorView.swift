@@ -21,29 +21,29 @@ struct StageEditorView: View {
     private var element: StageElement? { layout.elements.first { $0.id == elementID } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let error = stage.lastError {
-                ErrorBar(message: error) { stage.dismissError() }
-            }
-            HStack {
-                Text("Stage layouts").font(.title3.bold())
-                Spacer()
-            }
-            HStack(alignment: .top, spacing: 16) {
-                layoutList.frame(width: 210)
+        VStack(spacing: 0) {
+            if let error = stage.lastError { ErrorBar(message: error) { stage.dismissError() } }
+            HStack(alignment: .top, spacing: 0) {
+                layoutList.frame(width: 240)
                 Divider()
-                VStack(alignment: .leading, spacing: 10) {
-                    header
-                    StageCanvas(stage: stage, layout: layout, editable: editable, selection: $elementID)
-                    addButtons
-                    Text("Sample words, clock, message and notes are shown here. Drag a box to move it, drag its corner to resize.")
-                        .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 0) {
+                    topBar
+                    Divider()
+                    VStack(alignment: .leading, spacing: Space.s4) {
+                        header
+                        StageCanvas(stage: stage, layout: layout, editable: editable, selection: $elementID)
+                            .frame(maxWidth: 900)
+                        Text("Sample words, clock, message and notes are shown here. Drag a box to move it, drag its corner to resize.")
+                            .font(.wfMonoData).foregroundStyle(Tok.muted)
+                    }
+                    .padding(Space.s5)
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity)
                 Divider()
-                inspector.frame(width: 270)
+                rightColumn.frame(width: 320)
             }
         }
-        .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear { nameText = layout.name }
         .onChange(of: layoutID) { _, _ in
@@ -63,22 +63,122 @@ struct StageEditorView: View {
     // MARK: List
 
     private var layoutList: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            List(selection: $layoutID) {
-                Section("Built in") { Text(StageLayout.standard.name).tag(StageLayout.standardID) }
-                Section("Yours") {
-                    ForEach(stage.customLayouts) { Text($0.name).tag($0.id) }
-                    if stage.customLayouts.isEmpty { Text("None yet").font(.caption).foregroundStyle(.secondary) }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                SectionLabel("Stage layouts")
+                Spacer()
+                Button { if let made = stage.createLayout(name: nextName("My layout")) { layoutID = made.id } } label: { Image(systemName: "plus") }
+                    .buttonStyle(.plain).help("A new layout that starts as a copy of Standard").accessibilityLabel("New layout")
+            }
+            .padding(.horizontal, Space.s4).frame(height: Space.headerHeight)
+            Rectangle().fill(Tok.border).frame(height: 1)
+            ScrollView {
+                VStack(spacing: Space.s3) {
+                    layoutRow(StageLayout.standard, caption: "built in")
+                    ForEach(stage.customLayouts) { layoutRow($0, caption: "yours") }
                 }
+                .padding(Space.s4)
             }
             .accessibilityLabel("Layouts")
             HStack {
-                Button("New") { if let made = stage.createLayout(name: nextName("My layout")) { layoutID = made.id } }
-                    .help("A new layout that starts as a copy of Standard")
-                Button("Duplicate") { if let made = stage.duplicateLayout(layoutID) { layoutID = made.id } }
-                Button("Delete…", role: .destructive) { pendingDelete = true }.disabled(!editable)
+                Button { if let made = stage.duplicateLayout(layoutID) { layoutID = made.id } } label: { Text("Duplicate") }
+                    .buttonStyle(HeaderButtonStyle())
+                Button { pendingDelete = true } label: { Text("Delete…") }.buttonStyle(HeaderButtonStyle()).disabled(!editable)
+            }
+            .padding(Space.s4)
+        }
+        .background(Tok.surface)
+    }
+
+    private func layoutRow(_ l: StageLayout, caption: String) -> some View {
+        let selected = l.id == layoutID
+        return Button { layoutID = l.id } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                ScenePreview(scene: stage.sampleScene(for: l), width: 320, cached: true)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
+                HStack(spacing: 6) {
+                    Text(l.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                    Text(caption).font(.system(size: 12)).foregroundStyle(Tok.muted)
+                }
+            }
+            .padding(Space.s3)
+            .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.lg))
+            .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(selected ? Tok.borderStrong : .clear, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(l.name), \(caption)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// The layout name with its role chip, and the element buttons (the design's header).
+    private var topBar: some View {
+        HStack(spacing: Space.s3) {
+            Text(layout.name).font(.system(size: 18, weight: .bold)).lineLimit(1)
+            Badge(text: "STAGE", style: .outline(Tok.roleStage))
+            Spacer()
+            ForEach(NewStageElement.allCases) { template in
+                Button { elementID = stage.addElement(template, to: layoutID) ?? elementID } label: {
+                    Label(template.title, systemImage: Self.symbol(template))
+                }
+                .buttonStyle(HeaderButtonStyle()).disabled(!editable)
+                .accessibilityLabel("Add \(template.title)")
             }
         }
+        .padding(.horizontal, Space.s5).frame(height: Space.headerHeight)
+    }
+
+    private static func symbol(_ t: NewStageElement) -> String {
+        switch t.title {
+        case "Clock": "clock"
+        case "Timer": "timer"
+        case "Message": "bubble.left"
+        case "Notes": "note.text"
+        default: "textformat"
+        }
+    }
+
+    // MARK: Right column
+
+    private var rightColumn: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                inspector.padding(Space.s5).frame(minHeight: 120, alignment: .topLeading)
+                Rectangle().fill(Tok.border).frame(height: 1)
+                VStack(alignment: .leading, spacing: Space.s3) {
+                    SectionLabel("Elements")
+                    ForEach(layout.elements) { e in
+                        Button { elementID = e.id } label: {
+                            Text(StageCanvas.title(of: e, in: stage)).font(.system(size: 13)).frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, Space.s3).frame(height: 28)
+                                .background(e.id == elementID ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(e.id == elementID ? .isSelected : [])
+                    }
+                }.padding(Space.s5)
+                Rectangle().fill(Tok.border).frame(height: 1)
+                VStack(alignment: .leading, spacing: Space.s3) {
+                    SectionLabel("Assigned to")
+                    let assigned = app.profiles.filter { $0.role == .stage && stage.layoutID(forScreen: $0.id) == layoutID }
+                    if assigned.isEmpty {
+                        Text("No stage screen uses this layout. Choose it for a stage screen in Screens.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                    }
+                    ForEach(assigned) { p in
+                        HStack(spacing: 6) {
+                            Circle().fill(Tok.roleStage).frame(width: 8, height: 8)
+                            Text("\(p.name) · \(app.destinationName(p.destination))").font(.system(size: 13)).lineLimit(2)
+                        }
+                    }
+                    Text("Speaker notes and stage messages never appear on Audience or Broadcast screens. Themes, Looks and props do not apply to stage layouts.")
+                        .font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                }.padding(Space.s5)
+                Rectangle().fill(Tok.border).frame(height: 1)
+                TimersPanel(app: app, stage: stage).padding(Space.s5)
+            }
+        }
+        .background(Tok.surface)
     }
 
     private func nextName(_ base: String) -> String {
@@ -101,17 +201,6 @@ struct StageEditorView: View {
             HStack {
                 Text("\"\(layout.name)\" is built in and cannot be changed.").foregroundStyle(.secondary)
                 Button("Duplicate to edit") { if let made = stage.duplicateLayout(layoutID) { layoutID = made.id } }
-            }
-        }
-    }
-
-    private var addButtons: some View {
-        HStack(spacing: 6) {
-            Text("Add").font(.caption).foregroundStyle(.secondary)
-            ForEach(NewStageElement.allCases) { template in
-                Button(template.title) { elementID = stage.addElement(template, to: layoutID) ?? elementID }
-                    .disabled(!editable)
-                    .accessibilityLabel("Add \(template.title)")
             }
         }
     }

@@ -13,10 +13,13 @@ struct ScreenProfileExtras: Codable {
     var destination: OutputDestination?
     var mirrors: [OutputDestination]
     var videoMode: VideoModeDescription
+    /// UI-002: the typed "connected to" notes. Absent in rows written before.
+    var connectedTo: [String]?
 
     init?(_ profile: ScreenProfile) {
         let sdi = profile.destination.isSDI ? profile.destination : nil
-        guard sdi != nil || !profile.mirrors.isEmpty || profile.videoMode != .standard else { return nil }
+        guard sdi != nil || !profile.mirrors.isEmpty || profile.videoMode != .standard || !profile.connectedTo.isEmpty else { return nil }
+        connectedTo = profile.connectedTo.isEmpty ? nil : profile.connectedTo
         destination = sdi
         mirrors = profile.mirrors
         videoMode = profile.videoMode
@@ -227,7 +230,8 @@ extension LibraryStore {
                 default: throw SettingsJSON.corrupt("screen destination")
                 }
                 return ScreenProfile(id: id, name: row["name"], role: role, destination: destination, isEnabled: row["isEnabled"],
-                                     mirrors: extras?.mirrors ?? [], videoMode: extras?.videoMode ?? .standard)
+                                     mirrors: extras?.mirrors ?? [], videoMode: extras?.videoMode ?? .standard,
+                                     connectedTo: extras?.connectedTo ?? [])
             }
         }
     }

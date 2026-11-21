@@ -13,6 +13,8 @@ final class WorkspaceUIState {
     var showThemeEditor = false
     /// UI-001: the slide grid as thumbnails or as a list.
     var gridAsList = false
+    /// UI-002: the screen selected in the Screens mode.
+    var selectedScreenID: UUID?
     /// True while anything is open over the workspace, so the transport keys stay out of its way (KI-021).
     var anySheetOpen: Bool { showImport || showQuickEdit || showSectionOrders || showThemeEditor }
     /// Counters: a view reacts to a change in the number, so a menu command can ask for focus.

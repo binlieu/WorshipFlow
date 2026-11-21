@@ -24,18 +24,7 @@ struct TransportBar: View {
             Button { Task { await workspace.next() } } label: { hinted("forward.fill", "Next", "→") }
                 .buttonStyle(TransportButtonStyle()).help("Right arrow or Space")
             Divider().frame(height: 26)
-            HStack(spacing: Space.s1) {
-                Button { workspace.clear() } label: { hinted("rectangle.slash", "Clear", "esc") }
-                    .buttonStyle(TransportButtonStyle())
-                    .help("Escape: hide the words on every screen")
-                Menu {
-                    Button("Clear all (also stops a clip)  Shift-Escape") { app.clearAll() }
-                } label: { Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).frame(width: 14).transportChrome() }
-                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                    .help("Clear all: hide the words and stop a clip playing over them")
-                    .accessibilityLabel("More clear options")
-            }
-            .disabled(workspace.show.isStopped)
+            clearControl
             Button { app.blackout() } label: { hinted("rectangle.fill", "Blackout", "B") }
                 .buttonStyle(TransportButtonStyle(active: workspace.show.isBlackedOut))
                 .disabled(workspace.show.isStopped)
@@ -63,6 +52,30 @@ struct TransportBar: View {
     }
 
     // MARK: Pieces
+
+    /// One split control: click clears the words; the attached menu offers Clear all.
+    private var clearControl: some View {
+        HStack(spacing: 0) {
+            Button { workspace.clear() } label: { hinted("rectangle.slash", ClearControl.primary.title, "esc") }
+                .buttonStyle(SplitLeadingStyle())
+                .help("Escape: \(ClearControl.primary.detail)")
+            Rectangle().fill(Tok.borderStrong).frame(width: 1, height: Space.transportHeight)
+            Menu {
+                ForEach(ClearControl.menu, id: \.title) { action in
+                    Button("\(action.title) (Shift-Escape)") { app.clearAll() }.help(action.detail)
+                }
+            } label: {
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).frame(width: 26, height: Space.transportHeight)
+                    .foregroundStyle(Tok.text).background(Tok.surface2)
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+            .help("More clear options: \(ClearControl.Action.clearAll.detail)")
+            .accessibilityLabel("More clear options")
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.borderStrong, lineWidth: 1))
+        .disabled(workspace.show.isStopped)
+    }
 
     @ViewBuilder private var stateBadge: some View {
         switch app.mode {
@@ -117,6 +130,17 @@ struct TransportBar: View {
         } else {
             Text("screens closed").font(.wfMonoData).foregroundStyle(Tok.muted).fixedSize()
         }
+    }
+}
+
+struct SplitLeadingStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).frame(height: Space.transportHeight)
+            .foregroundStyle(Tok.text).background(Tok.surface2)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
+            .contentShape(Rectangle())
     }
 }
 

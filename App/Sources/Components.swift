@@ -150,3 +150,42 @@ extension SectionTone {
         }
     }
 }
+
+/// A header button from `HeaderChrome.Control`: icon and words, or the icon alone when the header is narrow. Tooltip and
+/// accessibility label are the same either way.
+struct HeaderControlButton: View {
+    let control: HeaderChrome.Control
+    let symbol: String
+    let compact: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: symbol)
+                if !compact {
+                    Text(control.title)
+                    if let hint = control.keyHint { KeyHint(key: hint) }
+                }
+            }
+        }
+        .buttonStyle(HeaderButtonStyle())
+        .help(control.tooltip)
+        .accessibilityLabel(control.accessibilityLabel)
+    }
+}
+
+/// Measures the width it is given and passes the decision "words or icons" to its content.
+struct AdaptiveHeader<Content: View>: View {
+    /// The width at which the labelled version fits (measured on the default layout).
+    let labelledWidth: Double
+    @ViewBuilder let content: (_ compact: Bool) -> Content
+
+    var body: some View {
+        GeometryReader { geo in
+            content(!HeaderChrome.showsLabels(availableWidth: geo.size.width, labelledWidth: labelledWidth))
+                .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .frame(height: Space.headerHeight)
+    }
+}

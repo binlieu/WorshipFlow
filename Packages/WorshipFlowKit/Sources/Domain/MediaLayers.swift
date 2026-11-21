@@ -47,6 +47,9 @@ public struct MediaLayers: Sendable, Equatable, Codable, Hashable {
 
     public init() {}
 
+    /// The same layers without the clip over the slide: what a slide thumbnail draws (UI-002).
+    public var withoutForeground: MediaLayers { var copy = self; copy.foreground = nil; return copy }
+
     /// Replaces the background and starts it looping. Nil clears it. Audio is ignored.
     public mutating func setBackground(_ selection: MediaSelection?, at now: Double) {
         guard let selection else { background = nil; return }

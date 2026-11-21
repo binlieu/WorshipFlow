@@ -43,6 +43,7 @@ enum Space {
     static let transportHeight: CGFloat = 36
     static let transportBarHeight: CGFloat = 56
     static let toolbarHeight: CGFloat = 52
+    static let headerHeight: CGFloat = 48
     static let sidebarWidth: CGFloat = 256
     static let inspectorWidth: CGFloat = 372
 }

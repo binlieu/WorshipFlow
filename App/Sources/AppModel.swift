@@ -29,6 +29,11 @@ struct DisplayChoice: Identifiable, Equatable {
 final class AppModel {
     static let shared = AppModel()
     static let operatorWindowTitle = "WORSHIPFLOW"
+    /// The operator window is found by this identifier (set when its view reaches the window), because its title is the service name.
+    static let operatorWindowIdentifier = NSUserInterfaceItemIdentifier("wf-operator-window")
+    static var operatorWindow: NSWindow? {
+        NSApplication.shared.windows.first { $0.identifier == operatorWindowIdentifier } ?? NSApplication.shared.windows.first { $0.title == operatorWindowTitle }
+    }
 
     private(set) var show = ShowState()
     private(set) var readouts: [ScreenReadout] = []
@@ -41,6 +46,9 @@ final class AppModel {
     /// What happened the last time the app was asked to change a card's profile for fill and key (KI-054).
     private(set) var sdiProfileNotice: String?
     private(set) var connectorRows: [String: [ConnectorRow]] = [:]
+    /// UI-002: what the signal map is drawn from (cached by `updateReadouts`, so drawing never asks a device).
+    private(set) var sdiStatuses: [SDIDeviceStatus] = []
+    private(set) var connectorMapsByDevice: [String: SDIConnectorMap] = [:]
     private(set) var videoURL: URL?
     private(set) var messages: [String] = []
     /// Screen profiles, Looks, props and custom themes, stored in the library (APP-001). Nil in a soak run, or when
@@ -314,7 +322,7 @@ final class AppModel {
             ?? profiles.first { $0.role == .audience }
             ?? ScreenProfile(name: "Audience", role: .audience, destination: .window)
         return PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props,
-                               presentationThemeID: workspace?.openThemeID)
+                               presentationThemeID: workspace?.openThemeID, media: media?.layers.withoutForeground)
             .scene(forScreen: profile.id)
     }
 
@@ -481,7 +489,7 @@ final class AppModel {
     }
 
     private func operatorDisplayID() -> UInt32? {
-        let window = NSApplication.shared.windows.first { $0.title == Self.operatorWindowTitle && $0.isVisible }
+        let window = Self.operatorWindow.flatMap { $0.isVisible ? $0 : nil }
         guard let screen = window?.screen ?? NSScreen.screens.first else { return nil }
         return DisplayOutput.displayID(of: screen)
     }
@@ -713,6 +721,7 @@ final class AppModel {
             mediaRegistry.register(id: asset.id, kind: asset.kind, url: access.url, duration: asset.duration)
         }
         mediaRegistry.apply(layers)
+        appearanceRevision &+= 1          // thumbnails draw the background
         closing.forEach { $0.stop() }          // the players that used these files are closed now
         updateMediaTicker(layers)
         publish()
@@ -1058,6 +1067,10 @@ final class AppModel {
         updateReadouts()
     }
 
+    /// UI-002: System, Dark or Light for the operator window (outputs never follow it).
+    var appearance: AppearanceChoice { settings?.appearance ?? .default }
+    func setAppearance(_ choice: AppearanceChoice) { settings?.setAppearance(choice) }
+
     var showSimulatedSDIDevice: Bool { settings?.showSimulatedSDIDevice ?? false }
 
     func setShowSimulatedSDIDevice(_ on: Bool) { settings?.setShowSimulatedSDIDevice(on) }
@@ -1078,6 +1091,34 @@ final class AppModel {
 
     func sdiDevice(id: String) -> SDIDeviceSummary? { sdiDevices.first { $0.id == id } }
 
+    // MARK: Signal map (UI-002)
+
+    /// The signal map of the Screens mode: drawn entirely from the profiles, the devices' reports and the planner's map.
+    var signalMap: SignalMap {
+        var states: [OutputSlot: ScreenState] = [:]
+        for r in readouts {
+            states[OutputSlot(screenID: r.id)] = r.state
+            for m in r.mirrors { states[OutputSlot(screenID: r.id, mirror: m.index)] = m.state }
+        }
+        let names = Dictionary(uniqueKeysWithValues: displayChoices.map { ($0.id, $0.name) })
+        return SignalMapPresenter.map(SignalMapInput(
+            profiles: profiles, devices: sdiStatuses, maps: connectorMapsByDevice, states: states,
+            displayName: { names[$0] ?? "Display \($0) (not connected)" }, hostName: Host.current().localizedName ?? "This Mac"))
+    }
+
+    /// Applies a preset the operator has read: each changed screen goes through the ordinary profile update, so the
+    /// planner, and the question before a card profile change, work as for any manual change.
+    func applyPreset(_ proposal: PresetProposal) {
+        for p in proposal.applied(to: profiles) where profiles.first(where: { $0.id == p.id }) != p { updateProfile(p) }
+    }
+
+    /// Writes the diagnostic bundle (environment and devices, no video) to `url`. Returns nil on success, or the problem.
+    func exportDiagnosticBundle(to url: URL) async -> String? {
+        let provider = HardwareTestProvider(provider: sdiProvider())
+        let code = await DiagnosticBundle.export(to: url, environment: AppHardwareTest.environment(), provider: provider)
+        return code == 0 ? nil : "The log bundle could not be written to \(url.lastPathComponent)."
+    }
+
     func updateReadouts() {
         let r = coordinator.readouts()
         if r != readouts { readouts = r }
@@ -1094,8 +1135,12 @@ final class AppModel {
                              keyRoutes: d.info.keyRoutes.map { SDIKeyRouteSummary(firstConnector: $0.firstConnector, fillConnector: $0.fillConnector, keyConnector: $0.keyConnector) })
         }
         if summaries != sdiDevices { sdiDevices = summaries }
-        let rows = coordinator.connectorMaps().mapValues { ConnectorMapPresenter.rows(map: $0, profiles: profiles) }
+        let maps = coordinator.connectorMaps()
+        let rows = maps.mapValues { ConnectorMapPresenter.rows(map: $0, profiles: profiles) }
         if rows != connectorRows { connectorRows = rows }
+        let statuses = coordinator.sdiDevices()
+        if statuses != sdiStatuses { sdiStatuses = statuses }
+        if maps != connectorMapsByDevice { connectorMapsByDevice = maps }
     }
 
     private func log(_ message: String) {

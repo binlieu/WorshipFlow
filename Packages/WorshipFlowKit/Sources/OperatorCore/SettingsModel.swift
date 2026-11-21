@@ -28,6 +28,8 @@ public final class SettingsModel {
     /// Developer setting (HW-002): offer the simulated SDI card. Off by default, so a real operator never sees a fake
     /// device by accident. Kept in the library file with the other settings.
     public internal(set) var showSimulatedSDIDevice = false
+    /// UI-002: System, Dark or Light. Output colours never follow it.
+    public internal(set) var appearance = AppearanceChoice.default
 
     /// Built-in themes first, then the custom ones.
     public var themes: [Theme] { Theme.builtIn + customThemes }
@@ -54,6 +56,7 @@ public final class SettingsModel {
     static let selectedLookKey = "settings.selectedLook"
     static let legacyImportKey = "settings.legacyImport"
     static let simulatedSDIKey = "developer.showSimulatedSDI"
+    static let appearanceKey = "settings.appearance"
 
     /// - Parameters:
     ///   - legacy: the old JSON files to import once into empty tables; nil skips the import.
@@ -107,6 +110,7 @@ public final class SettingsModel {
         selectedLookID = saved.flatMap(UUID.init(uuidString:)).flatMap { id in stored.contains { $0.id == id } ? id : nil }
             ?? stored[0].id
         showSimulatedSDIDevice = (try? await store.state(for: Self.simulatedSDIKey)) == "on"
+        appearance = AppearanceChoice.restored(from: try? await store.state(for: Self.appearanceKey))
         isLoaded = true
     }
 
@@ -181,6 +185,14 @@ public final class SettingsModel {
         guard profilesWritable else { return }
         let snapshot = profiles
         persist(key: "profiles", "save the screen settings") { [store] in try await store.saveScreenProfiles(snapshot) }
+    }
+
+    // MARK: Appearance (UI-002)
+
+    public func setAppearance(_ choice: AppearanceChoice) {
+        guard choice != appearance else { return }
+        appearance = choice
+        persist(key: "appearance", "remember the appearance") { [store] in try await store.setState(choice.rawValue, for: Self.appearanceKey) }
     }
 
     // MARK: Developer settings (HW-002)

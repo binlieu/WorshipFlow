@@ -63,6 +63,24 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Stage mode (Command-4): duplicate Standard, drag the clock, resize the current-slide box, add a timer element.
 - [ ] Timers: add a 1-minute countdown, start it, let it pass zero: it shows a minus sign in the warning colour.
 
+## Screens mode, light appearance, playlist headers and countdowns (UI-002)
+
+- [ ] Show and Edit headers: the buttons carry words ("Add slide", "Reflow…", "Quick edit ⌘E"); narrow the window to the minimum (1100 x 640) and they become icons with tooltips and VoiceOver labels.
+- [ ] The window shows the service name once (title and library as its subtitle); the right-hand pane is not empty.
+- [ ] Clear is one split control: click hides the words; the arrow beside it offers Clear all (and stops a clip).
+- [ ] Slide thumbnails show the theme colour, and the chosen background video or picture as one still frame, not flat black.
+- [ ] Screens mode (Command-6): the list on the left (picture, name, role, destination, enable switch); click a screen, the settings change; the enable switch starts and stops it.
+- [ ] Signal map, simulated card on (Developer): connector tiles appear in the card's own order; on a card that reports fill on the second connector the fill tile is SDI 2 and the key tile SDI 1; the map and every tile read SIMULATED; a fault is written on the tile in words.
+- [ ] Signal map, real card: tiles follow what the card reports; no tile says SIMULATED; nothing names a converter, switcher or projector unless you typed it into "Connected to".
+- [ ] "Connected to" note: type a note for a screen and for a mirror; it appears beside that destination on the map and is still there after a relaunch; removing a mirror removes its note.
+- [ ] Presets: "Independent outputs" and "Fill + Key broadcast" list what would change before anything does; Cancel changes nothing; Apply moves the screens; if the card must change profile it asks first.
+- [ ] A keyed screen shows three pictures: composite over the checkerboard, fill, and key (white where opaque), with the connector numbers the card reports.
+- [ ] Verification card: says Simulated for the simulator, "Implemented, not hardware verified" for a real card; "Run signal test…" opens the Hardware Test window; "Export log bundle…" saves a zip and sends no video.
+- [ ] Edit mode: the slide list is grouped by section; Text, Shape and Image buttons add the object to the selected slide. Media mode: the kinds are listed on the left with counts; Import… adds files. Stage mode: layouts, element buttons on top, elements and the screens that use the layout on the right.
+- [ ] Appearance (View > Appearance): System, Dark, Light; the choice is kept after a relaunch; every mode is readable in Light (selected rows, chips, the transport bar); the output screens do not change colour.
+- [ ] Playlist "+": Add header… and Add countdown…; headers are not numbered and cannot be selected; Next and Previous skip them; drag reorder works across songs, headers and countdowns.
+- [ ] Countdown: Go Live on it shows the time on the audience screen in the theme's main text style and on the stage screen; at 0:00 it stays at 0:00 until you press Next; it never moves on by itself; deleting it while live clears the screens; relaunch with a header selected lands on the next song.
+
 ## Media
 
 - [ ] Media bin: Add… a video and a picture; drop another file onto the bin. Thumbnails appear.

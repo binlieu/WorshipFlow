@@ -188,7 +188,9 @@ extension LibraryStore {
             guard let row = try Row.fetchOne(
                 db, sql: "SELECT presentationID, arrangementID FROM playlistItem WHERE id = ?",
                 arguments: [itemID.dbText]),
-                  let presentationID = UUID(uuidString: row["presentationID"] as String) else { throw StoreError.notFound }
+                  true else { throw StoreError.notFound }
+            // UI-002: a header or a countdown has no presentation and so no slides.
+            guard let presentationID = (row["presentationID"] as String?).flatMap(UUID.init(uuidString:)) else { return [] }
             let arrangementID = (row["arrangementID"] as String?).flatMap(UUID.init(uuidString:))
             return try Self.resolve(db, presentationID: presentationID, arrangementID: arrangementID)
         }

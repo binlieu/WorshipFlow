@@ -75,6 +75,10 @@ public final class WorkspaceModel {
     /// UI-001: the live deck's title and the section name of each live slide, for the transport bar's position line.
     public internal(set) var liveTitle: String?
     public internal(set) var liveSectionNames: [String?] = []
+    /// UI-002: the countdown that is live, if any.
+    public internal(set) var liveCountdown: LiveCountdown?
+    /// Where the time comes from; tests replace it.
+    @ObservationIgnored public var countdownClock: @MainActor () -> Date = { Date() }
     @ObservationIgnored var pendingDrafts: [UUID: Slide] = [:]
     /// R3: set while typed text could not be written, with the reason. Stays until every draft is saved, and is not
     /// cleared by dismissing the error bar, so the operator always knows the typing is not on disk yet.
@@ -153,8 +157,9 @@ public final class WorkspaceModel {
         await reloadPlaylistItems()
 
         guard let place else { return }
-        if let itemID = place.playlistItemID, playlistItems.contains(where: { $0.id == itemID }) {
-            await openPlaylistItem(itemID)
+        if let itemID = place.playlistItemID, let at = playlistItems.firstIndex(where: { $0.id == itemID }) {
+            // UI-002: a stored place on a header lands on the nearest playable item; a countdown is selected, not started.
+            if let landing = PlaylistStepping.landing(kinds: playlistKinds, at: at) { await openPlaylistItem(playlistItems[landing].id) }
         } else if let presentationID = place.presentationID, await presentationExists(presentationID) {
             await openPresentation(presentationID)
         }

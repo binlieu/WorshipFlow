@@ -6,6 +6,8 @@ import Domain
 import MediaEngine
 import OutputEngine
 import RenderEngine
+import OperatorCore
+import SDIEngine
 
 /// An immutable bitmap handed from the render queue to the main actor.
 // @unchecked Sendable: a CGImage is immutable once created and is never mutated here.
@@ -13,10 +15,15 @@ struct PreviewImage: @unchecked Sendable {
     let image: CGImage
 }
 
+/// Which picture of a keyed screen to draw: what the keyer produces, or one of the two signals sent to the card (UI-002).
+enum PreviewChannel: Hashable, Sendable { case composite, fill, key }
+
 private struct RenderKey: Hashable {
     let scene: SceneDescription
     let width: Int
     let height: Int
+    var channel: PreviewChannel = .composite
+    var straight = false
 }
 
 /// Owns one `Compositor`, used only on its own serial queue (the compositor is not thread-safe).
@@ -40,15 +47,15 @@ final class PreviewRenderer: @unchecked Sendable {
     /// `frames` supplies the current picture of the media the scene names (MEDIA-001, KI-022); without it the media
     /// layers are simply not drawn.
     func image(for scene: SceneDescription, width: Int, height: Int, cached: Bool,
-               frames: (any MediaFrameSource)? = nil) async -> PreviewImage? {
+               frames: (any MediaFrameSource)? = nil, channel: PreviewChannel = .composite, straight: Bool = false) async -> PreviewImage? {
         await withCheckedContinuation { continuation in
-            queue.async { continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames)) }
+            queue.async { continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames, channel, straight)) }
         }
     }
 
     private func renderLocked(_ scene: SceneDescription, _ width: Int, _ height: Int, _ cached: Bool,
-                              _ frames: (any MediaFrameSource)?) -> PreviewImage? {
-        let key = RenderKey(scene: scene, width: width, height: height)
+                              _ frames: (any MediaFrameSource)?, _ channel: PreviewChannel, _ straight: Bool) -> PreviewImage? {
+        let key = RenderKey(scene: scene, width: width, height: height, channel: channel, straight: straight)
         if cached, let hit = cache[key] { return hit }
         if compositor == nil, failure == nil {
             do { compositor = try Compositor() } catch { failure = "\(error)" }
@@ -69,7 +76,7 @@ final class PreviewRenderer: @unchecked Sendable {
         defer { withExtendedLifetime((background, foreground)) {} }
         guard let frame = try? compositor.renderImage(scene: scene, width: width, height: height,
                                                       backgroundMedia: background?.texture, foregroundMedia: foreground?.texture),
-              let image = Self.cgImage(from: frame) else { return nil }
+              let image = Self.cgImage(from: frame, channel: channel, straight: straight) else { return nil }
         let result = PreviewImage(image: image)
         flushTexturesIfDue()
         if cached {
@@ -86,6 +93,17 @@ final class PreviewRenderer: @unchecked Sendable {
         guard converter != nil, now - lastTextureFlush >= Self.textureFlushInterval else { return }
         lastTextureFlush = now
         converter?.flush()
+    }
+
+    private static func cgImage(from frame: RenderedFrame, channel: PreviewChannel, straight: Bool) -> CGImage? {
+        guard channel != .composite else { return cgImage(from: frame) }
+        // The same splitter the SDI output uses, so the picture is exactly what each connector would carry.
+        let split = FillKeySplitter.split(bgra: frame.bgra, fillAlphaMode: straight ? .straight : .premultiplied)
+        let bytes = channel == .fill ? split.fill : split.key
+        guard let provider = CGDataProvider(data: Data(bytes) as CFData), let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        return CGImage(width: frame.width, height: frame.height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: frame.width * 4,
+                       space: space, bitmapInfo: info, provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
     }
 
     private static func cgImage(from frame: RenderedFrame) -> CGImage? {
@@ -110,11 +128,16 @@ struct ScenePreview: View {
     /// A keyed screen (fill and key) is transparent where nothing is drawn: show the checkerboard-over-transparency
     /// convention behind it, so the operator can see what is transparent (HW-002 / SCRN-10).
     var keyed = false
+    /// False for a thumbnail: one frame of the media, drawn once, not a moving picture.
+    var animated = true
+    /// Keyed screens: draw the composite (over a checkerboard), or the fill or the key signal.
+    var channel: PreviewChannel = .composite
+    var straightAlpha = false
     @State private var picture: PreviewImage?
 
     var body: some View {
         ZStack {
-            if keyed { CheckerboardView() } else { Color(white: 0.16) }     // shows through transparent (broadcast) scenes
+            if keyed, channel == .composite { CheckerboardView() } else if keyed { Color.black } else { Color(white: 0.16) }     // shows through transparent (broadcast) scenes
             if let picture {
                 Image(decorative: picture.image, scale: 1).resizable().interpolation(.medium)
             }
@@ -124,14 +147,25 @@ struct ScenePreview: View {
             if picture != nil { try? await Task.sleep(for: .milliseconds(100)) }
             guard !Task.isCancelled else { return }
             let height = width * 9 / 16
-            let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached, frames: frames)
+            let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached, frames: frames, channel: channel, straight: straightAlpha)
             guard !Task.isCancelled, let made else { return }
             picture = made
+            // A thumbnail of a media background: the player may not have a frame yet, so draw it again twice.
+            if !animated, frames != nil, Self.hasMedia(scene) {
+                for pause in [800, 2500] {
+                    try? await Task.sleep(for: .milliseconds(pause))
+                    guard !Task.isCancelled,
+                          let next = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: false, frames: frames),
+                          !Task.isCancelled else { return }
+                    picture = next
+                }
+                return
+            }
             // A video moves, and a still or a player that is still starting shows up a moment later: keep redrawing.
-            while frames != nil, Self.hasMedia(scene), !Task.isCancelled {
+            while animated, frames != nil, Self.hasMedia(scene), !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(250))
                 guard !Task.isCancelled,
-                      let next = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: false, frames: frames),
+                      let next = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: false, frames: frames, channel: channel, straight: straightAlpha),
                       !Task.isCancelled else { return }
                 picture = next
             }
@@ -171,7 +205,9 @@ struct SlideThumbnail: View {
         // Reading `appearanceRevision` makes the thumbnail follow Look, theme and prop changes, and nothing else:
         // typing in one slide rebuilds that slide's thumbnail only (R15).
         let _ = app.appearanceRevision
-        ScenePreview(scene: app.thumbnailScene(for: slide), width: 320, cached: true)
+        let scene = app.thumbnailScene(for: slide)
+        let policy = ThumbnailPolicy(scene: scene)      // UI-002: a media background shows as one still frame, not flat black
+        ScenePreview(scene: scene, width: 320, cached: policy.cacheable, frames: policy.wantsFrames ? app.mediaFrames : nil, animated: policy.animates)
             .clipShape(RoundedRectangle(cornerRadius: 3))
     }
 }

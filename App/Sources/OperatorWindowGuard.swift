@@ -54,6 +54,7 @@ struct OperatorWindowGuardInstaller: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             guard let window, guardObject == nil else { return }
+            window.identifier = AppModel.operatorWindowIdentifier
             MainActor.assumeIsolated {
                 let object = OperatorWindowCloseGuard(original: window.delegate)
                 guardObject = object          // the window holds its delegate weakly: this view keeps it alive

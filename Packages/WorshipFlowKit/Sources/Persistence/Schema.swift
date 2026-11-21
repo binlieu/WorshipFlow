@@ -213,6 +213,30 @@ enum Schema {
                 t.primaryKey(["translationID", "bookOrder", "chapter", "verse"])
             }
         }
+        // UI-002: a playlist item is a presentation, a section header or a countdown. `kind` and `payload` (small JSON) say which;
+        // `presentationID` becomes nullable, which SQLite only allows by rebuilding the table. Existing rows become presentation items.
+        migrator.registerMigration("v8") { db in
+            try db.create(table: "playlistItem_v8") { t in
+                t.column("id", .text).primaryKey()
+                t.column("playlistID", .text).notNull().references("playlist", onDelete: .cascade)
+                t.column("presentationID", .text).references("presentation", onDelete: .cascade)
+                t.column("sortOrder", .integer).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("arrangementID", .text).references("arrangement", onDelete: .setNull)
+                t.column("kind", .text).notNull().defaults(to: "presentation")
+                t.column("payload", .text)
+            }
+            try db.execute(sql: """
+                INSERT INTO playlistItem_v8 (id, playlistID, presentationID, sortOrder, createdAt, arrangementID, kind, payload)
+                SELECT id, playlistID, presentationID, sortOrder, createdAt, arrangementID, 'presentation', NULL FROM playlistItem
+                """)
+            try db.drop(table: "playlistItem")
+            try db.rename(table: "playlistItem_v8", to: "playlistItem")
+            try db.create(index: "playlistItem_on_playlistID_sortOrder", on: "playlistItem", columns: ["playlistID", "sortOrder"])
+            try db.create(index: "playlistItem_on_presentationID", on: "playlistItem", columns: ["presentationID"])
+            try db.create(index: "playlistItem_on_arrangementID", on: "playlistItem", columns: ["arrangementID"])
+        }
+
         return migrator
     }
 }

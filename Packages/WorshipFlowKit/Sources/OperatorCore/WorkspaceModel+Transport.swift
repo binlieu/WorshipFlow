@@ -12,11 +12,18 @@ extension WorkspaceModel {
 
     /// Takes the selected slide live. Edits made since the last trigger go out now.
     public func goLive() async {
-        await serialized { [self] in goLive(at: show.selectedIndex) }
+        await serialized { [self] in
+            if let id = selectedPlaylistItemID, let item = playlistItems.first(where: { $0.id == id }), case .countdown = item.kind {
+                goLiveOnCountdown(item)
+            } else {
+                goLive(at: show.selectedIndex)
+            }
+        }
     }
 
     public func goLive(at index: Int) {
         transportEpoch &+= 1
+        liveCountdown = nil
         apply(.trigger(index: index))
         recordLiveSource()
         placeChanged()
@@ -96,6 +103,7 @@ extension WorkspaceModel {
     public func stop() {
         transportEpoch &+= 1
         apply(.stop)
+        liveCountdown = nil
         liveItemID = nil
         liveSlideIDs = []
         liveSlideNotes = []
@@ -130,9 +138,14 @@ extension WorkspaceModel {
         guard !stepping, let current = liveItemID, let here = playlistItems.firstIndex(where: { $0.id == current }) else { return false }
         stepping = true
         defer { stepping = false }
-        let j = here + direction
-        guard playlistItems.indices.contains(j) else { return false }
+        // UI-002: headers are skipped; a countdown starts instead of opening slides.
+        guard let j = PlaylistStepping.target(kinds: playlistKinds, from: here, direction: direction) else { return false }
         let item = playlistItems[j]
+        if case .countdown = item.kind {
+            guard epoch == transportEpoch else { return false }
+            goLiveOnCountdown(item)
+            return true
+        }
         let count = (try? await store.slides(forPlaylistItem: item.id))?.count ?? 0
         guard epoch == transportEpoch else { return false }
         guard count > 0 else {
@@ -142,6 +155,7 @@ extension WorkspaceModel {
         }
         await openPlaylistItem(item.id)
         guard epoch == transportEpoch, selectedPlaylistItemID == item.id, !slides.isEmpty else { return false }
+        liveCountdown = nil
         apply(.trigger(index: direction > 0 ? 0 : slides.count - 1))
         recordLiveSource()
         placeChanged()

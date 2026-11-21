@@ -126,6 +126,13 @@ struct WorkspaceCommands: Commands {
             Button("Find Songs") { app.workspace?.setMode(.show); app.ui.focusSearch += 1 }.keyboardShortcut("f")
         }
         // UI-001: the six modes, Command-1 to Command-6 (the digits come from `WorkspaceMode`).
+        CommandGroup(after: .toolbar) {
+            Menu("Appearance") {
+                ForEach(AppearanceChoice.allCases) { choice in
+                    Toggle(choice.title, isOn: Binding(get: { app.appearance == choice }, set: { if $0 { app.setAppearance(choice) } }))
+                }
+            }
+        }
         CommandMenu("Mode") {
             ForEach(WorkspaceMode.allCases) { mode in
                 Button(mode.title) { app.workspace?.setMode(mode) }

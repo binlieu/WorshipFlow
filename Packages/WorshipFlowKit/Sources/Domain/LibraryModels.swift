@@ -90,9 +90,14 @@ public struct PlaylistItem: Sendable, Equatable, Codable, Identifiable {
     public var sortOrder: Int
     /// The arrangement used when this item is shown; nil means natural slide order (SLIDE-003).
     public var arrangementID: UUID?
+    /// UI-002: a presentation (the default), a section header or a countdown. For the last two `presentationID` is
+    /// `PlaylistItem.noPresentationID` and `title` is the label.
+    public var kind: PlaylistItemKind
+    public static let noPresentationID = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 
     public init(id: UUID = UUID(), playlistID: UUID, presentationID: UUID, title: String, sortOrder: Int,
-                arrangementID: UUID? = nil) {
+                arrangementID: UUID? = nil, kind: PlaylistItemKind = .presentation) {
+        self.kind = kind
         self.id = id
         self.playlistID = playlistID
         self.presentationID = presentationID

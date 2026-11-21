@@ -21,10 +21,12 @@ extension AppModel {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
             while !workspaceLoaded { try? await Task.sleep(for: .milliseconds(100)) }
             try? await Task.sleep(for: .seconds(1.5))
-            let window = NSApp.windows.first { $0.title == Self.operatorWindowTitle }
+            let window = Self.operatorWindow
             window?.setContentSize(NSSize(width: 1440, height: 860))
             window?.center()
             window?.orderFrontRegardless()
+
+            if let choice = ProcessInfo.processInfo.environment["UI_SNAPSHOT_APPEARANCE"].flatMap(AppearanceChoice.init(rawValue:)) { setAppearance(choice) }
 
             // Sample content: a bilingual song with sections, in the playlist.
             let song = """
@@ -62,6 +64,11 @@ extension AppModel {
             if let p = await workspace.importLyrics(title: "Amazing Grace", primaryText: song, secondaryText: viet, maxLines: 2) {
                 _ = await workspace.importLyrics(title: "Be Thou My Vision", primaryText: "Be Thou my vision, O Lord of my heart\nNaught be all else to me", secondaryText: nil, maxLines: 2)
                 await workspace.openPresentation(p.id)
+                if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil {
+                    await workspace.addHeader("Pre-service")
+                    await workspace.addCountdown(CountdownSpec(label: "Starting soon", mode: .duration(seconds: 300)))
+                    await workspace.addHeader("Worship")
+                }
                 await workspace.addToPlaylist(p.id)
             } else { note("import failed: \(workspace.lastError ?? "?")") }
             if let path = ProcessInfo.processInfo.environment["UI_SNAPSHOT_MEDIA"] {
@@ -73,6 +80,30 @@ extension AppModel {
             for var profile in profiles where profile.role != .broadcast {
                 profile.destination = .window
                 updateProfile(profile)
+            }
+            // UI-002: the simulated SDI card, a keyed broadcast screen with a mirror, and the audience screen on a plain connector.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil {
+                setShowSimulatedSDIDevice(true)
+                try? await Task.sleep(for: .seconds(1))
+                for var profile in profiles {
+                    switch profile.role {
+                    case .broadcast:
+                        profile.isEnabled = true
+                        profile.name = "Livestream graphics"
+                        profile.destination = .sdi(deviceID: Self.simulatedCardID, connector: 1, keying: true, fillAlphaMode: .premultiplied)
+                        profile.mirrors = [.window]
+                        profile.setConnectedNote("Switcher key input", mirror: nil)
+                        profile.setConnectedNote("Monitor wall", mirror: 0)
+                        updateProfile(profile)
+                        ui.selectedScreenID = profile.id
+                    case .audience:
+                        profile.destination = .sdi(deviceID: Self.simulatedCardID, connector: 3, keying: false, fillAlphaMode: .premultiplied)
+                        updateProfile(profile)
+                    case .stage: break
+                    }
+                }
+                try? await Task.sleep(for: .seconds(1))
+                startScreens()
             }
             try? await Task.sleep(for: .seconds(0.5))
             workspace.selectSlide(2)
@@ -107,8 +138,8 @@ extension AppModel {
                 guard let image = ctx.makeImage() else { note("no image"); return }
                 let rep = NSBitmapImageRep(cgImage: image)
                 if let data = rep.representation(using: .png, properties: [:]) {
-                    try? data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("UI-001-\(name).png"))
-                    note("wrote UI-001-\(name).png \(rep.pixelsWide)x\(rep.pixelsHigh)")
+                    try? data.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(ProcessInfo.processInfo.environment["UI_SNAPSHOT_PREFIX"] ?? "UI-001")-\(name).png"))
+                    note("wrote \(name).png \(rep.pixelsWide)x\(rep.pixelsHigh)")
                 }
             }
 
@@ -169,6 +200,16 @@ extension AppModel {
             try? await Task.sleep(for: .milliseconds(500))
             note("Right arrow in Screens: live \(before.map(String.init) ?? "-") -> \(show.liveIndex.map(String.init) ?? "-")")
 
+            // UI-002: the countdown item live, then ticking.
+            if let countdown = workspace.playlistItems.first(where: { if case .countdown = $0.kind { true } else { false } }) {
+                workspace.setMode(.show)
+                await workspace.openPlaylistItem(countdown.id)
+                await workspace.goLive()
+                try? await Task.sleep(for: .seconds(2.2))
+                workspace.countdownTick()
+                note("countdown live: \(workspace.show.liveSlide?.primary ?? "none")")
+                await capture("countdown")
+            }
             try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
             await flushWorkspace()
             shutdown()

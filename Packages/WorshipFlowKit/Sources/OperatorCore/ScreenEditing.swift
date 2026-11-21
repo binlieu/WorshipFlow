@@ -136,6 +136,8 @@ public enum ScreenEditing {
         guard profile.mirrors.indices.contains(index) else { return profile }
         var p = profile
         p.mirrors.remove(at: index)
+        if p.connectedTo.indices.contains(index + 1) { p.connectedTo.remove(at: index + 1) }     // keep the typed notes aligned
+        while p.connectedTo.last == "" { p.connectedTo.removeLast() }
         return p
     }
 

@@ -105,9 +105,11 @@ struct PlaylistItemRecord: Codable, FetchableRecord, PersistableRecord, Sendable
     static func databaseUUIDEncodingStrategy(for column: String) -> DatabaseUUIDEncodingStrategy { .uppercaseString }
     var id: UUID
     var playlistID: UUID
-    var presentationID: UUID
+    var presentationID: UUID?
     var sortOrder: Int
     var createdAt: Date
+    var kind: String = "presentation"
+    var payload: String?
 }
 
 /// The `slide.objects` column: a JSON array of `SlideObject`, or NULL for none.
