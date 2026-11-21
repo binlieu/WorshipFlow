@@ -20,7 +20,7 @@ import Domain
         let store = try LibraryStore.inMemory()
         let tables = try await store.tableNames()
         for expected in ["slideGroup", "arrangement", "arrangementItem"] { #expect(tables.contains(expected)) }
-        #expect(try await store.appliedMigrations() == ["v1", "v2"])
+        #expect(Array(try await store.appliedMigrations().prefix(2)) == ["v1", "v2"])   // coordinator fix: later migrations may follow
     }
 
     /// Rows written under v1 survive v2, ungrouped and in order.

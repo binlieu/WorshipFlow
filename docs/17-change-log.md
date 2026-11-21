@@ -8,3 +8,4 @@
 - OUT-002: show state with Preview, Live, Clear and Stop rules; per-role scene composer; output router and coordinator with same-display auto-resume; sleep guard; screens panel; four-output offscreen benchmark. Operator UI not yet exercised by hand (KI-011).
 - OUT-003, SLIDE-002: themes (full screen, lower third), theme resolution per screen, Looks with per-screen layers, props, image layers in the compositor with a bounded cache. Scenes are now published per screen profile. Stored as JSON for now.
 - SLIDE-003, SLIDE-004: reflow rules with English and Vietnamese section labels and second-language pairing, slide groups, arrangements, schema v2, arrangement per playlist item. No editor interface yet.
+- SYS-002: schema v3 with theme, look, prop, screenProfile and mediaAsset tables and presentation.themeID. The app does not use them yet. Coordinator test fix: the v2 migration test no longer assumes v2 is the last migration.

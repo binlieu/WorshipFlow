@@ -26,15 +26,18 @@ public struct Presentation: Sendable, Equatable, Codable, Identifiable {
     public var libraryID: UUID
     public var title: String
     public var kind: PresentationKind
+    /// The theme this presentation uses: a built-in or a stored theme id. Nil means the role default (PRES-06).
+    public var themeID: UUID?
     public let createdAt: Date
     public var updatedAt: Date
 
     public init(id: UUID = UUID(), libraryID: UUID, title: String, kind: PresentationKind,
-                createdAt: Date = Date(), updatedAt: Date = Date()) {
+                themeID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.libraryID = libraryID
         self.title = title
         self.kind = kind
+        self.themeID = themeID
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

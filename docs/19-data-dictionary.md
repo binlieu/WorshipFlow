@@ -97,10 +97,83 @@ Adds song sections and arrangements. Rows written under v1 are untouched: their 
 | slide.groupID | TEXT, nullable | FK `slideGroup.id`, ON DELETE SET NULL. NULL means the slide is in no section and is left out of every arrangement. Index `slide_on_groupID` |
 | playlistItem.arrangementID | TEXT, nullable | FK `arrangement.id`, ON DELETE SET NULL. NULL means natural slide order. Must be an arrangement of the item's presentation (checked by the store). Index `playlistItem_on_arrangementID` |
 
+## Schema v3 (migration `v3`, SYS-002)
+
+Adds themes, Looks, props, screen profiles and media assets (KI-016). Rows written under v1 or v2 are untouched.
+
+JSON columns use one fixed encoding (`SettingsJSON`): sorted keys, no escaped slashes, UUIDs as upper-case strings, `nil` optionals omitted. Built-in themes (`Theme.builtIn`) live in code and are never stored. Reads throw if a stored value no longer decodes; nothing is silently dropped.
+
+### theme
+Custom themes only.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID. A built-in theme id is rejected by `saveTheme` |
+| name | TEXT NOT NULL | Trimmed, non-empty |
+| nameFolded | TEXT NOT NULL | `SearchFolding.fold(name)`; themes are listed by this, then insertion order |
+| definition | TEXT NOT NULL | The `Theme` value as JSON (Codable encoding of `Theme`: `id`, `name`, `background`, `primary`, `secondary`) |
+| createdAt | DATETIME NOT NULL | |
+| updatedAt | DATETIME NOT NULL | |
+
+### look
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | Trimmed, non-empty |
+| screens | TEXT NOT NULL | JSON object keyed by screen profile id (upper-case UUID string): `{"<UUID>": {"themeID": "<UUID>", "visibleLayers": ["background", "props", "slide"]}}`. `themeID` is omitted when nil; `visibleLayers` is sorted. Not a foreign key: a Look may mention a screen or theme that is gone, and the app falls back to defaults |
+| createdAt | DATETIME NOT NULL | Looks are listed by this, then insertion order. Editing a Look keeps it |
+| updatedAt | DATETIME NOT NULL | |
+
+### prop
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | |
+| imagePath | TEXT NOT NULL | Path as last seen |
+| bookmark | BLOB | Security-scoped bookmark. Saving a prop with a nil bookmark keeps the stored one |
+| frame | TEXT NOT NULL | `NormalizedRect` as JSON: `{"height":..,"width":..,"x":..,"y":..}` |
+| opacity | DOUBLE NOT NULL | 0...1 |
+| isOn | BOOLEAN NOT NULL | |
+| createdAt | DATETIME NOT NULL | Props are listed by this, then insertion order |
+| updatedAt | DATETIME NOT NULL | |
+
+### screenProfile
+The whole table is the ordered set of screen profiles; `saveScreenProfiles` replaces it in one transaction.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| sortOrder | INTEGER NOT NULL | 0...n-1 in the order given |
+| name | TEXT NOT NULL | |
+| role | TEXT NOT NULL | `audience`, `stage`, `broadcast` |
+| destination | TEXT NOT NULL | `display` or `window` |
+| displayID | INTEGER | CGDirectDisplayID when `destination` is `display`; NULL for `window` |
+| isEnabled | BOOLEAN NOT NULL | |
+
+### mediaAsset
+A reference to a file in the media bin. The file itself is never read, moved or deleted by the store.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | Trimmed, non-empty; renamable |
+| kind | TEXT NOT NULL | `image`, `video`, `audio`. Index `mediaAsset_on_kind` |
+| path | TEXT NOT NULL UNIQUE | Adding the same path again returns the existing row |
+| bookmark | BLOB | Security-scoped bookmark |
+| duration | DOUBLE | Seconds; NULL for images |
+| pixelWidth | INTEGER | NULL for audio |
+| pixelHeight | INTEGER | NULL for audio |
+| addedAt | DATETIME NOT NULL | Assets are listed by this, then insertion order |
+
+### Columns added to v1 tables
+| Table.column | Type | Notes |
+|---|---|---|
+| presentation.themeID | TEXT, nullable | A built-in theme id or a `theme.id`. NULL means the role default. No foreign key, because built-in ids have no row; `deleteTheme` sets it to NULL in the same transaction. Index `presentation_on_themeID` |
+
 ## Derived search index (not a migration)
 
 `presentationSearch` is an FTS5 virtual table `(title, body, presentationID UNINDEXED)`, tokenizer `unicode61 remove_diacritics 0` because the text is already folded. It is created at open when the system SQLite has FTS5, filled from `titleFolded` and `bodyFolded` if missing, and updated in the same transaction as every change. When FTS5 is absent it is dropped and search uses `LIKE` on the folded columns. It holds no data that cannot be rebuilt.
 
 ## Not yet persisted
 
-Themes and media assets named in `docs/features/SYS-001-sqlite-store.md` are not persisted yet; they arrive with the features that use them (no placeholder tables). Screen and Look configuration is `OUT-002`.
+Media playback state and per-presentation media are not persisted yet; they arrive with the features that use them (no placeholder tables).

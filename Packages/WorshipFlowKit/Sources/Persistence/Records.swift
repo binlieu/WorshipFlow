@@ -31,9 +31,24 @@ struct PresentationRecord: Codable, FetchableRecord, PersistableRecord, Sendable
     var bodyFolded: String
     var createdAt: Date
     var updatedAt: Date
+    /// Added by migration v3. Read here, but never written by `insert`: the column does not exist on a v1 or v2
+    /// store, and `LibraryStore.setTheme` is the only writer.
+    var themeID: UUID? = nil
+
+    func encode(to container: inout PersistenceContainer) throws {
+        container["id"] = id.dbText
+        container["libraryID"] = libraryID.dbText
+        container["title"] = title
+        container["kind"] = kind.rawValue
+        container["titleFolded"] = titleFolded
+        container["bodyFolded"] = bodyFolded
+        container["createdAt"] = createdAt
+        container["updatedAt"] = updatedAt
+    }
 
     var domain: Presentation {
-        Presentation(id: id, libraryID: libraryID, title: title, kind: kind, createdAt: createdAt, updatedAt: updatedAt)
+        Presentation(id: id, libraryID: libraryID, title: title, kind: kind, themeID: themeID,
+                     createdAt: createdAt, updatedAt: updatedAt)
     }
 }
 
