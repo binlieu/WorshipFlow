@@ -34,7 +34,17 @@ final class MediaFrameResolver {
     private let source: any MediaFrameSource
     private let cache: CVMetalTextureCache
 
-    init(source: any MediaFrameSource, device: MTLDevice) throws {
+    /// The texture cache keeps every texture it has handed out until it is flushed, which for a long service with
+    /// several clips would grow without bound (R14). It is flushed this often; a flush frees only textures nothing
+    /// references, so frames still in flight are untouched.
+    static let flushInterval = 2.0
+    private(set) var flushCount = 0
+    private var lastFlush: Double
+    private let clock: @Sendable () -> Double
+
+    init(source: any MediaFrameSource, device: MTLDevice, clock: @escaping @Sendable () -> Double = { ProcessInfo.processInfo.systemUptime }) throws {
+        self.clock = clock
+        self.lastFlush = clock()
         var created: CVMetalTextureCache?
         guard CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &created) == kCVReturnSuccess, let created else {
             throw MediaFrameError.noTextureCache
@@ -44,6 +54,12 @@ final class MediaFrameResolver {
     }
 
     func resolve(_ scene: SceneDescription) -> MediaFrameTextures {
+        let t = clock()
+        if t - lastFlush >= Self.flushInterval {
+            lastFlush = t
+            flushCount += 1
+            CVMetalTextureCacheFlush(cache, 0)
+        }
         var result = MediaFrameTextures()
         if let media = scene.backgroundMedia { result.background = texture(for: media, layer: .background) }
         if let media = scene.foregroundMedia { result.foreground = texture(for: media, layer: .foreground) }

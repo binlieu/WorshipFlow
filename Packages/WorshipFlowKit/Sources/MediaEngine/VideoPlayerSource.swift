@@ -4,11 +4,40 @@
 import Foundation
 import AVFoundation
 import CoreVideo
+import os
 import Domain
 
 /// The clock transports run on: monotonic seconds since boot, unaffected by changes to the wall clock.
 public enum MediaClock {
     public static func now() -> Double { ProcessInfo.processInfo.systemUptime }
+}
+
+/// Whether a source can still be expected to deliver frames (R9).
+public enum PlaybackHealth: Sendable, Equatable {
+    case healthy
+    /// The item or the player failed (a broken, truncated or unsupported file). `String` says why.
+    case failed(String)
+    /// The player was told to play and did not advance, and the watchdog's re-seeks did not help.
+    case stalled
+}
+
+/// A lock that knows whether the calling thread holds it, so a test can prove no AVFoundation call is made under it (R18).
+// @unchecked Sendable: `mutex` is the lock; `owner` is itself lock-guarded.
+final class TrackedLock: @unchecked Sendable {
+    private let mutex = NSLock()
+    private let owner = OSAllocatedUnfairLock<UInt32>(initialState: 0)
+    private static var thisThread: UInt32 { pthread_mach_thread_np(pthread_self()) }
+
+    func lock() { mutex.lock(); owner.withLock { $0 = Self.thisThread } }
+    func unlock() { owner.withLock { $0 = 0 }; mutex.unlock() }
+    var isHeldByCurrentThread: Bool { owner.withLock { $0 == Self.thisThread } }
+}
+
+/// Test seam: told, for each AVFoundation call a `VideoPlayerSource` makes, whether the calling thread held its lock.
+enum AVFoundationCallProbe {
+    private static let observer = OSAllocatedUnfairLock<(@Sendable (_ lockHeld: Bool) -> Void)?>(initialState: nil)
+    static func set(_ handler: (@Sendable (_ lockHeld: Bool) -> Void)?) { observer.withLock { $0 = handler } }
+    static func note(lockHeld: Bool) { let h = observer.withLock { $0 }; h?(lockHeld) }
 }
 
 /// Thread-safe. `latestPixelBuffer()` may be called from several render threads at once; the control methods are
@@ -22,7 +51,10 @@ public final class VideoPlayerSource: @unchecked Sendable {
     private let clock: @Sendable () -> Double
     private let player: AVPlayer
     private var looper: AVPlayerLooper?
-    private let lock = NSLock()
+    private let lock = TrackedLock()
+    /// Marks an AVFoundation call for the test seam. The rule (R18): no call into AVFoundation while `lock` is held,
+    /// because AVFoundation's KVO callbacks come back on other threads and take the same lock.
+    private func avf() { AVFoundationCallProbe.note(lockHeld: lock.isHeldByCurrentThread) }
 
     private var transport: MediaTransport
     private var playerEnded = false
@@ -36,12 +68,21 @@ public final class VideoPlayerSource: @unchecked Sendable {
     private var latest: CVPixelBuffer?
     private var delivered = 0
     private var itemObservation: NSKeyValueObservation?
+    private var statusObservation: NSKeyValueObservation?      // the current item's status, replaced with the item
+    private var looperObservation: NSKeyValueObservation?
+    private var failureObserver: NSObjectProtocol?
+    private var health: PlaybackHealth = .healthy
+    private var healthHandler: (@Sendable (PlaybackHealth) -> Void)?
+    /// Bumped by `stop()`: a frame fetched before it must not be stored after it.
+    private var epoch = 0
     private var endObserver: NSObjectProtocol?
     // Stall watchdog (MEDIA-001): see `watchForStall()`.
     private var stallCheckedAt = 0.0
     private var stallLastTime = -1.0
     private var stallSince = 0.0
     private var stallRecoveryCount = 0
+    private var consecutiveStallRecoveries = 0
+    private var lastRecoveryTarget: Double?
 
     /// - Parameters:
     ///   - duration: Seconds, when known (the media bin stores it). Needed for the transport to report the end and the
@@ -69,6 +110,16 @@ public final class VideoPlayerSource: @unchecked Sendable {
         itemObservation = player.observe(\.currentItem, options: [.initial, .new]) { [weak self] player, _ in
             self?.attachOutput(to: player.currentItem)
         }
+        if let looper {
+            looperObservation = looper.observe(\.status, options: [.initial, .new]) { [weak self] looper, _ in
+                if looper.status == .failed { self?.setHealth(.failed(Self.describe(looper.error))) }
+            }
+        }
+        failureObserver = NotificationCenter.default.addObserver(forName: AVPlayerItem.failedToPlayToEndTimeNotification,
+                                                                 object: nil, queue: nil) { [weak self] note in
+            guard let self, let item = note.object as? AVPlayerItem, item === self.player.currentItem else { return }
+            self.setHealth(.failed(Self.describe(item.error)))
+        }
         if !loops {
             endObserver = NotificationCenter.default.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification,
                                                                  object: item, queue: nil) { [weak self] _ in
@@ -79,28 +130,45 @@ public final class VideoPlayerSource: @unchecked Sendable {
 
     deinit {
         itemObservation?.invalidate()
+        statusObservation?.invalidate()
+        looperObservation?.invalidate()
+        if let failureObserver { NotificationCenter.default.removeObserver(failureObserver) }
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         player.pause()
         looper?.disableLooping()
     }
 
-    private func attachOutput(to item: AVPlayerItem?) {
-        lock.lock()
-        defer { lock.unlock() }
-        if let old = output, let oldItem = outputItem { oldItem.remove(old) }
-        output = nil
-        outputItem = nil
-        guard let item else { return }
-        let attributes: [String: Any] = [
+    private static func makeOutput() -> AVPlayerItemVideoOutput {
+        let attributes: [String: any Sendable] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
-            kCVPixelBufferIOSurfacePropertiesKey as String: [String: Any](),
+            kCVPixelBufferIOSurfacePropertiesKey as String: [String: Int](),
         ]
         let out = AVPlayerItemVideoOutput(pixelBufferAttributes: attributes)
         out.suppressesPlayerRendering = true
-        item.add(out)
-        output = out
+        return out
+    }
+
+    private func attachOutput(to item: AVPlayerItem?) {
+        // Build the new output and swap it in under the lock; talk to AVFoundation only after letting go (R18).
+        let fresh = item == nil ? nil : Self.makeOutput()
+        lock.lock()
+        let oldOutput = output, oldItem = outputItem
+        output = fresh
         outputItem = item
+        lock.unlock()
+        if let oldOutput, let oldItem { avf(); oldItem.remove(oldOutput) }
+        if let item, let fresh { avf(); item.add(fresh) }
+
+        // Watch the item itself: a file that opens but cannot be decoded fails here, long after `init` returned.
+        let observation = item?.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+            if item.status == .failed { self?.setHealth(.failed(Self.describe(item.error))) }
+        }
+        lock.lock()
+        let replaced = statusObservation
+        statusObservation = observation
+        lock.unlock()
+        replaced?.invalidate()
     }
 
     private func playerReachedEnd() {
@@ -109,6 +177,36 @@ public final class VideoPlayerSource: @unchecked Sendable {
         let handler = endedHandler
         lock.unlock()
         handler?()
+    }
+
+    // MARK: Health (R9)
+
+    /// The watchdog re-seeks a stalled player this many times in a row, without the time moving, before it reports
+    /// the source as `.stalled`.
+    static let maxStallRecoveries = 3
+    static func isUnrecoverable(consecutiveRecoveries: Int) -> Bool { consecutiveRecoveries >= maxStallRecoveries }
+
+    /// `.failed` when the item or player failed (broken, truncated or unsupported file, unreachable volume),
+    /// `.stalled` when it was told to play and the watchdog could not get it moving, otherwise `.healthy`. A failure is
+    /// permanent for this source; a stall clears itself if the clip starts moving again.
+    public var playbackHealth: PlaybackHealth { lock.lock(); defer { lock.unlock() }; return health }
+
+    /// Called each time `playbackHealth` changes. May run on any thread.
+    public func setOnHealthChange(_ handler: (@Sendable (PlaybackHealth) -> Void)?) {
+        lock.lock(); healthHandler = handler; lock.unlock()
+    }
+
+    private func setHealth(_ new: PlaybackHealth) {
+        lock.lock()
+        var changed = false
+        if case .failed = health {} else if health != new { health = new; changed = true }   // a failure is final
+        let handler = healthHandler
+        lock.unlock()
+        if changed { handler?(new) }
+    }
+
+    private static func describe(_ error: Error?) -> String {
+        error.map { $0.localizedDescription } ?? "the player reported a failure"
     }
 
     // MARK: State
@@ -155,6 +253,7 @@ public final class VideoPlayerSource: @unchecked Sendable {
         playerEnded = false
         wantsPlaying = false
         latest = nil
+        epoch += 1
         pendingSeeks += 1
         lock.unlock()
         player.pause()
@@ -226,14 +325,23 @@ public final class VideoPlayerSource: @unchecked Sendable {
     public func latestPixelBuffer() -> CVPixelBuffer? {
         watchForStall()
         lock.lock()
-        defer { lock.unlock() }
-        if let out = output {
+        let out = output
+        let startedIn = epoch
+        lock.unlock()
+        var fresh: CVPixelBuffer?
+        if let out {                                  // AVFoundation is asked with the lock released (R18)
+            avf()
             let t = out.itemTime(forHostTime: CACurrentMediaTime())
-            if t.isValid, out.hasNewPixelBuffer(forItemTime: t),
-               let buffer = out.copyPixelBuffer(forItemTime: t, itemTimeForDisplay: nil) {
-                latest = buffer
-                delivered += 1
+            if t.isValid, out.hasNewPixelBuffer(forItemTime: t) {
+                avf()
+                fresh = out.copyPixelBuffer(forItemTime: t, itemTimeForDisplay: nil)
             }
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        if let fresh, epoch == startedIn {            // a stop() meanwhile discards the frame
+            latest = fresh
+            delivered += 1
         }
         return latest
     }
@@ -245,18 +353,34 @@ public final class VideoPlayerSource: @unchecked Sendable {
     /// non-key frame while the machine is busy: the clip froze at the seek target and never reported its end). Outputs
     /// call `latestPixelBuffer()` continuously, so this is checked there, at most four times a second. If the player has
     /// been told to play, is ready, and its time has not moved for a second, seek it to where it stands; the rate is
-    /// re-applied when that seek finishes.
+    /// re-applied when that seek finishes. If that happens `maxStallRecoveries` times in a row without the time moving,
+    /// the source reports `.stalled` (R9) and goes on trying.
     private func watchForStall() {
         let host = CACurrentMediaTime()
         lock.lock()
-        guard wantsPlaying, pendingSeeks == 0, !playerEnded, host - stallCheckedAt >= 0.25,
-              player.currentItem?.status == .readyToPlay else { lock.unlock(); return }
+        guard wantsPlaying, pendingSeeks == 0, !playerEnded, host - stallCheckedAt >= 0.25 else { lock.unlock(); return }
         stallCheckedAt = host
+        lock.unlock()
+
+        avf()
+        guard player.currentItem?.status == .readyToPlay else { return }
+        avf()
         let time = player.currentTime().seconds
+
+        lock.lock()
+        guard wantsPlaying, pendingSeeks == 0, !playerEnded else { lock.unlock(); return }   // changed while we looked
         if !time.isFinite || abs(time - stallLastTime) > 0.001 {
             stallLastTime = time
             stallSince = host
+            var recovered = false
+            if let target = lastRecoveryTarget, time.isFinite, abs(time - target) > 0.05 {
+                lastRecoveryTarget = nil           // moving again, past where the last kick put it
+                consecutiveStallRecoveries = 0
+                recovered = true
+            }
+            let wasStalled = health == .stalled
             lock.unlock()
+            if recovered && wasStalled { setHealth(.healthy) }
             return
         }
         guard host - stallSince >= 1.0 else { lock.unlock(); return }
@@ -265,9 +389,14 @@ public final class VideoPlayerSource: @unchecked Sendable {
         // that is behind, and it still has to play out the rest and report its end.)
         let target = time
         if transport.duration > 0, !loops, target >= transport.duration - 0.1 { lock.unlock(); return }
+        if let last = lastRecoveryTarget, abs(last - target) <= 0.05 { consecutiveStallRecoveries += 1 } else { consecutiveStallRecoveries = 1 }
+        lastRecoveryTarget = target
+        let giveUp = Self.isUnrecoverable(consecutiveRecoveries: consecutiveStallRecoveries)
         pendingSeeks += 1
         stallRecoveryCount += 1
         lock.unlock()
+        if giveUp { setHealth(.stalled) }
+        avf()
         player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero,
                     toleranceAfter: .zero) { [weak self] _ in self?.seekFinished() }
     }
@@ -282,3 +411,4 @@ public final class VideoPlayerSource: @unchecked Sendable {
         return "\(extra), rate \(player.rate), control \(player.timeControlStatus.rawValue), item status \(status), time \(time), error \(err.map { "\($0)" } ?? "none")"
     }
 }
+

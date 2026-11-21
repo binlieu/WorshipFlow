@@ -7,6 +7,20 @@ import Foundation
 import CoreVideo
 import Domain
 
+/// Whether the media chosen for a layer is actually reaching the screen (R9).
+public enum MediaAvailability: Sendable, Equatable {
+    /// Not chosen for any layer.
+    case notOpen
+    /// Chosen and opening, or open and waiting for the first frame.
+    case starting
+    /// Open and has produced at least one frame (a still: decoded).
+    case delivering
+    /// Could not be opened or decoded, or the player failed after opening.
+    case failed(String)
+    /// Playing but not advancing, and re-seeking did not help.
+    case stalled
+}
+
 // @unchecked Sendable: all mutable state is guarded by `lock`; sources are themselves thread-safe.
 public final class MediaRegistry: @unchecked Sendable {
     private struct Location {
@@ -40,6 +54,7 @@ public final class MediaRegistry: @unchecked Sendable {
     private var foregroundEnded: (@Sendable () -> Void)?
     private var foregroundVolume: Float = 1
     private var foregroundMuted = false
+    private var availabilityChanged: (@Sendable (UUID, MediaAvailability) -> Void)?
 
     public init(stillLimit: Int = MediaRegistry.defaultStillLimit) {
         self.stillLimit = max(2, stillLimit)
@@ -68,8 +83,70 @@ public final class MediaRegistry: @unchecked Sendable {
         lock.unlock()
     }
 
+    // MARK: Availability (R9)
+
+    /// Whether the media chosen for a layer is reaching the screen. Pollable from any thread; cheap. A video is
+    /// `.delivering` once an output has pulled at least one frame from it, so it reads `.starting` while no screen is
+    /// open. `.failed` covers a missing or unreadable file, a file that opened but cannot be decoded, and a player
+    /// that failed mid-clip; `.stalled` a clip that is not advancing and could not be restarted.
+    public func availability(of id: UUID) -> MediaAvailability {
+        lock.lock()
+        if failed.contains(id) { lock.unlock(); return .failed("The file is missing or could not be opened.") }
+        let held = slots.values.filter { $0.assetID == id }
+        let stillReady = stills[id] != nil
+        let stillDecoding = decoding.contains(id)
+        lock.unlock()
+        guard !held.isEmpty else { return .notOpen }
+        var worst: MediaAvailability = .delivering
+        func severity(_ a: MediaAvailability) -> Int {
+            switch a { case .failed: return 3; case .stalled: return 2; case .starting: return 1; default: return 0 }
+        }
+        for slot in held {
+            let state: MediaAvailability
+            if let source = slot.source {                          // AVFoundation state is read with the lock released
+                switch source.playbackHealth {
+                case .failed(let why): state = .failed(why)
+                case .stalled: state = .stalled
+                case .healthy: state = source.deliveredFrameCount > 0 ? .delivering : .starting
+                }
+            } else {
+                state = stillReady ? .delivering : (stillDecoding ? .starting : .starting)
+            }
+            if severity(state) > severity(worst) { worst = state }
+        }
+        return worst
+    }
+
+    /// `availability(of:)` for every asset a layer holds or that failed to open.
+    public func availabilitySnapshot() -> [UUID: MediaAvailability] {
+        lock.lock()
+        let ids = Set(slots.values.map(\.assetID)).union(failed)
+        lock.unlock()
+        return Dictionary(uniqueKeysWithValues: ids.map { ($0, availability(of: $0)) })
+    }
+
+    /// Called whenever an asset's availability turns into `.failed` or `.stalled`, or a still finishes decoding. May
+    /// run on any thread; read `availability(of:)` for the current value.
+    public func setOnAvailabilityChange(_ handler: (@Sendable (UUID, MediaAvailability) -> Void)?) {
+        lock.lock(); availabilityChanged = handler; lock.unlock()
+    }
+
+    private func notifyAvailability(_ id: UUID) {
+        lock.lock(); let handler = availabilityChanged; lock.unlock()
+        guard let handler else { return }
+        handler(id, availability(of: id))
+    }
+
     /// Ids that were chosen but could not be opened or decoded (missing file, unsupported content).
-    public var unavailableAssetIDs: Set<UUID> { lock.lock(); defer { lock.unlock() }; return failed }
+    /// Includes a clip whose player failed or stalled after opening (R9).
+    public var unavailableAssetIDs: Set<UUID> {
+        lock.lock()
+        var ids = failed
+        let open = slots.values.compactMap { slot in slot.source.map { (slot.assetID, $0) } }
+        lock.unlock()
+        for (id, source) in open where source.playbackHealth != .healthy { ids.insert(id) }
+        return ids
+    }
 
     /// Called when a foreground clip reaches its end by the player's own report. May run on any thread; call
     /// `MediaLayers.tick` then, to take the foreground out of the scene.
@@ -132,6 +209,7 @@ public final class MediaRegistry: @unchecked Sendable {
                 if slot == .foreground {
                     source.setOnEnded { [weak self] in self?.notifyForegroundEnded() }
                 }
+                source.setOnHealthChange { [weak self] _ in self?.notifyAvailability(id) }
                 lock.lock(); slots[slot] = Slot(assetID: id, source: source); failed.remove(id); lock.unlock()
                 source.apply(layer.transport, at: now)
             } catch {
@@ -147,6 +225,7 @@ public final class MediaRegistry: @unchecked Sendable {
 
     private func markFailed(_ id: UUID, closing slot: MediaLayerSlot) {
         lock.lock(); slots[slot] = nil; failed.insert(id); lock.unlock()
+        notifyAvailability(id)
     }
 
     private func notifyForegroundEnded() {
@@ -214,6 +293,7 @@ public final class MediaRegistry: @unchecked Sendable {
                 self.failed.insert(id)
             }
             self.lock.unlock()
+            self.notifyAvailability(id)
         }
     }
 

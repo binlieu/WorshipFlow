@@ -49,6 +49,8 @@ public protocol OutputTarget: AnyObject {
     /// True while the output's window is running but covered, minimised or on an inactive Space, so no frames
     /// are presented (KI-008). Reported as "hidden", not as a stall.
     var isOccluded: Bool { get }
+    /// Layers the output skipped because they could not be drawn, de-duplicated; empty when the last frame had none (R2).
+    var renderProblems: [String] { get }
     /// Called on the main actor whenever the status changes (including when the window is closed or the display disappears).
     var onStatusChange: (@MainActor (OutputStatus) -> Void)? { get set }
     func start() throws
@@ -58,4 +60,5 @@ public protocol OutputTarget: AnyObject {
 extension OutputTarget {
     public var isOccluded: Bool { false }
     public var unavailableImagePaths: [String] { [] }
+    public var renderProblems: [String] { [] }
 }

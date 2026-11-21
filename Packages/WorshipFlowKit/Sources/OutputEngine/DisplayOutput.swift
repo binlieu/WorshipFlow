@@ -24,7 +24,8 @@ public final class DisplayOutput: MetalOutput {
     override func makeWindow() -> NSWindow {
         let target = screen() ?? NSScreen.main
         let frame = target?.frame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
-        let w = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: target)
+        let w = OutputWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: target)
+        w.applyOutputPolicy()
         w.setFrame(frame, display: false)
         w.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))   // above the menu bar, Dock and full-screen apps
         w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -38,6 +39,26 @@ public final class DisplayOutput: MetalOutput {
 
     override func availabilityProblem() -> String? {
         screen() == nil ? "The display for \(name) was disconnected. The output has stopped." : nil
+    }
+
+    /// R5: after a screen change, the window must still exactly cover this output's display. Puts it back when it does
+    /// not, and returns a reason when it cannot be kept there.
+    override func reconcileGeometry() -> String? {
+        guard let window = outputWindow else { return nil }
+        func decide(afterReframe: Bool) -> OutputWindowFit.Action {
+            let target = screen().map { DisplayGeometry(id: displayID, frame: $0.frame) }
+            return OutputWindowFit.decide(windowFrame: window.frame, windowDisplayID: window.screen.map { Self.displayID(of: $0) },
+                                          target: target, name: name, afterReframe: afterReframe)
+        }
+        var action = decide(afterReframe: false)
+        if case .reframe(let frame) = action {
+            window.setFrame(frame, display: true)
+            syncDrawableSize()                           // the drawable follows the display's size
+            action = decide(afterReframe: true)
+        }
+        syncDrawableSize()
+        if case .fault(let message) = action { return message }
+        return nil
     }
 
     override var closeReason: String { "The window for \(name) was closed." }

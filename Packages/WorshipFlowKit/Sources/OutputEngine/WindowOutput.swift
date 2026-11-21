@@ -16,8 +16,9 @@ public final class WindowOutput: MetalOutput {
     }
 
     override func makeWindow() -> NSWindow {
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 540),
-                         styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        let w = OutputWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 540),
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        w.applyOutputPolicy()
         w.title = name
         w.contentAspectRatio = NSSize(width: 16, height: 9)
         w.contentMinSize = NSSize(width: 320, height: 180)

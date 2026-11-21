@@ -61,6 +61,10 @@ final class OutputRenderer: @unchecked Sendable {
     /// the output runs; the set itself is lock-guarded inside the compositor.
     var unavailableImagePaths: Set<String> { compositor?.unavailableImagePaths ?? [] }
 
+    /// Layers the compositor left out of the last frame because they could not be drawn (R2). `compositor` is assigned
+    /// once in `prepare()`; the list itself is lock-guarded inside the compositor.
+    var renderProblems: [String] { compositor?.renderProblems ?? [] }
+
     func setTargetInterval(_ interval: Double) {
         lock.lock(); stats.targetInterval = interval; lock.unlock()
     }

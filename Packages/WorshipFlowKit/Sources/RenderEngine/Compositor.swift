@@ -22,8 +22,7 @@ public final class Compositor {
 
     public let device: MTLDevice
     private let queue: MTLCommandQueue
-    private let library: MTLLibrary
-    private var pipelines: [MTLPixelFormat: MTLRenderPipelineState] = [:]
+    private let gpu: SharedGPUState
     private let sampler: MTLSamplerState
     private let rasterizer = TextRasterizer()
     /// One opaque black pixel, stretched behind a foreground clip to letterbox it (MEDIA-03).
@@ -39,6 +38,7 @@ public final class Compositor {
         let texture: MTLTexture
         let width: Int
         let height: Int
+        var clipped = false
     }
     private var textCache: [TextKey: CachedText] = [:]
     private let textCacheLimit = 64
@@ -155,16 +155,40 @@ public final class Compositor {
         var uvSize: SIMD2<Float>
     }
 
+    /// Shader compilations performed in this process (tests and diagnostics).
+    static var shaderCompileCount: Int { SharedGPU.compileCount }
+
+    /// Compiles the shaders and builds the pipeline for the 8-bit BGRA targets outputs use, ahead of time. The app
+    /// calls this once at launch from a background task, so that opening screens never compiles on the main thread
+    /// (R16). Safe from any thread and to call repeatedly; later compositors reuse the result.
+    public static func warmUp(device: MTLDevice? = nil) {
+        guard let device = device ?? MTLCreateSystemDefaultDevice() else { return }
+        _ = try? SharedGPU.state(for: device).pipeline(for: .bgra8Unorm)
+    }
+
+    /// Problems found in the most recent frame, de-duplicated and in the order met (R2). A layer that cannot be drawn
+    /// is left out of the frame and listed here; the list is empty again as soon as a frame has none. Image files that
+    /// cannot be read are reported separately, by `unavailableImagePaths`. Safe to read from any thread.
+    public var renderProblems: [String] { problemLock.lock(); defer { problemLock.unlock() }; return publishedProblems }
+    private let problemLock = NSLock()
+    private var publishedProblems: [String] = []
+    private var frameProblems: [String] = []
+
+    private func note(problem: String) {
+        if !frameProblems.contains(problem) { frameProblems.append(problem) }
+    }
+
+    private static func snippet(_ text: String) -> String {
+        let flat = text.split(whereSeparator: \.isNewline).joined(separator: " ").trimmingCharacters(in: .whitespaces)
+        return flat.count > 24 ? String(flat.prefix(24)) + "…" : flat
+    }
+
     public init(device: MTLDevice? = nil) throws {
         guard let device = device ?? MTLCreateSystemDefaultDevice() else { throw RenderError.noMetalDevice }
         guard let queue = device.makeCommandQueue() else { throw RenderError.resourceCreation("command queue") }
         self.device = device
         self.queue = queue
-        do {
-            self.library = try device.makeLibrary(source: Self.shaderSource, options: nil)
-        } catch {
-            throw RenderError.shaderCompilation("\(error)")
-        }
+        self.gpu = try SharedGPU.state(for: device)
         let sd = MTLSamplerDescriptor()
         sd.minFilter = .linear
         sd.magFilter = .linear
@@ -182,31 +206,7 @@ public final class Compositor {
         _ = try pipeline(for: .bgra8Unorm)   // fail early if the shaders do not link
     }
 
-    private func pipeline(for format: MTLPixelFormat) throws -> MTLRenderPipelineState {
-        if let p = pipelines[format] { return p }
-        guard let vf = library.makeFunction(name: "quad_vertex"), let ff = library.makeFunction(name: "quad_fragment") else {
-            throw RenderError.shaderCompilation("missing shader function")
-        }
-        let d = MTLRenderPipelineDescriptor()
-        d.vertexFunction = vf
-        d.fragmentFunction = ff
-        let a = d.colorAttachments[0]!
-        a.pixelFormat = format
-        a.isBlendingEnabled = true
-        a.rgbBlendOperation = .add
-        a.alphaBlendOperation = .add
-        a.sourceRGBBlendFactor = .one
-        a.sourceAlphaBlendFactor = .one
-        a.destinationRGBBlendFactor = .oneMinusSourceAlpha
-        a.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-        do {
-            let p = try device.makeRenderPipelineState(descriptor: d)
-            pipelines[format] = p
-            return p
-        } catch {
-            throw RenderError.pipeline("\(error)")
-        }
-    }
+    private func pipeline(for format: MTLPixelFormat) throws -> MTLRenderPipelineState { try gpu.pipeline(for: format) }
 
     /// A command buffer on the compositor's queue, for the live path.
     public func makeCommandBuffer() -> MTLCommandBuffer? { queue.makeCommandBuffer() }
@@ -256,11 +256,16 @@ public final class Compositor {
         let width = texture.width, height = texture.height
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         let pipeline = try pipeline(for: texture.pixelFormat)
+        frameProblems.removeAll(keepingCapacity: true)
+        defer {
+            problemLock.lock(); publishedProblems = frameProblems; problemLock.unlock()
+        }
 
-        // Resolve text textures before encoding so a rasterisation failure cannot leave a half-built pass.
+        // Resolve text textures before encoding. A layer that cannot be drawn is skipped and reported: it never
+        // keeps the rest of the scene from presenting (R2).
         var placed: [QuadDraw] = []
         for layer in scene.textLayers {
-            if let draw = try textDraw(layer, width: width, height: height) { placed.append(draw) }
+            if let draw = safeTextDraw(layer, width: width, height: height) { placed.append(draw) }
         }
 
         // Resolve image textures too, before the pass starts.
@@ -275,7 +280,7 @@ public final class Compositor {
             case .shape(let shape):
                 if let draw = shapeDraw(shape, width: width, height: height) { objects.append(draw) }
             case .text(let text):
-                if let draw = try textDraw(text, width: width, height: height) { objects.append(draw) }
+                if let draw = safeTextDraw(text, width: width, height: height) { objects.append(draw) }
             case .image(let image):
                 if let d = imageDraw(image, width: width, height: height, loading: imageLoading) {
                     objects.append(QuadDraw(texture: d.texture, origin: d.origin, size: d.size, uvOrigin: d.uvOrigin,
@@ -376,6 +381,16 @@ public final class Compositor {
         enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
 
+    /// `textDraw`, with a failure turned into a skipped layer and a reported problem.
+    private func safeTextDraw(_ layer: TextLayer, width: Int, height: Int) -> QuadDraw? {
+        do {
+            return try textDraw(layer, width: width, height: height)
+        } catch {
+            note(problem: "Text layer skipped (\"\(Self.snippet(layer.text))\"): \(error)")
+            return nil
+        }
+    }
+
     /// Rasterises (or fetches) a text layer and places it in its frame. Nil when there is nothing to draw.
     private func textDraw(_ layer: TextLayer, width: Int, height: Int) throws -> QuadDraw? {
         guard !layer.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -394,6 +409,7 @@ public final class Compositor {
             scaled.shadow = shadow
         }
         let cached = try cachedText(layer.text, style: scaled, maxWidth: frame.width, alignment: layer.alignment)
+        if cached.clipped { note(problem: "Text taller than the limit was clipped (\"\(Self.snippet(layer.text))\")") }
         let x: Int
         switch layer.alignment {
         case .leading: x = frame.x
@@ -430,11 +446,17 @@ public final class Compositor {
         } else {
             guard let pixels = ShapeRasterizer.rasterize(shape: key.shape, fill: key.fill, strokeColor: key.strokeColor,
                                                          strokeWidth: Double(key.strokeWidth) / 100,
-                                                         width: key.width, height: key.height) else { return nil }
+                                                         width: key.width, height: key.height) else {
+                note(problem: "A shape could not be drawn (\(key.width)x\(key.height) px)")
+                return nil
+            }
             let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: key.width, height: key.height, mipmapped: false)
             td.usage = .shaderRead
             td.storageMode = .shared
-            guard let tex = device.makeTexture(descriptor: td) else { return nil }
+            guard let tex = device.makeTexture(descriptor: td) else {
+                note(problem: "A shape could not be drawn (no texture for \(key.width)x\(key.height) px)")
+                return nil
+            }
             pixels.withUnsafeBytes { raw in
                 if let base = raw.baseAddress {
                     tex.replace(region: MTLRegionMake2D(0, 0, key.width, key.height), mipmapLevel: 0, withBytes: base, bytesPerRow: key.width * 4)
@@ -515,26 +537,53 @@ public final class Compositor {
     private func now() -> Double { ProcessInfo.processInfo.systemUptime }
 
     /// The cached texture for `path`, loading or reloading it when needed. Nil while unavailable or not decoded yet.
+    ///
+    /// In `.background` mode this never touches the file system (R7): a cached image is re-checked by asking the loader
+    /// once a second, and the loader does the `stat` on its own thread. An image another screen has already decoded is
+    /// taken from the shared store at once (R10), so it is in the very first frame.
     private func imageTexture(_ path: String, loading: ImageLoading) -> MTLTexture? {
         let t = now()
-        var needsLoad = false
         if var entry = images[path] {
             entry.lastUsed = frameCounter
             if t - entry.checkedAt >= Self.modificationRecheckInterval {
                 entry.checkedAt = t
-                if ImageDecoder.modificationDate(of: path) != entry.modified { needsLoad = true }
+                switch loading {
+                case .synchronous:
+                    // Offscreen rendering is not a live render thread: it may ask the file system itself.
+                    if ImageDecoder.modificationDate(of: path) != entry.modified {
+                        images[path] = entry
+                        install(loadCenter.decodeNow(path))
+                        return images[path]?.texture
+                    }
+                case .background:
+                    loadCenter.requestInBackground(path, since: entry.texture == nil ? nil : entry.modified)
+                }
             }
             images[path] = entry
         } else {
-            needsLoad = true
-        }
-        if needsLoad {
             switch loading {
             case .synchronous: install(loadCenter.decodeNow(path))
-            case .background: loadCenter.requestInBackground(path)
+            case .background:
+                if let shared = loadCenter.cachedOutcome(path) { install(shared) } else { loadCenter.requestInBackground(path) }
             }
         }
         return images[path]?.texture
+    }
+
+    /// Decodes (or takes from the shared store) every image `scene` draws and uploads it into this compositor, so the
+    /// first frame that shows the scene already has them (R10). Reads the file system and decodes on the calling thread:
+    /// call it from a background queue that owns this compositor, never from a render thread. Returns the image files
+    /// that could not be read.
+    @discardableResult
+    public func prepare(scene: SceneDescription) -> Set<String> {
+        frameCounter += 1
+        var missing: Set<String> = []
+        for path in scene.imagePaths {
+            if images[path]?.texture == nil { install(loadCenter.decodeNow(path)) }
+            if images[path]?.texture == nil { missing.insert(path) }
+        }
+        evictImagesIfNeeded()
+        return missing
     }
 
     private func drainFinishedImages() {
@@ -542,6 +591,19 @@ public final class Compositor {
     }
 
     private func install(_ outcome: ImageLoadOutcome) {
+        if outcome.unchanged {
+            // Re-checked and still current: nothing to upload.
+            if var entry = images[outcome.path] { entry.checkedAt = now(); images[outcome.path] = entry }
+            return
+        }
+        if outcome.image == nil, var old = images[outcome.path], old.texture != nil {
+            // A reload that failed (a momentary read error, a half-written file): keep what is on screen. The loader
+            // has reported the path as unavailable; the old modification date stays so the next check tries again.
+            old.checkedAt = now()
+            old.lastUsed = frameCounter
+            images[outcome.path] = old
+            return
+        }
         if let old = images[outcome.path] { imageBytes -= old.bytes }
         var texture: MTLTexture?
         var bytes = 0
@@ -592,7 +654,7 @@ public final class Compositor {
             }
         }
         if textCache.count >= textCacheLimit { textCache.removeAll(keepingCapacity: true) }
-        let entry = CachedText(texture: tex, width: raster.width, height: raster.height)
+        let entry = CachedText(texture: tex, width: raster.width, height: raster.height, clipped: raster.clipped)
         textCache[key] = entry
         return entry
     }

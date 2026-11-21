@@ -2,6 +2,7 @@
 // Displays and output construction are injected so tests can use fakes. Never moves a screen to another display.
 import Foundation
 import Domain
+import RenderEngine
 
 /// What the coordinator needs to know about the attached displays.
 public struct DisplaySnapshot: Sendable, Equatable {
@@ -37,6 +38,8 @@ public struct ScreenReadout: Sendable, Equatable, Identifiable {
     public var renderError: String?
     /// Image files this screen could not draw (OUT-003).
     public var unavailableImagePaths: [String] = []
+    /// Layers this screen skipped because they could not be drawn (R2). Empty when the last frame had none.
+    public var renderProblems: [String] = []
 }
 
 @MainActor
@@ -74,6 +77,12 @@ public final class OutputCoordinator {
     }
 
     public var runningCount: Int { running.count }
+
+    /// Compiles the shaders and builds the render pipeline ahead of time, on a background thread (R16). Call it once
+    /// at launch: starting screens then never compiles on the main thread, however many open. Returns at once.
+    public nonisolated static func warmUp() {
+        Task.detached(priority: .utility) { Compositor.warmUp() }
+    }
 
     private func currentPlan() -> RoutingPlan {
         let d = displays()
@@ -195,6 +204,7 @@ public final class OutputCoordinator {
                 readout.maxIntervalMs = s.maxInterval * 1000
                 readout.renderError = r.target.lastRenderError
                 readout.unavailableImagePaths = r.target.unavailableImagePaths
+                readout.renderProblems = r.target.renderProblems
             } else if let message = faults[id] {
                 readout.state = .faulted(message)
             }

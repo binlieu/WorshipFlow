@@ -20,12 +20,20 @@ public struct RasterizedText: Sendable {
     /// Bounds of pixels with non-zero alpha, bitmap pixel coordinates, origin top-left. maxX/maxY are exclusive edges.
     public let inkBounds: CGRect
     public let lineCount: Int
+    /// True when the text did not fit under `TextRasterizer.maxDimension` / `maxBitmapBytes` and the bitmap holds only
+    /// its top-left part (R2: clipped, never thrown).
+    public var clipped = false
     /// Premultiplied BGRA (little-endian 32-bit, alpha first), `width * 4` bytes per row, top row first.
     public let pixels: [UInt8]
 }
 
 public struct TextRasterizer: Sendable {
     public init() {}
+
+    /// Largest bitmap side, in pixels (also the largest Metal texture side on Apple GPUs).
+    public static let maxDimension = 16384
+    /// Largest bitmap, in bytes. A frame-wide block of text at the dimension limit would otherwise be about 1 GB.
+    public static let maxBitmapBytes = 512 * 1024 * 1024
 
     /// Lays out `text` with Core Text (font fallback is automatic) and draws it.
     /// `style.fontSize` and `style.outlineWidth` are used as pixel sizes here; the compositor scales them.
@@ -76,10 +84,13 @@ public struct TextRasterizer: Sendable {
         }
 
         let maxLineWidth = lines.map(\.width).max() ?? 0
-        let width = min(maxWidth, Int(maxLineWidth.rounded(.up)) + 2 * padX)
-        let textHeight = lines.reduce(CGFloat(0)) { $0 + ($1.ascent + $1.descent + $1.leading) }
-        let height = Int(textHeight.rounded(.up)) + 2 * padY
-        guard width > 0, height > 0, width <= 16384, height <= 16384 else { throw RenderError.invalidSize }
+        let wanted = (width: min(maxWidth, Int(maxLineWidth.rounded(.up)) + 2 * padX),
+                      height: Int(lines.reduce(CGFloat(0)) { $0 + ($1.ascent + $1.descent + $1.leading) }.rounded(.up)) + 2 * padY)
+        guard wanted.width > 0, wanted.height > 0 else { throw RenderError.invalidSize }
+        // Text that is too big for one bitmap keeps its top-left part: the baselines below are measured from the top.
+        let width = min(wanted.width, Self.maxDimension)
+        let height = min(wanted.height, Self.maxDimension, max(1, Self.maxBitmapBytes / (width * 4)))
+        let clipped = width < wanted.width || height < wanted.height
 
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         let bitmapInfo = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
@@ -132,7 +143,7 @@ public struct TextRasterizer: Sendable {
         guard drawn else { throw RenderError.rasterization("could not create bitmap context") }
 
         return RasterizedText(width: width, height: height, inkBounds: Self.inkBounds(pixels, width: width, height: height),
-                              lineCount: lines.count, pixels: pixels)
+                              lineCount: lines.count, clipped: clipped, pixels: pixels)
     }
 
     private static func inkBounds(_ pixels: [UInt8], width: Int, height: Int) -> CGRect {

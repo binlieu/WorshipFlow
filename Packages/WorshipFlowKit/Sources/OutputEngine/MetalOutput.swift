@@ -67,6 +67,7 @@ open class MetalOutput: OutputTarget {
     }
     public var lastRenderError: String? { renderer?.lastError }
     public var unavailableImagePaths: [String] { (renderer?.unavailableImagePaths ?? []).sorted() }
+    public var renderProblems: [String] { renderer?.renderProblems ?? [] }
     public var diagnostics: String {
         let c = renderer?.counters ?? (ticks: 0, submitted: 0)
         var text = "ticks \(c.ticks), submitted \(c.submitted)"
@@ -83,6 +84,12 @@ open class MetalOutput: OutputTarget {
     /// Returns a reason if the output can no longer be shown (for example its display was unplugged).
     func availabilityProblem() -> String? { nil }
     var closeReason: String { "The output window was closed." }
+    /// Re-checks the window against its display after a screen change and puts it right (R5). Returns a reason when it
+    /// cannot be kept where it belongs.
+    func reconcileGeometry() -> String? { nil }
+    /// The output's window while it runs (for subclasses and tests).
+    var outputWindow: NSWindow? { window }
+    func syncDrawableSize() { view?.syncDrawableSize() }
 
     public func start() throws {
         guard status != .running else { return }
@@ -129,10 +136,18 @@ open class MetalOutput: OutputTarget {
         observers.append(nc.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.finish(reason: self?.closeReason) }
         })
+        // The window can also land on another display by itself (a display was removed and the system moved it).
+        observers.append(nc.addObserver(forName: NSWindow.didChangeScreenNotification, object: window, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.status == .running else { return }
+                if let problem = self.reconcileGeometry() { self.finish(reason: problem) }
+            }
+        })
         observers.append(nc.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, self.status == .running else { return }
                 if let problem = self.availabilityProblem() { self.finish(reason: problem) }
+                else if let problem = self.reconcileGeometry() { self.finish(reason: problem) }
                 else if let screen = self.window?.screen {
                     self.refreshRate = Double(screen.maximumFramesPerSecond)
                     if self.refreshRate > 0 { self.renderer?.setTargetInterval(1.0 / self.refreshRate) }
