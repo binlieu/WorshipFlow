@@ -20,8 +20,8 @@
 | KI-016 | Themes, Looks and props are stored as JSON files, not SQLite, and presentations have no theme field yet. | Open. Follow-up slice SYS-002. |
 | KI-017 | A newly added prop image appears a few frames late in the live path because decoding is off the render thread. Each screen decodes its own copy. | Accepted for now. |
 | KI-018 | Not verified for OUT-003: the Look, theme and prop controls in the interface, bookmark restore after relaunch, wide-gamut, 16-bit and very large images. | Open. Part of the interface pass (KI-011). |
-| KI-019 | Re-flowing a presentation discards the speaker notes of the slides it replaces. | Open. Fix when the reflow editor UI is built: carry notes by matching slide text. |
-| KI-020 | Two separate blocks with the same section name (for example two "Chorus" blocks with different words) share one group after reflow. | Open. Decide in the reflow editor slice; likely number repeated names. |
+| KI-019 | Re-flowing a presentation discards the speaker notes of the slides it replaces. | Closed by SLIDE-001b: unchanged slides keep notes and objects; what will be lost is listed before saving. |
+| KI-020 | Two separate blocks with the same section name (for example two "Chorus" blocks with different words) share one group after reflow. | Closed by SLIDE-001b: different words under a repeated label become "Chorus 2"; identical blocks share one section. |
 | KI-021 | At launch the toolbar search field takes keyboard focus, so Space, arrows and Return go to it until the operator clicks elsewhere. | Fixed in APP-001 in code (grid takes focus at launch and after sheets; pure key rule tested). Key presses in the running app not exercised (see APP-001 report). |
 | KI-022 | Live previews show the background colour, not the moving video. | Closed by MEDIA-001 for the live previews. |
 | KI-023 | No interface yet for creating a section order (arrangement) or a custom theme. | Done in APP-001: section order editor and theme editor, exercised in the running app through accessibility controls. |
@@ -29,7 +29,7 @@
 | KI-025 | The app still stores screen profiles, Looks and props as JSON; the SQLite tables from SYS-002 are unused. | Fixed in APP-001: settings live in SQLite; old JSON files imported once and left in place. |
 | KI-026 | Keyboard control (Return, Space, arrows, Escape, Command-F) and launch focus are implemented with a tested routing rule but have never been pressed in the running app: background automation cannot send keys to it. | Open. Needs a person at the keyboard, or a UI test run when the Mac is free. |
 | KI-027 | Editing a custom theme that is in use changes the live audience screen immediately. | Accepted (matches PRES-06); revisit if operators want a staged edit. |
-| KI-028 | In the theme editor the "Background video" segment label is clipped. | Open. Cosmetic. |
+| KI-028 | In the theme editor the "Background video" segment label is clipped. | Closed by SLIDE-001b. |
 | KI-029 | Stage layout editor: dragging and resizing on the canvas, the layout picker popup, typing in fields and the colour picker have not been exercised in the running app (the helpers they call are unit tested). | Open. Part of the hands-on pass with KI-026. |
 | KI-030 | A timer started mid-second can show up to one second behind on stage, because the stage picture refreshes on whole seconds. | Open. Minor. |
 | KI-031 | Deleting a timer leaves its element in stage layouts, drawing nothing until re-pointed. | Accepted. |
@@ -37,7 +37,10 @@
 | KI-033 | Decision: a foreground clip shows only on screens whose Look shows the slide layer, and an audio file chosen as a visual layer is ignored. | Accepted. |
 | KI-034 | Was a real player stall, not test timing: after a seek the player could sit ready at rate 1.0 with time not advancing, so the end of clip was never reported. Reproduced under CPU load (2 of 20 and 3 of 25 runs failed). Fixed with a watchdog that re-seeks a ready player whose time has stood still for one second; 30 of 30 passes under load afterwards. The lyrics also return by the transport clock if the player never reports. | Closed for clips with a known duration. Open: the watchdog was never observed firing, and a clip with no stored duration depends on the player's report alone. |
 | KI-035 | A slide whose stored objects cannot be decoded is shown with no objects, and saving it overwrites the bad value. | Accepted, so one bad row cannot break a slide list mid-service. |
-| KI-036 | Slide objects have been checked by offscreen pixel tests only; there is no editor yet and none has been drawn on a real output. Image objects were tested in fill mode with one sRGB PNG. | Open. SLIDE-001b editor slice. |
+| KI-036 | Slide objects have been checked by offscreen pixel tests only; there is no editor yet and none has been drawn on a real output. Image objects were tested in fill mode with one sRGB PNG. | Partly closed by SLIDE-001b: a rectangle and a text box were added, coloured, and seen on the audience preview after Go Live. Image objects still untested in the app. |
 | KI-037 | Media bin paths not exercised in the running app: adding files through the open panel or by drag and drop (rows were inserted directly for the test run), context menu, rename, remove, kind filter, pause, seek, volume, mute, Stop clip, still image as a layer, relaunch restore, error bar. No sound has been played. | Open. Hands-on pass. |
 | KI-038 | Decision: a clip can be played only while the show is live; Stop ends it. Foreground volume starts at half. | Accepted. |
 | KI-039 | App test runs wrote `~/Library/Preferences/org.worshipflow.app.plist`. | Noted. Harmless; remove with `defaults delete org.worshipflow.app` if wanted. |
+| KI-040 | Slide editor paths not exercised in the running app: dragging, corner resize, double-click text editing, typing in inspector fields, colour panel, stacking and shadow controls, inserting an image, Delete key, undo and redo and duplicate shortcuts. | Open. Hands-on pass with KI-026. |
+| KI-041 | Undo covers object edits only, not words or notes, and its history is dropped when another presentation is opened. | Open. |
+| KI-042 | Image objects and props store plain file paths; a moved or renamed file draws nothing (the inspector warns). | Open. Revisit with project packaging in LIB. |

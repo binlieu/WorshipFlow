@@ -214,9 +214,16 @@ public final class StageModel {
             return nil
         }
         guard let element = StageEditing.newElement(template, timerID: timerID ?? timers.first?.id) else { return nil }
-        let clean = StageEditing.sanitized(element)
-        edit(layoutID) { $0.elements.append(clean) }
-        return clean.id
+        var clean = StageEditing.sanitized(element)
+        // SLIDE-001b: in free space where there is any, not on top of the elements already there.
+        if let existing = layout(withID: layoutID)?.elements {
+            let free = FreeSpace.place(width: clean.frame.width, height: clean.frame.height, avoiding: existing.map(\.frame),
+                                       preferred: (clean.frame.x, clean.frame.y))
+            clean = StageEditing.framed(clean, x: free.x, y: free.y, width: free.width, height: free.height)
+        }
+        let placed = clean
+        edit(layoutID) { $0.elements.append(placed) }
+        return placed.id
     }
 
     public func removeElement(_ elementID: UUID, from layoutID: UUID) {

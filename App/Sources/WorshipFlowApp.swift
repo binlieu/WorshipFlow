@@ -56,6 +56,19 @@ struct WorkspaceCommands: Commands {
             Button("New Presentation") { app.newPresentation() }.keyboardShortcut("n")
             Button("Import Lyrics…") { app.openImport(existing: nil) }.keyboardShortcut("i")
         }
+        CommandGroup(replacing: .undoRedo) {
+            Button("Undo") { app.undoEdit() }.keyboardShortcut("z")
+            Button("Redo") { app.redoEdit() }.keyboardShortcut("z", modifiers: [.command, .shift])
+        }
+        CommandMenu("Insert") {
+            Button("Text Box") { app.insertObject(.textBox) }
+            Button("Rectangle") { app.insertObject(.rectangle) }
+            Button("Ellipse") { app.insertObject(.ellipse) }
+            Button("Rounded Rectangle") { app.insertObject(.roundedRectangle) }
+            Button("Image…") { app.insertImage() }
+            Divider()
+            Button("Duplicate Object") { app.duplicateObject() }.keyboardShortcut("d")
+        }
         CommandGroup(after: .textEditing) {
             Button("Find Songs") { app.ui.focusSearch += 1 }.keyboardShortcut("f")
         }

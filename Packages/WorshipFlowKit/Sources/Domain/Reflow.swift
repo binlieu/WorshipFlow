@@ -85,6 +85,35 @@ public enum Reflow {
             pending = nil
             result.append(ReflowSection(name: name, lines: lines))
         }
+        return numberRepeatedNames(result)
+    }
+
+    /// KI-020: two blocks with the same label but different words are different sections, so the later one is numbered
+    /// ("Chorus 2", then "Chorus 3"). A block whose words match an earlier block of the same label keeps that label and
+    /// shares its section. Words are compared without capitals, accents and punctuation. A numbered name that another
+    /// block already uses for different words is skipped. Unlabelled blocks are left alone.
+    static func numberRepeatedNames(_ sections: [ReflowSection]) -> [ReflowSection] {
+        var owner: [String: String] = [:]          // folded name -> folded words of the section that has it
+        var result = sections
+        for i in result.indices {
+            guard let name = result[i].name else { continue }
+            let words = SearchFolding.fold(result[i].lines.joined(separator: " "))
+            var candidate = name
+            var next = 2
+            // "Chorus 3" repeated with other words continues from 4, not "Chorus 3 2".
+            var stem = name
+            if let range = name.range(of: #"\s+\d+$"#, options: .regularExpression),
+               let number = Int(name[range].trimmingCharacters(in: .whitespaces)) {
+                stem = String(name[..<range.lowerBound])
+                next = number + 1
+            }
+            while let existing = owner[SearchFolding.fold(candidate)], existing != words {
+                candidate = "\(stem) \(next)"
+                next += 1
+            }
+            owner[SearchFolding.fold(candidate)] = words
+            result[i].name = candidate
+        }
         return result
     }
 

@@ -15,6 +15,9 @@ struct ImportSheet: View {
     @State private var linesPerSlide = 2
     @State private var plan = ImportPlan(primary: "", secondary: nil, maxLines: 2)
     @State private var saving = false
+    /// Speaker notes and objects the replacement would discard (KI-019), listed before saving.
+    @State private var losses: [ReflowLoss] = []
+    @State private var lossToken = 0
 
     private var isReflow: Bool { existingID != nil }
 
@@ -22,7 +25,7 @@ struct ImportSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(isReflow ? "Re-flow lyrics" : "Import lyrics").font(.title2.bold())
             if isReflow {
-                Text("The slides are replaced by this split. Speaker notes on the old slides are not kept; sections with the same name keep their section order.")
+                Text("The slides are replaced by this split. A slide whose words are unchanged, in the same section, keeps its speaker notes and objects. Sections with the same name keep their section order.")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 TextField("Title", text: $title).textFieldStyle(.roundedBorder)
@@ -40,10 +43,11 @@ struct ImportSheet: View {
             Text("Start a section with a label line such as Verse 1 or Chorus. Leave a blank line between sections.")
                 .font(.caption).foregroundStyle(.secondary)
             preview
+            if !losses.isEmpty { lossList }
             HStack {
                 Spacer()
                 Button("Cancel") { app.ui.showImport = false }.keyboardShortcut(.cancelAction)
-                Button(isReflow ? "Replace slides" : "Save presentation") { save() }
+                Button(isReflow ? (losses.isEmpty ? "Replace slides" : "Replace slides and discard these") : "Save presentation") { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(saving || plan.slides.isEmpty || (!isReflow && title.trimmingCharacters(in: .whitespaces).isEmpty))
             }
@@ -74,6 +78,42 @@ struct ImportSheet: View {
 
     private func rebuild() {
         plan = ImportPlan(primary: primary, secondary: secondary, maxLines: linesPerSlide)
+        guard let id = existingID else { return }
+        lossToken += 1
+        let token = lossToken
+        let results = plan.results
+        Task {
+            let found = results.isEmpty ? [] : await workspace.reflowLosses(id: id, results: results)
+            if token == lossToken { losses = found }
+        }
+    }
+
+    /// Notes and objects on slides whose words changed. They are gone once the slides are replaced.
+    private var lossList: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label("These speaker notes and objects will be discarded, because their slide's words changed or moved to another section:",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.caption.bold()).foregroundStyle(.orange)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(losses.enumerated()), id: \.offset) { _, loss in
+                        Text(describe(loss)).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }.frame(maxHeight: 64)
+        }
+        .padding(6)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func describe(_ loss: ReflowLoss) -> String {
+        var parts: [String] = []
+        if !loss.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("note \"\(loss.notes)\"") }
+        if loss.objectCount > 0 { parts.append("\(loss.objectCount) object\(loss.objectCount == 1 ? "" : "s")") }
+        let section = loss.sectionName.map { "\($0): " } ?? ""
+        let words = loss.primary.replacingOccurrences(of: "\n", with: " ")
+        return "\(section)\"\(words)\" had \(parts.joined(separator: " and "))"
     }
 
     /// The resulting slides, with their section names and a pair of buttons to move the break after each one.

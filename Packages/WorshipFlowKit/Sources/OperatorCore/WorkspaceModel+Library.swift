@@ -213,11 +213,19 @@ extension WorkspaceModel {
         return p
     }
 
-    /// Replaces the slides of an existing presentation with a new split of the text (section identity is kept by name).
+    /// Replaces the slides of an existing presentation with a new split of the text (section identity is kept by name;
+    /// slides whose words are unchanged keep their speaker notes and objects).
     @discardableResult
     public func reflowPresentation(id: UUID, primaryText: String, secondaryText: String?, maxLines: Int) async -> Bool {
         let secondary = secondaryText.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
         return await reflowPresentation(id: id, results: Reflow.contents(primary: primaryText, secondary: secondary, maxLines: maxLines))
+    }
+
+    /// Speaker notes and objects that re-flowing with `results` would discard (KI-019), for the operator to read before
+    /// saving. Slides whose words are unchanged keep theirs. A read that fails says nothing is lost: saving would fail too.
+    public func reflowLosses(id: UUID, results: [ReflowResult]) async -> [ReflowLoss] {
+        await flushDrafts()        // notes typed a moment ago count
+        return (try? await store.reflowLosses(of: id, with: results)) ?? []
     }
 
     @discardableResult

@@ -198,7 +198,7 @@ struct SlideGrid: View {
             }
             .onChange(of: workspace.show.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
         }
-        .frame(minHeight: 200)
+        .frame(minHeight: 140)
         .confirmationDialog("Delete this slide?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             titleVisibility: .visible) {
             Button("Delete slide", role: .destructive) {
@@ -263,33 +263,56 @@ struct SlideEditor: View {
 
     var body: some View {
         let index = workspace.show.selectedIndex
+        let objectsMode = app.ui.editorMode == .objects
         VStack(alignment: .leading, spacing: 6) {
             if workspace.slides.indices.contains(index) {
                 let slide = workspace.slides[index]
                 HStack {
                     Text("Slide \(index + 1) of \(workspace.slides.count)").font(.headline)
+                    Picker("Edit", selection: Binding(get: { app.ui.editorMode }, set: { app.ui.editorMode = $0 })) {
+                        ForEach(WorkspaceUIState.EditorMode.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    .accessibilityLabel("Editor mode")
                     Spacer()
                     Text("Editing here changes the preview only. The audience sees the change when you go live again.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 }
-                HStack(alignment: .top, spacing: 10) {
-                    field("First language", text: Binding(
-                        get: { slide.content.primary },
-                        set: { workspace.editSlide(id: slide.id, content: SlideContent(primary: $0, secondary: slide.content.secondary)) }))
-                    field("Second language", text: Binding(
-                        get: { slide.content.secondary ?? "" },
-                        set: { workspace.editSlide(id: slide.id, content: SlideContent(primary: slide.content.primary, secondary: $0.isEmpty ? nil : $0)) }))
+                if objectsMode, let editor = app.slideEditor {
+                    SlideObjectsEditor(app: app, editor: editor)
+                } else {
+                    wordsEditor(slide)
                 }
-                TextField("Speaker notes", text: Binding(
-                    get: { slide.notes },
-                    set: { workspace.editSlide(id: slide.id, content: slide.content, notes: $0) }))
-                    .textFieldStyle(.roundedBorder)
             } else {
                 Text("Select a slide to edit its words.").foregroundStyle(.secondary)
             }
         }
         .padding(10)
-        .frame(height: 220)
+        .frame(height: objectsMode ? 360 : 220)
+    }
+
+    /// Words keep the slide's objects: only the text changes.
+    @ViewBuilder private func wordsEditor(_ slide: Slide) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            field("First language", text: Binding(
+                get: { slide.content.primary },
+                set: { new in
+                    var content = slide.content
+                    content.primary = new
+                    workspace.editSlide(id: slide.id, content: content)
+                }))
+            field("Second language", text: Binding(
+                get: { slide.content.secondary ?? "" },
+                set: { new in
+                    var content = slide.content
+                    content.secondary = new.isEmpty ? nil : new
+                    workspace.editSlide(id: slide.id, content: content)
+                }))
+        }
+        TextField("Speaker notes", text: Binding(
+            get: { slide.notes },
+            set: { workspace.editSlide(id: slide.id, content: slide.content, notes: $0) }))
+            .textFieldStyle(.roundedBorder)
     }
 
     private func field(_ label: String, text: Binding<String>) -> some View {

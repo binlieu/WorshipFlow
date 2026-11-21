@@ -125,3 +125,23 @@ import Persistence
         #expect(seen == [true, false, true])
     }
 }
+
+// SLIDE-001b: KI-019 through the workspace.
+@MainActor
+@Suite struct ReflowKeepsNotesTests {
+    @Test func reflowKeepsNotesOfUnchangedSlidesAndListsTheRest() async throws {
+        let store = try LibraryStore.inMemory()
+        let model = WorkspaceModel(store: store, clock: ManualSaveClock())
+        await model.load()
+        let p = try #require(await model.importLyrics(title: "S", primaryText: "Verse 1\none\ntwo\nthree", secondaryText: nil, maxLines: 1))
+        await model.openPresentation(p.id)
+        model.editSlide(id: model.slides[1].id, content: model.slides[1].content, notes: "pause here")
+        model.editSlide(id: model.slides[2].id, content: model.slides[2].content, notes: "will be lost")
+        let results = Reflow.contents(primary: "Verse 1\none\ntwo\nthree changed", secondary: nil, maxLines: 1)
+        let losses = await model.reflowLosses(id: p.id, results: results)          // flushes typed notes first
+        #expect(losses.map(\.notes) == ["will be lost"] && losses.map(\.primary) == ["three"])
+        #expect(await model.reflowPresentation(id: p.id, results: results))
+        #expect(model.slides.map(\.content.primary) == ["one", "two", "three changed"])
+        #expect(model.slides.map(\.notes) == ["", "pause here", ""])
+    }
+}

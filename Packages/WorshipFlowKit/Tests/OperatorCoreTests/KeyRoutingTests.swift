@@ -52,3 +52,22 @@ import Testing
         #expect(KeyboardKey(keyCode: 0) == .other)
     }
 }
+
+// SLIDE-001b: the Delete key removes the selected slide object, but never while something is being typed.
+@Suite struct DeleteKeyRoutingTests {
+    @Test func virtualKeyCodesForDeleteAreRecognised() {
+        #expect(KeyboardKey(keyCode: 51) == .deleteKey && KeyboardKey(keyCode: 117) == .deleteKey)
+    }
+
+    @Test func deleteIsForTheSelectedObjectWhenNothingIsBeingTyped() {
+        #expect(KeyRouting.decision(for: .deleteKey, textInputFocused: false, sheetOpen: false) == .deleteSelectedObject)
+        #expect(KeyRouting.transportCommand(for: .deleteKey, textInputFocused: false, sheetOpen: false) == nil)
+    }
+
+    @Test func deleteStaysInATextFieldASheetOrAMenuShortcut() {
+        #expect(KeyRouting.decision(for: .deleteKey, textInputFocused: true, sheetOpen: false) == .passThrough)
+        #expect(KeyRouting.decision(for: .deleteKey, textInputFocused: true, searchFieldFocused: true, sheetOpen: false) == .passThrough)
+        #expect(KeyRouting.decision(for: .deleteKey, textInputFocused: false, sheetOpen: true) == .passThrough)
+        #expect(KeyRouting.decision(for: .deleteKey, textInputFocused: false, sheetOpen: false, commandModifierDown: true) == .passThrough)
+    }
+}

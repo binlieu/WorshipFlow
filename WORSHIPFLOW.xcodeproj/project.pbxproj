@@ -24,6 +24,7 @@
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
 		9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4324BEB75E64640972B783F /* LibrarySidebar.swift */; };
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
+		9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */; };
 		A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */; };
 		ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1320EF2993E56B2BB360523 /* SoakConfig.swift */; };
 		B73CCFD90200075DBEFABA61 /* MediaSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D677F8D362BB899C12954273 /* MediaSupport.swift */; };
@@ -49,6 +50,7 @@
 		A38CD5DB50486CAC827308DF /* TimersPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersPanel.swift; sourceTree = "<group>"; };
 		A5A678A91491B09E5E7F46D5 /* WorshipFlowKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WorshipFlowKit; path = Packages/WorshipFlowKit; sourceTree = SOURCE_ROOT; };
 		B4324BEB75E64640972B783F /* LibrarySidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySidebar.swift; sourceTree = "<group>"; };
+		B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideObjectsEditor.swift; sourceTree = "<group>"; };
 		B92887A47810546C7EED2629 /* StageEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageEditorSheet.swift; sourceTree = "<group>"; };
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTransportStrip.swift; sourceTree = "<group>"; };
@@ -102,6 +104,7 @@
 				C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */,
 				4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */,
 				0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */,
+				B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */,
 				F1320EF2993E56B2BB360523 /* SoakConfig.swift */,
 				B92887A47810546C7EED2629 /* StageEditorSheet.swift */,
 				DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */,
@@ -220,6 +223,7 @@
 				D023CE93211A0306A400C70A /* MediaTransportStrip.swift in Sources */,
 				1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */,
 				FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */,
+				9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */,
 				ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */,
 				D6CE067582DE1F7890B2DEF4 /* StageEditorSheet.swift in Sources */,
 				A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */,

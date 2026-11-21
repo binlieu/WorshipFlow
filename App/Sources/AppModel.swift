@@ -45,6 +45,8 @@ final class AppModel {
     /// The operator workspace (OUT-004). Nil in a soak run, or when the library file could not be opened.
     private(set) var workspace: WorkspaceModel?
     private(set) var workspaceLoaded = false
+    /// Objects (text boxes, shapes, images) on the selected slide (SLIDE-001b). Nil when the workspace is nil.
+    private(set) var slideEditor: SlideEditorModel?
     /// The media bin and the background / foreground layers (MEDIA-001). Nil in a soak run, or when the library could not be opened.
     private(set) var media: MediaModel?
     /// Set when the library file could not be opened: the path and a message. The file is left untouched.
@@ -104,6 +106,13 @@ final class AppModel {
             model.onShowChange = { [weak self] state in self?.showChanged(state) }
             model.onAppearanceChange = { [weak self] in self?.lookChanged() }
             workspace = model
+            let editor = SlideEditorModel(workspace: model, imageChooser: { await Self.chooseImagePath() })
+            editor.reservedFrames = { [weak self] content in
+                // Where the audience screen puts this slide's words, so a new object is not dropped on top of them.
+                guard let self, !content.primary.isEmpty || content.secondary != nil else { return [] }
+                return self.thumbnailScene(for: SlideContent(primary: content.primary, secondary: content.secondary)).textLayers.map(\.frame)
+            }
+            slideEditor = editor
             let settings = SettingsModel(store: store, legacy: LegacySettingsFiles(libraryURL: url), defaultProfiles: { [weak self] in
                 ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
                                        operatorDisplay: self?.operatorDisplayID())
@@ -158,6 +167,60 @@ final class AppModel {
         guard workspace != nil else { return }
         ui.importExistingID = id
         ui.showImport = true
+    }
+
+    // MARK: Slide objects (SLIDE-001b)
+
+    /// Insert menu: adds the object to the selected slide and shows the objects editor.
+    func insertObject(_ template: NewSlideObject) {
+        guard slideEditor?.slide != nil else { return }
+        ui.editorMode = .objects
+        slideEditor?.add(template)
+    }
+
+    func insertImage() {
+        guard slideEditor?.slide != nil else { return }
+        ui.editorMode = .objects
+        Task { @MainActor in await slideEditor?.addImage() }
+    }
+
+    /// True while a text field is being edited: Command-Z then belongs to that field, not to the objects.
+    private var textFieldIsEditing: Bool { NSApp.keyWindow?.firstResponder is NSText }
+
+    /// Command-Z.
+    func undoEdit() {
+        if textFieldIsEditing { NSApp.sendAction(Selector(("undo:")), to: nil, from: nil) } else { slideEditor?.undo() }
+    }
+
+    /// Shift-Command-Z.
+    func redoEdit() {
+        if textFieldIsEditing { NSApp.sendAction(Selector(("redo:")), to: nil, from: nil) } else { slideEditor?.redo() }
+    }
+
+    /// Command-D.
+    func duplicateObject() {
+        guard ui.editorMode == .objects else { return }
+        slideEditor?.duplicateSelected()
+    }
+
+    /// The Delete key, only while the objects editor is showing.
+    func deleteSelectedObject() -> Bool {
+        guard ui.editorMode == .objects else { return false }
+        return slideEditor?.deleteSelected() ?? false
+    }
+
+    /// The open panel for an image object. Returns the path, or nil if cancelled.
+    static func chooseImagePath() async -> String? {
+        await withCheckedContinuation { continuation in
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.image]
+            panel.allowsMultipleSelection = false
+            panel.canChooseDirectories = false
+            panel.message = "Choose an image to put on the slide"
+            panel.begin { response in
+                continuation.resume(returning: response == .OK ? panel.url?.path : nil)
+            }
+        }
     }
 
     /// Writes unsaved typing and the saved place. Called when the app loses focus and before it quits.
@@ -249,6 +312,8 @@ final class AppModel {
                 case .leaveSearch:
                     self.ui.leaveSearch += 1      // the workspace view clears the search and puts focus on the slide grid
                     return true
+                case .deleteSelectedObject:
+                    return self.deleteSelectedObject()      // false (key passes through) when no object is selected
                 case .passThrough:
                     return false
                 }

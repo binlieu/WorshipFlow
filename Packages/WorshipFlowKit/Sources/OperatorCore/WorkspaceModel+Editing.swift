@@ -35,8 +35,12 @@ extension WorkspaceModel {
         apply(.quickEdit(index: index, content: content))
         guard liveSlideIDs.indices.contains(index), show.liveDeck?.presentationID == openPresentationID else { return }
         let id = liveSlideIDs[index]
-        guard slides.contains(where: { $0.id == id }) else { return }
-        editSlide(id: id, content: content)
+        guard let stored = slides.first(where: { $0.id == id }) else { return }
+        // Only the words are saved: objects edited in preview since going live are not replaced by the live ones.
+        var saved = stored.content
+        saved.primary = content.primary
+        saved.secondary = content.secondary
+        editSlide(id: id, content: saved)
         await flushDrafts()
     }
 

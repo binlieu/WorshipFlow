@@ -15,7 +15,9 @@ extension LibraryStore {
     /// groups by exact name so group identity (and therefore arrangements) survives an edit; new
     /// names create groups, vanished names delete theirs and drop them from arrangements. One
     /// group per distinct name, in order of first appearance. Slides without a section name stay
-    /// ungrouped. Speaker notes of replaced slides are discarded.
+    /// ungrouped. SLIDE-001b (KI-019): a new slide whose words match an old slide in the same section keeps that slide's
+    /// speaker notes and objects (see `Reflow.carryOver`); notes and objects of old slides that nothing matches are
+    /// discarded, and `reflowLosses(of:with:)` lists them beforehand.
     public func replaceContent(of presentationID: UUID, with results: [ReflowResult]) async throws {
         let backend = searchBackend
         try await writer.write { db in
@@ -29,6 +31,8 @@ extension LibraryStore {
             var keptIDs: [String: UUID] = [:]
             for name in names { keptIDs[name] = idByName[name] ?? UUID() }
             let keep = Set(keptIDs.values)
+
+            let carry = try Self.carryOver(db, presentationID: presentationID, groups: existing, results: results)
 
             // Slides first, so nothing references a group that is about to go.
             try db.execute(sql: "DELETE FROM slide WHERE presentationID = ?", arguments: [presentationID.dbText])
@@ -58,10 +62,31 @@ extension LibraryStore {
                 let groupID = result.sectionName.flatMap { keptIDs[$0] }
                 try SlideRecord(id: UUID(), presentationID: presentationID, sortOrder: order,
                                 primaryText: result.content.primary, secondaryText: result.content.secondary,
-                                notes: "", createdAt: now, updatedAt: now, groupID: groupID).insert(db)
+                                notes: carry.notes[order], createdAt: now, updatedAt: now, groupID: groupID,
+                                objects: SlideObjectsJSON.encode(carry.objects[order])).insert(db)
             }
             try Self.touch(db, presentationID: presentationID, backend: backend)
         }
+    }
+
+    /// Speaker notes and objects that re-flowing with `results` would discard, so the operator can be told before saving.
+    public func reflowLosses(of presentationID: UUID, with results: [ReflowResult]) async throws -> [ReflowLoss] {
+        try await writer.read { db in
+            try Self.requireExists(db, table: "presentation", id: presentationID)
+            let groups = try Self.fetchGroups(db, presentationID: presentationID)
+            return try Self.carryOver(db, presentationID: presentationID, groups: groups, results: results).losses
+        }
+    }
+
+    private static func carryOver(_ db: Database, presentationID: UUID, groups: [SlideGroup],
+                                  results: [ReflowResult]) throws -> ReflowCarry {
+        let names = Dictionary(groups.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let old = try SlideRecord.fetchAll(
+            db, sql: "SELECT * FROM slide WHERE presentationID = ? ORDER BY sortOrder, rowid",
+            arguments: [presentationID.dbText]).map(\.domain).map {
+            ExistingSlide(sectionName: $0.groupID.flatMap { names[$0] }, content: $0.content, notes: $0.notes)
+        }
+        return Reflow.carryOver(from: old, to: results)
     }
 
     // MARK: Arrangements

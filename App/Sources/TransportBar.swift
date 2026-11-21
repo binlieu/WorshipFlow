@@ -78,7 +78,10 @@ struct QuickEditView: View {
                 Spacer()
                 Button("Cancel", action: done).keyboardShortcut(.cancelAction)
                 Button("Apply to live") {
-                    let content = SlideContent(primary: primary, secondary: secondary.isEmpty ? nil : secondary)
+                    // Start from the live slide so its objects stay on screen; only the words change.
+                    var content = workspace.show.liveSlide ?? SlideContent(primary: "")
+                    content.primary = primary
+                    content.secondary = secondary.isEmpty ? nil : secondary
                     Task { await workspace.quickEditLiveSlide(content); done() }
                 }.keyboardShortcut(.defaultAction)
             }

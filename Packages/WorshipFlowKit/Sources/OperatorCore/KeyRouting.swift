@@ -8,7 +8,7 @@ public enum TransportCommand: Sendable, Equatable {
 
 /// The keys the operator window cares about. `init(keyCode:)` maps macOS virtual key codes.
 public enum KeyboardKey: Sendable, Equatable {
-    case returnKey, keypadEnter, space, leftArrow, rightArrow, upArrow, downArrow, escape, other
+    case returnKey, keypadEnter, space, leftArrow, rightArrow, upArrow, downArrow, escape, deleteKey, other
 
     public init(keyCode: UInt16) {
         switch keyCode {
@@ -20,6 +20,7 @@ public enum KeyboardKey: Sendable, Equatable {
         case 126: self = .upArrow
         case 125: self = .downArrow
         case 53: self = .escape
+        case 51, 117: self = .deleteKey          // Delete (backspace) and forward delete
         default: self = .other
         }
     }
@@ -30,6 +31,9 @@ public enum KeyDecision: Sendable, Equatable {
     case transport(TransportCommand)
     /// Escape in the search field: leave it and put keyboard focus back on the slide grid. Consumed.
     case leaveSearch
+    /// SLIDE-001b: Delete with nothing being typed: remove the selected slide object, if there is one. The app lets
+    /// the key through when no object is selected.
+    case deleteSelectedObject
     /// The key is not ours: let the focused control, menu or system have it.
     case passThrough
 }
@@ -51,6 +55,7 @@ public enum KeyRouting {
         case .space, .rightArrow, .downArrow: return .transport(.next)
         case .leftArrow, .upArrow: return .transport(.previous)
         case .escape: return .transport(.clear)
+        case .deleteKey: return .deleteSelectedObject
         case .other: return .passThrough
         }
     }

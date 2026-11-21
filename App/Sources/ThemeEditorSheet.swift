@@ -167,7 +167,7 @@ struct ThemeEditorSheet: View {
                 }
             })) {
                 ForEach(BackgroundKind.allCases) { Text($0.rawValue).tag($0) }
-            }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 480)
+            }.pickerStyle(.segmented).labelsHidden().fixedSize()      // KI-028: sized to its labels, so "Background video" is not clipped
             switch theme.background {
             case .color(let c):
                 ColorPicker("Colour", selection: Binding(get: { Color(c) }, set: { new in
