@@ -14,3 +14,5 @@ Vendor/DeckLinkSDK/*
 
 # Owner-downloaded SDK archive
 Blackmagic_DeckLink_SDK_*.zip
+
+design/*.zip
