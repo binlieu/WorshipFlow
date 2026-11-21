@@ -27,6 +27,12 @@ public struct ParseOutcome: Equatable, Sendable {
     public var ranges: [VerseRange]
     public var problems: [ReferenceProblem]
     public var isValid: Bool { problems.isEmpty && !ranges.isEmpty }
+
+    /// LIB-004c: public so a passage that is read from ranges (a stored playlist item) can be described like a typed one.
+    public init(ranges: [VerseRange], problems: [ReferenceProblem] = []) {
+        self.ranges = ranges
+        self.problems = problems
+    }
 }
 
 public struct ReferenceParser: Sendable {

@@ -103,6 +103,7 @@ extension WorkspaceModel {
     }
 
     func closeOpenPresentation() {
+        openScripture = nil
         openPresentationID = nil
         selectedPlaylistItemID = nil
         openPlaylistItemID = nil
@@ -159,6 +160,7 @@ extension WorkspaceModel {
     }
 
     func install(_ content: LoadedContent, presentationID: UUID) {
+        openScripture = nil                    // a song or sermon replaces a passage in preview (LIB-004c)
         openPresentationID = presentationID
         slides = content.slides
         groups = content.groups

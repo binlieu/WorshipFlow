@@ -13,7 +13,9 @@ extension WorkspaceModel {
         if let list = await attempt("read the playlist", { try await self.store.playlistItems(of: id) }) {
             playlistItems = list
             var empty: Set<UUID> = []
-            for item in list where ((try? await store.slides(forPlaylistItem: item.id))?.count ?? 1) == 0 { empty.insert(item.id) }
+            for item in list where ((try? await store.slides(forPlaylistItem: item.id))?.count ?? 1) == 0 {
+                if !item.kind.isScripture { empty.insert(item.id) }      // a passage has no stored slides: it is read from the Bible library
+            }
             emptyPlaylistItemIDs = empty
         }
         if let open = selectedPlaylistItemID, !playlistItems.contains(where: { $0.id == open }) {
@@ -84,6 +86,7 @@ extension WorkspaceModel {
         switch item.kind {
         case .header: return                                  // a header is a label: it cannot be selected
         case .countdown: selectedPlaylistItemID = id; placeChanged(); return    // selected for Go Live, not started
+        case .scripture(let spec): await openScriptureItem(item, spec: spec); return        // LIB-004c
         case .presentation: break
         }
         await flushDrafts()

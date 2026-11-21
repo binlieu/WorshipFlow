@@ -99,6 +99,7 @@ struct LibrarySidebar: View {
             searchField
             VStack(spacing: 2) {
                 ForEach(workspace.libraries) { library in libraryRow(library) }
+                scriptureRow
             }
             List(selection: Binding(get: { workspace.openPresentationID },
                                     set: { id in if let id { open(id) } })) {
@@ -163,6 +164,7 @@ struct LibrarySidebar: View {
 
     /// Opens a row: a search hit through the search (it may be in another library), a plain row directly.
     private func open(_ id: UUID) {
+        app.ui.scriptureOpen = false
         if LibraryListing.hasQuery(query), let hit = workspace.searchResults.first(where: { $0.presentationID == id }) {
             query = ""
             Task { await workspace.openSearchResult(hit) }
@@ -171,9 +173,29 @@ struct LibrarySidebar: View {
         }
     }
 
+    /// LIB-004c: the Bible (Command-J). Under the libraries because it is a place to get slides from, like them.
+    private var scriptureRow: some View {
+        let selected = app.ui.scriptureOpen
+        return Button { app.openScripture() } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "book.closed").frame(width: 16).foregroundStyle(selected ? Tok.text : Tok.muted)
+                Text("Scripture").lineLimit(1)
+                Spacer()
+                KeyHint(key: "⌘J")
+            }
+            .padding(.horizontal, 8).frame(height: 28)
+            .background(selected ? Tok.surface3 : Color.clear, in: RoundedRectangle(cornerRadius: Radius.md))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Scripture")
+        .accessibilityHint("Type a Bible reference and put the verses on the screens. Command-J")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
     private func libraryRow(_ library: Library) -> some View {
-        let selected = library.id == workspace.selectedLibraryID
-        return Button { Task { await workspace.selectLibrary(library.id) } } label: {
+        let selected = library.id == workspace.selectedLibraryID && !app.ui.scriptureOpen
+        return Button { app.ui.scriptureOpen = false; Task { await workspace.selectLibrary(library.id) } } label: {
             HStack(spacing: 8) {
                 Image(systemName: "music.note.list").frame(width: 16).foregroundStyle(selected ? Tok.text : Tok.muted)
                 Text(library.name).lineLimit(1)
@@ -218,7 +240,7 @@ struct LibrarySidebar: View {
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().accessibilityLabel("Playlist actions")
             }
             List(selection: Binding(get: { workspace.selectedPlaylistItemID },
-                                    set: { id in if let id { Task { await workspace.openPlaylistItem(id) } } })) {
+                                    set: { id in if let id { selectPlaylistItem(id) } })) {
                 ForEach(Array(workspace.playlistItems.enumerated()), id: \.element.id) { index, item in
                     playlistRow(item, number: playableNumber(index))
                 }
@@ -242,6 +264,12 @@ struct LibrarySidebar: View {
         .padding(8)
     }
 
+    /// A passage item opens the Scripture view, any other item closes it.
+    private func selectPlaylistItem(_ id: UUID) {
+        app.ui.scriptureOpen = workspace.playlistItems.first { $0.id == id }?.kind.isScripture == true
+        Task { await workspace.openPlaylistItem(id) }
+    }
+
     /// Headers are not numbered; the songs and countdowns are, in order.
     private func playableNumber(_ index: Int) -> Int { workspace.playlistItems.prefix(index + 1).filter { $0.kind.isSelectableLive }.count }
 
@@ -249,6 +277,7 @@ struct LibrarySidebar: View {
         switch item.kind {
         case .presentation: app.show.liveDeck?.presentationID == item.presentationID
         case .countdown: app.show.liveDeck?.presentationID == item.id
+        case .scripture: app.show.liveDeck?.presentationID == item.id
         case .header: false
         }
     }
@@ -286,6 +315,25 @@ struct LibrarySidebar: View {
             .contextMenu {
                 Button("Edit countdown…") { countdownEditing = CountdownEdit(itemID: item.id, spec: spec) }
                 Divider()
+                Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
+            }
+        case .scripture(let spec):
+            HStack(spacing: 8) {
+                Text("\(number)").font(.caption.monospacedDigit()).foregroundStyle(Tok.muted).frame(width: 18)
+                Image(systemName: "book.closed").foregroundStyle(Tok.muted)
+                Text(item.title).lineLimit(1)
+                if let warning = app.scripture?.availability(of: spec) {
+                    Text("not installed").font(.caption2.bold()).foregroundStyle(Tok.warning)
+                        .help(warning)
+                        .accessibilityLabel(warning)
+                }
+                Spacer()
+                liveMarker(item)
+            }
+            .tag(item.id)
+            .listRowBackground(RoundedRectangle(cornerRadius: Radius.md).fill(workspace.selectedPlaylistItemID == item.id ? Tok.surface3 : .clear).padding(.horizontal, 4))
+            .accessibilityLabel("Scripture \(item.title)")
+            .contextMenu {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .presentation:

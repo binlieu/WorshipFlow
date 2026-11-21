@@ -22,6 +22,7 @@ struct ShowModeView: View {
             ShowCentre(app: app, workspace: workspace)
                 .frame(minWidth: 460)
                 .focusable().focused(gridFocused).focusEffectDisabled()
+                .onChange(of: workspace.openPresentationID) { _, new in if new != nil { app.ui.scriptureOpen = false } }     // opening a song closes the passage view
             ShowInspector(app: app, workspace: workspace)
                 .frame(minWidth: 320, idealWidth: Space.inspectorWidth, maxWidth: 380)
         }
@@ -36,8 +37,13 @@ struct ShowCentre: View {
     var body: some View {
         GeometryReader { geo in
             VStack(spacing: 0) {
-                CentrePane(app: app, workspace: workspace)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if app.ui.scriptureOpen, let scripture = app.scripture {
+                    ScriptureView(app: app, workspace: workspace, scripture: scripture)      // LIB-004c
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    CentrePane(app: app, workspace: workspace)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
                 if let media = app.media {
                     MediaDockView(app: app, media: media, audio: app.audio, available: geo.size.height)
                 }

@@ -47,6 +47,17 @@ public struct ScriptureSlide: Sendable, Equatable {
     /// For a slide that shows part of a verse: 0 for "a", and how many parts the verse has.
     public var partIndex: Int?
     public var partCount: Int?
+
+    /// LIB-004c: public so the app's model and its tests can make a slide without building a whole passage.
+    public init(content: SlideContent, reference: String, secondaryReference: String?, verses: [VerseRef],
+                partIndex: Int?, partCount: Int?) {
+        self.content = content
+        self.reference = reference
+        self.secondaryReference = secondaryReference
+        self.verses = verses
+        self.partIndex = partIndex
+        self.partCount = partCount
+    }
 }
 
 public struct SlideBuildReport: Sendable, Equatable {

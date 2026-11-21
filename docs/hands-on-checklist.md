@@ -157,3 +157,13 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Make a macro "Next, wait 30 seconds, Next" and run it, then press Blackout before 30 seconds pass: the second Next never happens and the activity list says "cancelled: 1 waiting step". The same with Clear, Clear all and Stop. Blackout off cancels nothing.
 - [ ] Open the Hardware Test window and start a test. A MIDI pad and the phone do nothing to the show (the phone is told the test is running); the Mac's buttons and keys still work. A scheduled event that falls due during the test shows under "Not run" in the Cues schedule afterwards; Dismiss all clears it.
 - [ ] Revoke a phone: it is refused at once. Quit and reopen with remote control on: it is still refused. Switch remote control on and off quickly several times: afterwards the switch, the shown address and the real state agree. Join another Wi-Fi network while it is on: the address shown changes within a moment.
+
+## LIB-004c scripture
+
+- [ ] Command-J opens Scripture with the cursor in the reference field. With no translation installed it says so and offers Import.
+- [ ] Import a translation file you may use: progress, then a plain result. Import the same file again: you are asked before it is replaced. Remove it: you are asked first.
+- [ ] Type `John 3:16-18` and Return: slides appear and the Preview monitor shows the first. Nothing changes on the audience screen. Type `Giăng 3:16`: the same verse.
+- [ ] Return again goes live; Space and the arrows step; Next at the last slide stays. Mouse: click a slide (Preview only), double-click (live).
+- [ ] Choose a second translation: both languages show on each slide; a verse missing in one shows the other alone. Check the stage and livestream screens show current and next, and the lower third.
+- [ ] Add to playlist, quit, reopen: the item is there and opens. Remove its translation: the item stays, says "not installed", and Next into it stops with a message.
+- [ ] Save as presentation: it opens and can be edited. Search a Vietnamese word without accents: the verse is found and opens.

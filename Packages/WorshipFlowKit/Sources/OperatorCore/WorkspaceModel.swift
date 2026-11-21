@@ -41,6 +41,8 @@ public final class WorkspaceModel {
     /// the library. A slide chosen after a countdown belongs to this item, and Next and Previous step from it.
     @ObservationIgnored public internal(set) var openPlaylistItemID: UUID?
     public internal(set) var openPresentationID: UUID?
+    /// LIB-004c: the Bible passage in preview, if one is (it is not a presentation: `openPresentationID` is nil then).
+    public internal(set) var openScripture: OpenScripture?
     /// The open presentation's slides in play order (the item's arrangement applied).
     public internal(set) var slides: [Slide] = []
     public internal(set) var groups: [SlideGroup] = []
@@ -73,6 +75,9 @@ public final class WorkspaceModel {
 
     /// Called on the main actor by `clearAll()`, after the show state changed, so the app can stop the foreground clip.
     @ObservationIgnored public var onClearAll: (@MainActor () -> Void)?
+
+    /// LIB-004c: reads the passages that scripture playlist items keep. Set by `ScriptureModel.connect`.
+    @ObservationIgnored public weak var scripture: ScriptureModel?
 
     // MARK: Internals
 
@@ -174,7 +179,7 @@ public final class WorkspaceModel {
         } else if let presentationID = place.presentationID, await presentationExists(presentationID) {
             await openPresentation(presentationID)
         }
-        if openPresentationID != nil { selectSlide(place.slideIndex) }
+        if openPresentationID != nil || openScripture != nil { selectSlide(place.slideIndex) }
     }
 
     /// Writes everything that is waiting: typed slide text and the saved place. Call when the app loses focus or quits.
@@ -238,7 +243,8 @@ public final class WorkspaceModel {
     }
 
     func previewDeck() -> ShowDeck {
-        ShowDeck(presentationID: openPresentationID ?? UUID(), slides: slides.map(\.content))
+        if let open = openScripture { return ShowDeck(presentationID: open.deckID, slides: open.contents) }    // LIB-004c
+        return ShowDeck(presentationID: openPresentationID ?? UUID(), slides: slides.map(\.content))
     }
 
     func loadPreview() { apply(.load(previewDeck())) }

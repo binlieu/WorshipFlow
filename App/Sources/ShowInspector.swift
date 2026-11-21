@@ -83,6 +83,8 @@ struct ShowInspector: View {
         Group {
             if workspace.slides.indices.contains(index) {
                 SlideThumbnail(app: app, slide: workspace.slides[index].content)
+            } else if let open = workspace.openScripture, open.contents.indices.contains(index) {
+                SlideThumbnail(app: app, slide: open.contents[index])       // LIB-004c: a passage in preview
             } else {
                 RoundedRectangle(cornerRadius: Radius.sm).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
             }

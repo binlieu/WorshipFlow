@@ -15,6 +15,8 @@ import CueEngine
 import CueStore
 import MIDIIO
 import RemoteControl
+import ScriptureEngine
+import ScriptureStore
 
 enum LiveMode: Equatable { case stopped, live, cleared, blackout }
 
@@ -76,6 +78,8 @@ final class AppModel {
     /// Macros, slide actions, the schedule, MIDI and the remote control, and the one command path every show command goes through
     /// (CUE-002b). Nil under the same conditions.
     private(set) var cue: CueModel?
+    /// The Scripture view's model: translations, the typed reference, search, keeping a passage (LIB-004c). Nil under the same conditions.
+    private(set) var scripture: ScriptureModel?
     /// Set when the library file could not be opened: the path and a message. The file is left untouched.
     private(set) var libraryProblem: LibraryProblem?
     /// Bumped on every publish, so previews know to re-read their scene.
@@ -209,6 +213,7 @@ final class AppModel {
             self.media = media
             makeAudio(store: store)
             makeCue(library: store, workspace: model, settings: settings, stage: stage, media: media)
+            makeScripture(library: store, workspace: model)
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
             libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
@@ -234,6 +239,30 @@ final class AppModel {
         self.cue = cue
     }
 
+    /// LIB-004c: the scripture model, joined to the workspace before it loads (so a playlist item that is restored can open).
+    private func makeScripture(library: LibraryStore, workspace: WorkspaceModel) {
+        let model = ScriptureModel(store: ScriptureStore(library: library), stateStore: library)
+        model.themeProvider = { [weak self] in self?.scriptureTheme() ?? .fullScreen }
+        model.connect(workspace)
+        scripture = model
+    }
+
+    /// The theme of the audience screen as the operator has it now: its Look's theme, else the built-in full-screen one. Its text
+    /// boxes decide how much of a passage fits on a slide.
+    private func scriptureTheme() -> Theme {
+        let audience = profiles.first { $0.role == .audience && $0.isEnabled } ?? profiles.first { $0.role == .audience }
+        let look = audience.map { currentLook?.screenLook(for: $0.id) ?? .standard } ?? .standard
+        return ThemeResolver.theme(for: .audience, lookThemeID: look.themeID, presentationThemeID: nil, themes: themes)
+    }
+
+    /// Command-J: the Scripture view in Show, with the cursor in the reference field.
+    func openScripture() {
+        guard let w = workspace else { return }
+        w.setMode(.show)
+        ui.scriptureOpen = true
+        ui.focusScripture += 1
+    }
+
     func startWorkspace() {
         guard let workspace, !workspaceLoaded else { return }
         Task { @MainActor in
@@ -242,6 +271,7 @@ final class AppModel {
             await resolvePropBookmarks()
             await media?.load()
             await audio?.load()
+            await scripture?.load()
             coordinator.setProfiles(profiles)
             publish()
             updateReadouts()

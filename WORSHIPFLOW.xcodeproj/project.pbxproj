@@ -26,6 +26,7 @@
 		593571E1E225EBBCD1EB5085 /* CuesActionList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CA03DB2E7DB067956098B6 /* CuesActionList.swift */; };
 		5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38CD5DB50486CAC827308DF /* TimersPanel.swift */; };
 		6017D22BEDF0AA7E1FC420AB /* CueEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E21596084D094E4330D3996C /* CueEngine */; };
+		6263B42933630A04B8746DA5 /* ScriptureStore in Frameworks */ = {isa = PBXBuildFile; productRef = 64EA0BA693D9E86D7C82F026 /* ScriptureStore */; };
 		631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904015CE5BD7D12564A3BED /* LiveScenes.swift */; };
 		655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28162D8810237DB29AB3177 /* CentrePane.swift */; };
 		6665FC5F7E9C7BB83C0801E5 /* ModeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0E2BC56276AF5141501882 /* ModeViews.swift */; };
@@ -37,11 +38,13 @@
 		7E995D6D0D133D3BCFDE45AB /* ShowInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */; };
 		8131FE6CEDA6419FB54B34CC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C06648FD1853A2071017E9D1 /* Assets.xcassets */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
+		87D5910C2C298652FD13B11B /* ScriptureEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 866F43E83D0E0A9AA0F053FD /* ScriptureEngine */; };
 		87F91E1F669FE74AC56179D7 /* CuesMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AFAF5674771E5C1B9889797 /* CuesMode.swift */; };
 		8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */; };
 		9265D0121221C24948323389 /* StageMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EBE480BA6AD2725A3CA353 /* StageMessageView.swift */; };
 		9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4324BEB75E64640972B783F /* LibrarySidebar.swift */; };
 		932E756E00CFAAE618412EB6 /* CueStore in Frameworks */ = {isa = PBXBuildFile; productRef = 928CE345DBD0F607AE5BF650 /* CueStore */; };
+		95E1629ED01A69EF90DDE1C1 /* ScriptureTranslationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */; };
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
 		9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */; };
 		A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */; };
@@ -50,9 +53,11 @@
 		B73CCFD90200075DBEFABA61 /* MediaSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D677F8D362BB899C12954273 /* MediaSupport.swift */; };
 		BA5C53C44C796A053A70D317 /* StageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B05143AD9A31F5DD17A7FB2 /* StageEditorView.swift */; };
 		BA87BFAC597CB9D387BAEEDF /* AudioSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5155C53E346262B7C544622F /* AudioSupport.swift */; };
+		BA97409E06ED5FD754985EAC /* UISnapshotScripture.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9CE58A927A93F82E09171EF /* UISnapshotScripture.swift */; };
 		D023CE93211A0306A400C70A /* MediaTransportStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */; };
 		D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B845A215193778B503237BC /* CuesTab.swift */; };
 		DB57A7075229EB502A101210 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B1B6A1952D317922E741F6 /* Components.swift */; };
+		DBDEC0CEFAF28D0C64DA6052 /* ScriptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8053413ADC834AF5ADB30E /* ScriptureView.swift */; };
 		E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2BB235B612B4475C266D56AE /* OperatorCore */; };
 		E6AC32C651CBFBA1F460BFB0 /* RemoteControl in Frameworks */ = {isa = PBXBuildFile; productRef = 932ADBAD73F2F55585D0BB0A /* RemoteControl */; };
 		EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB63AA09191D65308E97C971 /* ContentView.swift */; };
@@ -82,6 +87,7 @@
 		3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestView.swift; sourceTree = "<group>"; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
 		5155C53E346262B7C544622F /* AudioSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSupport.swift; sourceTree = "<group>"; };
+		6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptureTranslationsView.swift; sourceTree = "<group>"; };
 		7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
@@ -89,6 +95,7 @@
 		972BF78C395FB49A1F9F52DC /* CueSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueSupport.swift; sourceTree = "<group>"; };
 		993D2499578DAFEB14C92990 /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
 		9948423E632AF221937A9EB6 /* ImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSheet.swift; sourceTree = "<group>"; };
+		9A8053413ADC834AF5ADB30E /* ScriptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptureView.swift; sourceTree = "<group>"; };
 		9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowInspector.swift; sourceTree = "<group>"; };
 		A38CD5DB50486CAC827308DF /* TimersPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersPanel.swift; sourceTree = "<group>"; };
 		A5A678A91491B09E5E7F46D5 /* WorshipFlowKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WorshipFlowKit; path = Packages/WorshipFlowKit; sourceTree = SOURCE_ROOT; };
@@ -107,6 +114,7 @@
 		D4B1B6A1952D317922E741F6 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		D677F8D362BB899C12954273 /* MediaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSupport.swift; sourceTree = "<group>"; };
 		D74BA46590DEC0370D1EB32F /* VideoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSupport.swift; sourceTree = "<group>"; };
+		D9CE58A927A93F82E09171EF /* UISnapshotScripture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotScripture.swift; sourceTree = "<group>"; };
 		DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeEditorSheet.swift; sourceTree = "<group>"; };
 		DD0E2BC56276AF5141501882 /* ModeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeViews.swift; sourceTree = "<group>"; };
 		E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotRun.swift; sourceTree = "<group>"; };
@@ -135,6 +143,8 @@
 				932E756E00CFAAE618412EB6 /* CueStore in Frameworks */,
 				A9243219076E8B694FCB4280 /* MIDIIO in Frameworks */,
 				E6AC32C651CBFBA1F460BFB0 /* RemoteControl in Frameworks */,
+				87D5910C2C298652FD13B11B /* ScriptureEngine in Frameworks */,
+				6263B42933630A04B8746DA5 /* ScriptureStore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,6 +189,8 @@
 				DD0E2BC56276AF5141501882 /* ModeViews.swift */,
 				BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */,
 				14ACF4576DE699F2593C66FE /* ScreensMode.swift */,
+				6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */,
+				9A8053413ADC834AF5ADB30E /* ScriptureView.swift */,
 				B94C7D2528DCC2560168C824 /* SDIProviders.swift */,
 				0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */,
 				9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */,
@@ -194,6 +206,7 @@
 				993D2499578DAFEB14C92990 /* TransportBar.swift */,
 				01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */,
 				E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */,
+				D9CE58A927A93F82E09171EF /* UISnapshotScripture.swift */,
 				D74BA46590DEC0370D1EB32F /* VideoSupport.swift */,
 				FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */,
 				E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */,
@@ -264,6 +277,8 @@
 				928CE345DBD0F607AE5BF650 /* CueStore */,
 				4EDCB0899697781D4FB48D05 /* MIDIIO */,
 				932ADBAD73F2F55585D0BB0A /* RemoteControl */,
+				866F43E83D0E0A9AA0F053FD /* ScriptureEngine */,
+				64EA0BA693D9E86D7C82F026 /* ScriptureStore */,
 			);
 			productName = WORSHIPFLOW;
 			productReference = 1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */;
@@ -349,6 +364,8 @@
 				02DB272F53439307BF982418 /* OperatorWindowGuard.swift in Sources */,
 				70CF61C4B13414CFCDBCA8BA /* SDIProviders.swift in Sources */,
 				2F5F94FA6C2F81A20F953783 /* ScreensMode.swift in Sources */,
+				95E1629ED01A69EF90DDE1C1 /* ScriptureTranslationsView.swift in Sources */,
+				DBDEC0CEFAF28D0C64DA6052 /* ScriptureView.swift in Sources */,
 				FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */,
 				7E995D6D0D133D3BCFDE45AB /* ShowInspector.swift in Sources */,
 				28A2057DF36D637C3499C01F /* ShowMode.swift in Sources */,
@@ -363,6 +380,7 @@
 				F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */,
 				681C9CA7F7769B2188A1B181 /* UISnapshotCues.swift in Sources */,
 				36FF51F147353E7711DB6517 /* UISnapshotRun.swift in Sources */,
+				BA97409E06ED5FD754985EAC /* UISnapshotScripture.swift in Sources */,
 				54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */,
 				13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */,
 				876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */,
@@ -600,9 +618,17 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = MIDIIO;
 		};
+		64EA0BA693D9E86D7C82F026 /* ScriptureStore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScriptureStore;
+		};
 		7392E34C444186C64745A079 /* Domain */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Domain;
+		};
+		866F43E83D0E0A9AA0F053FD /* ScriptureEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScriptureEngine;
 		};
 		928CE345DBD0F607AE5BF650 /* CueStore */ = {
 			isa = XCSwiftPackageProductDependency;

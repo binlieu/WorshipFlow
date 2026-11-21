@@ -39,6 +39,10 @@ targets:
         product: MIDIIO
       - package: WorshipFlowKit
         product: RemoteControl
+      - package: WorshipFlowKit
+        product: ScriptureEngine
+      - package: WorshipFlowKit
+        product: ScriptureStore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app

@@ -17,7 +17,7 @@ Updated: 2026-11-21 (afternoon)
 
 1. After UI-003: rebuild the hardware-test package (`scripts/package-test-build.sh`) so the owner's friend gets the current build.
 2. CUE-002b is done (commit 1f94df9) and its review fixes are done (FIX-E, brief `AI/specs/FIX-E-cue-002b-review.md`, report `AI/reports/FIX-E-report.md`): 2126 package tests, `./scripts/check.sh` exits 0. Not done: playback markers. Not verified: a real MIDI device, a phone, mouse use of the Cues views, sleep and wake, a real network change, a real disk write failure. When a build is ready, tell the owner what changed and ask before replacing `/Applications/WORSHIPFLOW.app`.
-3. LIB-004c: scripture interface (reference entry, translation picker, verses into a presentation, import screen). Bundling VI1925 waits on the owner (KI-062, KI-066).
+3. LIB-004c scripture interface is implemented and waiting for review (`AI/reports/LIB-004c-report.md`). Bundling VI1925 waits on the owner (KI-062, KI-066).
 4. A third independent review pass (Sonnet, read-only) after those, then fixes.
 5. Phase 2 leftovers: Syphon (vendored source), live camera inputs. Phase 4: recording and RTMP.
 

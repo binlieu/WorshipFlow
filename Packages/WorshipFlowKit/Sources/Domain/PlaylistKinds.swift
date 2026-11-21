@@ -25,10 +25,13 @@ public enum PlaylistItemKind: Equatable, Sendable, Codable {
     case presentation
     case header(label: String)
     case countdown(CountdownSpec)
+    /// LIB-004c: a Bible passage, kept as a reference and translation codes (see `ScriptureItemSpec`).
+    case scripture(ScriptureItemSpec)
 
     /// A header is a label in the list: it cannot go live, and Next and Previous skip over it.
     public var isSelectableLive: Bool { if case .header = self { return false } else { return true } }
     public var isHeader: Bool { if case .header = self { return true } else { return false } }
+    public var isScripture: Bool { if case .scripture = self { return true } else { return false } }
 
     /// The stored form: a kind word and a small JSON payload (nil for a presentation).
     public var stored: (kind: String, payload: String?) {
@@ -36,6 +39,7 @@ public enum PlaylistItemKind: Equatable, Sendable, Codable {
         case .presentation: return ("presentation", nil)
         case .header(let label): return ("header", Self.encode(["label": label]))
         case .countdown(let spec): return ("countdown", (try? String(data: JSONEncoder.sorted.encode(spec), encoding: .utf8)) ?? nil)
+        case .scripture(let spec): return ("scripture", (try? String(data: JSONEncoder.sorted.encode(spec), encoding: .utf8)) ?? nil)
         }
     }
 
@@ -50,6 +54,10 @@ public enum PlaylistItemKind: Equatable, Sendable, Codable {
             if let payload, let data = payload.data(using: .utf8), let spec = try? JSONDecoder().decode(CountdownSpec.self, from: data) {
                 self = .countdown(spec)
             } else { self = .header(label: "Countdown") }
+        case "scripture":
+            if let payload, let data = payload.data(using: .utf8), let spec = try? JSONDecoder().decode(ScriptureItemSpec.self, from: data) {
+                self = .scripture(spec)
+            } else { self = .header(label: "Scripture") }
         default: self = .header(label: "Unknown item")
         }
     }

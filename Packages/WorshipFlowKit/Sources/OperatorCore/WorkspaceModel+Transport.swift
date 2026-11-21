@@ -15,7 +15,7 @@ extension WorkspaceModel {
     /// item (none when it came from the library), not a countdown chosen before. Go Live then starts the slide.
     func chooseOpenPresentation() {
         guard let selected = selectedPlaylistItemID, selected != openPlaylistItemID,
-              playlistItems.first(where: { $0.id == selected }).map({ item -> Bool in if case .presentation = item.kind { return false } else { return true } }) ?? false
+              playlistItems.first(where: { $0.id == selected }).map({ item -> Bool in if case .countdown = item.kind { return true } else { return false } }) ?? false
         else { return }
         selectedPlaylistItemID = openPlaylistItemID
     }
@@ -42,6 +42,15 @@ extension WorkspaceModel {
 
     /// Notes which slides and which playlist item the live deck came from (only when something is live).
     func recordLiveSource() {
+        // LIB-004c: a Bible passage is live. It has no stored slides, notes or sections; it belongs to the playlist item it came from, if any.
+        if let deck = show.liveDeck, let open = openScripture, deck.presentationID == open.deckID {
+            liveSlideIDs = []
+            liveSlideNotes = []
+            liveTitle = open.title
+            liveSectionNames = []
+            liveItemID = openPlaylistItemID
+            return
+        }
         guard show.liveDeck != nil, show.liveDeck?.presentationID == openPresentationID else { return }
         liveSlideIDs = slides.map(\.id)
         liveSlideNotes = slides.map(\.notes)
@@ -156,6 +165,24 @@ extension WorkspaceModel {
             guard epoch == transportEpoch else { return false }
             goLiveOnCountdown(item)
             return true
+        }
+        if case .scripture(let spec) = item.kind {
+            // LIB-004c: a passage item is read from the Bible library; a missing translation stops the step with a message.
+            let resolution = await scripture?.resolve(spec) ?? .failed("Scripture is not available in this session.")
+            guard epoch == transportEpoch else { return false }
+            let what = direction > 0 ? "Next" : "Previous"
+            switch resolution {
+            case .ready(let passage):
+                openScripturePassage(passage, itemID: item.id)
+                liveCountdown = nil
+                apply(.trigger(index: direction > 0 ? 0 : passage.contents.count - 1))
+                recordLiveSource()
+                placeChanged()
+                return true
+            case .notInstalled(let text), .failed(let text):
+                lastError = "\(what) stopped: \(text)"
+                return false
+            }
         }
         let count = (try? await store.slides(forPlaylistItem: item.id))?.count ?? 0
         guard epoch == transportEpoch else { return false }

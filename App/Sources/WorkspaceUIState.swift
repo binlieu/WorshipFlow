@@ -15,6 +15,12 @@ final class WorkspaceUIState {
     var cuesSelection: CuesSelection?
     /// The slide whose actions the Cues mode edits (an index into the open song).
     var cuesSlideID: UUID?
+    /// LIB-004c: the Scripture view takes the centre of Show; Command-J or the sidebar row opens it, opening a song closes it.
+    var scriptureOpen = false
+    /// Which of the Scripture view's three screens is showing (kept here so a debug run can switch it).
+    var scriptureScreen = ScriptureScreen.reference
+    /// Bumped by Command-J: the Scripture view puts the cursor in its reference field.
+    var focusScripture = 0
     var showImport = false
     /// Set when the import sheet re-flows an existing presentation instead of creating one.
     var importExistingID: UUID?

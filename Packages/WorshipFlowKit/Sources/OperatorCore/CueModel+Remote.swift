@@ -174,7 +174,7 @@ extension CueModel {
         switch event {
         case .paired:
             Task { @MainActor [weak self] in
-                if let problem = await self?.remoteTokens?.flush() {
+                if let problem = await self?.remoteTokens?.flush(.pairings) {
                     self?.note(problem + " The device that just paired will have to pair again after a restart.")
                 }
             }
@@ -223,7 +223,7 @@ extension CueModel {
     }
 
     private func reportRevokeWrite(what: String) async {
-        guard let problem = await remoteTokens?.flush() else { return }
+        guard let problem = await remoteTokens?.flush(.revokes) else { return }
         let text = "\(what) is not saved: \(problem) The device is refused now, but it may be able to connect again after WORSHIPFLOW restarts. Revoke it again."
         note(text)
         append(ActivityLine(time: wallClock(), source: .button, text: text, isProblem: true))

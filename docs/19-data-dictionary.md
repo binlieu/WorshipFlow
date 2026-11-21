@@ -336,3 +336,7 @@ One row per phone paired with the remote control server. A salted hash of the to
 | lastUsed | DATETIME | Written at most once every 30 seconds per token |
 
 Other app state keys added: `cue.midi.settings` (MIDI on or off, chosen input and output by stable id and name, virtual ports) and `cue.remote.settings` (remote control on or off, port), both JSON in `appState`.
+
+### LIB-004c: scripture playlist items (no schema change)
+
+`playlistItem.kind = 'scripture'` with `payload` JSON `{"label", "ranges":[{"book","startChapter","startVerse","endChapter","endVerse"}], "primaryCode", "secondaryCode"}`; `presentationID` is NULL. No verse text is stored. State key `scripture.choices` (settings state table): `{"primary","secondary","versesPerSlide"}`.

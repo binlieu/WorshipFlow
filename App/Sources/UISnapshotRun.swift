@@ -185,6 +185,16 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // LIB-004c: the Scripture view in the running app (Command-J, an empty library, a typed reference, two translations), then out.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SCRIPTURE"] != nil {
+                await runScriptureScenario(note: { note($0) }, capture: { await capture($0) },
+                                           key: { code, chars, command, shift in key(code, chars, command: command, shift: shift) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // Command-1 to 6 through the real menu, then a picture of each mode.
             let digitCodes: [UInt16] = [18, 19, 20, 21, 23, 22]
             for (i, mode) in WorkspaceMode.allCases.enumerated() {

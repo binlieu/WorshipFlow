@@ -22,9 +22,10 @@ public final class LibraryTokenStore: TokenStore, Sendable {
         case delete(UUID)
         case deleteAll
         case touch(UUID, Date)
-        case barrier(CheckedContinuation<String?, Never>)
+        case barrier(CheckedContinuation<String?, Never>, WriteKind?)
 
         var isTouch: Bool { if case .touch = self { true } else { false } }
+        var kind: WriteKind { switch self { case .delete, .deleteAll: .revokes; default: .pairings } }
     }
 
     /// Writing `lastUsed` for every request would be a disk write per tap; the disk keeps it to once per this many seconds.
@@ -33,7 +34,20 @@ public final class LibraryTokenStore: TokenStore, Sendable {
     private let cache: Mutex<[UUID: StoredToken]>
     private let ops: AsyncStream<Op>.Continuation
     private let worker: Task<Void, Never>
-    private final class Problem: Sendable { let text = Mutex<String?>(nil) }
+    /// Which failed writes a `flush` reports. A pairing and a revoke are reported apart, so that the notice for one
+    /// cannot take away, and mislabel, the failure of the other.
+    public enum WriteKind: Sendable { case pairings, revokes }
+    private final class Problem: Sendable {
+        let text = Mutex<[WriteKind: String]>([:])
+        func take(_ kind: WriteKind?) -> String? {
+            text.withLock { slots in
+                if let kind { return slots.removeValue(forKey: kind) }
+                let found = slots[.revokes] ?? slots[.pairings]
+                slots.removeAll()
+                return found
+            }
+        }
+    }
     private let problem: Problem
 
     /// A failed write is tried again this many times in all, `retryDelay` apart, before it is reported.
@@ -47,7 +61,7 @@ public final class LibraryTokenStore: TokenStore, Sendable {
         self.problem = problem
         worker = Task {
             for await op in stream {
-                if case .barrier(let c) = op { c.resume(returning: problem.text.withLock { let t = $0; $0 = nil; return t }); continue }
+                if case .barrier(let c, let kind) = op { c.resume(returning: problem.take(kind)); continue }
                 var lastError: Error?
                 for attempt in 0..<Self.attempts {
                     if attempt > 0 { try? await Task.sleep(for: retryDelay) }
@@ -65,7 +79,7 @@ public final class LibraryTokenStore: TokenStore, Sendable {
                 }
                 // A `lastUsed` that is not written is no loss; a pairing or a revoke that is not written is.
                 if let lastError, !op.isTouch {
-                    problem.text.withLock { $0 = "Paired devices could not be saved: \(lastError.localizedDescription)" }
+                    problem.text.withLock { $0[op.kind] = "Paired devices could not be saved: \(lastError.localizedDescription)" }
                 }
             }
         }
@@ -83,12 +97,13 @@ public final class LibraryTokenStore: TokenStore, Sendable {
     /// Waits until every change made so far has been written (a failed write is tried again first). Returns the problem, in
     /// words for the operator, when a pairing or a revoke could not be written since the last flush; nil when all is saved.
     @discardableResult
-    public func flush() async -> String? {
-        await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in ops.yield(.barrier(c)) }
+    /// Waits for every write queued so far, then returns and clears the failure of the given kind (`nil`: of any kind).
+    public func flush(_ kind: WriteKind? = nil) async -> String? {
+        await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in ops.yield(.barrier(c, kind)) }
     }
 
     /// The newest write failure not yet returned by `flush()`.
-    public var writeProblem: String? { problem.text.withLock { $0 } }
+    public var writeProblem: String? { problem.text.withLock { $0[.revokes] ?? $0[.pairings] } }
 
     // MARK: TokenStore
 

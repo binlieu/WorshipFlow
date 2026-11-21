@@ -146,3 +146,18 @@ import RemoteControl
         #expect(await store.flush() == nil)                          // reported once
     }
 }
+
+/// FIX-E follow-up: the notice for a pairing must not take away the failure of a revoke (the two flushes raced).
+@Suite struct FIXE_RevokeProblemKindTests {
+    @Test func aPairingFlushDoesNotConsumeARevokeFailure() async throws {
+        let flaky = FlakyTokenPersistence(try LibraryStore.inMemory())
+        let store = try await LibraryTokenStore.load(from: flaky, retryDelay: .zero)
+        store.add(StoredToken(id: UUID(), label: "X", salt: Data([1]), hash: Data([2]), createdAt: Date(timeIntervalSince1970: 100)))
+        #expect(await store.flush() == nil)
+        flaky.failDeletes(99)
+        store.removeAll()
+        #expect(await store.flush(.pairings) == nil)
+        #expect(await store.flush(.revokes) != nil)
+        #expect(await store.flush(.revokes) == nil)
+    }
+}

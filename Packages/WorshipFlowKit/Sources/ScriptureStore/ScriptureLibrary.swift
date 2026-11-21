@@ -50,14 +50,35 @@ public struct ScriptureLibrary: Sendable {
         guard !outcome.ranges.isEmpty else {
             return ScriptureLookup(outcome: outcome, presentation: nil, notes: [], primary: primary, secondary: second)
         }
+        return try await build(outcome: outcome, primary: primary, primaryTable: primaryTable, secondary: second,
+                               secondaryTable: secondTable, uiLanguage: uiLanguage, options: options)
+    }
 
+    /// LIB-004c: slides for ranges that are already known (a stored playlist item), by the same road as a typed reference.
+    /// - Throws: `ScriptureStoreError.notFound` when a translation code is not in the library.
+    public func lookup(ranges: [VerseRange], primary primaryCode: String, secondary secondaryCode: String? = nil,
+                       uiLanguage: ScriptureLanguage? = nil, options: SlideOptions = SlideOptions()) async throws -> ScriptureLookup {
+        let primary = try await store.translation(code: primaryCode)
+        let primaryTable = try await store.versification(for: primaryCode)
+        var second: StoredTranslation?
+        var secondTable: Versification?
+        if let secondaryCode {
+            second = try await store.translation(code: secondaryCode)
+            secondTable = try await store.versification(for: secondaryCode)
+        }
+        return try await build(outcome: ParseOutcome(ranges: ranges), primary: primary, primaryTable: primaryTable,
+                               secondary: second, secondaryTable: secondTable, uiLanguage: uiLanguage, options: options)
+    }
+
+    private func build(outcome: ParseOutcome, primary: StoredTranslation, primaryTable: Versification, secondary second: StoredTranslation?,
+                       secondaryTable secondTable: Versification?, uiLanguage: ScriptureLanguage?, options: SlideOptions) async throws -> ScriptureLookup {
         // Only the verses of the ranges are read, so a one-verse lookup never loads a whole Bible.
-        let primaryVerses = try await store.verses(in: outcome.ranges, translationCode: primaryCode)
+        let primaryVerses = try await store.verses(in: outcome.ranges, translationCode: primary.code)
         let primaryTranslation = Translation(metadata: primary.metadata, versification: primaryTable,
                                              verses: primaryVerses.map { (ref: $0.ref, text: $0.text) })
         var secondTranslation: Translation?
-        if let second, let secondTable, let secondaryCode {
-            let rows = try await store.verses(in: outcome.ranges, translationCode: secondaryCode)
+        if let second, let secondTable {
+            let rows = try await store.verses(in: outcome.ranges, translationCode: second.code)
             secondTranslation = Translation(metadata: second.metadata, versification: secondTable, verses: rows.map { (ref: $0.ref, text: $0.text) })
         }
         let presentation = VerseSlides.build(ranges: outcome.ranges, primary: primaryTranslation, secondary: secondTranslation, options: options)

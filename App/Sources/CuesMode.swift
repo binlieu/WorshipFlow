@@ -205,7 +205,7 @@ private struct CuesInfoColumn: View {
 
     static let keys: [(String, String)] = [
         ("→ or Space", "Next slide"), ("←", "Previous slide"), ("↩", "Go live with the selected slide"), ("B", "Blackout (toggle)"),
-        ("esc", "Clear"), ("⇧ esc", "Clear all"), ("⌘E", "Quick edit"), ("⌘F", "Search"),
+        ("esc", "Clear"), ("⇧ esc", "Clear all"), ("⌘E", "Quick edit"), ("⌘F", "Search"), ("⌘J", "Scripture"),
     ]
 
     private var activity: some View {

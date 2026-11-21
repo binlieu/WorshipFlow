@@ -79,6 +79,7 @@ extension LibraryStore {
                     title = t
                 case .header(let label): title = label
                 case .countdown(let spec): title = spec.label
+                case .scripture(let spec): title = spec.label
                 }
                 return PlaylistItem(id: id, playlistID: playlist, presentationID: presentation ?? PlaylistItem.noPresentationID,
                                     title: title, sortOrder: row["sortOrder"],
@@ -121,6 +122,12 @@ extension LibraryStore {
     @discardableResult
     public func addPlaylistCountdown(_ spec: CountdownSpec, to playlistID: UUID) async throws -> PlaylistItem {
         try await addNonPresentation(.countdown(spec), title: spec.label, to: playlistID)
+    }
+
+    /// LIB-004c: appends a scripture passage (reference and translation codes) to the end of a playlist.
+    @discardableResult
+    public func addPlaylistScripture(_ spec: ScriptureItemSpec, to playlistID: UUID) async throws -> PlaylistItem {
+        try await addNonPresentation(.scripture(spec), title: spec.label, to: playlistID)
     }
 
     /// Changes a header's label or a countdown's settings. A presentation item cannot be changed this way.
