@@ -14,6 +14,7 @@ let package = Package(
         .library(name: "SDIEngine", targets: ["SDIEngine"]),
         .library(name: "DeckLinkSDI", targets: ["DeckLinkSDI"]),
         .library(name: "CueEngine", targets: ["CueEngine"]),
+        .library(name: "ScriptureEngine", targets: ["ScriptureEngine"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -50,6 +51,9 @@ let package = Package(
         // CUE-001: show-control rules (actions, macros, schedule, playback markers, MIDI mapping). Pure Swift.
         .target(name: "CueEngine", dependencies: ["Domain"]),
         .testTarget(name: "CueEngineTests", dependencies: ["CueEngine", "Domain"]),
+        // LIB-004: scripture references, verse splitting into slides, translation file format. Pure Swift.
+        .target(name: "ScriptureEngine", dependencies: ["Domain"]),
+        .testTarget(name: "ScriptureEngineTests", dependencies: ["ScriptureEngine", "Domain"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
