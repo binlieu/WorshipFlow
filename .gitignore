@@ -8,3 +8,6 @@ xcuserdata/
 TestMedia/*
 !TestMedia/.gitkeep
 AI/reports/soak-*.log
+
+# Blackmagic SDK: owner-downloaded, licence not yet reviewed (ADR-0005)
+Vendor/DeckLinkSDK/*
