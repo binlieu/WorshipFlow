@@ -48,11 +48,13 @@ struct SlideRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     var notes: String
     var createdAt: Date
     var updatedAt: Date
+    /// Added by migration v2; nil for rows written under v1.
+    var groupID: UUID?
 
     var domain: Slide {
         Slide(id: id, presentationID: presentationID, sortOrder: sortOrder,
               content: SlideContent(primary: primaryText, secondary: secondaryText),
-              notes: notes, createdAt: createdAt, updatedAt: updatedAt)
+              notes: notes, groupID: groupID, createdAt: createdAt, updatedAt: updatedAt)
     }
 }
 

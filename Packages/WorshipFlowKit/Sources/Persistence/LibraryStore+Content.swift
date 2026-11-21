@@ -128,11 +128,15 @@ extension LibraryStore {
             let count = try Int.fetchOne(
                 db, sql: "SELECT COUNT(*) FROM slide WHERE presentationID = ?", arguments: [presentationID.dbText]) ?? 0
             let now = Date()
+            // Raw insert: leaves groupID to its default so this also works on a v1 database.
             let record = SlideRecord(
                 id: UUID(), presentationID: presentationID, sortOrder: count,
                 primaryText: content.primary, secondaryText: content.secondary, notes: "",
                 createdAt: now, updatedAt: now)
-            try record.insert(db)
+            try db.execute(sql: """
+                INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt)
+                VALUES (?, ?, ?, ?, ?, '', ?, ?)
+                """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now])
             try Self.touch(db, presentationID: presentationID, backend: backend)
             return record.domain
         }
@@ -187,7 +191,7 @@ extension LibraryStore {
     }
 
     /// Bumps `updatedAt` and refreshes the folded search text after a slide change.
-    private static func touch(_ db: Database, presentationID: UUID, backend: SearchBackend) throws {
+    static func touch(_ db: Database, presentationID: UUID, backend: SearchBackend) throws {
         try db.execute(sql: "UPDATE presentation SET updatedAt = ? WHERE id = ?",
                        arguments: [Date(), presentationID.dbText])
         try SearchIndex.reindex(db, backend: backend, presentationID: presentationID)

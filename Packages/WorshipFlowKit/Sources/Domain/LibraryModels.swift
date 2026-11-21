@@ -46,16 +46,19 @@ public struct Slide: Sendable, Equatable, Codable, Identifiable {
     public var sortOrder: Int
     public var content: SlideContent
     public var notes: String
+    /// The song section this slide belongs to, if any (SLIDE-003).
+    public var groupID: UUID?
     public let createdAt: Date
     public var updatedAt: Date
 
     public init(id: UUID = UUID(), presentationID: UUID, sortOrder: Int = 0, content: SlideContent,
-                notes: String = "", createdAt: Date = Date(), updatedAt: Date = Date()) {
+                notes: String = "", groupID: UUID? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.presentationID = presentationID
         self.sortOrder = sortOrder
         self.content = content
         self.notes = notes
+        self.groupID = groupID
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -82,13 +85,17 @@ public struct PlaylistItem: Sendable, Equatable, Codable, Identifiable {
     public let presentationID: UUID
     public var title: String
     public var sortOrder: Int
+    /// The arrangement used when this item is shown; nil means natural slide order (SLIDE-003).
+    public var arrangementID: UUID?
 
-    public init(id: UUID = UUID(), playlistID: UUID, presentationID: UUID, title: String, sortOrder: Int) {
+    public init(id: UUID = UUID(), playlistID: UUID, presentationID: UUID, title: String, sortOrder: Int,
+                arrangementID: UUID? = nil) {
         self.id = id
         self.playlistID = playlistID
         self.presentationID = presentationID
         self.title = title
         self.sortOrder = sortOrder
+        self.arrangementID = arrangementID
     }
 }
 

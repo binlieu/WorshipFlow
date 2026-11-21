@@ -20,3 +20,5 @@
 | KI-016 | Themes, Looks and props are stored as JSON files, not SQLite, and presentations have no theme field yet. | Open. Follow-up slice SYS-002. |
 | KI-017 | A newly added prop image appears a few frames late in the live path because decoding is off the render thread. Each screen decodes its own copy. | Accepted for now. |
 | KI-018 | Not verified for OUT-003: the Look, theme and prop controls in the interface, bookmark restore after relaunch, wide-gamut, 16-bit and very large images. | Open. Part of the interface pass (KI-011). |
+| KI-019 | Re-flowing a presentation discards the speaker notes of the slides it replaces. | Open. Fix when the reflow editor UI is built: carry notes by matching slide text. |
+| KI-020 | Two separate blocks with the same section name (for example two "Chorus" blocks with different words) share one group after reflow. | Open. Decide in the reflow editor slice; likely number repeated names. |

@@ -61,10 +61,46 @@ Library file: `~/Library/Application Support/WORSHIPFLOW/Library.sqlite` by defa
 | value | TEXT NOT NULL | Setting a key to nil deletes the row |
 | updatedAt | DATETIME NOT NULL | |
 
+## Schema v2 (migration `v2`, SLIDE-003 and SLIDE-004)
+
+Adds song sections and arrangements. Rows written under v1 are untouched: their slides have `groupID` NULL.
+
+### slideGroup
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| presentationID | TEXT NOT NULL | FK `presentation.id`, ON DELETE CASCADE |
+| name | TEXT NOT NULL | Section label as the user wrote it, such as `Verse 1` or `Điệp khúc` (colon dropped). Section names are not searched |
+| sortOrder | INTEGER NOT NULL | Order of first appearance in the text. Index `slideGroup_on_presentationID_sortOrder` |
+
+`replaceContent` keeps a group when its exact name still appears, so its id (and any arrangement using it) survives an edit. One group per distinct name.
+
+### arrangement
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| presentationID | TEXT NOT NULL | FK `presentation.id`, ON DELETE CASCADE. Index `arrangement_on_presentationID` |
+| name | TEXT NOT NULL | Trimmed, non-empty |
+| createdAt | DATETIME NOT NULL | Arrangements are listed by this |
+| updatedAt | DATETIME NOT NULL | |
+
+### arrangementItem
+| Column | Type | Notes |
+|---|---|---|
+| arrangementID | TEXT NOT NULL | FK `arrangement.id`, ON DELETE CASCADE. Part of the primary key |
+| position | INTEGER NOT NULL | Dense 0...n-1; part of the primary key. A group may appear at several positions |
+| groupID | TEXT NOT NULL | FK `slideGroup.id`, ON DELETE CASCADE; must belong to the arrangement's presentation (checked by the store). Index `arrangementItem_on_groupID` |
+
+### Columns added to v1 tables
+| Table.column | Type | Notes |
+|---|---|---|
+| slide.groupID | TEXT, nullable | FK `slideGroup.id`, ON DELETE SET NULL. NULL means the slide is in no section and is left out of every arrangement. Index `slide_on_groupID` |
+| playlistItem.arrangementID | TEXT, nullable | FK `arrangement.id`, ON DELETE SET NULL. NULL means natural slide order. Must be an arrangement of the item's presentation (checked by the store). Index `playlistItem_on_arrangementID` |
+
 ## Derived search index (not a migration)
 
 `presentationSearch` is an FTS5 virtual table `(title, body, presentationID UNINDEXED)`, tokenizer `unicode61 remove_diacritics 0` because the text is already folded. It is created at open when the system SQLite has FTS5, filled from `titleFolded` and `bodyFolded` if missing, and updated in the same transaction as every change. When FTS5 is absent it is dropped and search uses `LIKE` on the folded columns. It holds no data that cannot be rebuilt.
 
 ## Not yet persisted
 
-Slide groups, arrangements, themes and media assets named in `docs/features/SYS-001-sqlite-store.md` are not in v1; they arrive with the features that use them (no placeholder tables). Screen and Look configuration is `OUT-002`.
+Themes and media assets named in `docs/features/SYS-001-sqlite-store.md` are not persisted yet; they arrive with the features that use them (no placeholder tables). Screen and Look configuration is `OUT-002`.

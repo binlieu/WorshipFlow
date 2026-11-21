@@ -14,7 +14,7 @@ Phase 0 (render spike) is implemented and unit tested; its timing exit criterion
 | SYS-001 SQLite store | Yes | Yes | n/a | n/a | Not Verified |
 | OUT-002 screens and live control | Yes | Yes | Yes (fake outputs and displays) | Not Verified | Not Verified |
 | OUT-003/SLIDE-002 themes, Looks, props, image layers | Yes | Yes | n/a | Not Verified | Not Verified |
-| SLIDE-003/004 sections, arrangements, reflow | In progress | Not Verified | n/a | n/a | Not Verified |
+| SLIDE-003/004 sections, arrangements, reflow | Yes (rules and storage; no editor UI yet) | Yes | n/a | n/a | Not Verified |
 
 Every other slice in `AI/TASK-BREAKDOWN.md` is Todo.
 

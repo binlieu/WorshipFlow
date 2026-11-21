@@ -59,7 +59,7 @@ extension LibraryStore {
         try await writer.read { db in
             let rows = try Row.fetchAll(db, sql: """
                 SELECT i.id AS id, i.playlistID AS playlistID, i.presentationID AS presentationID,
-                       i.sortOrder AS sortOrder, p.title AS title
+                       i.sortOrder AS sortOrder, i.arrangementID AS arrangementID, p.title AS title
                 FROM playlistItem i JOIN presentation p ON p.id = i.presentationID
                 WHERE i.playlistID = ? ORDER BY i.sortOrder, i.rowid
                 """, arguments: [playlistID.dbText])
@@ -68,7 +68,8 @@ extension LibraryStore {
                       let playlist = UUID(uuidString: row["playlistID"] as String),
                       let presentation = UUID(uuidString: row["presentationID"] as String) else { return nil }
                 return PlaylistItem(id: id, playlistID: playlist, presentationID: presentation,
-                                    title: row["title"], sortOrder: row["sortOrder"])
+                                    title: row["title"], sortOrder: row["sortOrder"],
+                                    arrangementID: (row["arrangementID"] as String?).flatMap(UUID.init(uuidString:)))
             }
         }
     }
