@@ -26,6 +26,7 @@
 		6B9D90BE5D4246BD564E26B9 /* DeckLinkSDI in Frameworks */ = {isa = PBXBuildFile; productRef = 1935C82D7238921CB54F7254 /* DeckLinkSDI */; };
 		71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 2C12DD02A64F9ED92363C486 /* OutputEngine */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
+		8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */; };
 		9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4324BEB75E64640972B783F /* LibrarySidebar.swift */; };
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
 		9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */; };
@@ -40,6 +41,7 @@
 		EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 38C4944754161B6B1C9FE40D /* Persistence */; };
 		F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993D2499578DAFEB14C92990 /* TransportBar.swift */; };
 		FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */; };
+		FFB6A960780DA6CCD5E3BB9D /* HardwareTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +49,7 @@
 		12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanels.swift; sourceTree = "<group>"; };
 		1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WORSHIPFLOW.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2031232049BA8C27AA077B2D /* Thumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thumbnails.swift; sourceTree = "<group>"; };
+		3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestView.swift; sourceTree = "<group>"; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
 		5155C53E346262B7C544622F /* AudioSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSupport.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -62,6 +65,7 @@
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C339254CFC75C60002280994 /* AudioPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPanel.swift; sourceTree = "<group>"; };
 		C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTransportStrip.swift; sourceTree = "<group>"; };
+		C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestSupport.swift; sourceTree = "<group>"; };
 		D677F8D362BB899C12954273 /* MediaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSupport.swift; sourceTree = "<group>"; };
 		D74BA46590DEC0370D1EB32F /* VideoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSupport.swift; sourceTree = "<group>"; };
 		DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeEditorSheet.swift; sourceTree = "<group>"; };
@@ -108,6 +112,8 @@
 				F28162D8810237DB29AB3177 /* CentrePane.swift */,
 				BB63AA09191D65308E97C971 /* ContentView.swift */,
 				12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */,
+				C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */,
+				3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */,
 				9948423E632AF221937A9EB6 /* ImportSheet.swift */,
 				B4324BEB75E64640972B783F /* LibrarySidebar.swift */,
 				7904015CE5BD7D12564A3BED /* LiveScenes.swift */,
@@ -232,6 +238,8 @@
 				655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */,
 				EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */,
 				1463D5B1D7A0AF1207FB6EE3 /* ControlPanels.swift in Sources */,
+				FFB6A960780DA6CCD5E3BB9D /* HardwareTestSupport.swift in Sources */,
+				8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */,
 				988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */,
 				9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */,
 				631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */,
@@ -380,6 +388,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/WORSHIPFLOW.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -404,6 +413,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/WORSHIPFLOW.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;

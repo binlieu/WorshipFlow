@@ -101,6 +101,10 @@ final class AppModel {
     @ObservationIgnored private var soakTask: Task<Void, Never>?
     @ObservationIgnored private(set) var soak: SoakConfig?
     @ObservationIgnored private var soakProfileID: UUID?
+    /// The Hardware Test window's controller (HWTEST-001). It refuses to start while the screens are open.
+    @ObservationIgnored lazy var hardwareTest = HardwareTestController(
+        realProvider: { AppHardwareTest.realProvider() }, environment: AppHardwareTest.environment(),
+        screensOpen: { [unowned self] in self.screensOn || self.soak != nil })
 
     private init() {
         sceneBox = SceneBox(PublishedScenes(state: ShowState(), clockText: nil))
@@ -108,7 +112,7 @@ final class AppModel {
         soak = SoakConfig.parse(CommandLine.arguments)   // known first, so a soak never opens a library or writes settings
         refreshDisplayChoices()
         updateClock(force: true)
-        if soak == nil { openLibrary() }
+        if soak == nil && !HardwareTestLaunchMode.isHeadless { openLibrary() }   // a headless hardware test opens no library
     }
 
     // MARK: Library (OUT-004)

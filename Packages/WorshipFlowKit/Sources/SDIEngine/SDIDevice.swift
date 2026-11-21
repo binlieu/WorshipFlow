@@ -78,10 +78,14 @@ public struct SDIDeviceInfo: Equatable, Sendable {
 
 public protocol SDIDevice: Sendable {
     associatedtype Port: SDIOutputPort
+    /// The capture side (HWTEST-001). Defaults to a port that refuses everything, so devices without it keep compiling.
+    associatedtype InputPort: SDIInputPort = UnsupportedSDIInputPort
     var info: SDIDeviceInfo { get }
     var isConnected: Bool { get }
     /// Opens one connector. Throws if it does not exist, is already open, or is carrying another port's key.
     func openOutput(connector: Int) throws -> Port
+    /// Opens one connector for capture. Throws if it does not exist, is already open, or the device cannot capture.
+    func openInput(connector: Int) throws -> InputPort
 }
 
 /// One output connector (or fill-and-key pair).

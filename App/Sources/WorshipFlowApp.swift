@@ -5,6 +5,17 @@ import OutputEngine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // HWTEST-001: `--hardware-test --output <path>` runs the hardware test with no window and exits.
+        if let launch = HardwareTestLaunchMode.launch, launch.isHeadless {
+            NSApp.setActivationPolicy(.accessory)          // no Dock icon, no window, nothing takes focus
+            Task.detached {
+                let code = await HardwareTestHeadless.run(launch, environment: AppHardwareTest.environment(),
+                                                          realProvider: AppHardwareTest.realProvider(),
+                                                          log: { FileHandle.standardError.write(Data("[hardware-test] \($0)\n".utf8)) })
+                exit(code)
+            }
+            return
+        }
         OutputCoordinator.warmUp()         // compiles the shaders on a background task, before any screen opens
         MainActor.assumeIsolated {
             NSApp.activate()
@@ -60,10 +71,19 @@ struct WorshipFlowApp: App {
     var body: some Scene {
         Window("WORSHIPFLOW", id: "workspace") {
             ContentView(app: AppModel.shared)
+                .modifier(HardwareTestLauncher())
         }
         .defaultSize(width: 1560, height: 900)
         .windowResizability(.contentMinSize)
+        .defaultLaunchBehavior(HardwareTestLaunchMode.opensHardwareTest ? .suppressed : .automatic)
         .commands { WorkspaceCommands(app: AppModel.shared) }
+
+        // HWTEST-001: the guided hardware test. `--hardware-test` opens it straight away instead of the workspace.
+        Window("Hardware Test", id: "hardware-test") {
+            HardwareTestView(controller: AppModel.shared.hardwareTest)
+        }
+        .defaultSize(width: 760, height: 860)
+        .defaultLaunchBehavior(HardwareTestLaunchMode.opensHardwareTest && !HardwareTestLaunchMode.isHeadless ? .presented : .suppressed)
     }
 }
 
@@ -71,6 +91,7 @@ struct WorshipFlowApp: App {
 /// menu shortcut without a modifier would fire while a volunteer is typing in a text field.
 struct WorkspaceCommands: Commands {
     let app: AppModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -96,6 +117,10 @@ struct WorkspaceCommands: Commands {
             Divider()
             Button("Duplicate Object") { app.duplicateObject() }.keyboardShortcut("d")
         }
+        CommandGroup(after: .help) {
+            Divider()
+            Button("Hardware Test…") { openWindow(id: "hardware-test") }
+        }
         CommandGroup(after: .textEditing) {
             Button("Find Songs") { app.ui.focusSearch += 1 }.keyboardShortcut("f")
         }
@@ -108,6 +133,21 @@ struct WorkspaceCommands: Commands {
             Button("Stop") { app.stopShow() }
             Divider()
             Button("Quick Edit Live Slide…") { app.ui.showQuickEdit = true }.keyboardShortcut("e")
+        }
+    }
+}
+
+/// HWTEST-001: with `--hardware-test` the first window that appears is swapped for the Hardware Test window. (The scene
+/// launch-behaviour modifiers above are the intended route; this makes the flag work even where they are not honoured.)
+struct HardwareTestLauncher: ViewModifier {
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    func body(content: Content) -> some View {
+        content.task {
+            guard HardwareTestLaunchMode.opensHardwareTest, !HardwareTestLaunchMode.isHeadless else { return }
+            openWindow(id: "hardware-test")
+            dismissWindow(id: "workspace")
         }
     }
 }

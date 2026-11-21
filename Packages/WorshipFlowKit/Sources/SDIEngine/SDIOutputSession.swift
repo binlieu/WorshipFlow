@@ -19,6 +19,11 @@ public struct SDISessionStatistics: Equatable, Sendable {
     public var scheduler = SDISchedulerStatistics()
     /// Frames where the provider had nothing new and the previous frame was shown again.
     public var repeatedFrames = 0
+    public init() {}
+    public init(scheduler: SDISchedulerStatistics, repeatedFrames: Int) {
+        self.scheduler = scheduler
+        self.repeatedFrames = repeatedFrames
+    }
 }
 
 /// Locking: `lock` guards the scheduler, state, statistics and last frame. It is never held while calling
