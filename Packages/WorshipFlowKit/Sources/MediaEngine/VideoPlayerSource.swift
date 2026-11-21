@@ -235,10 +235,17 @@ public final class VideoPlayerSource: @unchecked Sendable {
         set { player.isMuted = newValue }
     }
 
-    /// 0...1. The audio goes to the system's default output; choosing another device comes with the audio slice.
+    /// 0...1.
     public var volume: Float {
         get { player.volume }
         set { player.volume = min(1, max(0, newValue)) }
+    }
+
+    /// MEDIA-006: the Core Audio device UID this player's sound goes to. Nil (or empty) is the system default. Set it
+    /// before the clip plays; AVPlayer applies it to its audio renderer.
+    public var audioOutputDeviceUniqueID: String? {
+        get { player.audioOutputDeviceUniqueID }
+        set { player.audioOutputDeviceUniqueID = newValue }
     }
 
     // MARK: Control

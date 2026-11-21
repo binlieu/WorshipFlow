@@ -48,3 +48,5 @@
 | KI-044 | Stage model writes (layouts, timers) are still not retried after a failed write, unlike drafts, settings and media. | Open. |
 | KI-045 | Decision: Next stops on a playlist item with no slides and says so, instead of skipping it. | Accepted. |
 | KI-046 | `liveThemeID` now means the theme chosen for the live presentation; `shownThemeID` is what the screens use until the next trigger. An older theme test still passes but describes the old contract. | Accepted; rename in a tidy-up. |
+| KI-047 | Audio (MEDIA-005, MEDIA-006): no real sound has ever been played by the app. Everything was run through a silent render path (`--silent-audio`). Unverified on a real device: device switching on a running engine, video-player audio following the chosen device, end-of-cue detection, device unplug fallback. Not exercised in the app: pause, seek, loop, overlap, mute, device picker. | Open. Hands-on checklist, "Audio". |
+| KI-048 | SDI engine (HW-001, KEY-001) is Simulated only: manual clock, no card, no vendor SDK, no real callback thread. | Open until hardware and the SDK are available (KI-001, ADR-0005 decision 3). |

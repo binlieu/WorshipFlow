@@ -207,6 +207,10 @@ struct RightColumn: View {
                     MediaBinPanel(app: app, media: media)
                     Divider()
                 }
+                if let audio = app.audio {
+                    AudioPanel(audio: audio)
+                    Divider()
+                }
                 ScreensPanel(model: app)
                 Divider()
                 if let stage = app.stage {

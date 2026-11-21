@@ -56,6 +56,13 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Play a clip with sound in the foreground: you hear it; pause, drag the scrubber, change volume, mute.
 - [ ] Let the clip end: the words come back.
 
+## Audio (KI-047)
+
+- [ ] Add a sound file to the media bin. In Audio, press play at low volume: you hear it and the meter moves.
+- [ ] Pause, drag the scrubber, toggle loop, mute.
+- [ ] Choose another output device in the picker: sound moves to it. Unplug that device: sound falls back to the default and the app says so.
+- [ ] Play a video with sound in the foreground: it comes out of the chosen device, once, not doubled.
+
 ## Slide objects
 
 - [ ] Objects mode: insert a rectangle, drag it, resize by its corner, change fill and opacity.

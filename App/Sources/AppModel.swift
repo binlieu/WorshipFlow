@@ -50,6 +50,8 @@ final class AppModel {
     private(set) var slideEditor: SlideEditorModel?
     /// The media bin and the background / foreground layers (MEDIA-001). Nil in a soak run, or when the library could not be opened.
     private(set) var media: MediaModel?
+    /// The audio list, cues and programme audio device (MEDIA-005 / MEDIA-006). Nil under the same conditions.
+    private(set) var audio: AudioModel?
     /// Set when the library file could not be opened: the path and a message. The file is left untouched.
     private(set) var libraryProblem: LibraryProblem?
     /// Bumped on every publish, so previews know to re-read their scene.
@@ -72,6 +74,8 @@ final class AppModel {
     @ObservationIgnored private var mediaAccess: [MediaLayerSlot: (assetID: UUID, access: MediaAccess)] = [:]
     @ObservationIgnored private var knownMediaIDs: Set<UUID> = []
     @ObservationIgnored private var mediaTicker: Timer?
+    /// Ends audio cues whose clip has reached its end by the clock (the player's own report does the same).
+    @ObservationIgnored private var audioTicker: Timer?
     @ObservationIgnored private var clockText = ""
     @ObservationIgnored private var timer: Timer?
     /// Republishes the stage scenes every second, and exists only while a stage screen shows a clock or timer.
@@ -138,7 +142,10 @@ final class AppModel {
             self.stage = stage
             let media = MediaModel(store: store, prober: AppMediaProber())
             media.onLayersChange = { [weak self] layers in self?.mediaLayersChanged(layers) }
-            media.onAssetsChange = { [weak self] assets in self?.mediaAssetsChanged(assets) }
+            media.onAssetsChange = { [weak self] assets in
+                self?.mediaAssetsChanged(assets)
+                self?.audio?.setAssets(assets)
+            }
             media.onAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setForegroundAudio(volume: volume, muted: muted) }
             mediaRegistry.setForegroundAudio(volume: Float(media.volume), muted: media.isMuted)
             // A player that failed or stalled: end the clip so the words come back, and tell the operator (R9).
@@ -157,6 +164,7 @@ final class AppModel {
                 Task { @MainActor in AppModel.shared.media?.playerReportedEnd() }
             }
             self.media = media
+            makeAudio(store: store)
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
             libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
@@ -171,6 +179,7 @@ final class AppModel {
             await stage?.load()
             await resolvePropBookmarks()
             await media?.load()
+            await audio?.load()
             coordinator.setProfiles(profiles)
             publish()
             updateReadouts()
@@ -255,6 +264,7 @@ final class AppModel {
         await stage?.flush()
         await settings?.flush()
         await media?.flush()
+        await audio?.flush()
     }
 
     /// R4: what may happen now, given whether any screen is open. A soak run counts as open.
@@ -287,6 +297,7 @@ final class AppModel {
         let wasStopped = show.isStopped
         show = state
         media?.showStateChanged(isLive: !state.isStopped)     // Stop takes a playing clip off the screens too
+        audio?.showStateChanged(isLive: !state.isStopped)     // ... and ends the sound cues (Clear and Clear all leave them)
         // R15: typing, moving the selection and loading a deck change preview only; the screens are republished
         // (every scene composed again) only when what they show changed.
         scheduleImageWarm()
@@ -457,16 +468,17 @@ final class AppModel {
     /// Built-in themes and the operator's own: what the per-screen picker and the editor offer.
     var themes: [Theme] { settings?.themes ?? Theme.builtIn }
     /// A message from the settings store (a failed save), for the error bar.
-    var settingsError: String? { settings?.lastError ?? stage?.lastError ?? media?.lastError }
+    var settingsError: String? { settings?.lastError ?? stage?.lastError ?? media?.lastError ?? audio?.lastError }
     /// R3 / R12: why typed text or settings are not on disk yet. Persistent: it has no Dismiss and goes away only when
     /// the write succeeds.
     var unsavedProblems: [String] {
-        [workspace?.draftSaveProblem, settings?.writeProblem, media?.writeProblem].compactMap { $0 }
+        [workspace?.draftSaveProblem, settings?.writeProblem, media?.writeProblem, audio?.writeProblem].compactMap { $0 }
     }
     func dismissSettingsError() {
         settings?.dismissError()
         stage?.dismissError()
         media?.dismissError()
+        audio?.dismissError()
     }
 
     func updateProfile(_ profile: ScreenProfile) {
@@ -685,13 +697,38 @@ final class AppModel {
         }
     }
 
+    // MARK: Audio (MEDIA-005 / MEDIA-006)
+
+    /// Builds the audio model on the system's devices. `--silent-audio` renders every cue to nowhere (nothing is
+    /// heard; the meter and the transport still move), for checking the interface without sound.
+    private func makeAudio(store: LibraryStore) {
+        let catalog = CoreAudioDeviceCatalog()
+        let silent = CommandLine.arguments.contains("--silent-audio")
+        let audio = AudioModel(store: store, devices: catalog, makeEngine: {
+            let player = AudioCuePlayer(catalog: catalog, output: silent ? .offline(sampleRate: 48_000) : .hardware)
+            player.pumpsOffline = silent
+            return player
+        }, access: { asset in
+            let held = MediaAccess.open(asset)
+            return AudioFileAccess(url: held.url, release: { held.stop() })
+        })
+        // Rule HW-08: one path per signal. The foreground video's sound goes to the same device as the cues.
+        audio.onProgrammeDeviceChange = { [weak self] uid in self?.mediaRegistry.setAudioOutputDevice(uid: uid) }
+        let ticker = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { _ = self?.audio?.tick() }
+        }
+        RunLoop.main.add(ticker, forMode: .common)
+        audioTicker = ticker
+        self.audio = audio
+    }
+
     /// Choose pictures and videos for the bin with the system open panel.
     func chooseMedia() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image, .movie, .audiovisualContent, .audio]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.message = "Choose pictures and videos for the media bin"
+        panel.message = "Choose pictures, videos and sound files for the media bin"
         panel.begin { [weak self] response in
             guard response == .OK else { return }
             let urls = panel.urls
@@ -804,6 +841,9 @@ final class AppModel {
     }
 
     func shutdown() {
+        audioTicker?.invalidate()
+        audioTicker = nil
+        audio?.shutdown()
         stopScreens()
         mediaRegistry.closeAll()
         mediaAccess.values.forEach { $0.access.stop() }

@@ -54,6 +54,7 @@ public final class MediaRegistry: @unchecked Sendable {
     private var foregroundEnded: (@Sendable () -> Void)?
     private var foregroundVolume: Float = 1
     private var foregroundMuted = false
+    private var audioDeviceUID: String?
     private var availabilityChanged: (@Sendable (UUID, MediaAvailability) -> Void)?
 
     public init(stillLimit: Int = MediaRegistry.defaultStillLimit) {
@@ -167,6 +168,21 @@ public final class MediaRegistry: @unchecked Sendable {
         source?.isMuted = muted
     }
 
+    /// MEDIA-006: the sound device the foreground clip's audio goes to, the same one the audio cues use (rule HW-08: one
+    /// path per signal). Nil is the system default. Applies to the open foreground source at once and to every one
+    /// opened later, before it starts playing. A background is always muted, so it has no sound to route.
+    public func setAudioOutputDevice(uid: String?) {
+        let value = (uid?.isEmpty ?? true) ? nil : uid
+        lock.lock()
+        audioDeviceUID = value
+        let source = slots[.foreground]?.source
+        lock.unlock()
+        source?.audioOutputDeviceUniqueID = value
+    }
+
+    /// The device the foreground clip's audio is routed to; nil for the system default.
+    public var audioOutputDeviceUID: String? { lock.lock(); defer { lock.unlock() }; return audioDeviceUID }
+
     // MARK: Control side
 
     /// Makes the open sources match `layers`: opens what was newly chosen, closes what was dropped and hands each
@@ -201,11 +217,14 @@ public final class MediaRegistry: @unchecked Sendable {
         switch location.kind {
         case .video:
             do {
-                lock.lock(); let level = foregroundVolume, silent = foregroundMuted; lock.unlock()
+                lock.lock(); let level = foregroundVolume, silent = foregroundMuted, device = audioDeviceUID; lock.unlock()
                 let source = try VideoPlayerSource(url: location.url, loops: layer.transport.loops,
                                                    duration: layer.selection.duration ?? location.duration,
                                                    muted: slot == .background || silent)
-                if slot == .foreground { source.volume = level }     // before it plays: no burst at full volume
+                if slot == .foreground {
+                    source.volume = level                            // before it plays: no burst at full volume
+                    source.audioOutputDeviceUniqueID = device        // and none on the wrong device
+                }
                 if slot == .foreground {
                     source.setOnEnded { [weak self] in self?.notifyForegroundEnded() }
                 }
