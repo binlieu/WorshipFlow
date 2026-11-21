@@ -170,6 +170,30 @@ A reference to a file in the media bin. The file itself is never read, moved or 
 |---|---|---|
 | presentation.themeID | TEXT, nullable | A built-in theme id or a `theme.id`. NULL means the role default. No foreign key, because built-in ids have no row; `deleteTheme` sets it to NULL in the same transaction. Index `presentation_on_themeID` |
 
+## Schema v4 (migration `v4`, STAGE-001a)
+
+Both tables keep the whole definition as JSON text (sorted keys, no escaped slashes, UUIDs upper-case, as in v3). Rows are upserted, so editing keeps a row's place in the creation-order listing. No foreign keys.
+
+### stageLayout
+Custom stage layouts. The built-in `StageLayout.standard` (fixed id `5A6E0001-0000-4000-8000-000000000001`) lives in code: it is never stored, and saving or deleting it throws `invalidReference`.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | Trimmed, non-empty |
+| definition | TEXT NOT NULL | `StageLayout` as JSON: `id`, `name`, `background`, `warningColor` and `elements` (each with `id`, `kind`, `frame`, `style`, `alignment`, `verticalAlignment`, `showsSecondLanguage`). A `timer` element holds the timer's id, which may be gone: such an element draws nothing |
+| createdAt | DATETIME NOT NULL | Listed by this, then insertion order |
+| updatedAt | DATETIME NOT NULL | |
+
+### showTimer
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | Trimmed, non-empty |
+| definition | TEXT NOT NULL | `ShowTimer` as JSON: `id`, `name`, `kind` (countdown seconds, elapsed, or countdown-to date), `runningSince` (seconds since the reference date, omitted while stopped) and `accumulated`. A running timer is stored as its start anchor, so a relaunch shows the right time |
+| createdAt | DATETIME NOT NULL | Listed by this, then insertion order |
+| updatedAt | DATETIME NOT NULL | |
+
 ## Derived search index (not a migration)
 
 `presentationSearch` is an FTS5 virtual table `(title, body, presentationID UNINDEXED)`, tokenizer `unicode61 remove_diacritics 0` because the text is already folded. It is created at open when the system SQLite has FTS5, filled from `titleFolded` and `bodyFolded` if missing, and updated in the same transaction as every change. When FTS5 is absent it is dropped and search uses `LIKE` on the folded columns. It holds no data that cannot be rebuilt.

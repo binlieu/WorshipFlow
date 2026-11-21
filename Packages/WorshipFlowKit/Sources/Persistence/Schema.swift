@@ -148,6 +148,24 @@ enum Schema {
             }
             try db.create(index: "presentation_on_themeID", on: "presentation", columns: ["themeID"])
         }
+
+        // STAGE-001a: stage layouts and timers. Definitions are JSON text (see `SettingsJSON`).
+        migrator.registerMigration("v4") { db in
+            try db.create(table: "stageLayout") { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("definition", .text).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            try db.create(table: "showTimer") { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("definition", .text).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+        }
         return migrator
     }
 }

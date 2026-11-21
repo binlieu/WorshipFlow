@@ -36,7 +36,7 @@ Phase 1 covers 26 catalogue rows: PRES-01–08 and 10; MEDIA-01, 02, 03, 07, 08;
 |---|---|---|---|---|---|---|
 | SYS-002 | Schema v3: themes, Looks, props, screen profiles, media assets | PRES-06, SCRN-08, MEDIA-08, MEDIA-01 | SLIDE-003 | Sonnet | Persistence, test-first | Unit Tested |
 | APP-001 | Integration pass: settings from SQLite, focus fix, section-order editor, theme editor | PRES-04, PRES-06, KI-021, KI-023, KI-025 | OUT-004, SYS-002 | Sonnet | SwiftUI plus wiring | In progress |
-| STAGE-001a | Stage layouts, timers, time formatting, stage composer, schema v4 | LIVE-01, LIVE-02, LIVE-04 | OUT-003 | Sonnet | Pure rules, test-first | In progress |
+| STAGE-001a | Stage layouts, timers, time formatting, stage composer, schema v4 | LIVE-01, LIVE-02, LIVE-04 | OUT-003 | Sonnet | Pure rules, test-first | Unit Tested |
 
 ## Later phases
 

@@ -21,7 +21,7 @@ import Domain
         let store = try LibraryStore.inMemory()
         let tables = try await store.tableNames()
         for expected in ["theme", "look", "prop", "screenProfile", "mediaAsset"] { #expect(tables.contains(expected), "missing \(expected)") }
-        #expect(try await store.appliedMigrations() == ["v1", "v2", "v3"])
+        #expect(Array(try await store.appliedMigrations().prefix(3)) == ["v1", "v2", "v3"])   // coordinator fix: later migrations may follow
     }
 
     @Test func v2RowsSurviveV3() async throws {
