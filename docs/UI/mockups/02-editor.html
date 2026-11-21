@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><title>WORSHIPFLOW — Edit</title><link rel="stylesheet" href="ui.css"><script src="ui.js"></script>
+<style>.body{display:grid;grid-template-columns:200px 1fr 320px;min-height:0}
+.strip{padding:10px 12px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.canvaswrap{flex:1;display:grid;place-items:center;background:var(--bg);position:relative}
+.cv{width:800px;aspect-ratio:16/9;position:relative;border-radius:2px;box-shadow:var(--shadow);background:radial-gradient(110% 100% at 80% 90%,#2d7d6c 0,#123b52 50%,#050f1c 100%);color:#fff;text-align:center}
+.safe{position:absolute;inset:5%;border:1px dashed rgba(255,255,255,.28)}
+.box{position:absolute;left:12%;right:12%;border:1.5px solid var(--sel)}.box u{position:absolute;width:8px;height:8px;background:#fff;border:1.5px solid var(--sel);border-radius:1px}
+.fr{display:flex;align-items:center;gap:8px;min-height:30px}.fr .field{flex:1}.sw{width:22px;height:22px;border-radius:5px;border:1px solid var(--border-strong);flex:none}
+.ly{display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;border-radius:6px}.ly.on{background:var(--surface-3)}
+</style><body><div class="win nobar" id="w"></div><script>
+const mini=(n,a,b,cls,on)=>`<div><div class="cap" style="margin:0 0 4px"><b>${n}</b></div>${thumb(a,b,cls+(on?' sel':''))}</div>`;
+const hs=[[0,0],[50,0],[100,0],[0,50],[100,50],[0,100],[50,100],[100,100]].map(p=>`<u style="left:calc(${p[0]}% - 4px);top:calc(${p[1]}% - 4px)"></u>`).join('');
+w.innerHTML=toolbar('Edit')+`<div class="body">
+<div class="side"><div class="sec row"><span class="h">Amazing Grace</span><span class="grow"></span>${I('plus','s')}</div>
+ <div class="strip"><div class="h c-aud" style="color:var(--verse)">Verse 1</div>${mini(1,'Amazing grace, how sweet the sound','Ân điển lạ lùng thay','bg1')}${mini(2,'I once was lost, but now am found','Tôi từng lạc mất','bg1')}
+ <div class="h" style="color:var(--chorus)">Chorus</div>${mini(3,'My chains are gone<br>I’ve been set free','Xiềng xích đã tan','bg2 live')}${mini(4,'My God, my Savior<br>has ransomed me','Chúa tôi, Cứu Chúa tôi','bg2',1)}${mini(5,'And like a flood','Như dòng nước lũ','bg2')}</div></div>
+<div class="main">
+ <div class="bar" style="background:var(--surface)"><span class="btn">${I('text')}Text</span><span class="btn">${I('shape')}Shape</span><span class="btn">${I('image')}Image</span><span class="btn">${I('film')}Video</span>
+  <span style="width:1px;height:20px;background:var(--border)"></span><span class="btn">${I('align')}Align ${I('down','s')}</span><span class="btn">${I('layers')}Arrange ${I('down','s')}</span><span class="grow"></span>
+  <div class="seg"><b class="on">Audience</b><b>Stage</b><b>Broadcast</b></div><span class="field">62% ${I('down','s')}</span></div>
+ <div class="row" style="padding:6px 14px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px">${I('lock','s')}<b>Slide 3 is live.</b><span class="c-muted">You are editing slide 4. Nothing on the screens changes until it is triggered again.</span><span class="grow"></span><span class="c-muted">Saved 2 s ago</span></div>
+ <div class="canvaswrap"><div class="cv"><div class="safe"></div>
+  <div class="box" style="top:27%;height:28%">${hs}<div style="font-size:44px;line-height:54px;font-weight:600;padding-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.6)">My God, my Savior<br>has ransomed me</div></div>
+  <div class="box" style="top:60%;height:20%;border-color:rgba(255,255,255,.25);border-style:dashed"><div style="font-size:30px;line-height:38px;font-weight:500;color:#ffd17b;padding-top:6px">Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi</div></div>
+  <div style="position:absolute;left:5%;top:5%;transform:translateY(-130%);font-size:10px;color:var(--muted)">Title-safe 90%</div></div>
+  <div class="row mono c-muted" style="position:absolute;left:14px;bottom:10px">1920 × 1080 · theme “Worship — full” · slide 4 of 9</div></div>
+</div>
+<div class="side r">
+ <div class="sec"><div class="seg" style="width:100%"><b class="on" style="flex:1;justify-content:center">Object</b><b style="flex:1;justify-content:center">Slide</b><b style="flex:1;justify-content:center">Theme</b></div></div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Text — first language</div>
+  <div class="fr"><label class="k" style="width:64px">Font</label><span class="field">SF Pro Display<span class="car">${I('down','s')}</span></span></div>
+  <div class="fr"><label class="k" style="width:64px">Style</label><span class="field">Semibold<span class="car">${I('down','s')}</span></span><span class="field mono" style="flex:0 0 64px">72 pt</span></div>
+  <div class="fr"><label class="k" style="width:64px">Align</label><div class="seg"><b>${I('list','s')}</b><b class="on">${I('align','s')}</b><b>${I('reflow','s')}</b></div><div class="seg"><b style="padding:4px 6px">Top</b><b class="on" style="padding:4px 6px">Mid</b><b style="padding:4px 6px">Bot</b></div></div>
+  <div class="fr"><label class="k" style="width:64px">Colour</label><span class="sw" style="background:#fff"></span><span class="field mono">#FFFFFF</span></div>
+  <div class="fr"><label class="k" style="width:64px">Fit</label><span class="field">Shrink to fit box<span class="car">${I('down','s')}</span></span></div></div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Effects</div>
+  <div class="fr"><span class="chk on">${I('check','s')}</span>Shadow<span class="grow"></span><span class="sw" style="background:#000"></span><span class="field mono" style="flex:0 0 96px">0 · 4 · 16</span></div>
+  <div class="fr"><span class="chk"></span>Outline<span class="grow"></span><span class="sw" style="background:#062138"></span><span class="field mono" style="flex:0 0 96px">2 px</span></div>
+  <div class="fr"><span class="chk"></span>Background fill<span class="grow"></span><span class="field mono" style="flex:0 0 96px">None</span></div></div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Position</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><span class="field mono"><span class="c-muted">X</span> 230</span><span class="field mono"><span class="c-muted">Y</span> 292</span><span class="field mono"><span class="c-muted">W</span> 1460</span><span class="field mono"><span class="c-muted">H</span> 302</span></div></div>
+ <div class="sec grow"><div class="row" style="margin-bottom:6px"><span class="h">Layers</span><span class="grow"></span><span class="c-muted" style="font-size:11px">top first</span></div>
+  <div class="ly">${I('image')}Prop · logo bug<span class="grow"></span><span class="c-muted">${I('lock','s')}</span></div>
+  <div class="ly on">${I('text')}Lyrics — English<span class="grow"></span>${I('eye','s')}</div><div class="ly">${I('text')}Lyrics — Tiếng Việt<span class="grow"></span>${I('eye','s')}</div>
+  <div class="ly">${I('film')}Background · Waves loop.mov<span class="grow"></span>${I('loop','s')}</div></div>
+</div></div>`;
+</script></body>

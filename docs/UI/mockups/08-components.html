@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>WORSHIPFLOW — Components</title><link rel="stylesheet" href="ui.css"><script src="ui.js"></script>
+<style>body{overflow:visible;padding:32px;width:1440px;height:auto}h1{font-size:26px;line-height:32px;margin:0 0 20px}
+.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.c{padding:16px}.c h2{margin:0 0 12px}.rw{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.sw{height:44px;border-radius:6px;border:1px solid var(--border)}.sws{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;font-size:10px;color:var(--muted)}
+.thumb.checker .l1,.thumb.checker .l2{background:rgba(7,19,33,.86);padding:.6cqw 3cqw;margin:0}
+.err{display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:8px;border:1px solid var(--warning);background:var(--surface-2)}
+</style><body><h1 id="t">Components</h1><div class="g" id="g"></div><script>
+const c=(t,b,span=1)=>`<div class="card c" style="grid-column:span ${span}"><h2 class="h">${t}</h2>${b}</div>`;
+const sw=(n,v)=>`<div><div class="sw" style="background:var(--${v})"></div>${n}</div>`;
+g.innerHTML=
+c('Buttons',`<div class="rw"><span class="btn">${I('plus')}Add slide</span><span class="btn primary">${I('bolt')}Run</span><span class="btn ghost">Configure…</span><span class="btn off">${I('clear')}Clear</span></div>
+ <div class="rw"><span class="btn lg">${I('prev')}Previous <span class="kbd">←</span></span><span class="btn lg live">${I('play')}Go Live <span class="kbd">↩</span></span><span class="btn lg">${I('next')}Next <span class="kbd">→</span></span></div>
+ <div class="c-muted" style="font-size:12px;line-height:17px">Go Live is the only filled red control in the app. Transport buttons are 36 pt tall; everything else is the 26 pt macOS regular control size.</div>`)+
+c('Selection controls',`<div class="rw"><div class="seg"><b>Audience</b><b>Stage</b><b class="on">Broadcast</b></div><div class="seg"><b class="on">${I('grid','s')}</b><b>${I('list','s')}</b></div></div>
+ <div class="rw"><span class="tgl on"></span>On<span class="tgl"></span>Off<span class="chk on">${I('check','s')}</span>Slide<span class="chk"></span>Notes</div>
+ <div class="rw"><span class="field" style="width:190px">1080p59.94<span class="car">${I('down','s')}</span></span><span class="field ph" style="width:170px">${I('search','s')}Filter songs</span></div>`)+
+c('Role and status',`<div class="rw"><span class="badge c-aud">Audience</span><span class="badge c-stg">Stage</span><span class="badge c-brd">Broadcast</span></div>
+ <div class="rw"><span class="pill c-aud"><span class="d"></span>AUD</span><span class="pill c-stg"><span class="d"></span>STG</span><span class="pill c-brd"><span class="d"></span>BRD</span><span class="pill c-ok"><span class="d"></span>Running</span><span class="pill c-warn">${I('warn','s')}Signal lost</span><span class="pill c-muted">Off</span></div>
+ <div class="rw"><span class="badge fill" style="background:var(--live-fill);color:#fff">Live</span><span class="badge c-aud">Preview</span><span class="badge c-brd">Simulated</span><span class="badge c-ok">Hardware Verified</span><span class="badge c-muted">Not Verified</span></div>
+ <div class="c-muted" style="font-size:12px;line-height:17px">A role or state is never colour alone: every chip carries its word, and offline states add an icon.</div>`)+
+c('Slide thumbnail states',`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">${[['','','Idle'],['sel','<span class="tag pv">PREVIEW</span>','Preview · 2 pt blue'],['live','<span class="tag">LIVE</span>','Live · 3 pt red'],['checker','','Transparent']].map(s=>`<div>${thumb('My chains are gone','Xiềng xích đã tan','bg2 '+s[0],s[1])}<div class="cap"><b>${s[2]}</b></div></div>`).join('')}</div>`,2)+
+c('Messages',`<div class="err">${I('warn')}<span><b>SDI 3 stopped sending.</b> The show is still running on the other screens.</span></div><div class="rw" style="margin-top:8px"><span class="btn">Retry output</span><span class="btn ghost">Details</span></div>
+ <div class="c-muted" style="font-size:12px;line-height:17px">Errors appear in the operator window only, never on an output. Say what happened, what still works, and the next action.</div>`)+
+c('Colour — surfaces and text',`<div class="sws">${sw('bg','bg')}${sw('surface','surface')}${sw('surface-2','surface-2')}${sw('surface-3','surface-3')}${sw('border','border')}${sw('border-strong','border-strong')}${sw('text','text')}${sw('muted','muted')}${sw('cyan','cyan')}${sw('blue','blue')}${sw('warning','warning')}${sw('live','live')}</div>`,2)+
+c('Brand',`<div class="rw"><div style="width:100%;height:44px;border-radius:6px;background:linear-gradient(135deg,var(--brand-a),var(--brand-b))"></div></div><div class="rw"><img src="../logo/worshipflow-mark-on-dark.svg" height="44" class="dk"><img src="../logo/worshipflow-wordmark-on-dark.svg" height="16" class="dk"></div>`);
+if(new URLSearchParams(location.search).get('theme')==='light'){t.textContent='Components — light';document.querySelectorAll('img.dk').forEach(i=>i.src=i.src.replace('on-dark','on-light'))}
+</script></body>

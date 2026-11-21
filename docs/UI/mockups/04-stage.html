@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>WORSHIPFLOW — Stage</title><link rel="stylesheet" href="ui.css"><script src="ui.js"></script>
+<style>.body{display:grid;grid-template-columns:230px 1fr 300px;min-height:0}
+.cv{width:820px;aspect-ratio:16/9;background:#000;position:relative;box-shadow:var(--shadow);color:#fff;font-weight:700}
+.el{position:absolute;border:1px dashed rgba(255,255,255,.22);padding:8px 12px}.el.on{border:1.5px solid var(--sel)}
+.el small{position:absolute;left:0;top:-17px;font:600 10px/14px Inter;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.fr{display:flex;align-items:center;gap:8px;min-height:30px}.fr .field{flex:1}.lay{padding:8px;border-radius:8px}.lay.on{background:var(--surface-3)}
+</style><body><div class="win nobar" id="w"></div><script>
+const lay=(n,d,on,inner)=>`<div class="lay ${on?'on':''}"><div class="thumb" style="align-items:stretch;justify-content:flex-start;padding:6%;text-align:left">${inner}</div><div class="cap"><b>${n}</b>${d}</div></div>`;
+w.innerHTML=toolbar('Stage')+`<div class="body">
+<div class="side"><div class="sec row"><span class="h">Stage layouts</span><span class="grow"></span>${I('plus','s')}</div>
+ <div class="sec grow" style="display:flex;flex-direction:column;gap:4px">
+ ${lay('Band','current + next',1,'<div class="l1" style="font-size:9cqw">My chains are gone</div><div class="l1" style="font-size:6cqw;color:#9fb2c7;margin-top:6cqw">My God, my Savior</div>')}
+ ${lay('Speaker','notes + timer',0,'<div class="l1" style="font-size:6cqw;font-weight:500">Point 2 — grace is a gift, not a wage</div><div class="l1" style="font-size:12cqw;color:#ffd17b;margin-top:auto">18:42</div>')}
+ ${lay('Clock only','time of day',0,'<div class="l1" style="font-size:20cqw;margin:auto">9:14</div>')}</div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Stage message</div><div class="field" style="height:48px;align-items:flex-start;padding-top:5px">Repeat chorus ×2, then bridge</div><div class="row" style="margin-top:6px"><span class="btn primary">${I('msg')}Send</span><span class="btn">Clear</span><span class="grow"></span><span class="c-muted" style="font-size:11px">Stage only</span></div></div></div>
+<div class="main">
+ <div class="bar" style="background:var(--surface)"><b style="font-size:15px">Band</b><span class="badge c-stg">Stage</span><span class="grow"></span><span class="btn">${I('text')}Current</span><span class="btn">${I('text')}Next</span><span class="btn">${I('clock')}Clock</span><span class="btn">${I('timer')}Timer</span><span class="btn">${I('msg')}Message</span><span class="btn">${I('pip')}Video</span></div>
+ <div style="flex:1;display:grid;place-items:center;position:relative"><div class="cv">
+  <div class="el on" style="left:4%;top:9%;width:66%;height:42%"><small style="color:var(--sel)">Current slide · both languages</small><div style="font-size:50px;line-height:58px">My chains are gone<br>I’ve been set free</div><div style="font-size:30px;line-height:38px;color:#ffd17b;font-weight:600;margin-top:8px">Xiềng xích đã tan · Tôi được tự do</div></div>
+  <div class="el" style="left:4%;top:60%;width:66%;height:22%"><small>Next slide</small><div style="font-size:30px;line-height:40px;color:#9fb2c7">My God, my Savior<br>has ransomed me</div></div>
+  <div class="el" style="right:4%;top:9%;width:22%;height:15%;text-align:right"><small>Clock</small><div style="font-size:40px;line-height:48px;white-space:nowrap">9:14 <span style="font-size:22px;color:#9fb2c7">AM</span></div></div>
+  <div class="el" style="right:4%;top:32%;width:22%;height:19%;text-align:right"><small>Timer · service elapsed</small><div style="font-size:54px;line-height:64px;color:#49d3c3">10:32</div></div>
+  <div class="el" style="right:4%;top:60%;width:22%;height:22%;text-align:right"><small>Section · arrangement</small><div style="font-size:22px;line-height:30px;color:#70b8fa">CHORUS ×2</div><div style="font-size:18px;line-height:24px;color:#9fb2c7;font-weight:500">then Verse 2</div></div>
+  <div class="el" style="left:4%;right:4%;bottom:3%;height:10%;background:#ffd17b;color:#062138;border-style:solid;border-color:#ffd17b"><small>Stage message</small><div style="font-size:26px;line-height:32px">Repeat chorus ×2, then bridge</div></div></div>
+  <div class="row mono c-muted" style="position:absolute;left:14px;bottom:10px">1920 × 1080 · minimum lyric size 64 px at 1080p · readable at 10 m</div></div>
+</div>
+<div class="side r"><div class="sec"><div class="h" style="margin-bottom:6px">Element — current slide</div>
+  <div class="fr"><label class="k" style="width:70px">Shows</label><span class="field">Both languages<span class="car">${I('down','s')}</span></span></div>
+  <div class="fr"><label class="k" style="width:70px">Size</label><span class="field mono">96 px</span><span class="chk on">${I('check','s')}</span>Auto-fit</div>
+  <div class="fr"><label class="k" style="width:70px">Weight</label><span class="field">Bold<span class="car">${I('down','s')}</span></span></div>
+  <div class="fr"><label class="k" style="width:70px">Colour</label><span style="width:22px;height:22px;border-radius:5px;background:#fff;border:1px solid var(--border-strong)"></span><span class="field mono">#FFFFFF</span></div>
+  <div class="fr"><label class="k" style="width:70px">2nd lang.</label><span style="width:22px;height:22px;border-radius:5px;background:#ffd17b"></span><span class="field mono">#FFD17B</span></div></div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Elements</div>
+  ${['Current slide','Next slide','Clock','Timer · service elapsed','Section','Stage message'].map((n,i)=>`<div class="li ${i==0?'on':''}">${I(['text','text','clock','timer','list','msg'][i])}${n}<span class="n">${I('eye','s')}</span></div>`).join('')}</div>
+ <div class="sec grow"><div class="h" style="margin-bottom:6px">Assigned to</div><div class="row" style="height:26px"><span class="dot c-stg"></span>Confidence · SDI 4<span class="grow"></span><span class="tgl on"></span></div>
+  <div class="c-muted" style="font-size:11px;line-height:15px;margin-top:8px">Speaker notes and stage messages never appear on Audience or Broadcast screens. Themes, Looks and props do not apply to stage layouts.</div></div></div></div>`;
+</script></body>

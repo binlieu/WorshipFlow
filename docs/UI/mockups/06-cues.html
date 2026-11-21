@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>WORSHIPFLOW — Cues</title><link rel="stylesheet" href="ui.css"><script src="ui.js"></script>
+<style>.body{display:grid;grid-template-columns:230px 1fr 380px;min-height:0}
+.act{display:grid;grid-template-columns:22px 150px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);margin-bottom:6px}
+.act .n{width:20px;height:20px;border-radius:50%;background:var(--surface-3);display:grid;place-items:center;font-size:11px;font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:12px}td,th{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}th{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tl{position:relative;height:54px;background:var(--surface-2);border-radius:8px;margin-top:8px}.tl i{position:absolute;top:8px;bottom:8px;border-radius:4px}.tl u{position:absolute;top:0;bottom:0;width:2px;background:var(--live)}
+</style><body><div class="win" id="w"></div><script>
+const act=(n,ic,t,d,r)=>`<div class="act"><span class="n">${n}</span><span class="row">${I(ic)}<b>${t}</b></span><span class="c-muted">${d}</span><span>${r}</span></div>`;
+w.innerHTML=toolbar('Cues')+`<div class="body">
+<div class="side"><div class="sec"><div class="row" style="margin-bottom:6px"><span class="h">Macros</span><span class="grow"></span>${I('plus','s')}</div>
+ <div class="li on">${I('bolt')}Start worship set<span class="n">5</span></div><div class="li">${I('bolt')}Sermon mode<span class="n">4</span></div><div class="li">${I('bolt')}Baptism video<span class="n">6</span></div><div class="li">${I('bolt')}End of service<span class="n">3</span></div><div class="li">${I('bolt')}Emergency clear<span class="n">2</span></div></div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Slide actions</div><div class="li">${I('music')}Amazing Grace<span class="n">2</span></div><div class="li">${I('film')}Baptism testimony<span class="n">3</span></div></div>
+ <div class="sec grow"><div class="h" style="margin-bottom:6px">Control inputs</div><div class="li">${I('sliders')}MIDI — nanoPAD2<span class="n c-ok">●</span></div><div class="li">${I('grid')}Stream Deck<span class="n c-muted">later</span></div><div class="li">${I('cast')}Remote API<span class="n c-muted">off</span></div></div></div>
+<div class="main"><div class="bar"><span style="font-size:17px;font-weight:700;line-height:22px">Start worship set</span><span class="pill c-muted">Macro · 5 actions</span><span class="grow"></span><span class="field">Trigger: <b>F1</b> · MIDI note C2</span><span class="btn">${I('play','s')}Test in Preview</span><span class="btn primary">${I('bolt')}Run</span></div>
+ <div style="padding:14px;flex:1;overflow:hidden">
+ ${act(1,'layers','Set Look','Worship — full, on Audience and Broadcast','<span class="pill c-aud">AUD</span> <span class="pill c-brd">BRD</span>')}
+ ${act(2,'film','Start background','Waves — teal.mov, loop, 1.0 s dissolve','<span class="pill c-aud">AUD</span>')}
+ ${act(3,'image','Prop on','Church logo bug','<span class="pill c-aud">AUD</span> <span class="pill c-brd">BRD</span>')}
+ ${act(4,'stage','Stage layout','Band','<span class="pill c-stg">STG</span>')}
+ ${act(5,'timer','Start timer','Service elapsed, from 00:00','<span class="pill c-stg">STG</span>')}
+ <span class="btn" style="margin-top:4px">${I('plus')}Add action ${I('down','s')}</span>
+ <div class="h" style="margin:22px 0 4px">Playback markers — Baptism testimony.mov</div>
+ <div class="tl"><i style="left:1%;width:98%;background:var(--surface-3)"></i><i style="left:1%;width:31%;background:linear-gradient(90deg,var(--brand-a),var(--brand-b));opacity:.55"></i><u style="left:32%"></u>
+  ${[[12,'Lower third on'],[55,'Lower third off'],[84,'Fade to background']].map(m=>`<span style="position:absolute;left:${m[0]}%;top:-4px;bottom:-4px;border-left:2px solid var(--warning)"></span><span style="position:absolute;left:calc(${m[0]}% + 6px);top:19px;font-size:11px;font-weight:600;white-space:nowrap">${m[1]}</span>`).join('')}</div>
+ <div class="row mono c-muted" style="justify-content:space-between;margin-top:4px"><span>00:00</span><span>00:45</span><span>01:30</span><span>02:15</span><span>03:02</span></div>
+ <div class="card" style="margin-top:22px;padding:10px 12px;font-size:12px;line-height:17px;display:flex;gap:8px">${I('warn')}<span><b>Order is fixed and visible.</b> <span class="c-muted">Actions run top to bottom on one frame boundary. A macro never changes which destination a screen is mapped to, and it cannot put speaker notes on an Audience or Broadcast screen.</span></span></div></div></div>
+<div class="side r"><div class="sec"><div class="row" style="margin-bottom:6px"><span class="h">MIDI map</span><span class="grow"></span><span class="btn" style="height:22px">Learn…</span></div>
+ <table><tr><th>Input</th><th>Command</th><th></th></tr>
+ ${[['Note C2','Macro · Start worship set'],['Note D2','Next slide'],['Note E2','Previous slide'],['Note F2','Clear slide'],['Note G2','Blackout'],['CC 7','Media audio level'],['Note A2','Macro · Emergency clear']].map(r=>`<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td class="c-muted">${I('dots','s')}</td></tr>`).join('')}</table></div>
+ <div class="sec"><div class="h" style="margin-bottom:6px">Keyboard</div><table>
+ ${[['→ or Space','Next slide'],['←','Previous slide'],['↩','Go live with Preview'],['B','Blackout (toggle)'],['⌘K','Clear slide'],['⇧⌘K','Clear all layers'],['⌘.','Stop media'],['⌘E','Quick edit live slide'],['⌘F','Search']].map(r=>`<tr><td><span class="kbd">${r[0]}</span></td><td>${r[1]}</td></tr>`).join('')}</table></div>
+ <div class="sec grow"><div class="h" style="margin-bottom:6px">Activity</div><div class="mono c-muted" style="line-height:18px">09:03:11 macro Start worship set<br>09:03:11 look → Worship — full<br>09:03:11 media Waves — teal (loop)<br>09:07:42 midi D2 → Next slide<br><span class="c-warn">09:09:05 midi nanoPAD2 reconnected</span></div></div></div></div>`+transport();
+</script></body>

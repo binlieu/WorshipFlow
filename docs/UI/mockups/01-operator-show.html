@@ -1,0 +1,57 @@
+<!doctype html><meta charset="utf-8"><title>WORSHIPFLOW — Show</title><link rel="stylesheet" href="ui.css"><script src="ui.js"></script>
+<style>.body{display:grid;grid-template-columns:256px 1fr 372px;min-height:0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 12px}
+.sl{font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;margin:14px 0 8px}.sl:first-child{margin-top:0}
+.mon .thumb{border-radius:6px}.mh{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.look{display:grid;grid-template-columns:1fr 1fr;gap:6px}.look .btn{justify-content:center}
+</style><body><div class="win" id="w"></div><script>
+const sec=(c,n,r)=>`<div class="sl"><span class="dot" style="color:var(--${c})"></span><span style="color:var(--${c})">${n}</span><span class="c-muted" style="font-weight:400">${r||''}</span></div>`;
+const cell=(n,a,b,cls,tag,cap)=>`<div>${thumb(a,b,cls,tag)}<div class="cap"><b>${n}</b>${cap}</div></div>`;
+const LIVE='<span class="tag">LIVE</span>',PV='<span class="tag pv">PREVIEW</span>';
+w.innerHTML=toolbar('Show')+`<div class="body">
+<div class="side">
+ <div class="sec"><div class="row" style="margin-bottom:6px"><span class="h">Libraries</span><span class="grow"></span>${I('plus','s')}</div>
+  <div class="li on">${I('music')}Songs<span class="n">214</span></div><div class="li">${I('book')}Scripture<span class="n">38</span></div>
+  <div class="li">${I('text')}Sermons<span class="n">12</span></div><div class="li">${I('mega')}Announcements<span class="n">9</span></div></div>
+ <div class="sec" style="flex:0 0 190px;overflow:hidden"><div class="field ph" style="margin-bottom:6px">${I('search','s')}Filter songs</div>
+  <div class="li">${I('music')}10,000 Reasons</div><div class="li on">${I('music')}Amazing Grace<span class="n">EN · VI</span></div><div class="li">${I('music')}Be Thou My Vision</div><div class="li">${I('music')}Great Is Thy Faithfulness</div><div class="li">${I('music')}How Great Thou Art</div></div>
+ <div class="sec grow"><div class="row" style="margin-bottom:6px"><span class="h">Playlist</span><span class="field" style="height:22px;margin-left:6px">Sunday 9:00 ${I('down','s')}</span><span class="grow"></span>${I('dots')}</div>
+  <div class="li sub">Pre-service</div><div class="li">${I('timer')}Countdown 5:00</div><div class="li">${I('mega')}Announcements loop</div>
+  <div class="li sub">Worship</div><div class="li">${I('music')}How Great Thou Art</div>
+  <div class="li on">${I('music')}Amazing Grace<span class="n c-live" style="display:flex;align-items:center;gap:4px"><span class="dot"></span>LIVE</span></div><div class="li">${I('music')}10,000 Reasons</div>
+  <div class="li sub">Message</div><div class="li">${I('book')}Ephesians 2:1–10</div><div class="li">${I('text')}Sermon — Saved by Grace</div><div class="li">${I('film')}Baptism testimony.mov</div>
+  <div class="li sub">Response</div><div class="li">${I('music')}Great Is Thy Faithfulness</div></div>
+</div>
+<div class="main">
+ <div class="bar"><span style="font-size:17px;font-weight:700;line-height:22px;white-space:nowrap">Amazing Grace</span><span class="field" style="margin-left:8px">Arrangement: Sunday ${I('down','s')}</span><span class="pill c-muted">EN + VI</span><span class="grow"></span>
+  <span class="btn">${I('plus')}Add slide</span><span class="btn">${I('reflow')}Reflow…</span><span class="btn">${I('edit')}Quick edit <span class="kbd">⌘E</span></span><div class="seg"><b class="on">${I('grid','s')}</b><b>${I('list','s')}</b></div></div>
+ <div style="padding:14px;overflow:hidden;flex:1">
+  ${sec('verse','Verse 1')}<div class="grid">${cell(1,'Amazing grace, how sweet the sound<br>That saved a wretch like me','Ân điển lạ lùng thay<br>Đã cứu vớt tôi','bg1','','Amazing grace, how sweet…')}${cell(2,'I once was lost, but now am found<br>Was blind, but now I see','Tôi từng lạc mất, nay được tìm thấy<br>Từng mù loà, nay tôi thấy','bg1','','I once was lost…')}</div>
+  ${sec('chorus','Chorus','× 2')}<div class="grid">${cell(3,'My chains are gone<br>I’ve been set free','Xiềng xích đã tan<br>Tôi được tự do','bg2 live',LIVE,'My chains are gone…')}${cell(4,'My God, my Savior<br>has ransomed me','Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi','bg2 sel',PV,'My God, my Savior…')}${cell(5,'And like a flood<br>His mercy reigns','Như dòng nước lũ<br>ơn thương xót Ngài tuôn tràn','bg2','','And like a flood…')}${cell(6,'Unending love<br>Amazing grace','Tình yêu vô tận<br>Ân điển lạ lùng','bg2','','Unending love…')}</div>
+  ${sec('verse','Verse 2')}<div class="grid">${cell(7,'’Twas grace that taught my heart to fear<br>And grace my fears relieved','Chính ân điển dạy lòng tôi kính sợ<br>Và ân điển xua tan sợ hãi','bg1','','’Twas grace that taught…')}${cell(8,'How precious did that grace appear<br>The hour I first believed','Ân điển ấy quý báu dường bao<br>Giờ tôi mới tin','bg1','','How precious did…')}</div>
+  ${sec('bridge','Ending')}<div class="grid">${cell(9,'','','bg3','','Blank — motion background only')}</div>
+ </div>
+ <div style="border-top:1px solid var(--border);padding:8px 14px;background:var(--surface)"><div class="row" style="margin-bottom:6px"><b>Slide 4 of 9</b><span class="pill c-aud">In preview</span><span class="grow"></span><span class="c-muted" style="font-size:11px">Editing here changes Preview only. The audience sees it when you go live again.</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div class="field" style="height:44px;align-items:flex-start;padding-top:5px">My God, my Savior<br>has ransomed me</div><div class="field" style="height:44px;align-items:flex-start;padding-top:5px">Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi</div><div class="field ph" style="height:44px;align-items:flex-start;padding-top:5px">Speaker notes — stage screens only</div></div></div>
+</div>
+<div class="side r">
+ <div class="sec mon" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div><div class="mh"><span class="badge c-aud">Preview</span><span class="c-muted" style="font-size:11px">slide 4</span></div>${thumb('My God, my Savior<br>has ransomed me','Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi','bg2 sel')}</div>
+  <div><div class="mh"><span class="badge fill" style="background:var(--live-fill);color:#fff">Live</span><span class="c-muted" style="font-size:11px">Audience</span></div>${thumb('My chains are gone<br>I’ve been set free','Xiềng xích đã tan<br>Tôi được tự do','bg2 live')}</div></div>
+ <div class="sec mon"><div class="row" style="margin-bottom:8px"><span class="h">Screens</span><span class="grow"></span><span class="btn ghost" style="height:20px">Configure…</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div><div class="thumb" style="align-items:flex-start;text-align:left;padding:6%"><div class="l1" style="font-size:8cqw">My chains are gone<br>I’ve been set free</div><div class="l1" style="font-size:5.5cqw;color:#9fb2c7;margin-top:4cqw">NEXT · My God, my Savior</div><div style="position:absolute;right:6%;top:6%;font-size:6cqw;font-weight:700;color:#ffd17b">10:32</div></div>
+   <div class="cap"><span class="dot c-stg"></span><b>Stage</b>SDI 4 · 1080p59.94</div></div>
+  <div><div class="thumb checker" style="justify-content:flex-end;padding-bottom:5%"><div style="background:rgba(7,19,33,.86);width:88%;border-radius:1.5cqw;padding:2.5cqw"><div class="l1" style="font-size:5.4cqw">My chains are gone, I’ve been set free</div><div class="l2" style="margin-top:1cqw;font-size:4.2cqw">Xiềng xích đã tan, tôi được tự do</div></div></div>
+   <div class="cap"><span class="dot c-brd"></span><b>Broadcast</b>SDI 1+2 · Fill + Key</div></div></div>
+  <div class="row mono c-muted" style="margin-top:8px"><span class="badge c-brd" style="font-family:Inter">Simulated</span>Not Hardware Verified</div></div>
+ <div class="sec"><div class="h" style="margin-bottom:8px">Look</div><div class="look"><span class="btn" style="box-shadow:0 0 0 2px var(--sel)">Worship — full</span><span class="btn">Sermon — notes</span><span class="btn">Lower third only</span><span class="btn">Background only</span></div></div>
+ <div class="sec"><div class="h" style="margin-bottom:8px">Props and messages</div>
+  <div class="row" style="height:26px">${I('image')}Church logo bug<span class="grow"></span><span class="pill c-aud" style="height:16px">AUD</span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl on"></span></div>
+  <div class="row" style="height:26px">${I('text')}Service title strap<span class="grow"></span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl"></span></div>
+  <div class="row" style="height:26px">${I('msg')}Stage message<span class="grow"></span><span class="field ph" style="width:150px;height:22px">Wrap up in 2 min…</span></div></div>
+ <div class="sec grow"><div class="h" style="margin-bottom:8px">Timers</div>
+  <div class="row" style="height:28px">${I('clock')}Service elapsed<span class="grow"></span><b class="mono" style="font-size:15px">00:10:32</b></div>
+  <div class="row" style="height:28px">${I('timer')}Sermon countdown<span class="grow"></span><b class="mono c-muted" style="font-size:15px">25:00</b><span class="btn" style="height:22px">${I('play','s')}Start</span></div></div>
+</div></div>`+transport();
+</script></body>

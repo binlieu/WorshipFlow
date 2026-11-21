@@ -1,0 +1,536 @@
+{
+ "name": "WORSHIPFLOW",
+ "version": 1,
+ "color": {
+  "themes": [
+   {
+    "id": "dark",
+    "name": "Dark"
+   },
+   {
+    "id": "light",
+    "name": "Light"
+   }
+  ],
+  "tokens": [
+   {
+    "name": "bg",
+    "value": {
+     "dark": "#071321",
+     "light": "#f5f8fb"
+    },
+    "usage": "Window ground and the slide-grid area. Text: `text`, `muted`."
+   },
+   {
+    "name": "surface",
+    "value": {
+     "dark": "#0e1e30",
+     "light": "#ffffff"
+    },
+    "usage": "Toolbar, sidebars, inspector, transport bar, cards."
+   },
+   {
+    "name": "surface-2",
+    "value": {
+     "dark": "#11273a",
+     "light": "#ecf4fb"
+    },
+    "usage": "Resting controls (buttons, segmented tracks), info strips, stat tiles."
+   },
+   {
+    "name": "surface-3",
+    "value": {
+     "dark": "#1a3a52",
+     "light": "#d9e8f5"
+    },
+    "usage": "Selected row, selected segment, meter track. Do not set `live` text on it."
+   },
+   {
+    "name": "border",
+    "value": {
+     "dark": "#284255",
+     "light": "#d7e1ec"
+    },
+    "usage": "Hairline dividers between panes and sections. Decorative only; never the sole edge of a control."
+   },
+   {
+    "name": "border-strong",
+    "value": {
+     "dark": "#52758f",
+     "light": "#6c8198"
+    },
+    "usage": "Control outlines (buttons, fields, checkboxes, chips). 3:1 on `bg`, `surface`, `surface-2`."
+   },
+   {
+    "name": "text",
+    "value": {
+     "dark": "#e8edf6",
+     "light": "#13283d"
+    },
+    "usage": "Primary text on every surface."
+   },
+   {
+    "name": "muted",
+    "value": {
+     "dark": "#9fb2c7",
+     "light": "#536a80"
+    },
+    "usage": "Secondary text, captions, section labels on `bg`, `surface`, `surface-2`."
+   },
+   {
+    "name": "cyan",
+    "value": {
+     "dark": "#49d3c3",
+     "light": "#047f75"
+    },
+    "usage": "Healthy / running status, toggles on, timers, chorus section. In light theme use on `bg` and `surface` (4.6:1+); on `surface-2` only at 600 weight."
+   },
+   {
+    "name": "blue",
+    "value": {
+     "dark": "#70b8fa",
+     "light": "#125fa6"
+    },
+    "usage": "Preview selection ring, Audience role, checkboxes, verse section, links."
+   },
+   {
+    "name": "warning",
+    "value": {
+     "dark": "#ffd17b",
+     "light": "#995b00"
+    },
+    "usage": "Stage role, warnings, offline media, bridge section. Always with a word or icon."
+   },
+   {
+    "name": "live",
+    "value": {
+     "dark": "#ff6b62",
+     "light": "#c8281f"
+    },
+    "usage": "LIVE text and dots on `bg`, `surface`, `surface-2`. Means on-air and nothing else."
+   },
+   {
+    "name": "live-fill",
+    "value": {
+     "dark": "#d42a20",
+     "light": "#c8281f"
+    },
+    "usage": "Fill of the Go Live button, LIVE tag and the 3 pt live ring. Text on it: `on-live`."
+   },
+   {
+    "name": "on-live",
+    "value": {
+     "dark": "#ffffff",
+     "light": "#ffffff"
+    },
+    "usage": "Text and icons on `live-fill`."
+   },
+   {
+    "name": "broadcast",
+    "value": {
+     "dark": "#e3a1f2",
+     "light": "#8a2fa3"
+    },
+    "usage": "Broadcast role, fill/key connectors, the Simulated badge."
+   },
+   {
+    "name": "brand-a",
+    "value": {
+     "dark": "#42d9b8",
+     "light": "#42d9b8"
+    },
+    "usage": "Start of the brand gradient (135°). Mark, primary button, cover."
+   },
+   {
+    "name": "brand-b",
+    "value": {
+     "dark": "#4d99ed",
+     "light": "#4d99ed"
+    },
+    "usage": "End of the brand gradient."
+   },
+   {
+    "name": "on-brand",
+    "value": {
+     "dark": "#062138",
+     "light": "#062138"
+    },
+    "usage": "Text and icons on the brand gradient and on `warning` fills."
+   },
+   {
+    "name": "canvas",
+    "value": {
+     "dark": "#000000",
+     "light": "#000000"
+    },
+    "usage": "Ground of every output preview and of stage screens. Same in both themes: outputs do not follow the operator theme."
+   },
+   {
+    "name": "lyric-ink",
+    "value": {
+     "dark": "#ffffff",
+     "light": "#ffffff"
+    },
+    "usage": "First-language lyrics on outputs."
+   },
+   {
+    "name": "lyric-ink-2",
+    "value": {
+     "dark": "#ffd17b",
+     "light": "#ffd17b"
+    },
+    "usage": "Second-language lyrics on outputs (Vietnamese in the examples). 14.7:1 on `canvas`."
+   },
+   {
+    "name": "stage-next",
+    "value": {
+     "dark": "#9fb2c7",
+     "light": "#9fb2c7"
+    },
+    "usage": "Next-slide text on stage screens."
+   },
+   {
+    "name": "plate",
+    "value": {
+     "dark": "rgba(7, 19, 33, 0.86)",
+     "light": "rgba(7, 19, 33, 0.86)"
+    },
+    "usage": "Lower-third plate behind broadcast lyrics. Its alpha becomes grey in the key signal."
+   },
+   {
+    "name": "role-audience",
+    "value": {
+     "dark": "{blue}",
+     "light": "{blue}"
+    },
+    "usage": "Audience screens: chips, connector outlines, dots."
+   },
+   {
+    "name": "role-stage",
+    "value": {
+     "dark": "{warning}",
+     "light": "{warning}"
+    },
+    "usage": "Stage screens."
+   },
+   {
+    "name": "role-broadcast",
+    "value": {
+     "dark": "{broadcast}",
+     "light": "{broadcast}"
+    },
+    "usage": "Broadcast screens."
+   },
+   {
+    "name": "status-ok",
+    "value": {
+     "dark": "{cyan}",
+     "light": "{cyan}"
+    },
+    "usage": "Running, verified, zero dropped frames. Deliberately not green, so it never has to be told from `live` by hue."
+   },
+   {
+    "name": "section-verse",
+    "value": {
+     "dark": "{blue}",
+     "light": "{blue}"
+    },
+    "usage": "Verse label and dot in the slide grid."
+   },
+   {
+    "name": "section-chorus",
+    "value": {
+     "dark": "{cyan}",
+     "light": "{cyan}"
+    },
+    "usage": "Chorus label and dot."
+   },
+   {
+    "name": "section-bridge",
+    "value": {
+     "dark": "{warning}",
+     "light": "{warning}"
+    },
+    "usage": "Bridge, ending and tag labels."
+   }
+  ]
+ },
+ "type": {
+  "fonts": [],
+  "families": {
+   "sans": "-apple-system, \"SF Pro Text\", \"Helvetica Neue\", sans-serif",
+   "display": "-apple-system, \"SF Pro Display\", \"Helvetica Neue\", sans-serif",
+   "mono": "\"SF Mono\", ui-monospace, Menlo, monospace"
+  },
+  "groups": [
+   {
+    "name": "Operator UI",
+    "family": "sans",
+    "styles": [
+     {
+      "name": "large-title",
+      "fontSize": "26px",
+      "lineHeight": "32px",
+      "fontWeight": 700,
+      "family": "display",
+      "usage": "Board and sheet titles. SwiftUI .largeTitle."
+     },
+     {
+      "name": "title-2",
+      "fontSize": "17px",
+      "lineHeight": "22px",
+      "fontWeight": 700,
+      "usage": "Presentation name, pane titles. SwiftUI .title2."
+     },
+     {
+      "name": "title-3",
+      "fontSize": "15px",
+      "lineHeight": "20px",
+      "fontWeight": 600,
+      "usage": "Selected screen name, sub-pane titles. SwiftUI .title3."
+     },
+     {
+      "name": "headline",
+      "fontSize": "13px",
+      "lineHeight": "16px",
+      "fontWeight": 600,
+      "usage": "Row titles, button labels in the transport bar. SwiftUI .headline."
+     },
+     {
+      "name": "body",
+      "fontSize": "13px",
+      "lineHeight": "16px",
+      "fontWeight": 400,
+      "usage": "Lists, fields, default text. SwiftUI .body."
+     },
+     {
+      "name": "callout",
+      "fontSize": "12px",
+      "lineHeight": "16px",
+      "fontWeight": 500,
+      "usage": "Regular-size control labels. SwiftUI .callout."
+     },
+     {
+      "name": "subheadline",
+      "fontSize": "11px",
+      "lineHeight": "14px",
+      "fontWeight": 400,
+      "usage": "Captions under thumbnails, helper text. SwiftUI .subheadline."
+     },
+     {
+      "name": "section-label",
+      "fontSize": "11px",
+      "lineHeight": "14px",
+      "fontWeight": 600,
+      "letterSpacing": "0.06em",
+      "sample": "LIBRARIES",
+      "usage": "Uppercase section headers in sidebars and inspectors, in `muted`."
+     },
+     {
+      "name": "badge",
+      "fontSize": "10px",
+      "lineHeight": "13px",
+      "fontWeight": 700,
+      "letterSpacing": "0.06em",
+      "sample": "LIVE",
+      "usage": "Uppercase role and state badges."
+     }
+    ]
+   },
+   {
+    "name": "Data",
+    "family": "mono",
+    "styles": [
+     {
+      "name": "mono-data",
+      "fontSize": "11px",
+      "lineHeight": "14px",
+      "fontWeight": 500,
+      "sample": "59.94 fps · dropped 0",
+      "usage": "Frame counters, timecode, hex values, video modes."
+     },
+     {
+      "name": "mono-readout",
+      "fontSize": "17px",
+      "lineHeight": "22px",
+      "fontWeight": 600,
+      "sample": "00:10:32",
+      "usage": "Timer readouts and output statistics."
+     }
+    ]
+   },
+   {
+    "name": "Outputs at 1080p",
+    "family": "display",
+    "styles": [
+     {
+      "name": "lyric",
+      "fontSize": "120px",
+      "lineHeight": "144px",
+      "fontWeight": 600,
+      "sample": "My chains are gone",
+      "usage": "Audience first-language lyrics, `lyric-ink`, centred inside the 90% title-safe area."
+     },
+     {
+      "name": "lyric-2",
+      "fontSize": "80px",
+      "lineHeight": "104px",
+      "fontWeight": 500,
+      "sample": "Xiềng xích đã tan",
+      "usage": "Audience second-language lyrics, `lyric-ink-2`."
+     },
+     {
+      "name": "lower-third",
+      "fontSize": "68px",
+      "lineHeight": "84px",
+      "fontWeight": 600,
+      "sample": "My chains are gone, I’ve been set free",
+      "usage": "Broadcast lower third, first language. Reflow before shrinking; never below 56px."
+     },
+     {
+      "name": "lower-third-2",
+      "fontSize": "50px",
+      "lineHeight": "64px",
+      "fontWeight": 500,
+      "sample": "Xiềng xích đã tan, tôi được tự do",
+      "usage": "Broadcast lower third, second language."
+     },
+     {
+      "name": "stage-current",
+      "fontSize": "128px",
+      "lineHeight": "148px",
+      "fontWeight": 700,
+      "sample": "My chains are gone",
+      "usage": "Stage current lyric. Auto-fit may reduce it to 96px, no further."
+     },
+     {
+      "name": "stage-next-line",
+      "fontSize": "72px",
+      "lineHeight": "88px",
+      "fontWeight": 700,
+      "sample": "My God, my Savior",
+      "usage": "Stage next line in `stage-next`. Minimum 64px."
+     },
+     {
+      "name": "stage-timer",
+      "fontSize": "116px",
+      "lineHeight": "128px",
+      "fontWeight": 700,
+      "sample": "10:32",
+      "usage": "Stage clock and timers, tabular figures."
+     }
+    ]
+   }
+  ]
+ },
+ "spacing": {
+  "tokens": [
+   {
+    "name": "space-1",
+    "value": "2px",
+    "usage": "Inside segmented tracks; ring offset of thumbnails."
+   },
+   {
+    "name": "space-2",
+    "value": "4px",
+    "usage": "Icon to label in chips; between stacked list rows."
+   },
+   {
+    "name": "space-3",
+    "value": "8px",
+    "usage": "Between controls in a row; row padding."
+   },
+   {
+    "name": "space-4",
+    "value": "12px",
+    "usage": "Sidebar section padding; grid gutter between thumbnails."
+   },
+   {
+    "name": "space-5",
+    "value": "14px",
+    "usage": "Pane padding and toolbar side padding."
+   },
+   {
+    "name": "space-6",
+    "value": "24px",
+    "usage": "Between form columns; between groups on a board."
+   },
+   {
+    "name": "space-7",
+    "value": "32px",
+    "usage": "Sheet and board margins."
+   },
+   {
+    "name": "control-height",
+    "value": "26px",
+    "usage": "Regular buttons, fields, pop-ups (macOS regular control size)."
+   },
+   {
+    "name": "transport-height",
+    "value": "36px",
+    "usage": "Previous, Go Live, Next, Clear, Blackout, Stop."
+   },
+   {
+    "name": "toolbar-height",
+    "value": "52px",
+    "usage": "Unified window toolbar."
+   },
+   {
+    "name": "transport-bar-height",
+    "value": "56px",
+    "usage": "Bottom transport bar."
+   },
+   {
+    "name": "sidebar-width",
+    "value": "256px",
+    "usage": "Library and playlist sidebar; resizable 240–380."
+   },
+   {
+    "name": "inspector-width",
+    "value": "372px",
+    "usage": "Right-hand monitors and inspector; resizable 320–440."
+   }
+  ]
+ },
+ "radius": {
+  "tokens": [
+   {
+    "name": "radius-xs",
+    "value": "3px",
+    "usage": "LIVE and PREVIEW tags, keyboard hints, checkboxes."
+   },
+   {
+    "name": "radius-sm",
+    "value": "4px",
+    "usage": "Slide and media thumbnails, badges."
+   },
+   {
+    "name": "radius-md",
+    "value": "6px",
+    "usage": "Regular buttons, fields, list rows, segmented controls."
+   },
+   {
+    "name": "radius-lg",
+    "value": "8px",
+    "usage": "Transport buttons, connector tiles, stat tiles."
+   },
+   {
+    "name": "radius-xl",
+    "value": "10px",
+    "usage": "Cards, sheets, status pills (half of their 20px height)."
+   }
+  ]
+ },
+ "shadow": {
+  "tokens": [
+   {
+    "name": "shadow-sheet",
+    "value": {
+     "dark": "0 12px 40px rgba(0, 0, 0, 0.5)",
+     "light": "0 12px 40px rgba(19, 40, 61, 0.18)"
+    },
+    "usage": "Sheets, popovers and the editor canvas. Nothing else casts a shadow."
+   }
+  ]
+ }
+}
