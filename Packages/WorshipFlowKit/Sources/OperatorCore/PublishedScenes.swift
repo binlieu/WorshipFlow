@@ -11,9 +11,11 @@ public struct PublishedScenes: Sendable, Equatable {
     ///   applies it to audience screens only, after the screen's own Look theme.
     /// - Parameter stageScenes: ready-made scenes (from `StageModel`) for stage screens, which ignore themes and Looks.
     ///   A stage screen without an entry falls back to the built-in stage scene.
+    /// - Parameter media: the chosen background and the clip playing in the foreground (MEDIA-001). Audience and
+    ///   broadcast screens follow the rules in `SceneComposer`; stage screens never show media.
     public init(state: ShowState, clockText: String?, profiles: [ScreenProfile] = [], themes: [Theme] = Theme.builtIn,
                 look: Look? = nil, props: [Prop] = [], presentationThemeID: UUID? = nil,
-                stageScenes: [UUID: SceneDescription] = [:]) {
+                stageScenes: [UUID: SceneDescription] = [:], media: MediaLayers? = nil) {
         var composed: [UUID: SceneDescription] = [:]
         for profile in profiles {
             if profile.role == .stage, let stage = stageScenes[profile.id] {
@@ -24,7 +26,7 @@ public struct PublishedScenes: Sendable, Equatable {
             let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
                                             presentationThemeID: presentationThemeID, themes: themes)
             composed[profile.id] = SceneComposer.scene(for: profile.role, state: state, theme: theme, look: screenLook,
-                                                       props: props, clockText: clockText)
+                                                       props: props, media: media, clockText: clockText)
         }
         scenes = composed
     }

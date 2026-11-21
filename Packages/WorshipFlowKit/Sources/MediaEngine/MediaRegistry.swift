@@ -38,6 +38,8 @@ public final class MediaRegistry: @unchecked Sendable {
     private var failed: Set<UUID> = []
     private var useCounter = 0
     private var foregroundEnded: (@Sendable () -> Void)?
+    private var foregroundVolume: Float = 1
+    private var foregroundMuted = false
 
     public init(stillLimit: Int = MediaRegistry.defaultStillLimit) {
         self.stillLimit = max(2, stillLimit)
@@ -75,6 +77,19 @@ public final class MediaRegistry: @unchecked Sendable {
         lock.lock(); foregroundEnded = handler; lock.unlock()
     }
 
+    /// MEDIA-001: the level of the foreground clip's audio (default output device). Applies to the open foreground
+    /// source at once and to every one opened later, before it starts playing. A background is always muted.
+    public func setForegroundAudio(volume: Float, muted: Bool) {
+        let level = volume.isFinite ? min(1, max(0, volume)) : 0
+        lock.lock()
+        foregroundVolume = level
+        foregroundMuted = muted
+        let source = slots[.foreground]?.source
+        lock.unlock()
+        source?.volume = level
+        source?.isMuted = muted
+    }
+
     // MARK: Control side
 
     /// Makes the open sources match `layers`: opens what was newly chosen, closes what was dropped and hands each
@@ -109,9 +124,11 @@ public final class MediaRegistry: @unchecked Sendable {
         switch location.kind {
         case .video:
             do {
+                lock.lock(); let level = foregroundVolume, silent = foregroundMuted; lock.unlock()
                 let source = try VideoPlayerSource(url: location.url, loops: layer.transport.loops,
                                                    duration: layer.selection.duration ?? location.duration,
-                                                   muted: slot == .background)
+                                                   muted: slot == .background || silent)
+                if slot == .foreground { source.volume = level }     // before it plays: no burst at full volume
                 if slot == .foreground {
                     source.setOnEnded { [weak self] in self?.notifyForegroundEnded() }
                 }

@@ -3,6 +3,8 @@
 import SwiftUI
 import AppKit
 import Domain
+import MediaEngine
+import OutputEngine
 import RenderEngine
 
 /// An immutable bitmap handed from the render queue to the main actor.
@@ -24,26 +26,45 @@ final class PreviewRenderer: @unchecked Sendable {
 
     private let queue = DispatchQueue(label: "org.worshipflow.preview", qos: .utility)
     private var compositor: Compositor?
+    private var converter: VideoTextureConverter?
     private var failure: String?
     private var cache: [RenderKey: PreviewImage] = [:]
     private var order: [RenderKey] = []
     private let cacheLimit = 200
 
     /// Renders `scene` at the given size. Thumbnails are cached by scene; live previews are not.
-    func image(for scene: SceneDescription, width: Int, height: Int, cached: Bool) async -> PreviewImage? {
+    /// `frames` supplies the current picture of the media the scene names (MEDIA-001, KI-022); without it the media
+    /// layers are simply not drawn.
+    func image(for scene: SceneDescription, width: Int, height: Int, cached: Bool,
+               frames: (any MediaFrameSource)? = nil) async -> PreviewImage? {
         await withCheckedContinuation { continuation in
-            queue.async { continuation.resume(returning: self.renderLocked(scene, width, height, cached)) }
+            queue.async { continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames)) }
         }
     }
 
-    private func renderLocked(_ scene: SceneDescription, _ width: Int, _ height: Int, _ cached: Bool) -> PreviewImage? {
+    private func renderLocked(_ scene: SceneDescription, _ width: Int, _ height: Int, _ cached: Bool,
+                              _ frames: (any MediaFrameSource)?) -> PreviewImage? {
         let key = RenderKey(scene: scene, width: width, height: height)
         if cached, let hit = cache[key] { return hit }
         if compositor == nil, failure == nil {
             do { compositor = try Compositor() } catch { failure = "\(error)" }
         }
         guard let compositor else { return nil }
-        guard let frame = try? compositor.renderImage(scene: scene, width: width, height: height),
+        // The textures stay alive until the render has finished (renderImage returns the finished pixels).
+        var background: VideoTextureConverter.Frame?
+        var foreground: VideoTextureConverter.Frame?
+        if let frames, scene.backgroundMedia != nil || scene.foregroundMedia != nil {
+            if converter == nil { converter = try? VideoTextureConverter(device: compositor.device) }
+            if let converter {
+                background = scene.backgroundMedia.flatMap { frames.currentPixelBuffer(for: $0, layer: .background) }
+                    .flatMap { converter.texture(from: $0) }
+                foreground = scene.foregroundMedia.flatMap { frames.currentPixelBuffer(for: $0, layer: .foreground) }
+                    .flatMap { converter.texture(from: $0) }
+            }
+        }
+        defer { withExtendedLifetime((background, foreground)) {} }
+        guard let frame = try? compositor.renderImage(scene: scene, width: width, height: height,
+                                                      backgroundMedia: background?.texture, foregroundMedia: foreground?.texture),
               let image = Self.cgImage(from: frame) else { return nil }
         let result = PreviewImage(image: image)
         if cached {
@@ -70,6 +91,9 @@ struct ScenePreview: View {
     let scene: SceneDescription
     var width = 320
     var cached = true
+    /// Where to get the pictures of background and foreground media. When the scene shows a video, the preview
+    /// redraws about four times a second so it moves.
+    var frames: (any MediaFrameSource)?
     @State private var picture: PreviewImage?
 
     var body: some View {
@@ -84,12 +108,24 @@ struct ScenePreview: View {
             if picture != nil { try? await Task.sleep(for: .milliseconds(100)) }
             guard !Task.isCancelled else { return }
             let height = width * 9 / 16
-            let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached)
+            let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached, frames: frames)
             guard !Task.isCancelled, let made else { return }
             picture = made
+            // A video moves, and a still or a player that is still starting shows up a moment later: keep redrawing.
+            while frames != nil, Self.hasMedia(scene), !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled,
+                      let next = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: false, frames: frames),
+                      !Task.isCancelled else { return }
+                picture = next
+            }
         }
         .accessibilityHidden(true)
     }
+}
+
+extension ScenePreview {
+    static func hasMedia(_ scene: SceneDescription) -> Bool { scene.backgroundMedia != nil || scene.foregroundMedia != nil }
 }
 
 /// A slide as the audience screen draws it.
@@ -112,7 +148,7 @@ struct LiveScreenPreview: View {
 
     var body: some View {
         let _ = app.liveRevision
-        ScenePreview(scene: app.scene(forScreen: screenID), width: 320, cached: false)
+        ScenePreview(scene: app.scene(forScreen: screenID), width: 320, cached: false, frames: app.mediaFrames)
             .clipShape(RoundedRectangle(cornerRadius: 3))
             .overlay(RoundedRectangle(cornerRadius: 3).stroke(.quaternary))
     }

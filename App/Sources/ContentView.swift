@@ -85,6 +85,10 @@ struct WorkspaceView: View {
             }
             .searchable(text: $query, placement: .toolbar, prompt: "Search titles and lyrics")
             .searchFocused($searchFocused)
+            if let media = app.media, media.layers.foreground != nil {
+                Divider()
+                MediaTransportStrip(media: media)
+            }
             Divider()
             TransportBar(app: app, workspace: workspace)
         }
@@ -162,7 +166,7 @@ struct ErrorBar: View {
     }
 }
 
-/// Everything on the right: a live picture of each screen, then the screens panel, Looks, props and the video chooser.
+/// Everything on the right: a live picture of each screen, then the media bin, the screens panel, Looks and props.
 struct RightColumn: View {
     @Bindable var app: AppModel
 
@@ -180,6 +184,10 @@ struct RightColumn: View {
                     }
                 }
                 Divider()
+                if let media = app.media {
+                    MediaBinPanel(app: app, media: media)
+                    Divider()
+                }
                 ScreensPanel(model: app)
                 Divider()
                 if let stage = app.stage {
@@ -189,8 +197,6 @@ struct RightColumn: View {
                 LookPanel(model: app)
                 Divider()
                 PropsPanel(model: app)
-                Divider()
-                VideoPanel(model: app)
                 if !app.messages.isEmpty {
                     Divider()
                     ForEach(Array(app.messages.enumerated()), id: \.offset) { _, m in
@@ -200,24 +206,6 @@ struct RightColumn: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-struct VideoPanel: View {
-    @Bindable var model: AppModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Background video").font(.headline)
-            HStack {
-                Button("Choose…") { model.chooseVideo() }
-                Text(model.videoURL?.lastPathComponent ?? "No video: solid background")
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                if model.videoURL != nil { Button("Remove") { model.setVideo(nil) } }
-            }
-            Text("Live previews show the background colour, not the moving video.")
-                .font(.caption).foregroundStyle(.secondary)
         }
     }
 }

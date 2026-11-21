@@ -37,6 +37,11 @@ public final class VideoPlayerSource: @unchecked Sendable {
     private var delivered = 0
     private var itemObservation: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
+    // Stall watchdog (MEDIA-001): see `watchForStall()`.
+    private var stallCheckedAt = 0.0
+    private var stallLastTime = -1.0
+    private var stallSince = 0.0
+    private var stallRecoveryCount = 0
 
     /// - Parameters:
     ///   - duration: Seconds, when known (the media bin stores it). Needed for the transport to report the end and the
@@ -204,7 +209,11 @@ public final class VideoPlayerSource: @unchecked Sendable {
 
     /// Plays or pauses the player to match the latest instruction.
     private func applyRate() {
-        lock.lock(); let play = wantsPlaying; lock.unlock()
+        lock.lock()
+        let play = wantsPlaying
+        stallLastTime = -1
+        stallSince = CACurrentMediaTime()
+        lock.unlock()
         if play { player.play() } else { player.pause() }
     }
 
@@ -215,6 +224,7 @@ public final class VideoPlayerSource: @unchecked Sendable {
 
     /// The newest decoded frame, or the previous one if nothing new has arrived. Never blocks on decoding.
     public func latestPixelBuffer() -> CVPixelBuffer? {
+        watchForStall()
         lock.lock()
         defer { lock.unlock() }
         if let out = output {
@@ -228,12 +238,47 @@ public final class VideoPlayerSource: @unchecked Sendable {
         return latest
     }
 
+    /// Times the watchdog had to re-seek a player that was told to play but whose time stood still (diagnostics, tests).
+    public var stallRecoveries: Int { lock.lock(); defer { lock.unlock() }; return stallRecoveryCount }
+
+    /// AVPlayer sometimes ends up with rate 1 and a ready item whose time never advances (seen after seeking to a
+    /// non-key frame while the machine is busy: the clip froze at the seek target and never reported its end). Outputs
+    /// call `latestPixelBuffer()` continuously, so this is checked there, at most four times a second. If the player has
+    /// been told to play, is ready, and its time has not moved for a second, seek it to where it stands; the rate is
+    /// re-applied when that seek finishes.
+    private func watchForStall() {
+        let host = CACurrentMediaTime()
+        lock.lock()
+        guard wantsPlaying, pendingSeeks == 0, !playerEnded, host - stallCheckedAt >= 0.25,
+              player.currentItem?.status == .readyToPlay else { lock.unlock(); return }
+        stallCheckedAt = host
+        let time = player.currentTime().seconds
+        if !time.isFinite || abs(time - stallLastTime) > 0.001 {
+            stallLastTime = time
+            stallSince = host
+            lock.unlock()
+            return
+        }
+        guard host - stallSince >= 1.0 else { lock.unlock(); return }
+        stallSince = host
+        // Kick it where it stands. (The transport's own clock may already say the clip is over: the player is the one
+        // that is behind, and it still has to play out the rest and report its end.)
+        let target = time
+        if transport.duration > 0, !loops, target >= transport.duration - 0.1 { lock.unlock(); return }
+        pendingSeeks += 1
+        stallRecoveryCount += 1
+        lock.unlock()
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero,
+                    toleranceAfter: .zero) { [weak self] _ in self?.seekFinished() }
+    }
+
     /// Player state for diagnostics.
     public var diagnostics: String {
         let item = player.currentItem
         let err: Error? = item?.error ?? player.error ?? looper?.error
         let status = item.map { String($0.status.rawValue) } ?? "no item"
         let time = String(format: "%.2f", player.currentTime().seconds)
-        return "rate \(player.rate), control \(player.timeControlStatus.rawValue), item status \(status), time \(time), error \(err.map { "\($0)" } ?? "none")"
+        lock.lock(); let extra = "pendingSeeks \(pendingSeeks), wantsPlaying \(wantsPlaying), recoveries \(stallRecoveryCount), ended \(playerEnded)"; lock.unlock()
+        return "\(extra), rate \(player.rate), control \(player.timeControlStatus.rawValue), item status \(status), time \(time), error \(err.map { "\($0)" } ?? "none")"
     }
 }

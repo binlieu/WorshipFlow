@@ -45,6 +45,8 @@ final class AppModel {
     /// The operator workspace (OUT-004). Nil in a soak run, or when the library file could not be opened.
     private(set) var workspace: WorkspaceModel?
     private(set) var workspaceLoaded = false
+    /// The media bin and the background / foreground layers (MEDIA-001). Nil in a soak run, or when the library could not be opened.
+    private(set) var media: MediaModel?
     /// Set when the library file could not be opened: the path and a message. The file is left untouched.
     private(set) var libraryProblem: LibraryProblem?
     /// Bumped on every publish, so previews know to re-read their scene.
@@ -58,6 +60,12 @@ final class AppModel {
     @ObservationIgnored private var scopedURLs: [UUID: URL] = [:]   // security-scoped access held while the prop exists
     @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
     @ObservationIgnored private var video: LoopingVideoSource?
+    /// Opens and closes the players for the media layers; every output reads frames from it (MEDIA-001).
+    @ObservationIgnored let mediaRegistry = MediaRegistry()
+    /// Access held to the files of open media layers (a security-scoped bookmark is resolved while its player is open).
+    @ObservationIgnored private var mediaAccess: [MediaLayerSlot: (assetID: UUID, access: MediaAccess)] = [:]
+    @ObservationIgnored private var knownMediaIDs: Set<UUID> = []
+    @ObservationIgnored private var mediaTicker: Timer?
     @ObservationIgnored private var clockText = ""
     @ObservationIgnored private var timer: Timer?
     /// Republishes the stage scenes every second, and exists only while a stage screen shows a clock or timer.
@@ -106,6 +114,15 @@ final class AppModel {
             let stage = StageModel(store: store)
             stage.onChange = { [weak self] in self?.publish() }
             self.stage = stage
+            let media = MediaModel(store: store, prober: AppMediaProber())
+            media.onLayersChange = { [weak self] layers in self?.mediaLayersChanged(layers) }
+            media.onAssetsChange = { [weak self] assets in self?.mediaAssetsChanged(assets) }
+            media.onAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setForegroundAudio(volume: volume, muted: muted) }
+            mediaRegistry.setForegroundAudio(volume: Float(media.volume), muted: media.isMuted)
+            mediaRegistry.setOnForegroundEnded {
+                Task { @MainActor in AppModel.shared.media?.playerReportedEnd() }
+            }
+            self.media = media
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
             libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
@@ -119,6 +136,7 @@ final class AppModel {
             await settings?.load()
             await stage?.load()
             await resolvePropBookmarks()
+            await media?.load()
             coordinator.setProfiles(profiles)
             publish()
             updateReadouts()
@@ -169,6 +187,7 @@ final class AppModel {
     private func showChanged(_ state: ShowState) {
         let wasStopped = show.isStopped
         show = state
+        media?.showStateChanged(isLive: !state.isStopped)     // Stop takes a playing clip off the screens too
         publish()
         if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
@@ -300,10 +319,11 @@ final class AppModel {
     /// Built-in themes and the operator's own: what the per-screen picker and the editor offer.
     var themes: [Theme] { settings?.themes ?? Theme.builtIn }
     /// A message from the settings store (a failed save), for the error bar.
-    var settingsError: String? { settings?.lastError ?? stage?.lastError }
+    var settingsError: String? { settings?.lastError ?? stage?.lastError ?? media?.lastError }
     func dismissSettingsError() {
         settings?.dismissError()
         stage?.dismissError()
+        media?.dismissError()
     }
 
     func updateProfile(_ profile: ScreenProfile) {
@@ -445,18 +465,7 @@ final class AppModel {
 
     // MARK: Video
 
-    func chooseVideo() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.movie, .mpeg4Movie, .quickTimeMovie]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.message = "Choose a background video to loop"
-        panel.begin { [weak self] response in
-            guard response == .OK, let url = panel.url else { return }
-            MainActor.assumeIsolated { self?.setVideo(url) }
-        }
-    }
-
+    /// The soak run's `--video` loop (OUT-001). The workspace sets backgrounds from the media bin instead (MEDIA-001).
     func setVideo(_ url: URL?) {
         video?.stop()
         video = nil
@@ -480,6 +489,85 @@ final class AppModel {
     }
 
     private func startVideoIfNeeded() { if video != nil { video?.start() } }
+
+    // MARK: Media (MEDIA-001)
+
+    /// Frames of the media layers, for the live previews.
+    var mediaFrames: any MediaFrameSource { mediaRegistry }
+
+    /// The layers changed: open the players for what was newly chosen, close the rest, and publish scenes.
+    private func mediaLayersChanged(_ layers: MediaLayers) {
+        var closing: [MediaAccess] = []
+        for (slot, layer) in [(MediaLayerSlot.background, layers.background), (.foreground, layers.foreground)] {
+            let id = layer?.selection.assetID
+            if let held = mediaAccess[slot], held.assetID == id { continue }
+            if let held = mediaAccess.removeValue(forKey: slot) { closing.append(held.access) }
+            guard let layer, let asset = media?.asset(layer.selection.assetID) else { continue }
+            let access = MediaAccess.open(asset)
+            mediaAccess[slot] = (asset.id, access)
+            mediaRegistry.register(id: asset.id, kind: asset.kind, url: access.url, duration: asset.duration)
+        }
+        mediaRegistry.apply(layers)
+        closing.forEach { $0.stop() }          // the players that used these files are closed now
+        updateMediaTicker(layers)
+        publish()
+    }
+
+    /// Forgets what the registry holds for assets that left the bin.
+    private func mediaAssetsChanged(_ assets: [MediaAsset]) {
+        let ids = Set(assets.map(\.id))
+        for gone in knownMediaIDs.subtracting(ids) { mediaRegistry.unregister(gone) }
+        knownMediaIDs = ids
+    }
+
+    /// Runs only while a layer exists: ends a finished clip, and takes out a layer whose file could not be opened.
+    private func updateMediaTicker(_ layers: MediaLayers) {
+        let needed = layers.foreground != nil || layers.background != nil
+        if needed, mediaTicker == nil {
+            let ticker = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let media = self?.media else { return }
+                    media.tick()
+                    if let unavailable = self?.mediaRegistry.unavailableAssetIDs, !unavailable.isEmpty {
+                        media.reportUnavailable(unavailable)
+                    }
+                }
+            }
+            RunLoop.main.add(ticker, forMode: .common)
+            mediaTicker = ticker
+        } else if !needed, let ticker = mediaTicker {
+            ticker.invalidate()
+            mediaTicker = nil
+        }
+    }
+
+    /// Choose pictures and videos for the bin with the system open panel.
+    func chooseMedia() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image, .movie, .audiovisualContent, .audio]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.message = "Choose pictures and videos for the media bin"
+        panel.begin { [weak self] response in
+            guard response == .OK else { return }
+            let urls = panel.urls
+            MainActor.assumeIsolated { self?.addMedia(urls) }
+        }
+    }
+
+    /// Adds files chosen in the panel or dropped on the bin. Each gets a bookmark so access survives a relaunch.
+    func addMedia(_ urls: [URL]) {
+        guard let media else { return }
+        Task { @MainActor in
+            var bookmarks: [URL: Data] = [:]
+            for url in urls {
+                let started = url.startAccessingSecurityScopedResource()
+                if let data = MediaAccess.bookmark(for: url) { bookmarks[url] = data }
+                if started { url.stopAccessingSecurityScopedResource() }
+            }
+            await media.add(urls: urls, bookmarks: bookmarks)
+        }
+    }
 
     // MARK: Show control
 
@@ -510,7 +598,7 @@ final class AppModel {
         let stageScenes = stage?.stageScenes(forScreens: stageIDs, state: show, notes: workspace?.liveNotes) ?? [:]
         return PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
                                look: currentLook, props: props, presentationThemeID: workspace?.liveThemeID,
-                               stageScenes: stageScenes)
+                               stageScenes: stageScenes, media: media?.layers)
     }
 
     /// The stage's one-second republish. Skipped when nothing on any screen changed, and it does not touch the slide
@@ -566,7 +654,12 @@ final class AppModel {
         updateReadouts()
     }
 
-    func shutdown() { stopScreens() }
+    func shutdown() {
+        stopScreens()
+        mediaRegistry.closeAll()
+        mediaAccess.values.forEach { $0.access.stop() }
+        mediaAccess.removeAll()
+    }
 
     private func makeTarget(_ profile: ScreenProfile, _ destination: OutputDestination) throws -> any OutputTarget {
         let box = sceneBox
@@ -574,15 +667,19 @@ final class AppModel {
         let screenID = profile.id
         let provider: SceneProvider = { box.read().scene(forScreen: screenID) }
         let source: (any VideoSourceFactory)? = role != .stage ? video : nil
+        // The stage scene never names media, so it never asks; passing the registry to every output is still harmless.
+        let mediaSource: (any MediaFrameSource)? = mediaRegistry
         switch destination {
         case .display(let id):
             guard let screen = NSScreen.screens.first(where: { DisplayOutput.displayID(of: $0) == id }) else {
                 throw OutputSetupError.displayGone
             }
-            return DisplayOutput(screen: screen, name: profile.name, sceneProvider: provider, videoSource: source)
+            return DisplayOutput(screen: screen, name: profile.name, sceneProvider: provider, videoSource: source,
+                                 mediaSource: mediaSource)
         case .window:
             let index = profiles.filter { $0.destination == .window }.firstIndex { $0.id == profile.id } ?? 0
-            return WindowOutput(name: profile.name, sceneProvider: provider, videoSource: source, cascadeIndex: index)
+            return WindowOutput(name: profile.name, sceneProvider: provider, videoSource: source, cascadeIndex: index,
+                                mediaSource: mediaSource)
         }
     }
 
