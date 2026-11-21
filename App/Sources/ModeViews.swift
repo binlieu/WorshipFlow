@@ -71,7 +71,7 @@ struct EditModeView: View {
         return VStack(alignment: .leading, spacing: 3) {
             Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit())
             SlideThumbnail(app: app, slide: slide.content)
-                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content).padding(4) }
+                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: app.media.map { Set($0.allAssets.map(\.id)) }).padding(4) }
                 .padding(3)
                 .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.blue : .clear, lineWidth: 2))
                 .padding(live ? 4 : 0)
@@ -247,19 +247,19 @@ struct MediaModeView: View {
                 let selected = app.ui.binFolderID == state.id
                 Button { app.ui.binFolderID = state.id } label: {
                     HStack(spacing: Space.s3) {
-                        Image(systemName: state.status == .missing ? "exclamationmark.triangle" : "folder")
-                            .frame(width: 18).foregroundStyle(state.status == .missing ? Tok.warning : Tok.muted)
+                        Image(systemName: state.status == .ok ? "folder" : "exclamationmark.triangle")
+                            .frame(width: 18).foregroundStyle(state.status == .ok ? Tok.muted : Tok.warning)
                         Text(state.folder.name).font(.system(size: 14)).lineLimit(1)
                         Spacer()
-                        Text(state.status == .missing ? "missing" : "\(state.items.count)").font(.system(size: 12))
-                            .foregroundStyle(state.status == .missing ? Tok.warning : Tok.muted)
+                        Text(state.status == .missing ? "missing" : (state.status == .unreachable ? "not answering" : "\(state.items.count)")).font(.system(size: 12))
+                            .foregroundStyle(state.status == .ok ? Tok.muted : Tok.warning)
                     }
                     .padding(.horizontal, Space.s3).frame(height: 30)
                     .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Folder \(state.folder.name), \(state.status == .missing ? "missing" : "\(state.items.count) items")")
+                .accessibilityLabel("Folder \(state.folder.name), \(state.status == .missing ? "missing" : (state.status == .unreachable ? "not answering, last list kept" : "\(state.items.count) items"))")
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         } else {

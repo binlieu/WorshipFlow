@@ -68,6 +68,9 @@ struct SlideRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     /// Added by migration v5: JSON for `SlideContent.objects`, NULL when there are none. Missing on older stores (reads
     /// as nil), and written by `insert` only when set, so a slide without objects still inserts on a v2 to v4 store.
     var objects: String? = nil
+    /// Added by migration v11 (FIX-G): JSON for the slide's own background (a `MediaSelection`), NULL when it has none. Written
+    /// by `insert` only when set, like `objects`.
+    var background: String? = nil
 
     func encode(to container: inout PersistenceContainer) throws {
         container["id"] = id.dbText
@@ -80,11 +83,13 @@ struct SlideRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
         container["updatedAt"] = updatedAt
         container["groupID"] = groupID?.dbText
         if let objects { container["objects"] = objects }
+        if let background { container["background"] = background }
     }
 
     var domain: Slide {
         Slide(id: id, presentationID: presentationID, sortOrder: sortOrder,
-              content: SlideContent(primary: primaryText, secondary: secondaryText, objects: SlideObjectsJSON.decode(objects)),
+              content: SlideContent(primary: primaryText, secondary: secondaryText, objects: SlideObjectsJSON.decode(objects),
+                                    background: SlideBackgroundJSON.decode(background)),
               notes: notes, groupID: groupID, createdAt: createdAt, updatedAt: updatedAt)
     }
 }
@@ -134,5 +139,21 @@ enum SlideObjectsJSON {
             if case .text(let t) = object.content { return t.text }
             return nil
         }.joined(separator: "\n")
+    }
+}
+
+/// FIX-G: the JSON text of a slide's own background as stored in `slide.background`.
+enum SlideBackgroundJSON {
+    static func encode(_ selection: MediaSelection?) -> String? {
+        guard let selection else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return (try? encoder.encode(selection)).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    /// An unreadable value reads as no background rather than making the slide list fail to load.
+    static func decode(_ text: String?) -> MediaSelection? {
+        guard let text, let data = text.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(MediaSelection.self, from: data)
     }
 }

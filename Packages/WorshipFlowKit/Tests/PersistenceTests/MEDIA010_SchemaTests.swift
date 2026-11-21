@@ -9,9 +9,9 @@ import Domain
 @Suite struct MEDIA010_SchemaTests {
     @Test func noMigrationIsAddedAndNoTableOrColumnChanges() async throws {
         let store = try LibraryStore.inMemory()
-        #expect(try await store.appliedMigrations().count == 10)
+        #expect(Array(try await store.appliedMigrations().prefix(10)) == ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"])   // FIX-G: v11 follows (was: count == 10)
         #expect(!(try await store.tableNames().contains("mediaFolder")))
-        #expect(!(try await store.columnNames(of: "slide")).contains("background"))
+        #expect((try await store.columnNames(of: "slide")).contains("background"))   // FIX-G: v11 adds it (was: does not contain)
     }
 
     @Test func anOlderLibraryAndItsRowsAreUntouched() async throws {
@@ -65,7 +65,7 @@ import Domain
         slide.content.primary = "edited"
         try await store.updateSlide(slide)
         #expect(try await store.slides(of: song.id).first?.content.background == video)
-        #expect(try await store.state(for: "slideBackgrounds.\(song.id.uuidString)") != nil)
+        #expect(try await store.slideBackgroundCount() == 1)   // FIX-G: stored with the slide (was: an appState key)
         try await store.deletePresentation(id: song.id)
         #expect(try await store.state(for: "slideBackgrounds.\(song.id.uuidString)") == nil)
     }

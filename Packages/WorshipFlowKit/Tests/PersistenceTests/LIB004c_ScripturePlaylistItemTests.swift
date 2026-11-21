@@ -20,7 +20,6 @@ import Domain
         let store = try LibraryStore.inMemory()
         let applied = try await store.appliedMigrations()
         #expect(Array(applied.prefix(10)) == ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"])
-        #expect(applied.count == 10)
     }
 
     @Test func theKindIsStoredAsAWordAndAReferenceNotAsText() throws {

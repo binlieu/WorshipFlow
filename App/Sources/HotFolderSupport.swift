@@ -14,9 +14,10 @@ struct FileSystemFolderListing: FolderListing {
         }
         let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey]
         let entries: [URL]
+        // FIX-G: a folder that is there but cannot be listed now is unreachable (the model keeps the last items), not missing.
         do {
             entries = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles])
-        } catch { throw FolderListingError.missing }
+        } catch { throw FolderListingError.unreachable }
         return entries.compactMap { entry in
             guard let values = try? entry.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { return nil }
             return FolderFile(name: entry.lastPathComponent, size: Int64(values.fileSize ?? 0))
@@ -25,50 +26,75 @@ struct FileSystemFolderListing: FolderListing {
 }
 
 /// Watches a folder with a file-system event source: files added, renamed or removed call back on the main actor.
+/// FIX-G: `open()` of a folder on a volume that is not answering can wait for a long time, so it is done on a utility queue; the
+/// watch object is handed back at once and the event source is attached when the folder opens.
 @MainActor
 final class DispatchFolderWatching: FolderWatching {
-    private final class Watch: FolderWatch {
+    private final class Watch: FolderWatch, @unchecked Sendable {
+        private let lock = NSLock()
         private var source: DispatchSourceFileSystemObject?
-        init(source: DispatchSourceFileSystemObject?) { self.source = source }
-        func cancel() { source?.cancel(); source = nil }
+        private var cancelled = false
+        func attach(_ new: DispatchSourceFileSystemObject) {
+            lock.lock()
+            if cancelled { lock.unlock(); new.cancel(); return }
+            source = new
+            lock.unlock()
+        }
+        func cancel() {
+            lock.lock()
+            cancelled = true
+            let old = source
+            source = nil
+            lock.unlock()
+            old?.cancel()
+        }
     }
 
     func watch(path: String, onChange: @escaping @MainActor () -> Void) -> any FolderWatch {
-        let descriptor = open(path, O_EVTONLY)
-        guard descriptor >= 0 else { return Watch(source: nil) }          // missing: shown as missing, retried by the periodic look
-        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .rename, .delete, .extend, .link],
-                                                               queue: .main)
-        source.setEventHandler { MainActor.assumeIsolated { onChange() } }
-        source.setCancelHandler { close(descriptor) }
-        source.resume()
-        return Watch(source: source)
+        let watch = Watch()
+        DispatchQueue.global(qos: .utility).async {
+            let descriptor = open(path, O_EVTONLY)
+            guard descriptor >= 0 else { return }          // missing: shown as missing, retried by the periodic look
+            let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .rename, .delete, .extend, .link],
+                                                                   queue: .main)
+            source.setEventHandler { MainActor.assumeIsolated { onChange() } }
+            source.setCancelHandler { close(descriptor) }
+            source.resume()
+            watch.attach(source)
+        }
+        return watch
     }
 }
 
 /// Holds access to each hot folder through its bookmark while it is followed, and gives it up when it is not.
-@MainActor
-final class HotFolderAccess {
-    private var open: [UUID: (url: URL, scoped: Bool)] = [:]
+/// FIX-G: used only off the main actor (the model calls `resolve` from a utility task). A bookmark is resolved without UI and
+/// without mounting a volume, so a drive that is gone fails quickly instead of waiting or asking; a stale bookmark is refreshed.
+final class HotFolderAccess: FolderAccessing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var open: [UUID: URL] = [:]
 
-    func update(_ folders: [HotFolder]) {
-        let ids = Set(folders.map(\.id))
-        for (id, held) in open where !ids.contains(id) { if held.scoped { held.url.stopAccessingSecurityScopedResource() }; open[id] = nil }
-        for folder in folders {
-            if let held = open[folder.id] { if held.scoped { held.url.stopAccessingSecurityScopedResource() }; open[folder.id] = nil }
-            guard let data = folder.bookmark else { continue }
-            var stale = false
-            if let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale),
-               url.startAccessingSecurityScopedResource() {
-                open[folder.id] = (url, true)
-            }
-        }
-    }
-
-    /// The folder's current path through its bookmark (it follows a rename or a move), or nil.
-    static func resolvedPath(of folder: HotFolder) -> String? {
+    func resolve(_ folder: HotFolder) -> FolderResolution? {
         guard let data = folder.bookmark else { return nil }
         var stale = false
-        return (try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale))?.path
+        guard let url = try? URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI, .withoutMounting], relativeTo: nil,
+                                 bookmarkDataIsStale: &stale) else { return nil }
+        lock.lock()
+        let held = open[folder.id]
+        if held?.path != url.path {
+            held?.stopAccessingSecurityScopedResource()
+            open[folder.id] = url.startAccessingSecurityScopedResource() ? url : nil
+        }
+        lock.unlock()
+        var fresh: Data?
+        if stale { fresh = Self.bookmark(for: url) }
+        return FolderResolution(path: url.path, refreshedBookmark: fresh)
+    }
+
+    func forget(_ id: UUID) {
+        lock.lock()
+        let held = open.removeValue(forKey: id)
+        lock.unlock()
+        held?.stopAccessingSecurityScopedResource()
     }
 
     static func bookmark(for url: URL) -> Data? {

@@ -345,11 +345,20 @@ Other app state keys added: `cue.midi.settings` (MIDI on or off, chosen input an
 
 A path stored in `slide.objects` (image objects), `theme.definition` (an image background), `prop.imagePath` and `mediaAsset.path` that lies inside `<library folder>/Media/Imported/` is stored as `Media/Imported/<program id>/<file>`, relative to the folder that holds `Library.sqlite`. `LibraryStore` converts it to an absolute path when it reads and back when it writes, so callers only see absolute paths; every other path is stored as it was given, and an in-memory store converts nothing. A relative path with a `..` part is never turned into a file path. Files below `Media/Imported/<program id>/` are named `<sha256>.<ext>`; `missing/<name>` is a path that never had a file. The program package format (not stored in the library) is described in `docs/features/LIB-005-program-export-import.md`.
 
-### MEDIA-010: a slide's own background and hot folders (no schema change)
+### Backups folder (FIX-G, no schema change)
 
-Two JSON values in `appState`, because the library stays at ten migrations (KI-100).
+`<library folder>/Backups/Library before import <yyyy-MM-dd HHmmss UTC>.sqlite` (a counter is added for a second backup in the same second): a complete copy of the library file made with SQLite's backup API before a program import replaces anything. The newest five of that name are kept; other files in the folder are never touched. Opens like the library itself.
+
+### Schema v11 (migration `v11`, FIX-G): a slide's own background, and MEDIA-010's hot folders
+
+Migration `v11` is additive: `ALTER TABLE slide ADD COLUMN background TEXT` (nullable). It then moves the old `appState` entries `slideBackgrounds.<presentation id>` (a JSON object from slide id to selection, written by the first MEDIA-010 build) into the slide rows and deletes those entries; an entry for a slide or presentation that no longer exists, or one that cannot be read, is dropped. Every other row is untouched. A column rather than a child table: a slide has at most one background, so its own row carries it and it goes with the row (delete slide, delete presentation, re-flow) with no foreign key to keep.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `slide.background` | TEXT, NULL | JSON `{"assetID": "<UUID>", "duration": <seconds or absent>, "kind": "image" or "video"}` (a `MediaSelection`, keys sorted) naming a media bin item; NULL when the slide uses the presentation's own background. The item is not checked: if it was removed the slide keeps the choice and shows the missing-media mark. Written by `appendSlide`, `updateSlide`, a re-flow (carried by the same match as notes and objects) and a program import |
+
+The hot folders are still one JSON value in `appState`:
 
 | Key | Value |
 |---|---|
-| `slideBackgrounds.<presentation id, upper-case UUID>` | JSON object `{"<slide id>": {"assetID": "<UUID>", "kind": "image" or "video", "duration": <seconds or absent>}}`. Absent when no slide of the presentation has its own background. Written in the same transaction as the slide's update; removed when the presentation is deleted. `SlideContent.background` is read from it by `slides(of:)` and the arrangement resolver. An entry whose slide is gone is ignored |
 | `media.hotFolders` | JSON array, in the order added: `[{"id": "<UUID>", "name": "...", "path": "/absolute/path", "bookmark": "<base64 security-scoped bookmark, optional>"}]`. Absent when there are none. Only the reference is stored; the folder and its files are never changed. The items of a folder are not stored: they are listed from the folder, with ids derived from the folder id and the file name |

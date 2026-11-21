@@ -61,10 +61,16 @@ extension ProgramPackageContents {
                 }
             }
         }
+        // FIX-G: a custom theme may not take the identity of a built-in one (an import would otherwise write a row that shadows it).
+        let builtInIDs = Set(Theme.builtIn.map(\.id))
+        if let clash = document.themes.first(where: { builtInIDs.contains($0.id) }) {
+            throw ProgramPackageError.builtInThemeClash(describe(clash.name))
+        }
         var referenced: [String] = document.mediaAssets.map(\.file)
         for theme in document.themes { if case .image(let path) = theme.background { referenced.append(path) } }
         for slide in document.presentations.flatMap(\.slides) {
             for object in slide.objects { if case .image(let image) = object.content { referenced.append(image.path) } }
+            if let background = slide.background { referenced.append(background.file) }
         }
         for path in referenced {
             guard ProgramPathRules.isSafePackagePath(path) else { throw ProgramPackageError.unsafePath(describe(path)) }
@@ -81,6 +87,8 @@ extension ProgramPackageContents {
             guard let info = ProgramFiles.lstatInfo(file) else { throw ProgramPackageError.packageFileMissing(entry.file) }
             guard !info.isSymlink else { throw ProgramPackageError.linkNotAllowed(entry.file) }
             guard info.isRegular else { throw ProgramPackageError.unsafePath(describe(entry.file)) }
+            // FIX-G: a second name for a file that lives elsewhere (a hard link) is not something this app ever writes.
+            guard info.linkCount <= 1 else { throw ProgramPackageError.linkNotAllowed(entry.file) }
             // A folder on the way may be a link that leads out.
             let real = file.resolvingSymlinksInPath().standardizedFileURL.path
             guard real.hasPrefix(rootPath) else { throw ProgramPackageError.linkNotAllowed(entry.file) }

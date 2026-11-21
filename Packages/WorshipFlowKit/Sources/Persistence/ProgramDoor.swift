@@ -98,6 +98,9 @@ public struct ProgramWriteTools: Sendable {
     /// The text the `slide.objects` column holds (nil for none). Paths are given as they should be stored.
     public func slideObjects(_ objects: [SlideObject]) -> String? { SlideObjectsJSON.encode(objects) }
 
+    /// The text the `slide.background` column holds (nil for none), as for a slide written by the store itself.
+    public func slideBackground(_ selection: MediaSelection?) -> String? { SlideBackgroundJSON.encode(selection) }
+
     /// True once migration v5 has added `slide.objects`.
     public func hasObjectsColumn(_ db: Database) throws -> Bool { try SearchIndex.slideHasObjectsColumn(db) }
 }

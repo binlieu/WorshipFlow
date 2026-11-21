@@ -19,6 +19,10 @@ public enum ProgramPackageError: Error, Equatable, Sendable, LocalizedError {
     case cancelled
     case copyFailed(String)
     case noLibraryFolder
+    case builtInThemeClash(String)
+    case notEnoughSpace(needed: Int64, available: Int64)
+    case backupFailed(String)
+    case destinationInsideLibrary
     case injected(String)
 
     public var errorDescription: String? {
@@ -40,6 +44,15 @@ public enum ProgramPackageError: Error, Equatable, Sendable, LocalizedError {
         case .cancelled: return "Cancelled. Nothing was written."
         case .copyFailed(let why): return "A file could not be copied: \(why)"
         case .noLibraryFolder: return "This library has no folder to keep the program's media in."
+        case .builtInThemeClash(let name):
+            return "The program has a theme called \"\(name)\" that claims to be one of WorshipFlow's built-in themes, so it was not opened. Nothing was imported."
+        case .notEnoughSpace(let needed, let available):
+            let f = { (n: Int64) in ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
+            return "There is not enough free space on this Mac's library drive to import this program: it needs about \(f(needed)) (with some room to spare) and \(f(available)) is free. Free some space, then import it again. Nothing was imported."
+        case .backupFailed(let why):
+            return "A backup of the library could not be written first (\(why)), so nothing was replaced and nothing was imported."
+        case .destinationInsideLibrary:
+            return "That place is inside WorshipFlow's own library folder, which the app manages. Choose another folder for the program, such as the Desktop or a USB stick."
         case .injected(let what): return what
         }
     }
@@ -82,6 +95,8 @@ public struct ProgramExportPlan: Sendable {
     public var files: [ProgramExportFile]
     public var missing: [ProgramMissingMedia]
     public var warnings: [String]
+    /// FIX-G: the library's folder, so `write` can refuse a destination inside it.
+    public var libraryFolder: URL?
     public var totalBytes: Int64 { files.reduce(0) { $0 + $1.size } }
     public var presentationCount: Int { document.presentations.count }
     public var itemCount: Int { document.items.count }
@@ -93,11 +108,29 @@ public struct ProgramExportHooks: Sendable {
     public var afterFile: (@Sendable (Int) throws -> Void)?
     /// Called after everything is written into the temporary folder and before it is moved into place.
     public var beforeMove: (@Sendable () throws -> Void)?
-    public init(afterFile: (@Sendable (Int) throws -> Void)? = nil, beforeMove: (@Sendable () throws -> Void)? = nil) {
+    /// FIX-G: the size of the pieces a file is copied in where cloning is not used (one megabyte by default).
+    public var chunkSize: Int?
+    /// FIX-G: copy in pieces even where the file system could clone, as on another volume or a non-APFS one.
+    public var cloneDisabled: Bool
+    /// FIX-G: called with the size of every piece copied.
+    public var onChunk: (@Sendable (Int64) -> Void)?
+    public init(afterFile: (@Sendable (Int) throws -> Void)? = nil, beforeMove: (@Sendable () throws -> Void)? = nil,
+                chunkSize: Int? = nil, cloneDisabled: Bool = false, onChunk: (@Sendable (Int64) -> Void)? = nil) {
         self.afterFile = afterFile
         self.beforeMove = beforeMove
+        self.chunkSize = chunkSize
+        self.cloneDisabled = cloneDisabled
+        self.onChunk = onChunk
     }
     public static let none = ProgramExportHooks()
+}
+
+/// FIX-G: a seam for tests of planning.
+public struct ProgramPlanHooks: Sendable {
+    /// Called on the thread that hashed a file, after it was hashed, with the file's name.
+    public var onHash: (@Sendable (String) -> Void)?
+    public init(onHash: (@Sendable (String) -> Void)? = nil) { self.onHash = onHash }
+    public static let none = ProgramPlanHooks()
 }
 
 /// A package that was read and checked, without anything being written.
@@ -106,6 +139,22 @@ public struct ProgramPackageContents: Sendable {
     public let document: ProgramDocument
     /// The files of `media/` that the document lists as included, by package path, with their size on disk.
     let files: [String: Int64]
+}
+
+/// FIX-G: what is on air or in use right now. A presentation that is live is never replaced by an import (both are kept), and
+/// while anything is live a theme or Look that is in use is not replaced either.
+public struct ProgramLiveContext: Sendable, Equatable {
+    public var livePresentationIDs: Set<UUID>
+    public var isShowLive: Bool
+    public var themeIDsInUse: Set<UUID>
+    public var lookIDsInUse: Set<UUID>
+    public init(livePresentationIDs: Set<UUID> = [], isShowLive: Bool = false, themeIDsInUse: Set<UUID> = [], lookIDsInUse: Set<UUID> = []) {
+        self.livePresentationIDs = livePresentationIDs
+        self.isShowLive = isShowLive || !livePresentationIDs.isEmpty
+        self.themeIDsInUse = themeIDsInUse
+        self.lookIDsInUse = lookIDsInUse
+    }
+    public static let none = ProgramLiveContext()
 }
 
 /// What to do with an item whose id is already in the library with different content. One answer for the whole import.
@@ -135,6 +184,8 @@ public struct ProgramImportSummary: Sendable, Equatable {
     public var missingMedia: [String] = []
     /// Scripture items whose translation is not installed in this library (they import and show that state).
     public var scriptureNotInstalled: [String] = []
+    /// FIX-G: the slide actions that would be imported, by kind (`media.playForeground`, `look.select`, ...) and how many of each.
+    public var slideActionKinds: [String: Int] = [:]
 
     public var hasConflicts: Bool { !conflicting.isEmpty || conflictingThemes > 0 || conflictingLooks > 0 || playlist == .conflicting }
     /// Importing would change nothing.
@@ -150,6 +201,10 @@ public struct ProgramImportResult: Sendable, Equatable {
     public var presentationsAdded = 0
     public var presentationsReplaced = 0
     public var presentationsKeptAsCopies = 0
+    /// FIX-G: titles of presentations that are live and so were not replaced; the imported version was kept beside them.
+    public var keptBecauseLive: [String] = []
+    /// FIX-G: where the library was backed up before something was replaced (nil when nothing was).
+    public var backupURL: URL?
     /// Presentations whose stored content was replaced (the answer "use the imported one"), so an open copy can be reloaded.
     public var replacedPresentationIDs: [UUID] = []
     public var themesAdded = 0
@@ -166,9 +221,23 @@ public struct ProgramImportHooks: Sendable {
     public var afterMediaCopied: (@Sendable () throws -> Void)?
     /// Called inside the database transaction after every row is written and before it commits.
     public var insideTransaction: (@Sendable () throws -> Void)?
-    public init(afterMediaCopied: (@Sendable () throws -> Void)? = nil, insideTransaction: (@Sendable () throws -> Void)? = nil) {
+    /// FIX-G: the clock used for the backup's name (the real date by default).
+    public var now: (@Sendable () -> Date)?
+    /// FIX-G: free space in bytes on the volume of the given folder; nil from it means unknown. The file system by default.
+    public var freeSpace: (@Sendable (URL) -> Int64?)?
+    /// FIX-G: the size of the pieces a media file is copied in (one megabyte by default); tests use a tiny one.
+    public var chunkSize: Int?
+    /// FIX-G: called with the size of every piece copied.
+    public var onChunk: (@Sendable (Int64) -> Void)?
+    public init(afterMediaCopied: (@Sendable () throws -> Void)? = nil, insideTransaction: (@Sendable () throws -> Void)? = nil,
+                now: (@Sendable () -> Date)? = nil, freeSpace: (@Sendable (URL) -> Int64?)? = nil, chunkSize: Int? = nil,
+                onChunk: (@Sendable (Int64) -> Void)? = nil) {
         self.afterMediaCopied = afterMediaCopied
         self.insideTransaction = insideTransaction
+        self.now = now
+        self.freeSpace = freeSpace
+        self.chunkSize = chunkSize
+        self.onChunk = onChunk
     }
     public static let none = ProgramImportHooks()
 }

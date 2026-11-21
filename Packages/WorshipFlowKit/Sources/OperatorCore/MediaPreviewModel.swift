@@ -62,9 +62,31 @@ public final class MediaPreviewModel {
     public let silent: Bool
     @ObservationIgnored private let player: any PreviewPlayback
 
-    public init(player: any PreviewPlayback, silent: Bool) {
+    public init(player: any PreviewPlayback, silent: Bool, startsMuted: Bool = false) {
         self.player = player
         self.silent = silent
+        self.isMuted = silent || startsMuted
+    }
+
+    /// FIX-G: the preview the app uses. It starts muted every session: its sound goes through the Mac's default output, which may be
+    /// the house system. The operator's mute choice lasts as long as this object (the session) and is never stored.
+    public static func sessionPreview(player: any PreviewPlayback, silent: Bool) -> MediaPreviewModel {
+        MediaPreviewModel(player: player, silent: silent, startsMuted: true)
+    }
+
+    /// FIX-G: the line under the player: where the sound is heard. `outputName` is the Mac's default output as the app knows it.
+    public func heardLine(outputName: String?) -> String {
+        let place = outputName.map { "this Mac's default sound output (\($0))" } ?? "this Mac's default sound output"
+        if silent { return "Started silent (--silent-audio): this preview makes no sound." }
+        if isMuted { return "Muted. If you turn the sound on it plays on \(place), not the show's sound output." }
+        return "Playing on \(place), not the show's sound output."
+    }
+
+    /// FIX-G: an item was sent to the live screens or the audio output. If it is the one previewed, the preview pauses, so the
+    /// same sound is not heard twice.
+    public func itemSentLive(_ id: UUID) {
+        guard asset?.id == id, player.isPlaying else { return }
+        player.pause()
     }
 
     public var canUnmute: Bool { !silent }

@@ -268,13 +268,17 @@ struct LiveScreenPreview: View {
 /// MEDIA-010: the small mark on a slide thumbnail whose slide has its own background (set by dropping a video or picture on it).
 struct OwnBackgroundMark: View {
     let content: SlideContent
+    /// FIX-G: ids of the bin items that exist now. A slide whose own background is not among them shows the missing-media state.
+    var available: Set<UUID>? = nil
 
     var body: some View {
         if SlideBackgroundDrop.hasOwnBackground(content) {
-            Image(systemName: content.background?.kind == .video ? "film" : "photo")
-                .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+            let missing = available.map { SlideBackgroundDrop.isMissing(content, available: $0) } ?? false
+            Image(systemName: missing ? "exclamationmark.triangle.fill" : (content.background?.kind == .video ? "film" : "photo"))
+                .font(.system(size: 10, weight: .bold)).foregroundStyle(missing ? Tok.warning : .white)
                 .padding(4).background(.black.opacity(0.65), in: Circle())
-                .help("This slide has its own background. Right-click the slide to use the presentation's background again.")
+                .help(missing ? "This slide's own background is no longer in the media bin. The slide shows its words on the theme's own background. Drop another item on it, or right-click to use the presentation's background."
+                              : "This slide has its own background. Right-click the slide to use the presentation's background again.")
                 .accessibilityHidden(true)
         }
     }

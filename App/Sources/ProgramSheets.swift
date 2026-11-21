@@ -155,12 +155,26 @@ struct ImportProgramSheet: View {
                         Text("Keep mine").tag(ProgramConflictChoice.keepMine)
                         Text("Use the imported one (replaces mine)").tag(ProgramConflictChoice.useImported)
                     }.pickerStyle(.radioGroup).labelsHidden()
+                    if model.importChoice == .useImported {
+                        // FIX-G: what protects the replace.
+                        Text("Before anything is replaced the whole library is copied to the Backups folder next to it. A presentation that is live right now, and a theme or Look the live show uses, are not replaced: both are kept.")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             if s.mediaFilesToCopy > 0 || s.mediaFilesAlreadyThere > 0 {
                 Text("Media: \(s.mediaFilesToCopy) file\(s.mediaFilesToCopy == 1 ? "" : "s") to copy (\(sizeText(s.mediaBytesToCopy)))" +
                      (s.mediaFilesAlreadyThere > 0 ? ", \(s.mediaFilesAlreadyThere) already here" : "") +
                      ". They are kept next to the library, so they go with it.").font(.callout)
+            }
+            if !s.slideActionKinds.isEmpty {
+                // FIX-G: slide actions run things (media, Looks, ...) when a slide goes live; they are listed before anything is imported.
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Slide actions that come with these slides (they run when the slide goes live):").font(.callout)
+                    ForEach(s.slideActionKinds.sorted { $0.key < $1.key }, id: \.key) { kind, count in
+                        Text("• \(kind): \(count)").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
             if !s.missingMedia.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {

@@ -195,7 +195,7 @@ struct SlideGrid: View {
             // The rings are drawn outside the picture (never over the words): blue for preview, 3 pt red for live.
             SlideThumbnail(app: app, slide: slide.content)
                 .overlay(alignment: .topLeading) { tags(live: live, selected: selected).padding(5) }
-                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content).padding(5) }
+                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: app.media.map { Set($0.allAssets.map(\.id)) }).padding(5) }
                 .padding(3)
                 .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.blue : .clear, lineWidth: 2))
                 .padding(live ? 4 : 0)

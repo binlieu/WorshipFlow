@@ -11,6 +11,8 @@ struct MediaBinPanel: View {
     @State private var renaming: MediaAsset?
     @State private var renameText = ""
     @State private var targeted = false
+    /// FIX-G: a removal that would leave slides without their own background waits for the operator's answer.
+    @State private var pendingRemoval: (asset: MediaAsset, message: String)?
     private var selected: UUID? { app.ui.binSelection }
 
     private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)]
@@ -108,6 +110,16 @@ struct MediaBinPanel: View {
                 if let asset = renaming { Task { await media.rename(asset.id, to: renameText) } }
             }
         }
+        .alert("Remove from the media bin?", isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } })) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) { if let asset = pendingRemoval?.asset { Task { await media.remove(asset.id) } } }
+        } message: { Text(pendingRemoval?.message ?? "") }
+    }
+
+    /// FIX-G: tells which slides use the item as their own background before removing it; with none it removes at once.
+    private func requestRemoval(_ asset: MediaAsset) async {
+        let impact = await media.removalImpact(asset.id)
+        if let message = impact.message { pendingRemoval = (asset, message) } else { await media.remove(asset.id) }
     }
 
     /// MEDIA-010: the hot folder the sidebar chose, if any; the grid then shows its items instead of the bin's.
@@ -122,8 +134,8 @@ struct MediaBinPanel: View {
     private func folderHeader(_ state: HotFolderState) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Image(systemName: state.status == .missing ? "exclamationmark.triangle" : "folder")
-                    .foregroundStyle(state.status == .missing ? Tok.warning : Tok.muted)
+                Image(systemName: state.status == .ok ? "folder" : "exclamationmark.triangle")
+                    .foregroundStyle(state.status == .ok ? Tok.muted : Tok.warning)
                 Text(state.folder.path).font(.caption).lineLimit(1).truncationMode(.middle).foregroundStyle(Tok.muted)
                 Spacer()
                 if state.status == .missing {
@@ -143,10 +155,20 @@ struct MediaBinPanel: View {
             if state.status == .missing {
                 Text("This folder cannot be found (moved, renamed or its drive is not connected). The show is not affected.")
                     .font(.caption).foregroundStyle(Tok.warning)
-            } else if !state.heldBack.isEmpty {
-                Text("\(state.heldBack.count) file\(state.heldBack.count == 1 ? "" : "s") still being copied or not readable yet: \(state.heldBack.prefix(3).joined(separator: ", ")). Shown when complete.")
+            } else if state.status == .unreachable {
+                // FIX-G: the last list stays; the folder could not be read this time.
+                Text("This folder is not answering right now (a drive or network share that is slow or disconnected). The last list is kept and the show is not affected.")
+                    .font(.caption).foregroundStyle(Tok.warning)
+            }
+            if state.status != .missing, !state.heldBack.isEmpty {
+                Text("\(state.heldBack.count) file\(state.heldBack.count == 1 ? "" : "s") still being copied: \(state.heldBack.prefix(3).joined(separator: ", ")). Shown when complete.")
                     .font(.caption).foregroundStyle(Tok.muted)
             }
+            if !state.unreadable.isEmpty {
+                Text("\(state.unreadable.count) file\(state.unreadable.count == 1 ? "" : "s") could not be read and \(state.unreadable.count == 1 ? "is" : "are") tried again now and then: \(state.unreadable.prefix(3).joined(separator: ", ")).")
+                    .font(.caption).foregroundStyle(Tok.muted)
+            }
+            if let notice = state.notice { Text(notice).font(.caption).foregroundStyle(Tok.warning) }
         }
     }
 
@@ -167,7 +189,7 @@ struct MediaBinPanel: View {
         }
         Divider()
         Button("Rename…") { renameText = asset.name; renaming = asset }
-        Button("Remove from bin") { Task { await media.remove(asset.id) } }.disabled(media.assets.contains { $0.id == asset.id } == false)
+        Button("Remove from bin") { Task { await requestRemoval(asset) } }.disabled(media.assets.contains { $0.id == asset.id } == false)
     }
 }
 

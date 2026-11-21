@@ -172,6 +172,7 @@ struct ImportSheet: View {
         var parts: [String] = []
         if !loss.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parts.append("note \"\(loss.notes)\"") }
         if loss.objectCount > 0 { parts.append("\(loss.objectCount) object\(loss.objectCount == 1 ? "" : "s")") }
+        if loss.hasBackground { parts.append("its own background") }     // FIX-G: a slide's own background that nothing takes over
         let section = loss.sectionName.map { "\($0): " } ?? ""
         let words = loss.primary.replacingOccurrences(of: "\n", with: " ")
         return "\(section)\"\(words)\" had \(parts.joined(separator: " and "))"

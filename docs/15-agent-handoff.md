@@ -36,3 +36,7 @@ Updated: 2026-11-21 (afternoon)
 - An English translation to bundle (World English Bible or Berean Standard Bible are verified free).
 - Apple Developer Program membership, later.
 - OPEN-04 (is SDI needed?) and OPEN-11 (one church or many?).
+
+## Design match (UI-005)
+
+Added 2026-11-21. The owner wants the app to match `docs/UI` exactly, screen by screen, features included. Read `AI/specs/UI-005-design-match-plan.md` first: it holds the owner's four decisions, the coordinator's defaults and the order of slices. The audits are `AI/reports/UI-005-audit-*.md`. Done before it: MEDIA-010, LIB-005, UI-004 (the product is written WorshipFlow; the library folder keeps its old spelling) and FIX-G (schema v11). Next: UI-005a (`AI/specs/UI-005a-components-and-show-appearance.md`), then UI-005b to UI-005h in the plan's order. Tell the owner when a build is ready and ask before replacing `/Applications/WorshipFlow.app`; remove the old bundle first so the new capitals take.

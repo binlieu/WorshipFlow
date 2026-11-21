@@ -89,11 +89,17 @@ public final class MediaModel {
     /// The hot folder playing its videos one after another, if one is.
     public var playingFolderID: UUID? { folderPlay?.folderID }
     @ObservationIgnored private var hotAssetsByFolder: [UUID: [MediaAsset]] = [:]
+    /// FIX-G: hot items that the folder no longer lists but that are on a layer now. They stay registered (so the player is not
+    /// closed under a clip that is on air) until the layer lets go of them.
+    @ObservationIgnored private var retainedHot: [UUID: MediaAsset] = [:]
+    /// FIX-G: the remembered background was not found when the bin loaded (a hot folder item: the folders load later, and launch does
+    /// not wait for them). It is restored as soon as the item is listed, unless the operator chose something else meanwhile.
+    @ObservationIgnored private var pendingBackgroundID: UUID?
     @ObservationIgnored private var folderPlay: FolderPlay?
 
     /// Which layer a hot folder plays on.
     public enum FolderLayer: Sendable, Equatable { case background, foreground }
-    private struct FolderPlay { var folderID: UUID; var layer: FolderLayer; var current: String }
+    private struct FolderPlay { var folderID: UUID; var layer: FolderLayer; var current: String; var reported: Set<String> = [] }
 
     public var visibleAssets: [MediaAsset] {
         guard let kindFilter else { return assets }
@@ -101,11 +107,14 @@ public final class MediaModel {
     }
 
     public func asset(_ id: UUID) -> MediaAsset? {
-        assets.first { $0.id == id } ?? hotAssetsByFolder.values.lazy.flatMap { $0 }.first { $0.id == id }
+        assets.first { $0.id == id } ?? hotAssetsByFolder.values.lazy.flatMap { $0 }.first { $0.id == id } ?? retainedHot[id]
     }
 
     /// MEDIA-010: the bin's items and the items of every hot folder, for the registry and the audio list.
-    public var allAssets: [MediaAsset] { assets + hotAssetsByFolder.keys.sorted { $0.uuidString < $1.uuidString }.flatMap { hotAssetsByFolder[$0] ?? [] } }
+    public var allAssets: [MediaAsset] {
+        assets + hotAssetsByFolder.keys.sorted { $0.uuidString < $1.uuidString }.flatMap { hotAssetsByFolder[$0] ?? [] }
+            + retainedHot.values.sorted { $0.id.uuidString < $1.id.uuidString }
+    }
 
     /// Called on the main actor after the bin's contents change (add, rename, remove, load).
     @ObservationIgnored public var onAssetsChange: (@MainActor ([MediaAsset]) -> Void)?
@@ -159,7 +168,16 @@ public final class MediaModel {
         assets = all
         onAssetsChange?(allAssets)
         guard let text = try? await store.state(for: Self.backgroundKey), let id = UUID(uuidString: text) else { return }
-        guard let asset = asset(id) else { return }     // the asset was removed: nothing to restore
+        guard let asset = asset(id) else {
+            // Removed from the bin, or an item of a hot folder that has not been listed yet: wait for it (FIX-G).
+            pendingBackgroundID = id
+            return
+        }
+        restoreRemembered(asset)
+    }
+
+    private func restoreRemembered(_ asset: MediaAsset) {
+        pendingBackgroundID = nil
         guard isAvailable(asset) else {
             // The choice stays stored, so it comes back when the drive does; this run shows the theme's own background.
             lastError = Self.missingMessage(asset, what: "The background")
@@ -228,6 +246,13 @@ public final class MediaModel {
         await reload()
     }
 
+    /// FIX-G: what removing the item would do to slides that use it as their own background, to show before asking. Reads only.
+    public func removalImpact(_ id: UUID) async -> SlideBackgroundRemovalImpact {
+        let name = asset(id)?.name ?? "This item"
+        let uses = (await attempt("look for slides that use the media item", { try await self.store.slidesUsingBackground(of: id) })) ?? []
+        return SlideBackgroundRemovalImpact(itemName: name, uses: uses)
+    }
+
     private func reload() async {
         guard let all = await attempt("read the media bin", { try await self.store.mediaAssets(kind: nil) }) else { return }
         assets = all
@@ -239,6 +264,7 @@ public final class MediaModel {
     /// Starts the item looping behind the slides. Persisted, so the next launch brings it back.
     public func setBackground(_ id: UUID) {
         guard let asset = asset(id), usable(asset, as: "a background") else { return }
+        pendingBackgroundID = nil
         endFolderPlay(on: .background)
         if layers.background?.selection == MediaSelection(asset: asset) { return }
         layers.setBackground(MediaSelection(asset: asset), at: now())
@@ -253,6 +279,7 @@ public final class MediaModel {
     public func clearBackground() {
         endFolderPlay(on: .background)
         let had = layers.background != nil
+        pendingBackgroundID = nil
         layers.setBackground(nil, at: now())
         persistBackground(nil)
         if had { layersChanged() }
@@ -491,14 +518,35 @@ public final class MediaModel {
     /// The items of one hot folder, as the folder model last saw them. An empty list forgets the folder. Items are not in
     /// the bin and are never stored here; they can be chosen, played and found like bin items.
     public func setHotAssets(_ folderID: UUID, _ items: [MediaAsset]) {
+        let previous = hotAssetsByFolder[folderID] ?? []
         if items.isEmpty { hotAssetsByFolder[folderID] = nil } else { hotAssetsByFolder[folderID] = items }
+        // FIX-G: an item that is on a layer stays registered while it plays, whatever this scan says.
+        let onLayers = idsOnLayers
+        let listed = Set(items.map(\.id))
+        for old in previous where onLayers.contains(old.id) && !listed.contains(old.id) { retainedHot[old.id] = old }
+        for id in listed { retainedHot[id] = nil }
         onAssetsChange?(allAssets)
+        if let pending = pendingBackgroundID, layers.background == nil, let asset = asset(pending) { restoreRemembered(asset) }
+    }
+
+    private var idsOnLayers: Set<UUID> {
+        Set([layers.background?.selection.assetID, layers.foreground?.selection.assetID].compactMap { $0 })
+    }
+
+    /// A retained item that no layer holds any more goes (and the registry is told).
+    private func releaseRetainedHot() {
+        guard !retainedHot.isEmpty else { return }
+        let held = idsOnLayers
+        let before = retainedHot.count
+        retainedHot = retainedHot.filter { held.contains($0.key) }
+        if retainedHot.count != before { onAssetsChange?(allAssets) }
     }
 
     /// Plays the folder's videos one after another in name order, and again from the first after the last. Refused, with a
     /// message, when the folder has no video, or for the foreground while the screens are stopped.
     public func playFolder(_ folderID: UUID, on layer: FolderLayer) {
-        guard let first = folderVideos(folderID).first else {
+        let videos = folderVideos(folderID)
+        guard !videos.isEmpty else {
             lastError = "This folder has no videos to play yet. Videos that are still being copied in are played when they are complete."
             return
         }
@@ -506,11 +554,23 @@ public final class MediaModel {
             lastError = "Take a slide live first, then play the folder over the words: the screens are stopped, so nobody would see it."
             return
         }
-        guard isAvailable(first) else { lastError = Self.missingMessage(first, what: "The file"); return }
+        // FIX-G: a file that cannot be read is skipped, and said so once; if none can be played it stops and says so.
+        let skipped = videos.filter { !isAvailable($0) }.map(\.name)
+        guard let first = videos.first(where: { isAvailable($0) }) else {
+            lastError = "None of the videos in this folder can be played: \(Self.quoted(skipped)) could not be read. Check that the drive or folder is connected."
+            return
+        }
         endFolderPlay(on: layer)
-        folderPlay = FolderPlay(folderID: folderID, layer: layer, current: first.name)
+        pendingBackgroundID = layer == .background ? nil : pendingBackgroundID
+        folderPlay = FolderPlay(folderID: folderID, layer: layer, current: first.name, reported: Set(skipped))
+        if !skipped.isEmpty { lastError = Self.skippedMessage(skipped) }
         startFolderClip(first, on: layer)
         if layer == .background { onBackgroundChosen?() }
+    }
+
+    private static func quoted(_ names: [String]) -> String { names.map { "\"\($0)\"" }.joined(separator: ", ") }
+    private static func skippedMessage(_ names: [String]) -> String {
+        "\(quoted(names)) could not be read and was skipped; the folder goes on with the next video."
     }
 
     public func stopFolder() {
@@ -545,8 +605,16 @@ public final class MediaModel {
     /// Moves to the next video, in the order as the folder is now. Nothing to play (the folder emptied or went missing) ends it.
     private func advanceFolder(at t: Double) {
         guard let play = folderPlay else { return }
-        let queue = folderVideos(play.folderID).filter { isAvailable($0) }
+        let all = folderVideos(play.folderID)
+        let queue = all.filter { isAvailable($0) }
+        // FIX-G: a file that went bad since the last time is skipped and reported once.
+        let newlySkipped = all.filter { !isAvailable($0) && !play.reported.contains($0.name) }.map(\.name)
+        if !newlySkipped.isEmpty {
+            folderPlay?.reported.formUnion(newlySkipped)
+            lastError = Self.skippedMessage(newlySkipped)
+        }
         guard !queue.isEmpty else {
+            if !all.isEmpty { lastError = "None of the videos in this folder can be played now: \(Self.quoted(all.map(\.name))) could not be read." }
             folderPlay = nil
             switch play.layer {
             case .background: layers.setBackground(nil, at: t)
@@ -601,7 +669,10 @@ public final class MediaModel {
         return "\(what) \(name) could not be opened\(path). It may have been moved, deleted or damaged. The screens show the slide as usual; choose another item from the media bin."
     }
 
-    private func layersChanged() { onLayersChange?(layers) }
+    private func layersChanged() {
+        releaseRetainedHot()
+        onLayersChange?(layers)
+    }
 
     private func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
         writes.persist(key: key, what: what, operation)

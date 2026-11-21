@@ -82,16 +82,24 @@ struct BinPlayerPanel: View {
                 HStack(spacing: Space.s3) {
                     Toggle(isOn: Binding(get: { preview.loops }, set: { preview.setLoops($0) })) { Label("Loop", systemImage: "repeat") }
                         .toggleStyle(.button).controlSize(.small).accessibilityValue(preview.loops ? "on" : "off")
-                    Toggle(isOn: Binding(get: { preview.isMuted }, set: { preview.setMuted($0) })) {
+                    // FIX-G: a clear speaker button; the line under the controls says where the sound would be heard.
+                    Button { preview.setMuted(!preview.isMuted) } label: {
                         Label(preview.isMuted ? "Muted" : "Sound on", systemImage: preview.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     }
-                    .toggleStyle(.button).controlSize(.small).disabled(!preview.canUnmute)
-                    .help(preview.canUnmute ? "Mute or unmute this preview" : "Started with --silent-audio: the preview stays silent")
+                    .controlSize(.small).disabled(!preview.canUnmute)
+                    .help(preview.canUnmute ? (preview.isMuted ? "Turn this preview's sound on" : "Mute this preview") : "Started with --silent-audio: the preview stays silent")
+                    .accessibilityLabel(preview.isMuted ? "Turn preview sound on" : "Mute preview sound")
                     Spacer()
                 }
+                Text(preview.heardLine(outputName: defaultOutputName))
+                    .font(.wfCaption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
+
+    /// The name of this Mac's default sound output, if the audio model knows it.
+    private var defaultOutputName: String? { app.audio?.devices.first(where: { $0.isDefault })?.name }
 
     private func sendButtons(_ asset: MediaAsset) -> some View {
         let live = app.media?.showIsLive ?? false

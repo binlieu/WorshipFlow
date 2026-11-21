@@ -1,13 +1,10 @@
-// MEDIA-010: a slide's own background and the hot folders, kept in the library's `appState` table as JSON. No migration: an
-// earlier test pins the library at ten migrations, and neither value needs a column of its own. Rows of other tables are
-// never touched. A slide's background is stored per presentation as `{"<slide id>": <MediaSelection>}`; a slide that was
-// deleted leaves its entry behind until the presentation is deleted or the slide's entry is written again (harmless).
+// MEDIA-010: the hot folders, kept in the library's `appState` table as JSON (no table of their own). A slide's own background
+// moved into the slide row in FIX-G (migration v11, see `Schema`). Rows of other tables are never touched.
 import Foundation
 import GRDB
 import Domain
 
 extension LibraryStore {
-    static func backgroundsKey(_ presentationID: UUID) -> String { "slideBackgrounds.\(presentationID.uuidString)" }
     static let hotFoldersKey = "media.hotFolders"
 
     /// Column names of a table, for tests and diagnostics.
@@ -15,42 +12,35 @@ extension LibraryStore {
         try await writer.read { db in try db.columns(in: table).map(\.name) }
     }
 
-    // MARK: Slide backgrounds
-
-    static func backgrounds(_ db: Database, _ presentationID: UUID) -> [String: MediaSelection] {
-        guard let text = try? String.fetchOne(db, sql: "SELECT value FROM appState WHERE key = ?", arguments: [backgroundsKey(presentationID)]),
-              let data = text.data(using: .utf8) else { return [:] }
-        // An unreadable value reads as no backgrounds rather than making the slide list fail to load.
-        return (try? JSONDecoder().decode([String: MediaSelection].self, from: data)) ?? [:]
-    }
-
-    static func applyBackgrounds(_ slides: [Slide], _ db: Database, _ presentationID: UUID) -> [Slide] {
-        let stored = backgrounds(db, presentationID)
-        guard !stored.isEmpty else { return slides }
-        return slides.map { slide in
-            var copy = slide
-            copy.content.background = stored[slide.id.dbText]
-            return copy
+    /// Keys of `appState` that start with `prefix`, for tests and diagnostics.
+    public func stateKeys(prefix: String) async throws -> [String] {
+        try await writer.read { db in
+            try String.fetchAll(db, sql: "SELECT key FROM appState WHERE substr(key, 1, ?) = ? ORDER BY key",
+                                arguments: [prefix.count, prefix])
         }
     }
 
-    /// Sets or removes one slide's entry, inside the caller's transaction. Writes nothing when nothing changes.
-    static func writeBackground(_ db: Database, presentationID: UUID, slideID: UUID, _ selection: MediaSelection?) throws {
-        var stored = backgrounds(db, presentationID)
-        guard stored[slideID.dbText] != selection else { return }
-        stored[slideID.dbText] = selection
-        let key = backgroundsKey(presentationID)
-        if stored.isEmpty {
-            try db.execute(sql: "DELETE FROM appState WHERE key = ?", arguments: [key])
-            return
+    /// How many slides have their own background, for tests and diagnostics.
+    public func slideBackgroundCount() async throws -> Int {
+        try await writer.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM slide WHERE background IS NOT NULL") ?? 0 }
+    }
+
+    // MARK: Slide backgrounds in use
+
+    /// The slides, in every presentation, that have the bin item `assetID` as their own background.
+    public func slidesUsingBackground(of assetID: UUID) async throws -> [SlideBackgroundUse] {
+        try await writer.read { db in
+            try Row.fetchAll(db, sql: """
+                SELECT s.presentationID AS presentationID, p.title AS title, s.sortOrder AS sortOrder, s.primaryText AS words
+                FROM slide s JOIN presentation p ON p.id = s.presentationID
+                WHERE s.background IS NOT NULL AND instr(s.background, ?) > 0
+                ORDER BY p.title COLLATE NOCASE, p.id, s.sortOrder, s.rowid
+                """, arguments: ["\"assetID\":\"\(assetID.uuidString)\""]).compactMap { row in
+                guard let id = UUID(uuidString: row["presentationID"] as String) else { return nil }
+                let words = (row["words"] as String).split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
+                return SlideBackgroundUse(presentationID: id, presentationTitle: row["title"], slideNumber: (row["sortOrder"] as Int) + 1, words: words)
+            }
         }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        let text = String(decoding: try encoder.encode(stored), as: UTF8.self)
-        try db.execute(sql: """
-            INSERT INTO appState (key, value, updatedAt) VALUES (?, ?, ?)
-            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt
-            """, arguments: [key, text, Date()])
     }
 
     // MARK: Hot folders

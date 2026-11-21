@@ -212,8 +212,9 @@ final class AppModel {
             mediaRegistry.setBackgroundAudio(volume: Float(media.volume), muted: media.backgroundHeardMuted)
             // A new live background brings a cleared one back.
             media.onBackgroundChosen = { [weak self] in self?.workspace?.showBackground() }
-            let hot = HotFolderModel(store: store, listing: FileSystemFolderListing(), watching: DispatchFolderWatching(), prober: AppMediaProber())
-            hot.onFoldersChange = { [weak self] folders in self?.hotFolderAccess.update(folders) }
+            // FIX-G: bookmarks are resolved off the main actor, without UI and without mounting (HotFolderAccess).
+            let hot = HotFolderModel(store: store, listing: FileSystemFolderListing(), watching: DispatchFolderWatching(), prober: AppMediaProber(),
+                                     access: hotFolderAccess)
             hot.onAssetsChange = { [weak self] byFolder in
                 guard let self, let media = self.media else { return }
                 for (id, items) in byFolder { media.setHotAssets(id, items) }
@@ -221,7 +222,8 @@ final class AppModel {
                 self.knownHotFolderIDs = Set(byFolder.keys)
             }
             hotFolders = hot
-            binPreview = MediaPreviewModel(player: binPreviewPlayer, silent: CommandLine.arguments.contains("--silent-audio"))
+            // FIX-G: starts muted every session (its sound would go through the Mac's default output, maybe the house system).
+            binPreview = MediaPreviewModel.sessionPreview(player: binPreviewPlayer, silent: CommandLine.arguments.contains("--silent-audio"))
             // A player that failed or stalled: end the clip so the words come back, and tell the operator (R9).
             mediaRegistry.setOnAvailabilityChange { id, state in
                 let mapped: ClipAvailability
@@ -297,7 +299,9 @@ final class AppModel {
             await stage?.load()
             await resolvePropBookmarks()
             await media?.load()
-            await hotFolders?.load()
+            // FIX-G: launch never waits on a hot folder (a drive that is gone, a slow network share). The folders fill in when they answer,
+            // and a remembered hot-folder background is restored then.
+            await hotFolders?.load(waitForScans: false)
             await audio?.load()
             await scripture?.load()
             coordinator.setProfiles(profiles)
@@ -1055,8 +1059,9 @@ final class AppModel {
     private func hotFolderTick() {
         guard let hot = hotFolders, !hot.folders.isEmpty else { return }
         hotTick &+= 1
-        if hotTick % 20 == 0 { Task { await hot.rescan() } }
-        else if hotTick % 4 == 0, hot.pendingCount > 0 { Task { await hot.rescan() } }
+        // FIX-G: requests, not waits: a folder that is still being scanned is asked for one more scan, never for a pile of them.
+        if hotTick % 20 == 0 { hot.requestRescan() }
+        else if hotTick % 4 == 0, hot.pendingCount > 0 { hot.requestRescan() }
     }
 
     /// MEDIA-010: the three layer clears, through the same serial command path as every other transport command.
@@ -1120,9 +1125,10 @@ final class AppModel {
     private func effectiveMedia() -> MediaLayers {
         let override = media?.layers ?? MediaLayers()
         let own = show.liveSlideAtPlace?.background
-        if override.background != nil || own == nil { ownBackgroundStart = nil; return override }
+        if override.background != nil || own == nil { ownBackgroundStart = nil; return LiveMedia.playing(override: override, state: show, at: MediaClock.now()) }
         if ownBackgroundStart?.selection != own { ownBackgroundStart = (own!, MediaClock.now()) }
-        return LiveMedia.effective(override: override, slide: show.liveSlideAtPlace, at: ownBackgroundStart!.at)
+        // FIX-G item 1: a cleared or stopped background is not played (so not heard either).
+        return LiveMedia.playing(override: override, state: show, at: ownBackgroundStart!.at)
     }
 
     /// The stage's one-second republish. Skipped when nothing on any screen changed, and it does not touch the slide
@@ -1381,9 +1387,9 @@ final class AppModel {
     /// What a click on a media tile does (UI-003). Sound plays as a cue; a picture or video follows the layer choice.
     func performDockAction(_ action: MediaDockAction) {
         switch action {
-        case .setBackground(let id): media?.setBackground(id)
-        case .playForeground(let id): media?.playForeground(id)
-        case .playAudio(let id): audio?.play(id)
+        case .setBackground(let id): media?.setBackground(id); binPreview?.itemSentLive(id)
+        case .playForeground(let id): media?.playForeground(id); binPreview?.itemSentLive(id)
+        case .playAudio(let id): audio?.play(id); binPreview?.itemSentLive(id)
         }
     }
 

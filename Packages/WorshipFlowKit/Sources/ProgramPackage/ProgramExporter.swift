@@ -6,12 +6,18 @@ import Domain
 
 public enum ProgramExporter {
     /// Reads the playlist and everything it needs, and says what a package would contain. Writes nothing.
-    public static func plan(store: LibraryStore, playlistID: UUID, appVersion: String = "0.0.0") async throws -> ProgramExportPlan {
+    /// FIX-G: files are hashed at utility priority, `isCancelled` is polled between and inside files (a cancel throws `cancelled`
+    /// and nothing is written either way).
+    public static func plan(store: LibraryStore, playlistID: UUID, appVersion: String = "0.0.0",
+                            isCancelled: @escaping @Sendable () -> Bool = { false },
+                            hooks: ProgramPlanHooks = .none) async throws -> ProgramExportPlan {
         guard let playlist = try await store.playlists().first(where: { $0.id == playlistID }) else {
             throw ProgramPackageError.playlistNotFound
         }
         let playlistItems = try await store.playlistItems(of: playlistID)
         var collector = MediaCollector()
+        collector.isCancelled = isCancelled
+        collector.onHash = hooks.onHash
         var references = ActionReferences()
         var warnings: [String] = []
 
@@ -26,23 +32,29 @@ public enum ProgramExporter {
         // Looks that the slide actions select, then every custom theme those Looks and the presentations use.
         let allLooks = try await store.looks()
         let looks = allLooks.filter { Set(references.looks).contains($0.id) }
+        let profiles = try await store.screenProfiles()
         if Set(references.looks).count > looks.count {
             warnings.append("A slide action selects a Look that is not in this library; it was left out.")
         }
         var themeIDs = Set(presentations.compactMap(\.themeID))
         for look in looks { for screen in look.screens.values { if let id = screen.themeID { themeIDs.insert(id) } } }
-        let themes = try await store.themes().filter { themeIDs.contains($0.id) }.map {
-            ProgramSnapshot.theme($0, collector: &collector)
+        var themes: [Theme] = []
+        for theme in try await store.themes() where themeIDs.contains(theme.id) {
+            themes.append(try await ProgramSnapshot.theme(theme, collector: &collector))
         }
 
         // Media items that the slide actions play, with their files.
         let wanted = Set(references.assets)
         let assets = try await store.mediaAssets(kind: nil).filter { wanted.contains($0.id) }
-        let assetEntries = assets.map { asset in
-            ProgramDocument.AssetEntry(id: asset.id, name: asset.name, kind: asset.kind, duration: asset.duration,
-                                       pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight, file: collector.reference(asset.path))
+        var assetEntries: [ProgramDocument.AssetEntry] = []
+        for asset in assets {
+            assetEntries.append(ProgramDocument.AssetEntry(id: asset.id, name: asset.name, kind: asset.kind, duration: asset.duration,
+                                       pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight, file: try await collector.reference(asset.path)))
         }
         if wanted.count > assets.count { warnings.append("A slide action plays a media item that is not in this library; it was left out.") }
+        if references.lostBackgrounds > 0 {
+            warnings.append("A slide's own background uses a media item that is no longer in this library; that slide goes without it.")
+        }
         if !references.notCarried.isEmpty {
             warnings.append("Slide actions use \(references.notCarried.sorted().joined(separator: ", ")), which a program does not carry: set them up again on the other Mac.")
         }
@@ -50,9 +62,10 @@ public enum ProgramExporter {
         let document = ProgramDocument(
             appVersion: appVersion, programID: playlist.id, playlist: .init(id: playlist.id, name: playlist.name),
             items: playlistItems.map(ProgramSnapshot.item), presentations: presentations, themes: themes,
-            looks: looks.map(ProgramSnapshot.lookEntry), mediaAssets: assetEntries, media: collector.entries)
+            looks: looks.map { ProgramSnapshot.lookEntry($0, profiles: profiles) }, mediaAssets: assetEntries, media: collector.entries)
         return ProgramExportPlan(document: document, files: collector.files,
-                                 missing: collector.missingNames.map { ProgramMissingMedia(name: $0) }, warnings: warnings)
+                                 missing: collector.missingNames.map { ProgramMissingMedia(name: $0) }, warnings: warnings,
+                                 libraryFolder: store.libraryFolder)
     }
 
     /// Writes the package to `destination`: built in a temporary sibling folder and moved into place at the end. A failure or a
@@ -63,6 +76,13 @@ public enum ProgramExporter {
                              progress: @Sendable (ProgramProgress) -> Void = { _ in }) throws {
         let fm = FileManager.default
         let parent = destination.deletingLastPathComponent()
+        // FIX-G: never into the library's own folder, which the app manages (a package there would be mixed with, and could be
+        // deleted with, the library's own files). A link that leads in does not get round this.
+        if let library = plan.libraryFolder {
+            let root = library.resolvingSymlinksInPath().standardizedFileURL.path
+            let place = parent.resolvingSymlinksInPath().standardizedFileURL.path
+            if place == root || place.hasPrefix(root.hasSuffix("/") ? root : root + "/") { throw ProgramPackageError.destinationInsideLibrary }
+        }
         var isFolder: ObjCBool = false
         guard fm.fileExists(atPath: parent.path, isDirectory: &isFolder), isFolder.boolValue else {
             throw ProgramPackageError.copyFailed("The folder \(parent.lastPathComponent) does not exist.")
@@ -81,7 +101,7 @@ public enum ProgramExporter {
         for (index, file) in plan.files.enumerated() {
             if isCancelled() { throw ProgramPackageError.cancelled }
             let target = temp.appendingPathComponent(file.packagePath)
-            try copy(file, to: target, isCancelled: isCancelled) { piece in
+            try copy(file, to: target, hooks: hooks, isCancelled: isCancelled) { piece in
                 done += piece
                 progress(ProgramProgress(bytesDone: done, bytesTotal: total, filesDone: index, filesTotal: plan.files.count))
             }
@@ -106,7 +126,8 @@ public enum ProgramExporter {
     }
 
     /// Clones where the file system allows, else copies in chunks. Either way a source that changed since the plan is refused.
-    private static func copy(_ file: ProgramExportFile, to target: URL, isCancelled: () -> Bool, onBytes: (Int64) -> Void) throws {
+    private static func copy(_ file: ProgramExportFile, to target: URL, hooks: ProgramExportHooks, isCancelled: () -> Bool,
+                             onBytes: (Int64) -> Void) throws {
         func unchanged() -> Bool {
             guard let now = ProgramFiles.statInfo(file.source.path) else { return false }
             return now.size == file.size && now.modified == file.modified
@@ -114,14 +135,18 @@ public enum ProgramExporter {
         guard unchanged() else {
             throw ProgramPackageError.copyFailed("\(file.name) changed or went missing while the program was being exported.")
         }
-        if ProgramFiles.clone(from: file.source, to: target) {
+        if !hooks.cloneDisabled, ProgramFiles.clone(from: file.source, to: target) {
             guard unchanged() else {
                 throw ProgramPackageError.copyFailed("\(file.name) changed while the program was being exported.")
             }
             onBytes(file.size)
             return
         }
-        let digest = try ProgramFiles.chunkedCopy(from: file.source, to: target, isCancelled: isCancelled, onBytes: onBytes)
+        let digest = try ProgramFiles.chunkedCopy(from: file.source, to: target, chunkSize: hooks.chunkSize ?? ProgramFiles.chunkSize,
+                                                  isCancelled: isCancelled) { piece in
+            hooks.onChunk?(piece)
+            onBytes(piece)
+        }
         guard digest == file.sha256 else {
             throw ProgramPackageError.copyFailed("\(file.name) changed while the program was being exported.")
         }

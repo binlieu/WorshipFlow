@@ -1,5 +1,7 @@
 // SYS-001: schema migrations. Named migrations are never edited after release (ADR-0004 decision 6).
+import Foundation
 import GRDB
+import Domain
 
 enum Schema {
     static func makeMigrator() -> DatabaseMigrator {
@@ -289,6 +291,35 @@ enum Schema {
                 t.column("hash", .blob).notNull()
                 t.column("createdAt", .datetime).notNull()
                 t.column("lastUsed", .datetime)
+            }
+        }
+
+        // FIX-G (MEDIA-010, KI-100): a slide's own background is stored with the slide, as JSON text of a `MediaSelection`, NULL
+        // when it has none. Additive. The entries the media slice kept in `appState` ("slideBackgrounds.<presentation id>", a
+        // JSON object from slide id to selection) are moved into the slide rows and removed; an entry for a slide or a
+        // presentation that no longer exists, or one that cannot be read, is dropped. Nothing else is touched. A column (not a
+        // child table): one background per slide, so the slide's own row carries it, and it goes with the row on delete.
+        migrator.registerMigration("v11") { db in
+            try db.alter(table: "slide") { t in t.add(column: "background", .text) }
+            let prefix = "slideBackgrounds."
+            let rows = try Row.fetchAll(db, sql: "SELECT key, value FROM appState WHERE substr(key, 1, ?) = ?",
+                                        arguments: [prefix.count, prefix])
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            for row in rows {
+                let key: String = row["key"]
+                let value: String = row["value"]
+                if let presentation = UUID(uuidString: String(key.dropFirst(prefix.count))),
+                   let data = value.data(using: .utf8),
+                   let stored = try? JSONDecoder().decode([String: MediaSelection].self, from: data) {
+                    for (slideText, selection) in stored {
+                        guard let slide = UUID(uuidString: slideText) else { continue }
+                        let text = String(decoding: try encoder.encode(selection), as: UTF8.self)
+                        try db.execute(sql: "UPDATE slide SET background = ? WHERE id = ? AND presentationID = ?",
+                                       arguments: [text, slide.uuidString, presentation.uuidString])
+                    }
+                }
+                try db.execute(sql: "DELETE FROM appState WHERE key = ?", arguments: [key])
             }
         }
 

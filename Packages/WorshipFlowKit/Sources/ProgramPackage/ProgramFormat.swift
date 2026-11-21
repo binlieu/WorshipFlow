@@ -168,9 +168,11 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
         public var objects: [SlideObject]
         /// The slide's actions as the cue editor stored them (`{"version":1,"actions":[...]}`), or nil for none.
         public var actions: JSONValue?
+        /// FIX-G (MEDIA-010): the slide's own background, if it has one. Absent in packages written before that fix.
+        public var background: BackgroundEntry?
 
         public init(id: UUID, primary: String, secondary: String?, notes: String, groupID: UUID?, objects: [SlideObject],
-                    actions: JSONValue?) {
+                    actions: JSONValue?, background: BackgroundEntry? = nil) {
             self.id = id
             self.primary = primary
             self.secondary = secondary
@@ -178,9 +180,10 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             self.groupID = groupID
             self.objects = objects
             self.actions = actions
+            self.background = background
         }
 
-        private enum CodingKeys: String, CodingKey { case id, primary, secondary, notes, groupID, objects, actions }
+        private enum CodingKeys: String, CodingKey { case id, primary, secondary, notes, groupID, objects, actions, background }
 
         public init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -191,6 +194,8 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             groupID = try c.decodeIfPresent(UUID.self, forKey: .groupID)
             objects = try c.decodeIfPresent([SlideObject].self, forKey: .objects) ?? []
             actions = try c.decodeIfPresent(JSONValue.self, forKey: .actions)
+            // A background in a shape this build does not know (a later build's) is ignored: the slide comes without it.
+            background = (try? c.decodeIfPresent(BackgroundEntry.self, forKey: .background)) ?? nil
         }
 
         public func encode(to encoder: Encoder) throws {
@@ -202,6 +207,22 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             try c.encodeIfPresent(groupID, forKey: .groupID)
             if !objects.isEmpty { try c.encode(objects, forKey: .objects) }
             try c.encodeIfPresent(actions, forKey: .actions)
+            try c.encodeIfPresent(background, forKey: .background)
+        }
+    }
+
+    /// A slide's own background: the bin item it names (`assetID`, also listed in `mediaAssets`) and the package path of its
+    /// file, relative to the package.
+    public struct BackgroundEntry: Codable, Equatable, Sendable {
+        public var assetID: UUID
+        public var kind: MediaKind
+        public var duration: Double?
+        public var file: String
+        public init(assetID: UUID, kind: MediaKind, duration: Double?, file: String) {
+            self.assetID = assetID
+            self.kind = kind
+            self.duration = duration
+            self.file = file
         }
     }
 
@@ -228,7 +249,28 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
         public var id: UUID
         public var name: String
         public var screens: [String: Screen]
-        public init(id: UUID, name: String, screens: [String: Screen]) { self.id = id; self.name = name; self.screens = screens }
+        /// FIX-G: the role (`audience`, `stage` or `broadcast`) of each screen in `screens`, by the same key. Profile ids belong
+        /// to the Mac that wrote the package; the role is what another Mac maps by. Absent in older packages.
+        public var roles: [String: String]
+        public init(id: UUID, name: String, screens: [String: Screen], roles: [String: String] = [:]) {
+            self.id = id; self.name = name; self.screens = screens; self.roles = roles
+        }
+
+        private enum CodingKeys: String, CodingKey { case id, name, screens, roles }
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(UUID.self, forKey: .id)
+            name = try c.decode(String.self, forKey: .name)
+            screens = try c.decode([String: Screen].self, forKey: .screens)
+            roles = try c.decodeIfPresent([String: String].self, forKey: .roles) ?? [:]
+        }
+        public func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(id, forKey: .id)
+            try c.encode(name, forKey: .name)
+            try c.encode(screens, forKey: .screens)
+            if !roles.isEmpty { try c.encode(roles, forKey: .roles) }
+        }
     }
 
     /// A media bin entry that slide actions refer to by id. `file` is the package path of its file.

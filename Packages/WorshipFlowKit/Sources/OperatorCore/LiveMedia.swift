@@ -13,6 +13,19 @@ public enum LiveMedia {
         return layers
     }
 
+    /// FIX-G item 1: what the media registry plays. The same as `effective`, except that a background hidden by Clear
+    /// background or by Stop is not in the set at all, so no player runs for it and nothing of it is heard; Go Live, Next and
+    /// Previous bring it (and its sound) back. Blackout keeps the player running (its sound is silenced by the model's
+    /// Blackout flag, as before). The clip over the words is not a background and is left as it is.
+    public static func playing(override: MediaLayers, state: ShowState, at now: Double) -> MediaLayers {
+        if state.isStopped || state.isBackgroundCleared {
+            var layers = override
+            layers.setBackground(nil, at: now)
+            return layers
+        }
+        return effective(override: override, slide: state.liveSlideAtPlace, at: now)
+    }
+
     /// What Preview and the thumbnails know of media: only the slide's own background. Never the live override, never a clip,
     /// so a bin choice leaves Preview exactly as it was.
     public static func preview(slide: SlideContent?, at now: Double) -> MediaLayers {
@@ -31,6 +44,13 @@ public enum SlideBackgroundDrop {
 
     /// The small mark on a thumbnail whose slide has its own background.
     public static func hasOwnBackground(_ content: SlideContent) -> Bool { content.background != nil }
+
+    /// FIX-G: the slide has its own background, but the bin item it names is gone (removed, or never imported). The slide keeps its
+    /// choice; the thumbnail says it is missing.
+    public static func isMissing(_ content: SlideContent, available: Set<UUID>) -> Bool {
+        guard let own = content.background else { return false }
+        return !available.contains(own.assetID)
+    }
 
     private static let prefix = "wfmedia:"
     /// What a bin tile puts on the drag. A slide being reordered drags just its index, so the two are never confused.

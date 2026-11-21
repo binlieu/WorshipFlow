@@ -15,14 +15,27 @@ public enum ProgramImporter {
     /// Imports the program in one database transaction. A failure or a cancel leaves the library as it was and removes the
     /// media files this call copied.
     public static func apply(_ contents: ProgramPackageContents, into store: LibraryStore,
-                             choice: ProgramConflictChoice = .default, hooks: ProgramImportHooks = .none,
+                             choice: ProgramConflictChoice = .default, live: ProgramLiveContext = .none,
+                             hooks: ProgramImportHooks = .none,
                              isCancelled: @Sendable () -> Bool = { false },
                              progress: @Sendable (ProgramProgress) -> Void = { _ in }) async throws -> ProgramImportResult {
         guard let folder = store.libraryFolder else { throw ProgramPackageError.noLibraryFolder }
-        let plan = try await ProgramImportPlanner.evaluate(contents, store: store, choice: choice, folder: folder)
+        let plan = try await ProgramImportPlanner.evaluate(contents, store: store, choice: choice, folder: folder, live: live)
+        // FIX-G: room for the media (with a margin) before anything is copied.
+        if plan.summary.mediaBytesToCopy > 0 {
+            let free = hooks.freeSpace?(folder) ?? defaultFreeSpace(folder)
+            let needed = plan.summary.mediaBytesToCopy + spaceMargin(forBytes: plan.summary.mediaBytesToCopy)
+            if let free, free < needed { throw ProgramPackageError.notEnoughSpace(needed: needed, available: free) }
+        }
+        // FIX-G: before anything existing is replaced, the library is backed up; without a backup nothing is replaced.
+        var backupURL: URL?
+        if plan.replacesExisting {
+            do { backupURL = try await store.backUp(beforeImportAt: (hooks.now ?? { Date() })()) }
+            catch { throw ProgramPackageError.backupFailed(error.localizedDescription) }
+        }
         var log = CopyLog()
         do {
-            try copyMedia(plan, from: contents, into: folder, log: &log, isCancelled: isCancelled, progress: progress)
+            try copyMedia(plan, from: contents, into: folder, log: &log, hooks: hooks, isCancelled: isCancelled, progress: progress)
             if isCancelled() { throw ProgramPackageError.cancelled }
             try hooks.afterMediaCopied?()
             let inside = hooks.insideTransaction
@@ -33,11 +46,23 @@ public enum ProgramImporter {
             }
             result.mediaFilesCopied = log.copied
             result.mediaFilesReused = log.reused
+            result.backupURL = backupURL
+            result.keptBecauseLive = plan.keptBecauseLive
             return result
         } catch {
             log.rollback()
             throw error
         }
+    }
+
+    // MARK: Space
+
+    /// FIX-G: the room left over when checking free space: a tenth of what is copied, at least 64 MB.
+    public static func spaceMargin(forBytes bytes: Int64) -> Int64 { max(bytes / 10, 64 * 1024 * 1024) }
+
+    static func defaultFreeSpace(_ folder: URL) -> Int64? {
+        let values = try? folder.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        return values?.volumeAvailableCapacityForImportantUsage
     }
 
     // MARK: Media
@@ -57,7 +82,7 @@ public enum ProgramImporter {
     }
 
     private static func copyMedia(_ plan: ImportPlan, from contents: ProgramPackageContents, into folder: URL, log: inout CopyLog,
-                                  isCancelled: @Sendable () -> Bool, progress: @Sendable (ProgramProgress) -> Void) throws {
+                                  hooks: ProgramImportHooks, isCancelled: @Sendable () -> Bool, progress: @Sendable (ProgramProgress) -> Void) throws {
         guard !plan.copies.isEmpty else { return }
         let fm = FileManager.default
         let total = plan.copies.reduce(Int64(0)) { $0 + ($1.entry.size ?? 0) }
@@ -91,7 +116,9 @@ public enum ProgramImporter {
                 try? fm.removeItem(at: partial)
                 log.files.append(partial)
                 let source = contents.url.appendingPathComponent(entry.file)
-                let digest = try ProgramFiles.chunkedCopy(from: source, to: partial, isCancelled: isCancelled) { piece in
+                let digest = try ProgramFiles.chunkedCopy(from: source, to: partial, chunkSize: hooks.chunkSize ?? ProgramFiles.chunkSize,
+                                                          limit: size, limitName: ProgramPathRules.safeName(entry.name), isCancelled: isCancelled) { piece in
+                    hooks.onChunk?(piece)
                     done += piece
                     progress(ProgramProgress(bytesDone: done, bytesTotal: total, filesDone: filesDone, filesTotal: plan.copies.count))
                 }
@@ -140,12 +167,8 @@ enum ProgramImportWriter {
         }
 
         for l in plan.looks where l.action != .skip {
-            var screens: [UUID: ScreenLook] = [:]
-            for (key, value) in l.look.screens {
-                guard let screen = UUID(uuidString: key) else { continue }
-                screens[screen] = ScreenLook(themeID: value.themeID.map { plan.themeMap[$0] ?? $0 },
-                                             visibleLayers: Set(value.visibleLayers.compactMap(LayerKind.init(rawValue:))))
-            }
+            // The screens were mapped to this Mac's profiles when the plan was made.
+            let screens = l.mapped.mapValues { ScreenLook(themeID: $0.themeID.map { plan.themeMap[$0] ?? $0 }, visibleLayers: $0.visibleLayers) }
             result.looksAdded += 1
             let name = l.look.name + (l.action == .insertCopy ? ProgramImportPlanner.importedSuffix : "")
             let json = try tools.lookScreens(screens)
@@ -158,9 +181,13 @@ enum ProgramImportWriter {
             }
         }
 
+        // A package asset whose file is already in the bin under another id: slides that name the package's id are pointed at
+        // the existing entry.
+        var assetIDMap: [UUID: UUID] = [:]
         for asset in plan.assetsToInsert {
             let path = plan.localPath[asset.file] ?? asset.file
-            if try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM mediaAsset WHERE path = ?)", arguments: [path]) == true {
+            if let existing = try String.fetchOne(db, sql: "SELECT id FROM mediaAsset WHERE path = ?", arguments: [path]) {
+                if let id = UUID(uuidString: existing) { assetIDMap[asset.id] = id }
                 result.warnings.append("The media item \(asset.name) uses a file that is already in the media bin under another entry; it was not added again.")
                 continue
             }
@@ -203,6 +230,7 @@ enum ProgramImportWriter {
                                arguments: [group.id.uuidString, id, group.name, order])
             }
             for (order, slide) in entry.slides.enumerated() {
+                let own = slide.background.map { MediaSelection(assetID: assetIDMap[$0.assetID] ?? $0.assetID, kind: $0.kind, duration: $0.duration) }
                 let objects = tools.slideObjects(slide.objects.map { object -> SlideObject in
                     guard case .image(var image) = object.content else { return object }
                     image.path = plan.localPath[image.path] ?? image.path
@@ -211,13 +239,14 @@ enum ProgramImportWriter {
                     return copy
                 })
                 try db.execute(sql: """
-                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt, groupID, objects)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt, groupID, objects, background)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, arguments: [slide.id.uuidString, id, order, slide.primary, slide.secondary, slide.notes, now, now,
-                                     slide.groupID?.uuidString, objects])
+                                     slide.groupID?.uuidString, objects, tools.slideBackground(own)])
                 if let actions = slide.actions {
+                    let mapped = assetIDMap.isEmpty ? actions : actions.replacingUUIDs(assetIDMap)
                     try db.execute(sql: "INSERT INTO cueSlideActions (slideID, definition, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
-                                   arguments: [slide.id.uuidString, actions.text, now, now])
+                                   arguments: [slide.id.uuidString, mapped.text, now, now])
                 }
             }
             for arrangement in entry.arrangements {

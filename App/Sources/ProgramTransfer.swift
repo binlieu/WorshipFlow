@@ -65,6 +65,8 @@ final class ProgramTransferModel {
     private(set) var importProblem: String?
 
     @ObservationIgnored private var cancel = ProgramCancelFlag()
+    /// FIX-G: planning (reading and hashing every file) can be cancelled: by closing the sheet, choosing another playlist, or Cancel.
+    @ObservationIgnored private var planCancel = ProgramCancelFlag()
     @ObservationIgnored private var planToken = 0
 
     // MARK: Export
@@ -81,17 +83,28 @@ final class ProgramTransferModel {
 
     func planExport(app: AppModel) {
         guard let store = app.libraryStore, let id = exportPlaylistID else { exportPlan = nil; return }
+        planCancel.cancel()                  // an earlier plan for another playlist stops reading files
+        let flag = ProgramCancelFlag()
+        planCancel = flag
         planToken += 1
         let token = planToken
         exportPlanning = true
         exportPlan = nil
         let version = Self.appVersion
         Task { @MainActor in
-            let plan = try? await ProgramExporter.plan(store: store, playlistID: id, appVersion: version)
-            guard token == planToken else { return }
-            exportPlanning = false
-            exportPlan = plan
-            if plan == nil { exportWork = .failed("The playlist could not be read.") }
+            do {
+                // Hashing runs at utility priority off the main actor inside `plan`.
+                let plan = try await ProgramExporter.plan(store: store, playlistID: id, appVersion: version, isCancelled: { flag.isCancelled })
+                guard token == planToken else { return }
+                exportPlanning = false
+                exportPlan = plan
+            } catch ProgramPackageError.cancelled {
+                if token == planToken { exportPlanning = false }
+            } catch {
+                guard token == planToken else { return }
+                exportPlanning = false
+                exportWork = .failed("The playlist could not be read.")
+            }
         }
     }
 
@@ -133,10 +146,12 @@ final class ProgramTransferModel {
         }
     }
 
-    func cancelWork() { cancel.cancel() }
+    func cancelWork() { cancel.cancel(); planCancel.cancel() }
 
     func closeExport(app: AppModel) {
         guard !exportWork.isRunning else { return }
+        planCancel.cancel()
+        exportPlanning = false
         app.ui.programSheet = nil
         exportPlan = nil
     }
@@ -201,10 +216,23 @@ final class ProgramTransferModel {
         } }
         Task { @MainActor in
             do {
-                let result = try await ProgramImporter.apply(contents, into: store, choice: choice, isCancelled: { flag.isCancelled },
-                                                             progress: { relay.report($0) })
-                await app.libraryChangedByProgramImport(result)
-                importWork = .done(Self.importedMessage(result))
+                // FIX-G: typing that is still waiting to be saved is written first (so the backup holds it), what is live is never
+                // replaced, and the workspace is reloaded from the library afterwards.
+                let live = app.programLiveContext()
+                var done: ProgramImportResult?
+                if let workspace = app.workspace {
+                    _ = try await workspace.importingProgram {
+                        let result = try await ProgramImporter.apply(contents, into: store, choice: choice, live: live,
+                                                                     isCancelled: { flag.isCancelled }, progress: { relay.report($0) })
+                        done = result
+                        await app.libraryChangedByProgramImport(result)
+                        return ProgramImportOutcome(playlistID: result.playlistID, replaced: result.replacedPresentationIDs)
+                    }
+                } else {
+                    done = try await ProgramImporter.apply(contents, into: store, choice: choice, live: live,
+                                                           isCancelled: { flag.isCancelled }, progress: { relay.report($0) })
+                }
+                if let done { importWork = .done(Self.importedMessage(done)) }
             } catch {
                 importWork = .failed(error.localizedDescription)
             }
@@ -226,6 +254,12 @@ final class ProgramTransferModel {
         if r.presentationsReplaced > 0 { parts.append("\(r.presentationsReplaced) replaced") }
         if r.mediaFilesCopied > 0 { parts.append("\(r.mediaFilesCopied) media file\(r.mediaFilesCopied == 1 ? "" : "s") copied") }
         if r.mediaFilesReused > 0 { parts.append("\(r.mediaFilesReused) already there") }
-        return parts.isEmpty ? "Everything in this program was already in the library. Nothing changed." : "Imported: " + parts.joined(separator: ", ") + "."
+        var text = parts.isEmpty ? "Everything in this program was already in the library. Nothing changed." : "Imported: " + parts.joined(separator: ", ") + "."
+        if !r.keptBecauseLive.isEmpty {
+            text += " Live right now, so kept and not replaced: " + r.keptBecauseLive.map { "\"\($0)\"" }.joined(separator: ", ") + " (the imported version was added beside it)."
+        }
+        for warning in r.warnings { text += "\n" + warning }
+        if let backup = r.backupURL { text += "\nBefore anything was replaced the library was backed up to \(backup.path)." }
+        return text
     }
 }

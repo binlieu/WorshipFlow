@@ -69,7 +69,8 @@ extension LibraryStore {
                 try SlideRecord(id: slideID, presentationID: presentationID, sortOrder: order,
                                 primaryText: result.content.primary, secondaryText: result.content.secondary,
                                 notes: carry.notes[order], createdAt: now, updatedAt: now, groupID: groupID,
-                                objects: SlideObjectsJSON.encode(carry.objects[order])).insert(db)
+                                objects: SlideObjectsJSON.encode(carry.objects[order]),
+                                background: SlideBackgroundJSON.encode(carry.backgrounds[order])).insert(db)
             }
             try Self.restoreSlideActions(db, actionCarry, newSlideIDs: newSlideIDs)
             try Self.touch(db, presentationID: presentationID, backend: backend)
@@ -231,9 +232,9 @@ extension LibraryStore {
     }
 
     private static func resolve(_ db: Database, presentationID: UUID, arrangementID: UUID?) throws -> [Slide] {
-        let slides = applyBackgrounds(try SlideRecord.fetchAll(
+        let slides = try SlideRecord.fetchAll(
             db, sql: "SELECT * FROM slide WHERE presentationID = ? ORDER BY sortOrder, rowid",
-            arguments: [presentationID.dbText]).map(\.domain), db, presentationID)
+            arguments: [presentationID.dbText]).map(\.domain)
         guard let arrangementID else { return slides }
         guard let arrangement = try fetchArrangements(db, presentationID: presentationID)
             .first(where: { $0.id == arrangementID }) else { throw StoreError.notFound }

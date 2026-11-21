@@ -113,7 +113,6 @@ extension LibraryStore {
                 arguments: [id.dbText])
             try SearchIndex.remove(db, backend: backend, presentationID: id)
             try db.execute(sql: "DELETE FROM presentation WHERE id = ?", arguments: [id.dbText])
-            try db.execute(sql: "DELETE FROM appState WHERE key = ?", arguments: [Self.backgroundsKey(id)])     // MEDIA-010
             for playlistID in affected {
                 try Self.renumber(db, table: "playlistItem", parent: ("playlistID", playlistID))
             }
@@ -133,26 +132,22 @@ extension LibraryStore {
             // Raw insert: leaves groupID to its default so this also works on a v1 database. The objects column
             // (v5) is written only when there are objects, so plain slides still insert on an older store.
             let objects = SlideObjectsJSON.encode(store.storedObjects(content.objects))
+            let background = SlideBackgroundJSON.encode(content.background)
             let record = SlideRecord(
                 id: UUID(), presentationID: presentationID, sortOrder: count,
                 primaryText: content.primary, secondaryText: content.secondary, notes: "",
-                createdAt: now, updatedAt: now, objects: objects)
-            if let objects {
-                try db.execute(sql: """
-                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt, objects)
-                    VALUES (?, ?, ?, ?, ?, '', ?, ?, ?)
-                    """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now, objects])
-            } else {
-                try db.execute(sql: """
-                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt)
-                    VALUES (?, ?, ?, ?, ?, '', ?, ?)
-                    """, arguments: [record.id.dbText, presentationID.dbText, count, content.primary, content.secondary, now, now])
-            }
-            try Self.writeBackground(db, presentationID: presentationID, slideID: record.id, content.background)
+                createdAt: now, updatedAt: now, objects: objects, background: background)
+            // The objects (v5) and background (v11) columns are written only when set, so plain slides still insert on an
+            // older store.
+            var columns = ["id", "presentationID", "sortOrder", "primaryText", "secondaryText", "notes", "createdAt", "updatedAt"]
+            var values: [(any DatabaseValueConvertible)?] = [record.id.dbText, presentationID.dbText, count, content.primary,
+                                                             content.secondary, "", now, now]
+            if let objects { columns.append("objects"); values.append(objects) }
+            if let background { columns.append("background"); values.append(background) }
+            try db.execute(sql: "INSERT INTO slide (\(columns.joined(separator: ", "))) VALUES (\(columns.map { _ in "?" }.joined(separator: ", ")))",
+                           arguments: StatementArguments(values))
             try Self.touch(db, presentationID: presentationID, backend: backend)
-            var added = store.runtimeSlide(record.domain)
-            added.content.background = content.background
-            return added
+            return store.runtimeSlide(record.domain)
         }
     }
 
@@ -162,7 +157,7 @@ extension LibraryStore {
             let slides = try SlideRecord.fetchAll(
                 db, sql: "SELECT * FROM slide WHERE presentationID = ? ORDER BY sortOrder, rowid",
                 arguments: [presentationID.dbText]).map(\.domain).map { store.runtimeSlide($0) }
-            return Self.applyBackgrounds(slides, db, presentationID)
+            return slides
         }
     }
 
@@ -182,7 +177,12 @@ extension LibraryStore {
                 try db.execute(sql: "UPDATE slide SET objects = ? WHERE id = ?",
                                arguments: [storedObjects, slide.id.dbText])
             }
-            try Self.writeBackground(db, presentationID: presentationID, slideID: slide.id, slide.content.background)
+            // The background column (v11): a slide without one on an older store has nothing to write.
+            let hasBackgroundColumn = try db.columns(in: "slide").contains { $0.name == "background" }
+            if hasBackgroundColumn || slide.content.background != nil {
+                try db.execute(sql: "UPDATE slide SET background = ? WHERE id = ?",
+                               arguments: [SlideBackgroundJSON.encode(slide.content.background), slide.id.dbText])
+            }
             try Self.touch(db, presentationID: presentationID, backend: backend)
         }
     }
