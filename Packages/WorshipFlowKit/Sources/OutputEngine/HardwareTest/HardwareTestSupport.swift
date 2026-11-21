@@ -7,6 +7,40 @@ import SDIEngine
 
 // MARK: devices
 
+/// FIX-D S1: the profile each connector pair of a card was in, read before the kit changes anything, so it can be put back.
+/// `identifier` is whatever the provider needs to restore the pair (for a DeckLink card the profile id); the kit never
+/// interprets it.
+public struct HardwareProfileRecord: Equatable, Sendable {
+    public struct Pair: Equatable, Sendable {
+        public var firstConnector: Int
+        public var name: String?
+        public var identifier: UInt32?
+        public init(firstConnector: Int, name: String?, identifier: UInt32?) {
+            self.firstConnector = firstConnector
+            self.name = name
+            self.identifier = identifier
+        }
+    }
+    public var pairs: [Pair]
+    public init(pairs: [Pair]) { self.pairs = pairs }
+
+    /// "connectors 1 and 2: one sub-device, full duplex; connectors 3 and 4: ..."
+    public var text: String {
+        pairs.map { "connectors \($0.firstConnector) and \($0.firstConnector + 1): \($0.name ?? "profile not reported")" }.joined(separator: "; ")
+    }
+}
+
+/// A cable between two connectors of the card, output to input.
+public struct HardwareCable: Equatable, Sendable, Codable {
+    public var output: Int
+    public var input: Int
+    public init(output: Int, input: Int) {
+        self.output = output
+        self.input = input
+    }
+    public var text: String { "SDI \(output) to SDI \(input)" }
+}
+
 /// One card, as the kit sees it. A value built from closures so the real provider can fill it in without the kit
 /// knowing which SDK is behind it (for the simulator: `init(id:device:)`).
 public struct HardwareTestDevice: Sendable {
@@ -22,12 +56,21 @@ public struct HardwareTestDevice: Sendable {
     /// Switches the connector pair that starts at the given connector to a profile that can send fill and key (KI-054).
     /// Nil when the provider cannot. The kit only calls it after the tester said yes.
     public var activateKeyingProfile: (@Sendable (Int) async throws -> Void)?
+    /// FIX-D S1: reads the profile of every connector pair now, so the kit can put it back. Nil when the provider cannot.
+    public var captureProfiles: (@Sendable () -> HardwareProfileRecord?)?
+    /// FIX-D S1: puts every pair back to a record taken earlier and waits until the card says it is active. Nil when the
+    /// provider cannot. Restoring is always wanted, so the kit calls it without asking.
+    public var restoreProfiles: (@Sendable (HardwareProfileRecord) async throws -> Void)?
 
     public init(id: String, info: SDIDeviceInfo, supportedModes: [SDIVideoMode] = SDIVideoMode.allKnown, profile: String? = nil,
                 isConnected: @escaping @Sendable () -> Bool,
                 openOutput: @escaping @Sendable (Int) throws -> any SDIOutputPort,
                 openInput: @escaping @Sendable (Int) throws -> any SDIInputPort,
-                activateKeyingProfile: (@Sendable (Int) async throws -> Void)? = nil) {
+                activateKeyingProfile: (@Sendable (Int) async throws -> Void)? = nil,
+                captureProfiles: (@Sendable () -> HardwareProfileRecord?)? = nil,
+                restoreProfiles: (@Sendable (HardwareProfileRecord) async throws -> Void)? = nil) {
+        self.captureProfiles = captureProfiles
+        self.restoreProfiles = restoreProfiles
         self.id = id
         self.info = info
         self.supportedModes = supportedModes
@@ -143,6 +186,12 @@ public final class SimulatedHardwareTestClock: HardwareTestClock, @unchecked Sen
 
 public enum HardwarePromptKind: String, Codable, Sendable {
     case connectLoopbackCable, connectKeyCables, changeProfile, unplugDevice, replugDevice, humanBars, humanKeyEdges, photo
+    /// FIX-D S4: "move the cables to these connectors".
+    case moveCables
+    /// FIX-D S4: "take the cables off".
+    case removeCables
+    /// FIX-D S7: "fill and key came out the other way round: are the cables exactly as shown?"
+    case confirmCables
 }
 
 public struct HardwarePrompt: Equatable, Sendable {
@@ -153,8 +202,13 @@ public struct HardwarePrompt: Equatable, Sendable {
     public var primaryLabel: String
     public var secondaryLabel: String?
     public var canSkip: Bool
+    /// The cables the prompt asks for, so a simulated tester can place them and a window can show them. Empty for a prompt
+    /// about something else.
+    public var cables: [HardwareCable]
 
-    public init(kind: HardwarePromptKind, title: String, message: String, primaryLabel: String, secondaryLabel: String? = nil, canSkip: Bool = true) {
+    public init(kind: HardwarePromptKind, title: String, message: String, primaryLabel: String, secondaryLabel: String? = nil, canSkip: Bool = true,
+                cables: [HardwareCable] = []) {
+        self.cables = cables
         self.kind = kind
         self.title = title
         self.message = message
@@ -186,7 +240,7 @@ public struct AutomaticInteraction: HardwareTestInteraction {
     public init() {}
     public func ask(_ prompt: HardwarePrompt) async -> HardwareAnswer {
         switch prompt.kind {
-        case .connectLoopbackCable, .connectKeyCables: return .proceed
+        case .connectLoopbackCable, .connectKeyCables, .moveCables, .removeCables, .confirmCables: return .proceed
         case .photo: return .skip
         // Nobody is there to say yes, so a card's profile is never changed in a run with no person at the keyboard.
         case .changeProfile, .unplugDevice, .replugDevice, .humanBars, .humanKeyEdges: return .unavailable
@@ -194,14 +248,55 @@ public struct AutomaticInteraction: HardwareTestInteraction {
     }
 }
 
-/// A "tester" for the simulated card: cables are in place, it unplugs and replugs the simulated card when asked, and
-/// it cannot look at a monitor.
+/// A "tester" for the simulated card: it unplugs and replugs the simulated card when asked, it cannot look at a monitor, and,
+/// when the prompt lists cables, it places them (always for a request to move cables or take them off; for the first
+/// cables only when `placesCables` is set, because older tests wire the card themselves).
 public struct SimulatedInteraction: HardwareTestInteraction {
+    /// How the simulated tester wires the fill and key cables (S7).
+    public enum Cabling: Sendable {
+        case asInstructed
+        /// The two key cables are crossed when first placed; the tester fixes them when asked to confirm them.
+        case crossedUntilConfirmed
+        /// The two key cables are crossed and stay crossed whatever the tester is asked.
+        case crossedAndStayingCrossed
+    }
+
     private let device: SimulatedSDIDevice
-    public init(device: SimulatedSDIDevice) { self.device = device }
+    private let placesCables: Bool
+    private let cabling: Cabling
+    private let wireSource: @Sendable (Int) -> Int
+
+    public init(device: SimulatedSDIDevice, placesCables: Bool = false, cabling: Cabling = .asInstructed,
+                wireSource: @escaping @Sendable (Int) -> Int = { $0 }) {
+        self.device = device
+        self.placesCables = placesCables
+        self.cabling = cabling
+        self.wireSource = wireSource
+    }
+
+    /// Plugs the cables in. A cable from connector `o` to input `i` carries what `wireSource(o)` shows (a wrongly wired card
+    /// sends another output's picture out of `o`).
+    public func place(_ cables: [HardwareCable], replacingOthers: Bool) {
+        if replacingOthers { for c in 1...max(1, device.info.connectorCount) { device.disconnect(input: c) } }
+        for cable in cables { device.connect(output: wireSource(cable.output), toInput: cable.input) }
+    }
+
+    private func crossed(_ cables: [HardwareCable]) -> [HardwareCable] {
+        guard cables.count == 2 else { return cables }
+        return [HardwareCable(output: cables[0].output, input: cables[1].input), HardwareCable(output: cables[1].output, input: cables[0].input)]
+    }
+
     public func ask(_ prompt: HardwarePrompt) async -> HardwareAnswer {
         switch prompt.kind {
-        case .connectLoopbackCable, .connectKeyCables, .changeProfile: return .proceed
+        case .connectLoopbackCable, .changeProfile: if placesCables { place(prompt.cables, replacingOthers: false) }; return .proceed
+        case .connectKeyCables:
+            if placesCables { place(cabling == .asInstructed ? prompt.cables : crossed(prompt.cables), replacingOthers: false) }
+            return .proceed
+        case .moveCables: place(prompt.cables, replacingOthers: true); return .proceed
+        case .removeCables: for c in prompt.cables { device.disconnect(input: c.input) }; return .proceed
+        case .confirmCables:
+            if cabling == .crossedUntilConfirmed { place(prompt.cables, replacingOthers: false) }
+            return .proceed
         case .unplugDevice: device.simulateUnplug(); return .proceed
         case .replugDevice: device.simulateReplug(); return .proceed
         case .photo: return .skip

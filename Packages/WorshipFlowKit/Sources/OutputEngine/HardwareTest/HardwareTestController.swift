@@ -41,10 +41,22 @@ public final class HardwareTestController {
     @ObservationIgnored private var promptContinuation: CheckedContinuation<HardwareAnswer, Never>?
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var runFileName = HardwareTestBundle.fileName(simulated: false)
+    // FIX-D S6: where a real run's files are written as it goes (a visible folder), and the run now going on.
+    @ObservationIgnored private let unfinishedParent: URL
+    @ObservationIgnored private var currentUnfinishedFolder: URL?
+    @ObservationIgnored private let onRunningChange: (@MainActor (Bool) -> Void)?
+    /// FIX-D S6: the newest run that did not finish (or was never saved), found in the unfinished-run folder; nil when there is none.
+    public private(set) var unfinishedRun: UnfinishedHardwareTestRun?
 
+    /// - Parameters:
+    ///   - unfinishedParent: where the visible "unfinished" folder of a real run is made. Default: `workingFolder` when one is given (tests), otherwise the Desktop.
+    ///   - onRunningChange: called with true when a run starts and false when it ends, so the app can refuse to open screens during a run (S15).
     public init(realProvider: @escaping @Sendable () -> HardwareTestProvider, environment: HardwareEnvironmentSource,
                 screensOpen: @escaping @MainActor () -> Bool, responsiveness: HardwareResponsivenessProbe? = nil,
-                durationsOverride: HardwareTestDurations? = nil, stepsOverride: [HardwareTestStep]? = nil, workingFolder: URL? = nil) {
+                durationsOverride: HardwareTestDurations? = nil, stepsOverride: [HardwareTestStep]? = nil, workingFolder: URL? = nil,
+                unfinishedParent: URL? = nil, onRunningChange: (@MainActor (Bool) -> Void)? = nil) {
+        self.onRunningChange = onRunningChange
+        self.unfinishedParent = unfinishedParent ?? workingFolder ?? HardwareTestUnfinished.desktop() ?? FileManager.default.temporaryDirectory
         self.stepsOverride = stepsOverride
         self.realProvider = realProvider
         self.environment = environment
@@ -66,6 +78,7 @@ public final class HardwareTestController {
         let provider = realProvider()
         realDevices = provider.devices().filter { $0.isConnected() }
         driverStatus = provider.driver()
+        unfinishedRun = HardwareTestUnfinished.find(in: unfinishedParent, excluding: currentUnfinishedFolder).first
     }
 
     /// Looks again for cards without blocking the main thread: the scan runs elsewhere, then the window's state is updated.
@@ -116,18 +129,22 @@ public final class HardwareTestController {
             return await self.present(prompt)
         }
         if simulated {
-            let rig = HardwareTestRig.simulated()
+            let rig = HardwareTestRig.simulatedCard()
             (provider, clock, interaction) = (rig.provider, rig.clock, useInteractiveTesterForSimulation ? tester : rig.interaction)
         } else {
             (provider, clock, interaction) = (realProvider(), RealHardwareTestClock(), tester)
         }
         let folder = workingFolder.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        // A real run writes its files to a visible folder as it goes (S6); a demonstration with the simulated card does not.
+        let bundleFolder = simulated ? folder.appendingPathComponent("bundle") : HardwareTestUnfinished.newFolder(in: unfinishedParent)
         let writer: HardwareTestBundleWriter
-        do { writer = try HardwareTestBundleWriter(directory: folder.appendingPathComponent("bundle")) } catch {
-            errorMessage = "The test could not start: a temporary folder could not be made (\(error.localizedDescription))."
+        do { writer = try HardwareTestBundleWriter(directory: bundleFolder) } catch {
+            errorMessage = "The test could not start: a folder for its files could not be made (\(error.localizedDescription))."
             phase = .finished
             return
         }
+        currentUnfinishedFolder = simulated ? nil : bundleFolder
+        onRunningChange?(true)
         let runner = HardwareTestRunner(
             provider: provider, configuration: configuration, clock: clock, interaction: interaction, environment: environment,
             responsiveness: responsiveness,
@@ -199,6 +216,7 @@ public final class HardwareTestController {
     }
 
     private func finished(_ result: HardwareTestRunResult) {
+        onRunningChange?(false)
         summaryText = HardwareTestSummary.render(result.report)
         bundleURL = result.bundleURL
         if let problem = result.bundleError { errorMessage = "The report could not be written: \(problem)" }
@@ -217,6 +235,27 @@ public final class HardwareTestController {
         try fm.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
         if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
         try fm.copyItem(at: source, to: destination)
+        // S6: the report is saved, so the visible folder has done its job.
+        if let folder = currentUnfinishedFolder, fm.fileExists(atPath: destination.path) {
+            try? fm.removeItem(at: folder)
+            currentUnfinishedFolder = nil
+            refresh()
+        }
+    }
+
+    /// The name offered when saving the report of the unfinished run.
+    public var suggestedUnfinishedFileName: String { unfinishedRun.map { HardwareTestUnfinished.zipName(for: $0.folder) } ?? "WORSHIPFLOW-hardware-test-UNFINISHED.zip" }
+
+    /// Saves the report of a run that did not finish (found at launch) to where the tester chose, then removes its folder.
+    public func saveUnfinishedReport(to destination: URL) throws {
+        guard let run = unfinishedRun else { throw HardwareTestBundleError.notABundle("there is no unfinished test to save") }
+        let fm = FileManager.default
+        try fm.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
+        try HardwareTestUnfinished.makeZip(from: run.folder, to: destination)
+        guard fm.fileExists(atPath: destination.path) else { throw HardwareTestBundleError.notABundle("the report could not be written") }
+        try? fm.removeItem(at: run.folder)
+        refresh()
     }
 }
 

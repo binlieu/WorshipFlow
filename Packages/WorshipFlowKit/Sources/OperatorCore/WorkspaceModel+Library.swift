@@ -105,6 +105,7 @@ extension WorkspaceModel {
     func closeOpenPresentation() {
         openPresentationID = nil
         selectedPlaylistItemID = nil
+        openPlaylistItemID = nil
         slides = []
         groups = []
         arrangements = []
@@ -117,6 +118,7 @@ extension WorkspaceModel {
         await flushDrafts()
         guard let loaded = await loadContent(of: id, itemID: nil) else { return }
         selectedPlaylistItemID = nil
+        openPlaylistItemID = nil
         install(loaded, presentationID: id)
     }
 
@@ -169,7 +171,7 @@ extension WorkspaceModel {
     /// Re-reads the open presentation (after a structural change), keeping the selection where it makes sense.
     func reloadOpen() async {
         guard let id = openPresentationID else { return }
-        guard let loaded = await loadContent(of: id, itemID: selectedPlaylistItemID) else { return }
+        guard let loaded = await loadContent(of: id, itemID: openPlaylistItemID) else { return }
         slides = loaded.slides
         groups = loaded.groups
         arrangements = loaded.arrangements

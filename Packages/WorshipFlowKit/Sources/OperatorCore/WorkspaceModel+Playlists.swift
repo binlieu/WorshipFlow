@@ -19,6 +19,7 @@ extension WorkspaceModel {
         if let open = selectedPlaylistItemID, !playlistItems.contains(where: { $0.id == open }) {
             selectedPlaylistItemID = nil      // the item went away; the presentation stays open
         }
+        if let open = openPlaylistItemID, !playlistItems.contains(where: { $0.id == open }) { openPlaylistItemID = nil }
     }
 
     public func createPlaylist(name: String) async {
@@ -45,6 +46,7 @@ extension WorkspaceModel {
         if selectedPlaylistID == id {
             selectedPlaylistID = playlists.first?.id
             selectedPlaylistItemID = nil
+            openPlaylistItemID = nil
         }
         await reloadPlaylistItems()
         placeChanged()
@@ -87,6 +89,7 @@ extension WorkspaceModel {
         await flushDrafts()
         guard let loaded = await loadContent(of: item.presentationID, itemID: id) else { return }
         selectedPlaylistItemID = id
+        openPlaylistItemID = id
         install(loaded, presentationID: item.presentationID)
     }
 
@@ -96,7 +99,7 @@ extension WorkspaceModel {
             try await self.store.setArrangement(arrangementID, forPlaylistItem: itemID)
         }) != nil else { return }
         await reloadPlaylistItems()
-        if selectedPlaylistItemID == itemID { await reloadOpen() }
+        if openPlaylistItemID == itemID { await reloadOpen() }
     }
 
     /// A new section order for the open presentation, from group ids (a group may repeat).

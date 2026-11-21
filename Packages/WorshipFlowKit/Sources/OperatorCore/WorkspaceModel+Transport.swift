@@ -6,8 +6,18 @@ import Persistence
 extension WorkspaceModel {
     /// Moves the preview highlight. Preview only.
     public func selectSlide(_ index: Int) {
+        chooseOpenPresentation()
         apply(.select(index: index))
         placeChanged()
+    }
+
+    /// FIX-D S2: the operator's last choice is a slide of the open presentation, so the target is that presentation's playlist
+    /// item (none when it came from the library), not a countdown chosen before. Go Live then starts the slide.
+    func chooseOpenPresentation() {
+        guard let selected = selectedPlaylistItemID, selected != openPlaylistItemID,
+              playlistItems.first(where: { $0.id == selected }).map({ item -> Bool in if case .presentation = item.kind { return false } else { return true } }) ?? false
+        else { return }
+        selectedPlaylistItemID = openPlaylistItemID
     }
 
     /// Takes the selected slide live. Edits made since the last trigger go out now.
@@ -24,6 +34,7 @@ extension WorkspaceModel {
     public func goLive(at index: Int) {
         transportEpoch &+= 1
         liveCountdown = nil
+        chooseOpenPresentation()                 // the slide named here is the target, whatever was selected before
         apply(.trigger(index: index))
         recordLiveSource()
         placeChanged()
@@ -36,7 +47,7 @@ extension WorkspaceModel {
         liveSlideNotes = slides.map(\.notes)
         liveTitle = presentations.first { $0.id == openPresentationID }?.title
         liveSectionNames = slides.map { slide in slide.groupID.flatMap { id in groups.first { $0.id == id }?.name } }
-        liveItemID = selectedPlaylistItemID
+        liveItemID = openPlaylistItemID          // the item the slides belong to (FIX-D S2), never a countdown that was merely selected
     }
 
     /// Next slide; at the end of an item, the first slide of the next playlist item; at the end of the playlist, nothing.

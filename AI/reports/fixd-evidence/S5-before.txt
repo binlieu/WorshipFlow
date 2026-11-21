@@ -1,0 +1,209 @@
+[0/1] Planning build
+Building for debugging...
+[0/8] Write sources
+[3/8] Write swift-version--58304C5D6DBC2206.txt
+[5/21] Compiling DeckLinkSDI DeckLinkDeviceProvider.swift
+[6/21] Emitting module DeckLinkSDI
+[7/21] Compiling DeckLinkSDI DeckLinkDevice.swift
+[8/21] Compiling OutputEngine HardwareTestSummary.swift
+[9/21] Compiling OutputEngine HardwareTestSupport.swift
+[10/21] Compiling OutputEngine HardwareTestVideoSteps.swift
+[11/21] Compiling OutputEngine HardwareTestSteps.swift
+[12/21] Compiling OutputEngine HardwareTestCapture.swift
+[13/21] Compiling OutputEngine HardwareTestController.swift
+[14/21] Compiling OutputEngine HardwareTestLaunch.swift
+[15/21] Compiling OutputEngine HardwareTestRunner.swift
+[16/21] Emitting module OutputEngine
+[17/21] Compiling OutputEngine HardwareTestModels.swift
+[18/21] Compiling OutputEngine DiagnosticBundle.swift
+[19/21] Compiling OutputEngine HardwareTestBundle.swift
+[20/22] Compiling OutputEngine HardwareTestZip.swift
+[21/26] Emitting module OutputEngineTests
+[22/26] Compiling OutputEngineTests HWTEST_BundleTests.swift
+/private/tmp/wf-fixd-orig-p4m8/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[23/26] Compiling OutputEngineTests HWTEST_RunnerTests.swift
+[24/26] Compiling OutputEngineTests FIXD_S5_PrivacyTests.swift
+[25/29] Compiling OutputEngineTests FIXD_S7_CablingTests.swift
+[26/29] Compiling OutputEngineTests FIXD_S3_HonestStepTests.swift
+[27/29] Compiling OutputEngineTests HWTEST_LaunchTests.swift
+[27/29] Write Objects.LinkFileList
+[28/29] Linking WorshipFlowKitPackageTests
+Build complete! (10.22s)
+Test Suite 'Selected tests' started at 2026-11-21 05:19:58.195.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:19:58.196.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:19:58.196.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:19:58.196.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite FIXD_S5_PrivacyTests started.
+◇ Test theCardsPersistentIdIsReplacedByAShortHash() started.
+✘ Test theCardsPersistentIdIsReplacedByAShortHash() recorded an issue at FIXD_S5_PrivacyTests.swift:70:9: Expectation failed: (report.deviceID → "simulated-sdi-duo2") != (HardwareTestRig.simulatedDeviceID → "simulated-sdi-duo2")
+✘ Test theCardsPersistentIdIsReplacedByAShortHash() recorded an issue at FIXD_S5_PrivacyTests.swift:71:9: Expectation failed: (report.deviceID?.count → 18) == 8
+✘ Test theCardsPersistentIdIsReplacedByAShortHash() recorded an issue at FIXD_S5_PrivacyTests.swift:72:9: Expectation failed: (report.deviceID?.allSatisfy { $0.isHexDigit } → false) == true
+✘ Test theCardsPersistentIdIsReplacedByAShortHash() failed after 0.005 seconds with 3 issues.
+◇ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() started.
+✘ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() recorded an issue at FIXD_S5_PrivacyTests.swift:90:9: Expectation failed: (meta[kCGImagePropertyGPSDictionary as String] → {
+    Latitude = "37.7749";
+    LatitudeRef = N;
+    Longitude = "122.4194";
+    LongitudeRef = W;
+}) == nil
+↳ location survived: ["ProfileName": sRGB IEC61966-2.1, "PixelWidth": 64, "Orientation": 1, "{Exif}": {
+      DateTimeOriginal = "2026:11:15 09:41:00";
+      PixelXDimension = 64;
+      PixelYDimension = 32;
+      UserComment = "Smith wedding";
+  }, "{GPS}": {
+      Latitude = "37.7749";
+      LatitudeRef = N;
+      Longitude = "122.4194";
+      LongitudeRef = W;
+  }, "ColorModel": RGB, "{TIFF}": {
+      Make = PastorPhone;
+      Model = "Model 7";
+      Orientation = 1;
+  }, "Depth": 8, "{JFIF}": {
+      DensityUnit = 0;
+      JFIFVersion =     (
+          1,
+          0,
+          1
+      );
+      XDensity = 72;
+      YDensity = 72;
+  }, "PixelHeight": 32]
+✘ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() recorded an issue at FIXD_S5_PrivacyTests.swift:92:9: Expectation failed: (exif?[kCGImagePropertyExifDateTimeOriginal as String] == nil → false) && (exif?[kCGImagePropertyExifUserComment as String] == nil → <not evaluated>)
+↳ Optional(["DateTimeOriginal": 2026:11:15 09:41:00, "PixelYDimension": 32, "PixelXDimension": 64, "UserComment": Smith wedding])
+✘ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() recorded an issue at FIXD_S5_PrivacyTests.swift:94:9: Expectation failed: (tiff?[kCGImagePropertyTIFFMake as String] == nil → false) && (tiff?[kCGImagePropertyTIFFModel as String] == nil → <not evaluated>)
+↳ Optional(["Orientation": 1, "Model": Model 7, "Make": PastorPhone])
+✘ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() recorded an issue at FIXD_S5_PrivacyTests.swift:96:9: Expectation failed: (!raw.contains("PastorPhone") → false) && (!raw.contains("Smith") → <not evaluated>)
+✘ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() failed after 0.017 seconds with 4 issues.
+◇ Test aPhotoTurnedOnItsSideIsMadeUprightBecauseTheOrientationTagIsNotKept() started.
+✘ Test aPhotoTurnedOnItsSideIsMadeUprightBecauseTheOrientationTagIsNotKept() recorded an issue at FIXD_S5_PrivacyTests.swift:111:9: Expectation failed: (size.0 == 32 → false) && (size.1 == 64 → <not evaluated>)
+↳ (64, 32)
+✘ Test aPhotoTurnedOnItsSideIsMadeUprightBecauseTheOrientationTagIsNotKept() failed after 0.002 seconds with 1 issue.
+◇ Test aFileThatIsNotAPictureIsRefusedNotCopied() started.
+✘ Test aFileThatIsNotAPictureIsRefusedNotCopied() recorded an issue at FIXD_S5_PrivacyTests.swift:119:71: Issue recorded
+↳ an unreadable file must not be attached
+✘ Test aFileThatIsNotAPictureIsRefusedNotCopied() recorded an issue at FIXD_S5_PrivacyTests.swift:122:9: Expectation failed: !((FileManager.default → <NSFileManager: 0x105343de0>).fileExists(atPath: dir.appendingPathComponent("work/photos").path → "/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-3F8303BE-15DE-430F-ABB9-3D761A9C39D0/work/photos") → true)
+✘ Test aFileThatIsNotAPictureIsRefusedNotCopied() failed after 0.001 seconds with 2 issues.
+◇ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() started.
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:156:17: Expectation failed: !((text → "2027-01-15T08:00:00Z  Hardware test started (quick). Device: Simulated SDI card (4 connectors) (SIMULATED)
+2027-01-15T08:00:00Z  Step 9: Human checks
+2027-01-15T08:00:00Z  Asked the tester: Look at the monitor
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-CF337524-12D7-4505-82B1-68A7AA56A633/Pastor Bob sermon IMG_7777.jpg")
+2027-01-15T08:00:00Z  Asked the tester: Look at the switcher
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/Volumes/CHURCH-USB-STICK/Pastor Bob/Private/IMG_4242 (copy).jpg")
+2027-01-15T08:00:00Z  Could not attach the photo: The photo could not be read: IMG_4242 (copy).jpg
+2027-01-15T08:00:00Z  Step 9 Human checks: PASSED. The tester saw what was expected.
+2027-01-15T08:00:00Z  Hardware test finished.
+").contains(leak → "CHURCH-USB") → true)
+↳ CHURCH-USB in engine-log.txt
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:156:17: Expectation failed: !((text → "2027-01-15T08:00:00Z  Hardware test started (quick). Device: Simulated SDI card (4 connectors) (SIMULATED)
+2027-01-15T08:00:00Z  Step 9: Human checks
+2027-01-15T08:00:00Z  Asked the tester: Look at the monitor
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-CF337524-12D7-4505-82B1-68A7AA56A633/Pastor Bob sermon IMG_7777.jpg")
+2027-01-15T08:00:00Z  Asked the tester: Look at the switcher
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/Volumes/CHURCH-USB-STICK/Pastor Bob/Private/IMG_4242 (copy).jpg")
+2027-01-15T08:00:00Z  Could not attach the photo: The photo could not be read: IMG_4242 (copy).jpg
+2027-01-15T08:00:00Z  Step 9 Human checks: PASSED. The tester saw what was expected.
+2027-01-15T08:00:00Z  Hardware test finished.
+").contains(leak → "IMG_4242") → true)
+↳ IMG_4242 in engine-log.txt
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:156:17: Expectation failed: !((text → "2027-01-15T08:00:00Z  Hardware test started (quick). Device: Simulated SDI card (4 connectors) (SIMULATED)
+2027-01-15T08:00:00Z  Step 9: Human checks
+2027-01-15T08:00:00Z  Asked the tester: Look at the monitor
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-CF337524-12D7-4505-82B1-68A7AA56A633/Pastor Bob sermon IMG_7777.jpg")
+2027-01-15T08:00:00Z  Asked the tester: Look at the switcher
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/Volumes/CHURCH-USB-STICK/Pastor Bob/Private/IMG_4242 (copy).jpg")
+2027-01-15T08:00:00Z  Could not attach the photo: The photo could not be read: IMG_4242 (copy).jpg
+2027-01-15T08:00:00Z  Step 9 Human checks: PASSED. The tester saw what was expected.
+2027-01-15T08:00:00Z  Hardware test finished.
+").contains(leak → "IMG_7777") → true)
+↳ IMG_7777 in engine-log.txt
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:156:17: Expectation failed: !((text → "2027-01-15T08:00:00Z  Hardware test started (quick). Device: Simulated SDI card (4 connectors) (SIMULATED)
+2027-01-15T08:00:00Z  Step 9: Human checks
+2027-01-15T08:00:00Z  Asked the tester: Look at the monitor
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-CF337524-12D7-4505-82B1-68A7AA56A633/Pastor Bob sermon IMG_7777.jpg")
+2027-01-15T08:00:00Z  Asked the tester: Look at the switcher
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/Volumes/CHURCH-USB-STICK/Pastor Bob/Private/IMG_4242 (copy).jpg")
+2027-01-15T08:00:00Z  Could not attach the photo: The photo could not be read: IMG_4242 (copy).jpg
+2027-01-15T08:00:00Z  Step 9 Human checks: PASSED. The tester saw what was expected.
+2027-01-15T08:00:00Z  Hardware test finished.
+").contains(leak → "Pastor Bob") → true)
+↳ Pastor Bob in engine-log.txt
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:156:17: Expectation failed: !((text → "2027-01-15T08:00:00Z  Hardware test started (quick). Device: Simulated SDI card (4 connectors) (SIMULATED)
+2027-01-15T08:00:00Z  Step 9: Human checks
+2027-01-15T08:00:00Z  Asked the tester: Look at the monitor
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-CF337524-12D7-4505-82B1-68A7AA56A633/Pastor Bob sermon IMG_7777.jpg")
+2027-01-15T08:00:00Z  Asked the tester: Look at the switcher
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/Volumes/CHURCH-USB-STICK/Pastor Bob/Private/IMG_4242 (copy).jpg")
+2027-01-15T08:00:00Z  Could not attach the photo: The photo could not be read: IMG_4242 (copy).jpg
+2027-01-15T08:00:00Z  Step 9 Human checks: PASSED. The tester saw what was expected.
+2027-01-15T08:00:00Z  Hardware test finished.
+").contains(leak → "/Volumes/") → true)
+↳ /Volumes/ in engine-log.txt
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:158:50: Expectation failed: (TestPhoto.metadata(of: entry.data)[kCGImagePropertyGPSDictionary as String] → {
+    Latitude = "37.7749";
+    LatitudeRef = N;
+    Longitude = "122.4194";
+    LongitudeRef = W;
+}) == nil
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() recorded an issue at FIXD_S5_PrivacyTests.swift:161:9: Expectation failed: (String(decoding: log.data, as: UTF8.self) → "2027-01-15T08:00:00Z  Hardware test started (quick). Device: Simulated SDI card (4 connectors) (SIMULATED)
+2027-01-15T08:00:00Z  Step 9: Human checks
+2027-01-15T08:00:00Z  Asked the tester: Look at the monitor
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/var/folders/j5/67lttk657c964t_b8kd4gjjc0000gn/T/wf-fixd-priv-CF337524-12D7-4505-82B1-68A7AA56A633/Pastor Bob sermon IMG_7777.jpg")
+2027-01-15T08:00:00Z  Asked the tester: Look at the switcher
+2027-01-15T08:00:00Z  Answer: yes
+2027-01-15T08:00:00Z  Asked the tester: Attach a photo?
+2027-01-15T08:00:00Z  Answer: attachment("/Volumes/CHURCH-USB-STICK/Pastor Bob/Private/IMG_4242 (copy).jpg")
+2027-01-15T08:00:00Z  Could not attach the photo: The photo could not be read: IMG_4242 (copy).jpg
+2027-01-15T08:00:00Z  Step 9 Human checks: PASSED. The tester saw what was expected.
+2027-01-15T08:00:00Z  Hardware test finished.
+").contains("Answer: a photo was chosen")
+✘ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() failed after 0.024 seconds with 7 issues.
+✘ Suite FIXD_S5_PrivacyTests failed after 0.052 seconds with 17 issues.
+✘ Suite HWTEST_Heavy failed after 0.052 seconds with 17 issues.
+↳ /// The suites that run whole simulated tests are heavy (1080p frames), so they run one after another: parallel copies
+↳ /// would starve the wall-clock tests elsewhere in the package.
+✘ Test run with 5 tests in 2 suites failed after 0.052 seconds with 17 issues.

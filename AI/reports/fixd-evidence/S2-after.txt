@@ -1,0 +1,1004 @@
+[0/1] Planning build
+Building for debugging...
+[0/5] Write sources
+[1/5] Write swift-version--58304C5D6DBC2206.txt
+[3/5] Compiling OperatorCore WorkspaceModel+Countdowns.swift
+[4/5] Emitting module OperatorCore
+[4/6] Write Objects.LinkFileList
+[5/6] Linking WorshipFlowKitPackageTests
+Build complete! (4.11s)
+Test Suite 'Selected tests' started at 2026-11-21 05:26:10.684.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:26:10.686.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:26:10.686.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:26:10.686.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite UI002_PlaylistKindStorageTests started.
+◇ Suite UI002_CountdownTests started.
+◇ Suite ClearAllKeyTests started.
+◇ Suite AudioListAndPlayTests started.
+◇ Suite UI002_PlaylistKindStoreTests started.
+◇ Suite UI002_PlaylistSteppingTests started.
+◇ Suite ThemeEditingRulesTests started.
+◇ Suite ReflowImpactTests started.
+◇ Suite UI001_RolePillTests started.
+◇ Suite ImageUsageTests started.
+◇ Suite UI002_PlaylistItemsTests started.
+◇ Suite ImageAvailabilityMonitorTests started.
+◇ Suite ReflowImpactModelTests started.
+◇ Suite ReflowKeepsNotesTests started.
+◇ Suite KeyRepeatRoutingTests started.
+◇ Suite ClearAllCommandTests started.
+◇ Suite ClearAllTests started.
+◇ Suite StagePublishingTests started.
+◇ Suite UI001_ModeRestoreTests started.
+◇ Suite UI002_AppearanceSettingTests started.
+◇ Suite UI002_HeaderLabelTests started.
+◇ Suite ClipAvailabilityTests started.
+◇ Suite LiveThemeCaptureTests started.
+◇ Suite TransportSerialisationTests started.
+◇ Suite SectionOrderEditingTests started.
+◇ Suite UI001_LibraryOverviewTests started.
+◇ Suite ImportPlanTests started.
+◇ Suite StageFreeSpaceTests started.
+◇ Suite AudioLevelTests started.
+◇ Suite DebouncedSaverTests started.
+◇ Suite MediaForegroundTests started.
+◇ Suite SlideEditorReservedSpaceTests started.
+◇ Suite MediaScenesTests started.
+◇ Suite HW002_ScreenEditingTests started.
+◇ Suite UI002_ContrastTests started.
+◇ Suite AudioShowControlTests started.
+◇ Suite SlideEditorModelTests started.
+◇ Suite WorkspaceModelTests started.
+◇ Suite UI001_ModeTests started.
+◇ Suite StageEditingTests started.
+◇ Suite AudioDeviceTests started.
+◇ Suite AudioTransportTests started.
+◇ Suite SettingsModelTests started.
+◇ Suite HW004_KeyingCaptionTests started.
+◇ Suite UI001_OutputHealthTests started.
+◇ Suite UI002_MediaBinCategoryTests started.
+◇ Suite MediaBackgroundTests started.
+◇ Suite MediaBinTests started.
+◇ Suite MediaWriteRetryTests started.
+◇ Suite AudioOneAtATimeTests started.
+◇ Suite DesignTokenParityTests started.
+◇ Suite DraftSaveRetryTests started.
+◇ Suite WorkspaceModelExtraTests started.
+◇ Suite QuitPolicyTests started.
+◇ Suite DeleteKeyRoutingTests started.
+◇ Suite UI001_BlackoutKeyTests started.
+◇ Suite UI001_SectionRunTests started.
+◇ Suite SettingsWriteRetryTests started.
+◇ Suite ThemeModelTests started.
+◇ Suite HW002_DeveloperSettingTests started.
+◇ Suite UI001_BlackoutModelTests started.
+◇ Suite UI002_ThumbnailPolicyTests started.
+◇ Suite StageModelTests started.
+◇ Suite UI002_ClearControlTests started.
+◇ Suite LivePublicationTests started.
+◇ Suite UI001_LiveLineTests started.
+◇ Suite KeyRoutingTests started.
+◇ Suite UI002_MirrorNoteTests started.
+◇ Suite UI002_AppearanceChoiceTests started.
+◇ Suite FIXD_S2_GoLiveTargetTests started.
+◇ Suite SectionOrderModelTests started.
+◇ Suite QuickEditWithObjectsTests started.
+◇ Test anUnreadableStoredItemBecomesAHeaderNotACrash() started.
+◇ Test specsValidateTheirNumbers() started.
+◇ Test atZeroItStaysAtZeroForever() started.
+◇ Test everyKindRoundTripsThroughItsStoredForm() started.
+◇ Test aDurationCountsDownFromWhenItWentLive() started.
+◇ Test shiftEscapeIsClearAllAndPlainEscapeStaysClear() started.
+◇ Test aTargetTimeAlreadyPastIsZero() started.
+◇ Test headersAreNotSelectableForLiveAndOthersAre() started.
+◇ Test afterDeletingTheLiveItemTheNeighbourIsNotTakenLive() started.
+◇ Test aTargetTimeCountsToThatTimeToday() started.
+◇ Test textIsMinutesAndSecondsOrHours() started.
+◇ Test aPlaceOnAHeaderLandsOnTheNextPlayableItem() started.
+◇ Test fromNothingTheFirstPlayableItemIsFound() started.
+◇ Test movingAndRemovingWorkAcrossKinds() started.
+◇ Test shiftEscapeFollowsTheSameRulesAsEveryTransportKey() started.
+◇ Test migrationV8FollowsV7AndKeepsTheEarlierOnesInOrder() started.
+◇ Test anEmptyPlaylistHasNoTarget() started.
+◇ Test rowsWrittenBeforeV8BecomePresentationItems() started.
+◇ Test aClockGoingBackwardsDoesNotExceedTheDuration() started.
+◇ Test aPlaylistItemDefaultsToAPresentation() started.
+◇ Test aHeaderHasNoSlidesAndDeletingASongLeavesHeadersAlone() started.
+◇ Test nextSkipsOverHeaders() started.
+◇ Test aFileThatCannotBeReadIsReportedAndNothingStarts() started.
+◇ Test onlyPropsThatAreOnAreInUse() started.
+◇ Test anOrderThatLosesSomeSectionsListsThemOnce() started.
+◇ Test alwaysThreePillsAudStgBrdInThatOrder() started.
+◇ Test removingTheFileFromTheBinStopsItsCue() started.
+◇ Test aCountdownCanBeEditedInPlace() started.
+◇ Test aFaultOnAnyEnabledScreenOfTheRoleWinsOverARunningOne() started.
+◇ Test headersAndCountdownsAreStoredBetweenPresentationsInOrder() started.
+◇ Test playOpensTheFileOnItsOwnEngineWithTheCurrentLevelAndDevice() started.
+◇ Test ordersThatKeepEverythingAreNotListed() started.
+◇ Test runningIsOnDisabledAndStoppedAreOff() started.
+◇ Test aSectionThatIsOnlyRenamedCountsAsLost() started.
+◇ Test everyPillHasWordsForVoiceOver() started.
+◇ Test valuesAreKeptInsideWhatCanBeDrawn() started.
+◇ Test aThemeNobodyUsesIsNotChecked() started.
+◇ Test thePreviewSceneIsTheAudienceSceneOfASampleSlide() started.
+◇ Test nothingBeforeTheFirstOrAfterTheLastPlayableItem() started.
+◇ Test aFileTheEngineCannotOpenIsReportedAndTheCueThatWasPlayingKeepsPlaying() started.
+◇ Test theListHoldsOnlyTheSoundFilesOfTheBin() started.
+◇ Test nothingInUseMeansNoFileSystemCalls() started.
+◇ Test aCountdownAsTheLastItemEndsTheStepping() started.
+◇ Test anOrderWhoseSectionsAllVanishBecomesEmptyAndNamesItsPlaylistItems() started.
+◇ Test headersAndCountdownsAreAddedInOrder() started.
+◇ Test aBurstOfChecksRunsOneAtATimeAndTheLastPathsWin() started.
+◇ Test aStageScreenADisabledScreenAndAHiddenLayerDrawNothing() started.
+◇ Test aFileThatComesBackClearsTheProblemOnTheNextCheck() started.
+◇ Test relaunchOnACountdownSelectsItWithoutGoingLive() started.
+◇ Test playlistItemsWithSlidesStillStepNormally() started.
+◇ Test aHeaderCannotBeSelectedOrTakenLive() started.
+◇ Test aVideoOrAnUnknownIdIsNotPlayedAsASound() started.
+◇ Test pressingPlayOnAPlayingCueDoesNotRestartIt() started.
+◇ Test relaunchOnAHeaderLandsOnTheNextPlayableItem() started.
+◇ Test theModelReportsTheOrdersAndPlaylistItemsAReflowWouldDamage() started.
+◇ Test nextIntoACountdownStartsItAndShowsTheTimeAsTheSlide() started.
+◇ Test theFilesAreCheckedOffTheMainThreadAndTheResultComesBack() started.
+◇ Test aRepeatedTransportKeyIsIgnored() started.
+◇ Test theThemeAScreenOrTheLivePresentationUsesIsChecked() started.
+◇ Test previousAtTheStartOfASongSkipsTheHeader() started.
+◇ Test nextAtTheEndOfASongSkipsTheHeaderAndStartsTheNextSong() started.
+◇ Test aReflowThatEmptiesAnOrderShowsThePlaylistItemAsEmpty() started.
+◇ Test previousStopsOnAnEmptyPlaylistItemToo() started.
+◇ Test nextStopsOnAnEmptyPlaylistItemWithAMessageInsteadOfSkippingIt() started.
+◇ Test deletingTheLiveCountdownClearsTheScreensAndStopsTheTimer() started.
+◇ Test stoppingTheShowStopsTheCountdown() started.
+◇ Test reflowKeepsNotesOfUnchangedSlidesAndListsTheRest() started.
+◇ Test anEmptyPlaylistOrOneOfHeadersOnlyDoesNothingOnNext() started.
+◇ Test repeatsStillReachTextFieldsSheetsAndMenus() started.
+◇ Test theCountdownTicksDownAndStaysAtZeroWithoutMovingOn() started.
+◇ Test aHiddenScreenCountsAsOnButSaysItIsCovered() started.
+◇ Test closingTheScreensStopsTheForegroundClip() started.
+◇ Test clearAllThenNextBringsTheWordsBack() started.
+◇ Test clearAllHidesTheWordsAndStopsTheClip() started.
+◇ Test clearAllMovesTheShowToTheClearedStateAndKeepsThePlace() started.
+◇ Test aStageScreenWithoutAnEntryFallsBackToTheBuiltInScene() started.
+◇ Test aSecondWithNoVisibleChangeProducesAnEqualSnapshot() started.
+◇ Test theLiveSlidesNotesReachTheStageAndFollowTheSlide() started.
+◇ Test aHeldDeleteDoesNotRemoveObjectsOneAfterAnother() started.
+◇ Test clearHidesTheWordsButLeavesTheClipPlaying() started.
+◇ Test theBuiltInLayoutThroughTheModelMatchesTheBuiltInStageScene() started.
+◇ Test firstRunIsShowAndTheChoiceSurvivesARelaunch() started.
+◇ Test clearAllWhenStoppedChangesNothing() started.
+◇ Test aDamagedStoredModeFallsBackToShow() started.
+◇ Test everyHeaderControlHasATooltipAndAnAccessibilityLabelEitherWay() started.
+◇ Test closingTheScreensKeepsTheBackgroundForWhenTheyOpenAgain() started.
+◇ Test clearAllWithNothingLiveDoesNothingAndDoesNotFail() started.
+◇ Test changingModeNeverTouchesTheShow() started.
+◇ Test labelsShowWhenTheHeaderIsWideEnough() started.
+◇ Test stageShowsNotesButAudienceAndBroadcastNeverShowNotesOrTimers() started.
+◇ Test startingIsNotAFailure() started.
+◇ Test overrunTimerIsDrawnInTheWarningColour() started.
+◇ Test aFirstPressStillDrivesTheTransport() started.
+◇ Test aStalledForegroundClipEndsToo() started.
+◇ Test movingToTheNextSlideOfTheLiveSongDoesNotApplyTheNewTheme() started.
+◇ Test labelsCollapseToIconsWhenTooNarrow() started.
+◇ Test choosingAThemeForTheLivePresentationChangesPreviewAtOnceAndTheScreensFromTheNextTrigger() started.
+◇ Test theFirstNextFromAStoppedShowCapturesTheTheme() started.
+◇ Test darkByDefaultAndTheChoiceSurvivesARelaunch() started.
+◇ Test editingAThemeThatIsInUseStillChangesTheScreensAtOnce() started.
+◇ Test aReportAboutAnotherAssetChangesNothing() started.
+◇ Test aFailedBackgroundReportsAndFallsBackToTheTheme() started.
+◇ Test aFailedForegroundClipEndsAndTheErrorNamesTheFile() started.
+◇ Test twoNextsArrivingTogetherBothAdvanceInOrder() started.
+◇ Test slideCountFollowsRepeats() started.
+◇ Test stopForgetsTheCapturedTheme() started.
+◇ Test countsPerLibraryAndTheBilingualMarker() started.
+◇ Test filterIgnoresCaseAndAccentsAndKeepsOrder() started.
+◇ Test naturalOrderAndNames() started.
+◇ Test appendRemoveAndMove() started.
+◇ Test clearDuringAPlaylistStepStaysCleared() started.
+◇ Test movingABreakMovesTheSecondLanguageWithIt() started.
+◇ Test steppingIntoTheNextPlaylistItemCapturesThatItemsTheme() started.
+◇ Test stopDuringAPlaylistStepIsNotUndoneByTheStep() started.
+◇ Test nextThenPreviousArrivingTogetherEndWhereTheyStarted() started.
+◇ Test volumeIsClampedAppliedToEveryCueAndKeptAcrossARelaunch() started.
+◇ Test withoutMovesItEqualsReflowContents() started.
+◇ Test breaksDoNotCrossSections() started.
+◇ Test aFullLayoutStillGetsAnElementOnScreen() started.
+◇ Test coalescesAndFlushes() started.
+◇ Test dragReorderUsesListOffsets() started.
+◇ Test continuousTypingStillSavesWithinTheCap() started.
+◇ Test theClipEndsWhenThePlayerSaysSoNearItsEnd() started.
+◇ Test theMeterShowsTheLoudestOfTheCuesAndGoesQuietWhenTheLastStops() started.
+◇ Test thePublishedStageSceneChangesWhenATimerValueChanges() started.
+◇ Test aMuteOrLevelChangeIsReportedToTheApp() started.
+◇ Test aSecondElementDoesNotLandOnTheFirst() started.
+◇ Test aClipIsRefusedWhileTheScreensAreStopped() started.
+◇ Test stopRemovesTheClipAndDoesNothingWithoutOne() started.
+◇ Test tickEndsAFinishedClipAndReportsTheChange() started.
+◇ Test aClipWhoseFileIsMissingIsRefusedAndOneThatFailsLaterIsRemoved() started.
+◇ Test pauseHoldsTheClipAndResumeContinuesIt() started.
+◇ Test sectionNamesAndSurplusSecondary() started.
+◇ Test emptyTextGivesNoSlides() started.
+◇ Test playingAgainReplacesTheClipFromTheStart() started.
+◇ Test stoppingTheShowStopsTheClipButKeepsTheBackground() started.
+◇ Test aClipWithoutAStoredLengthEndsOnThePlayersReport() started.
+◇ Test aPausedClipNeverEndsByTheClock() started.
+◇ Test aFreeDefaultPlaceIsKept() started.
+◇ Test volumeAndMuteAreClampedAndReported() started.
+◇ Test clearKeepsTheClipOnTheScreensAndStopRemovesIt() started.
+◇ Test theStageNeverShowsMediaOrLosesItsWords() started.
+◇ Test newObjectsKeepClearOfTheSlidesOwnWords() started.
+◇ Test playStartsAClipOnceFromTheStart() started.
+◇ Test keyingChangesNothingForAWindowOrDisplay() started.
+◇ Test aStillImageStaysUntilStopped() started.
+◇ Test positionAndRemainingFollowTheClock() started.
+◇ Test startingAClipHidesTheLyricsOnAudienceAndBroadcastAndEndingRestoresThem() started.
+◇ Test theAlphaModeIsChosenOnlyForSDI() started.
+◇ Test seekMovesThePositionAndKeepsPausedPaused() started.
+◇ Test aMirrorUsesTheScreensModeSoPickingAnSDIMirrorNeedsNoModeOfItsOwn() started.
+◇ Test stopRemovesMediaFromEveryScene() started.
+◇ Test theWordsComeBackByTheClockEvenIfThePlayerNeverReportsTheEnd() started.
+◇ Test theChosenBackgroundReachesAScreenWhoseThemeUsesMediaBehindTheWords() started.
+◇ Test aMirrorsKeyingCanBeSetLikeAPrimarys() started.
+◇ Test switchingToACardThatLacksTheCurrentModeFallsBackToItsFirstSupportedMode() started.
+◇ Test turningKeyingOnFromTheSecondConnectorMovesToTheStartOfThePair() started.
+◇ Test aDeviceThatIsGoneIsStillNamed() started.
+◇ Test publishingWithoutMediaChangesNothing() started.
+◇ Test keyedOutputsOnlyOfferTheFirstConnectorOfAPair() started.
+◇ Test plainDestinationsKeepTheirLabels() started.
+◇ Test mirrorsAreAddedChangedAndRemovedOneAtATime() started.
+◇ Test theKeyingCaptionNamesBothConnectors() started.
+◇ Test textTokensReachFourPointFiveOnTheirSurfaces() started.
+◇ Test stopStopsTheCues() started.
+◇ Test simulatedDevicesAreLabelledSimulatedEverywhereTheyAreShown() started.
+◇ Test clearAllLeavesTheCuePlayingToo() started.
+◇ Test keyingCannotBeTurnedOnForACardWithoutIt() started.
+◇ Test theModePickerIsLimitedToWhatTheCardSupports() started.
+◇ Test stopAllStopsEveryCueIncludingOverlapOnes() started.
+◇ Test invalidInputSetsLastError() started.
+◇ Test shapeFillStrokeAndCornersCanBeChanged() started.
+◇ Test choosingAnSDIConnectorKeepsAnExistingKeyingAndAlphaChoice() started.
+◇ Test aCueStartedWhileTheScreensAreStoppedIsNotStoppedByTheShowStayingStopped() started.
+◇ Test theRatioFunctionIsRight() started.
+◇ Test goLiveNextClearStop() started.
+◇ Test textAndItsStyleCanBeChanged() started.
+◇ Test clearLeavesTheCuePlaying() started.
+◇ Test theReadmesNamedPairsHold() started.
+◇ Test nextStepsAcrossPlaylistItems() started.
+◇ Test aDeviceIsConnectedUnlessSaidOtherwise() started.
+◇ Test slideAddMoveDeleteOnTheOpenPresentation() started.
+◇ Test playlistAddReorderRemove() started.
+◇ Test duplicateMakesAnOffsetCopyAboveTheOriginalAndSelectsIt() started.
+◇ Test aStoredValueIsRestoredAndAnythingElseIsShow() started.
+◇ Test nextStopsAtEndWhenNotInAPlaylist() started.
+◇ Test undoOfAnAddRestoresTheSelection() started.
+◇ Test libraryCreateRenameDeleteAndSelection() started.
+◇ Test searchFindsWithoutDiacriticsAndOpensAHit() started.
+◇ Test everyKindOfEditCanBeUndoneAndRedone() started.
+◇ Test undoDoesNotRollBackWordsTypedInTheOtherEditor() started.
+◇ Test aDragIsOneUndoStep() started.
+◇ Test typingARunOfTextIsOneStep() started.
+◇ Test importLyricsCreatesAPresentationWithPairedSlides() started.
+◇ Test historyIsBoundedToOneHundredSteps() started.
+◇ Test aNewEditAfterUndoDropsTheRedoSteps() started.
+◇ Test firstRunCreatesOneLibraryAndOnePlaylist() started.
+◇ Test sixModesInOrderWithCommandDigitsOneToSix() started.
+◇ Test openingAPresentationFillsPreviewOnly() started.
+◇ Test historyIsPerSlide() started.
+◇ Test quickEditChangesLiveAndStore() started.
+◇ Test imagesCanSwitchBetweenFitAndFill() started.
+◇ Test selectionBelongsToItsSlide() started.
+◇ Test playlistItemUsesItsArrangement() started.
+◇ Test editingTheOpenPresentationNeverChangesLive() started.
+◇ Test relaunchRestoresThePlaceToPreviewNeverToLive() started.
+◇ Test undoAndRedoAreSavedLikeAnyEdit() started.
+◇ Test restoreIgnoresDeletedItems() started.
+◇ Test deletingTheLivePresentationKeepsItOnScreen() started.
+◇ Test theImageChooserSuppliesThePathAndCancelAddsNothing() started.
+◇ Test newObjectsDoNotLandOnTopOfEachOther() started.
+◇ Test aDragThatMovedNothingLeavesNoStep() started.
+◇ Test aPlainRectangleHasNoCornerRadiusToChange() started.
+◇ Test resizingKeepsTheCornerAndTheMinimumSize() started.
+◇ Test anUnknownObjectChangesNothing() started.
+◇ Test editsReachThePreviewAtOnceButNotTheLiveOutput() started.
+◇ Test stackingOrderCanBeChanged() started.
+◇ Test everyKindCanBeAddedSelectedAndSavedWithinTwoSeconds() started.
+◇ Test textValuesStayInsideWhatCanBeDrawn() started.
+◇ Test deleteRemovesTheSelectedObjectOnly() started.
+◇ Test theSampleSceneDrawsEveryKindOfElementWithSampleContent() started.
+◇ Test switchingPresentationDropsTheHistory() started.
+◇ Test everyKindOfNewElementIsOnScreenAndDrawable() started.
+◇ Test nothingIsAddedWithoutAnOpenSlide() started.
+◇ Test opacityIsClamped() started.
+◇ Test nothingChosenMeansTheSystemDefault() started.
+◇ Test typedFramesAreKeptOnTheSlide() started.
+◇ Test aDeviceThatDisappearsWhilePlayingFallsBackKeepsPlayingAndReports() started.
+◇ Test duplicatingAgainstTheEdgeStillOffsetsTheCopy() started.
+◇ Test choosingADeviceSendsEveryPlayingCueThereAndTellsTheApp() started.
+◇ Test theListChangingWithoutTheChosenDeviceMovingDoesNothingVisible() started.
+◇ Test choosingADeviceThatIsNotThereFallsBackToTheDefaultAndSaysSo() started.
+◇ Test fontSizeAndNameAreKeptInRange() started.
+◇ Test theChosenDeviceSurvivesARelaunch() started.
+◇ Test aStoredDeviceThatIsNotConnectedAtLaunchPlaysOnTheDefaultButIsKeptAndReported() started.
+◇ Test choosingTheSameDeviceAgainDoesNotTellTheAppAgain() started.
+◇ Test aLayoutNeedsAPerSecondRefreshOnlyWhenItShowsAClockOrATimer() started.
+◇ Test aDragIsMeasuredFromWhereItStartedAndStaysOnTheSlide() started.
+◇ Test aTimerElementWithoutItsTimerDrawsNothingInTheSample() started.
+◇ Test pauseResumeAndSeekFollowTheTransportClock() started.
+◇ Test stopTakesTheCueAwayAndSilencesTheMeter() started.
+◇ Test aReversedRouteNamesFillOnTheSecondConnector() started.
+◇ Test stopObservingReleasesTheDeviceListener() started.
+◇ Test nonFiniteNumbersNeverReachTheFrameOrTheFont() started.
+◇ Test aConventionalRouteNamesFillOnTheFirst() started.
+◇ Test aLoopingCueNeverEndsAndTheSwitchWorksWhilePlaying() started.
+◇ Test seekingPastTheEndIsClampedAndAnUnknownCueIsIgnored() started.
+◇ Test aFinishReportFromAnEngineThatWasAlreadyStoppedChangesNothing() started.
+◇ Test lookDeleteKeepsTheLastOneAndMovesTheSelection() started.
+◇ Test withNoReportedRouteTheCaptionIsTheOldOne() started.
+◇ Test theClockEndsACueThatDoesNotLoopAndTheEngineReportEndsOneWithoutADuration() started.
+◇ Test aKeyedDestinationLabelNamesTheRouteWhenKnown() started.
+◇ Test framedKeepsTheSizeAndMovesThePositionInsideIt() started.
+◇ Test changesAreWrittenAndReadBackAfterARelaunch() started.
+◇ Test aBlankLookNameIsRefusedWithAMessage() started.
+◇ Test aRouteForAnotherPairIsNotUsed() started.
+◇ Test missingOldFilesAreFine() started.
+◇ Test aFailedSaveSetsAnOperatorMessageAndDoesNotThrow() started.
+◇ Test aFaultedScreenIsReportedAsNeedingAttention() started.
+◇ Test wholeRatesHaveNoDecimals() started.
+◇ Test oldJSONFilesAreImportedOnceAndLeftUntouched() started.
+◇ Test aMissingFileIsRefusedWithAMessageAndChangesNothing() started.
+◇ Test categoriesCountEachKindAndKeepAudioSeparate() started.
+◇ Test oldFilesAreIgnoredWhenTheTablesAlreadyHaveRows() started.
+◇ Test theHeaderNamesTheSelectedCategory() started.
+◇ Test nothingRunningMeansNoReadout() started.
+◇ Test aSoundFileIsKeptInTheBinButNeverBecomesALayer() started.
+◇ Test rateComesFromTheAudienceScreenAndCountsAreSummedOverRunningScreens() started.
+◇ Test aBackgroundTheEngineCouldNotOpenIsTakenOutButStaysChosen() started.
+◇ Test aStillImageCanBeTheBackground() started.
+◇ Test anUnreadableOldFileIsReportedLeftAloneAndDefaultsAreUsed() started.
+◇ Test writesReachTheFileInTheOrderTheyWereMade() started.
+◇ Test theKindFilterShowsOneKindOrAll() started.
+◇ Test theBackgroundComesBackAfterARelaunchButTheForegroundDoesNot() started.
+◇ Test anEngineThatLosesItsDeviceByItselfIsReportedOnce() started.
+◇ Test firstLaunchGetsDefaultScreensAndAStandardLookAndStoresThem() started.
+◇ Test addingStoresWhatTheProberFound() started.
+◇ Test removeDropsTheReferenceAndNeverTheFile() started.
+◇ Test clearingTheBackgroundIsRememberedToo() started.
+◇ Test addingTheSameFileTwiceKeepsOneEntry() started.
+◇ Test legacyFilesLiveBesideTheLibraryFile() started.
+◇ Test aFileThatCannotBeProbedIsReportedAndNotAdded() started.
+◇ Test settingTheBackgroundStartsALoopingLayerAndTellsTheApp() started.
+◇ Test anOverlapCueStartsWithoutStoppingAnything() started.
+◇ Test addingSeveralKeepsTheGoodOnesAndReportsTheBadOnes() started.
+◇ Test aFailedBackgroundWriteIsRetriedAndFlushedByTheModel() started.
+◇ Test aBackgroundWhoseFileIsGoneAtLaunchIsReportedAndComesBackWithTheFile() started.
+◇ Test removingTheBackgroundOrTheClipTakesItOutOfTheLayers() started.
+◇ Test renameChangesTheNameOnly() started.
+◇ Test aDraftForASlideThatNoLongerExistsIsDroppedWithAMessage() started.
+◇ Test newerTypingIsNotLostWhenAnOlderWriteSucceeds() started.
+◇ Test aNormalCueStopsTheOtherNormalCuesButNotAnOverlapBed() started.
+◇ Test theOverlapMarkSurvivesARelaunch() started.
+◇ Test everyColourTokenHasAColourSetAndEveryColourSetHasAToken() started.
+◇ Test reopeningASongShowsTypingThatIsStillWaitingToBeSaved() started.
+◇ Test closingTheOpenPresentationDoesNotThrowAwayAnotherSongsUnsavedTyping() started.
+◇ Test importWithNoTextCreatesNothing() started.
+◇ Test colourSetValuesMatchTheTokensInBothAppearances() started.
+◇ Test anEmptyBinHasZeroCounts() started.
+◇ Test theAppIconSetHasEveryMacSize() started.
+◇ Test theBookmarkIsStoredWithTheAsset() started.
+◇ Test theBinSurvivesARelaunch() started.
+◇ Test aFailedWriteIsRetriedWithBackOffUntilItSucceeds() started.
+◇ Test startingACueStopsTheOneThatWasPlaying() started.
+◇ Test reflowReplacesSlidesAndKeepsLiveOnScreen() started.
+◇ Test deletingAPresentationAttemptsTheWriteFirstThenDropsItsDraftKnowingly() started.
+◇ Test flushWritesADraftWhoseEarlierWriteFailed() started.
+◇ Test structuralEditsAreRefusedWhileACustomOrderPlays() started.
+◇ Test quittingWhileScreensAreOpenAsksFirstAndSaysWhatWillHappen() started.
+◇ Test theIndicatorNamesTheReasonAndStaysUntilTheWriteSucceeds() started.
+◇ Test searchHitInAnotherLibrarySwitchesToIt() started.
+◇ Test hidingTheAppIsOnlyAllowedWhenNoScreenIsOpen() started.
+◇ Test typedTextIsSavedWithinTwoSecondsButShownAtOnce() started.
+◇ Test flushWritesPendingTypingAtOnce() started.
+◇ Test switchingSongsSavesTheOldSongFirst() started.
+◇ Test quittingWithNoScreensOpenJustQuits() started.
+◇ Test theLastLibraryCannotBeDeleted() started.
+◇ Test virtualKeyCodesForDeleteAreRecognised() started.
+◇ Test closingTheOperatorWindowWhileScreensAreOpenIsRefusedWithAMessage() started.
+◇ Test deleteStaysInATextFieldASheetOrAMenuShortcut() started.
+◇ Test bTogglesBlackoutWhenNothingIsBeingTyped() started.
+◇ Test bIsNotBlackoutWithCommandControlOptionOrShift() started.
+◇ Test bIsKeyCode11() started.
+◇ Test deleteIsForTheSelectedObjectWhenNothingIsBeingTyped() started.
+◇ Test importWithBlankTitleLeavesNothingBehind() started.
+◇ Test flushWritesWhatEarlierFailed() started.
+◇ Test toneFollowsTheSectionName() started.
+◇ Test aSectionPlayedTwiceInARowShowsItsRepeatCount() started.
+◇ Test theAppNeverQuitsBecauseTheLastWindowClosedWhileScreensAreOpen() started.
+◇ Test aFailedSettingsWriteIsRetriedWithBackOffAndShownUntilItSucceeds() started.
+◇ Test separatedPlaysOfTheSameSectionAreSeparateRuns() started.
+◇ Test aNewerWriteIsNeverOverwrittenByAnOlderFailedOne() started.
+◇ Test quickEditWithNothingLiveExplainsItself() started.
+◇ Test bIsTypedTextInAFieldAndNotInASheet() started.
+◇ Test editsAreClampedSavedAndOnlyForCustomThemes() started.
+◇ Test consecutiveSlidesOfOneSectionFormARun() started.
+◇ Test aPropAddedWhileTheDiskFailedKeepsItsBookmarkWhenLaterChangesSupersedeIt() started.
+◇ Test holdingBDoesNotToggleAgain() started.
+◇ Test theSimulatedDeviceIsOffByDefault() started.
+◇ Test aThemeThatDoesNotExistIsRefusedWithAMessage() started.
+◇ Test aProfileWithSDIAndMirrorsSurvivesTheSettingsModel() started.
+◇ Test deletingAThemeClearsScreensAndPresentationsThatUsedIt() started.
+◇ Test createDuplicateRenameAndListInOrder() started.
+◇ Test aThemeOfAPresentationInAnotherLibraryIsFoundWhenItsPlaylistItemOpens() started.
+◇ Test blackoutAloneChangesWhatTheScreensMustRepublish() started.
+◇ Test blackoutTogglesAndTellsTheApp() started.
+◇ Test clearKeepsItAndStopEndsIt() started.
+◇ Test theLiveThemeBelongsToTheLivePresentationNotTheOpenOne() started.
+◇ Test publishedScenesGoBlackOnAudienceAndTransparentOnBroadcast() started.
+◇ Test aSceneWithoutMediaNeedsNoFramesAndIsCached() started.
+◇ Test aPresentationThemeChangesTheAudienceSceneAndNotTheBroadcastOne() started.
+◇ Test createDuplicateRenameAndDeleteAreStored() started.
+◇ Test aSceneWithMediaAsksForOneStillFrameAndIsNotCached() started.
+◇ Test theChoiceIsStoredAndComesBackAfterARelaunch() started.
+◇ Test timerInputIsChecked() started.
+◇ Test timersAreRenamedAndDeletedAndStored() started.
+◇ Test aFailedWriteSetsAMessageTheOperatorCanActOn() started.
+◇ Test nextAndGoLiveLiftIt() started.
+◇ Test deletingALayoutReturnsItsScreensToTheBuiltInOne() started.
+◇ Test dragMovesFromTheStartFrameAndStaysOnScreen() started.
+◇ Test aTimerElementNeedsAnExistingTimer() started.
+◇ Test blankOrUnknownLayoutOperationsSetAnError() started.
+◇ Test aStoredChoiceThatPointsAtAMissingLayoutIsIgnoredAtLoad() started.
+◇ Test everyChangeThatCanAlterAStagePictureIsAnnounced() started.
+◇ Test addingAndRemovingElementsOfEveryKind() started.
+◇ Test eachStageScreenKeepsItsOwnLayoutAcrossRelaunches() started.
+◇ Test elapsedTimerCountsUp() started.
+◇ Test countdownToATimeTodayFollowsTheClockAndGoesOverrunAfterIt() started.
+◇ Test theStageSceneShowsTheClockInTheChosenStyle() started.
+◇ Test theClockReadsAsSetAndTheSettingIsKept() started.
+◇ Test typedFrameFontColourAndAlignmentAreAppliedAndClamped() started.
+◇ Test theAppOnlyTicksForScreensWhoseLayoutHasAClockOrTimer() started.
+◇ Test resizeIsClampedToTheMinimumAndTheScreenEdge() started.
+◇ Test clickClearsWordsAndMenuOffersClearAll() started.
+◇ Test editingAnUnknownElementChangesNothing() started.
+◇ Test firstLaunchHasOnlyTheBuiltInLayout() started.
+◇ Test storeErrorsReadAsPlainSentences() started.
+◇ Test typingInTheLiveSlideInPreviewStillLeavesTheScreensAlone() started.
+◇ Test theFirstChangeAlwaysPublishes() started.
+◇ Test speakerNotesOfTheLiveSlideStillReachTheStageScreen() started.
+◇ Test theBuiltInLayoutIsReadOnlyAndExplainsHowToEdit() started.
+◇ Test countdownStartPauseAndResetUseTheInjectedClock() started.
+◇ Test everythingThatChangesTheScreensStillRepublishes() started.
+◇ Test movingThePreviewSelectionRepublishesNothing() started.
+◇ Test showChangesAreAnnounced() started.
+◇ Test typingInASlideThatIsNotLiveRepublishesNothing() started.
+◇ Test positionLineHasTitleSectionAndSlideNumbers() started.
+◇ Test theLiveLineJoinsTheLinesOfTheFirstLanguage() started.
+◇ Test theModelRemembersTitleAndSectionOfTheLiveSlide() started.
+◇ Test nothingGoesToTheTransportWhileATextInputIsBeingEdited() started.
+◇ Test removingAMirrorRemovesItsNoteAndKeepsTheOthersAligned() started.
+◇ Test keyCodesMapToKeys() started.
+◇ Test escapeInTheSearchFieldLeavesItAndOtherKeysStayInTheField() started.
+◇ Test menuShortcutsAreNeverTransportKeys() started.
+◇ Test transportKeysReachTheShowWhenNothingIsBeingTyped() started.
+◇ Test nothingGoesToTheTransportWhileASheetIsOpen() started.
+◇ Test aStoredValueIsRestoredAndAnythingElseIsDark() started.
+◇ Test threeChoicesInOrderWithDarkTheDefault() started.
+◇ Test theViewAsksForAnExplicitSchemeExceptForSystem() started.
+◇ Test nextWithNothingLiveAndACountdownSelectedPutsTheSongsSlideLiveAgainstTheSong() started.
+◇ Test theSavedPlaceFollowsTheLastChoice() started.
+◇ Test aSlideChosenWhileTheCountdownIsLiveStartsThatSlideAndNextStepsFromIt() started.
+◇ Test aDoubleClickedSlideIsRecordedAgainstItsOwnItemWhileACountdownIsSelected() started.
+◇ Test anOrderFromAnotherSongIsRefusedWithAMessage() started.
+◇ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() started.
+◇ Test sectionSlideCountsDoNotDependOnThePlayOrder() started.
+◇ Test previousAfterThatStepsBackFromTheSong() started.
+◇ Test renameAndDelete() started.
+◇ Test aCountdownSelectedAfterALibrarySongThenASlideStillGoesToTheSlide() started.
+◇ Test choicesForAnItemThatIsNotOpenComeFromItsOwnSong() started.
+◇ Test quickEditSavesWordsAndKeepsThePreviewObjects() started.
+◇ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() started.
+◇ Test aPlaylistItemPlaysTheChosenOrderAndFallsBackWhenItIsDeleted() started.
+◇ Test aSongOpenedFromTheLibraryHasNoItemAndASlideChosenAfterACountdownStartsTheSlide() started.
+◇ Test addRemoveAndReorderSectionsAreSaved() started.
+◇ Test aCountdownChosenLastStillStartsTheCountdown() started.
+◇ Test aNewOrderStartsAsTheNaturalOrderAndGetsADefaultName() started.
+✘ Test everyColourTokenHasAColourSetAndEveryColourSetHasAToken() recorded an issue at DesignTokenParityTests.swift:71:6: Caught error: Error Domain=NSCocoaErrorDomain Code=260 "The file “design-tokens.json” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/docs/UI/design-tokens.json, NSURL=file:///docs/UI/design-tokens.json, NSUnderlyingError=0x789bb484e0 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}
+✘ Test textTokensReachFourPointFiveOnTheirSurfaces() recorded an issue at UI002_AppearanceTests.swift:70:6: Caught error: Error Domain=NSCocoaErrorDomain Code=260 "The file “design-tokens.json” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/docs/UI/design-tokens.json, NSURL=file:///docs/UI/design-tokens.json, NSUnderlyingError=0x101648d00 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}
+✘ Test colourSetValuesMatchTheTokensInBothAppearances() recorded an issue at DesignTokenParityTests.swift:79:6: Caught error: Error Domain=NSCocoaErrorDomain Code=260 "The file “design-tokens.json” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/docs/UI/design-tokens.json, NSURL=file:///docs/UI/design-tokens.json, NSUnderlyingError=0x789bb48210 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}
+✘ Test theReadmesNamedPairsHold() recorded an issue at UI002_AppearanceTests.swift:88:6: Caught error: Error Domain=NSCocoaErrorDomain Code=260 "The file “design-tokens.json” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/docs/UI/design-tokens.json, NSURL=file:///docs/UI/design-tokens.json, NSUnderlyingError=0x1016420a0 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}
+✘ Test theAppIconSetHasEveryMacSize() recorded an issue at DesignTokenParityTests.swift:89:6: Caught error: Error Domain=NSCocoaErrorDomain Code=260 "The file “Contents.json” couldn’t be opened because there is no such file." UserInfo={NSFilePath=/App/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json, NSURL=file:///App/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json, NSUnderlyingError=0x789bb48390 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}
+✔ Test afterDeletingTheLiveItemTheNeighbourIsNotTakenLive() passed after 0.019 seconds.
+✔ Test anUnreadableStoredItemBecomesAHeaderNotACrash() passed after 0.019 seconds.
+✔ Test specsValidateTheirNumbers() passed after 0.019 seconds.
+✔ Test shiftEscapeIsClearAllAndPlainEscapeStaysClear() passed after 0.019 seconds.
+✔ Test headersAreNotSelectableForLiveAndOthersAre() passed after 0.019 seconds.
+✔ Test aPlaceOnAHeaderLandsOnTheNextPlayableItem() passed after 0.019 seconds.
+✔ Test fromNothingTheFirstPlayableItemIsFound() passed after 0.019 seconds.
+✔ Test shiftEscapeFollowsTheSameRulesAsEveryTransportKey() passed after 0.019 seconds.
+✔ Test textIsMinutesAndSecondsOrHours() passed after 0.019 seconds.
+✔ Test anEmptyPlaylistHasNoTarget() passed after 0.019 seconds.
+✔ Test aPlaylistItemDefaultsToAPresentation() passed after 0.019 seconds.
+✔ Test everyKindRoundTripsThroughItsStoredForm() passed after 0.019 seconds.
+✔ Test nextSkipsOverHeaders() passed after 0.019 seconds.
+✔ Test atZeroItStaysAtZeroForever() passed after 0.019 seconds.
+✔ Test aDurationCountsDownFromWhenItWentLive() passed after 0.019 seconds.
+✔ Test aClockGoingBackwardsDoesNotExceedTheDuration() passed after 0.019 seconds.
+✔ Test aTargetTimeAlreadyPastIsZero() passed after 0.019 seconds.
+✔ Test aTargetTimeCountsToThatTimeToday() passed after 0.019 seconds.
+✔ Test aFaultOnAnyEnabledScreenOfTheRoleWinsOverARunningOne() passed after 0.019 seconds.
+✔ Test alwaysThreePillsAudStgBrdInThatOrder() passed after 0.019 seconds.
+✔ Test anOrderThatLosesSomeSectionsListsThemOnce() passed after 0.019 seconds.
+✔ Test ordersThatKeepEverythingAreNotListed() passed after 0.019 seconds.
+✔ Test runningIsOnDisabledAndStoppedAreOff() passed after 0.019 seconds.
+✔ Test everyPillHasWordsForVoiceOver() passed after 0.019 seconds.
+✔ Test aSectionThatIsOnlyRenamedCountsAsLost() passed after 0.019 seconds.
+✔ Test aThemeNobodyUsesIsNotChecked() passed after 0.019 seconds.
+✔ Test onlyPropsThatAreOnAreInUse() passed after 0.019 seconds.
+✔ Test valuesAreKeptInsideWhatCanBeDrawn() passed after 0.019 seconds.
+✔ Test nothingBeforeTheFirstOrAfterTheLastPlayableItem() passed after 0.019 seconds.
+✔ Test thePreviewSceneIsTheAudienceSceneOfASampleSlide() passed after 0.019 seconds.
+✔ Test anOrderWhoseSectionsAllVanishBecomesEmptyAndNamesItsPlaylistItems() passed after 0.019 seconds.
+✔ Test aStageScreenADisabledScreenAndAHiddenLayerDrawNothing() passed after 0.019 seconds.
+✔ Test aRepeatedTransportKeyIsIgnored() passed after 0.019 seconds.
+✔ Test aHiddenScreenCountsAsOnButSaysItIsCovered() passed after 0.019 seconds.
+✔ Test repeatsStillReachTextFieldsSheetsAndMenus() passed after 0.019 seconds.
+✔ Test clearAllWhenStoppedChangesNothing() passed after 0.019 seconds.
+✔ Test theThemeAScreenOrTheLivePresentationUsesIsChecked() passed after 0.019 seconds.
+✔ Test aHeldDeleteDoesNotRemoveObjectsOneAfterAnother() passed after 0.019 seconds.
+✔ Test labelsShowWhenTheHeaderIsWideEnough() passed after 0.019 seconds.
+✔ Test everyHeaderControlHasATooltipAndAnAccessibilityLabelEitherWay() passed after 0.019 seconds.
+✔ Test aFirstPressStillDrivesTheTransport() passed after 0.019 seconds.
+✔ Test labelsCollapseToIconsWhenTooNarrow() passed after 0.019 seconds.
+✔ Test slideCountFollowsRepeats() passed after 0.019 seconds.
+✔ Test naturalOrderAndNames() passed after 0.018 seconds.
+✔ Test appendRemoveAndMove() passed after 0.019 seconds.
+✔ Test dragReorderUsesListOffsets() passed after 0.019 seconds.
+✔ Test breaksDoNotCrossSections() passed after 0.018 seconds.
+✔ Test clearAllMovesTheShowToTheClearedStateAndKeepsThePlace() passed after 0.019 seconds.
+✔ Test emptyTextGivesNoSlides() passed after 0.018 seconds.
+✔ Test sectionNamesAndSurplusSecondary() passed after 0.018 seconds.
+✔ Test keyingChangesNothingForAWindowOrDisplay() passed after 0.018 seconds.
+✔ Test theAlphaModeIsChosenOnlyForSDI() passed after 0.018 seconds.
+✔ Test aMirrorUsesTheScreensModeSoPickingAnSDIMirrorNeedsNoModeOfItsOwn() passed after 0.018 seconds.
+✔ Test aMirrorsKeyingCanBeSetLikeAPrimarys() passed after 0.018 seconds.
+✔ Test turningKeyingOnFromTheSecondConnectorMovesToTheStartOfThePair() passed after 0.018 seconds.
+✔ Test switchingToACardThatLacksTheCurrentModeFallsBackToItsFirstSupportedMode() passed after 0.018 seconds.
+✔ Test aDeviceThatIsGoneIsStillNamed() passed after 0.018 seconds.
+✔ Test keyedOutputsOnlyOfferTheFirstConnectorOfAPair() passed after 0.018 seconds.
+✔ Test plainDestinationsKeepTheirLabels() passed after 0.018 seconds.
+✔ Test mirrorsAreAddedChangedAndRemovedOneAtATime() passed after 0.018 seconds.
+✔ Test theKeyingCaptionNamesBothConnectors() passed after 0.018 seconds.
+✔ Test keyingCannotBeTurnedOnForACardWithoutIt() passed after 0.018 seconds.
+✔ Test movingABreakMovesTheSecondLanguageWithIt() passed after 0.018 seconds.
+✔ Test theModePickerIsLimitedToWhatTheCardSupports() passed after 0.018 seconds.
+✔ Test choosingAnSDIConnectorKeepsAnExistingKeyingAndAlphaChoice() passed after 0.018 seconds.
+✔ Test theRatioFunctionIsRight() passed after 0.018 seconds.
+✔ Test withoutMovesItEqualsReflowContents() passed after 0.019 seconds.
+✔ Test aDeviceIsConnectedUnlessSaidOtherwise() passed after 0.018 seconds.
+✔ Test aStoredValueIsRestoredAndAnythingElseIsShow() passed after 0.018 seconds.
+✔ Test sixModesInOrderWithCommandDigitsOneToSix() passed after 0.017 seconds.
+✔ Test theSampleSceneDrawsEveryKindOfElementWithSampleContent() passed after 0.017 seconds.
+✔ Test everyKindOfNewElementIsOnScreenAndDrawable() passed after 0.017 seconds.
+✔ Test fontSizeAndNameAreKeptInRange() passed after 0.017 seconds.
+✔ Test aLayoutNeedsAPerSecondRefreshOnlyWhenItShowsAClockOrATimer() passed after 0.017 seconds.
+✔ Test aReversedRouteNamesFillOnTheSecondConnector() passed after 0.017 seconds.
+✔ Test nonFiniteNumbersNeverReachTheFrameOrTheFont() passed after 0.017 seconds.
+✔ Test aConventionalRouteNamesFillOnTheFirst() passed after 0.017 seconds.
+✔ Test withNoReportedRouteTheCaptionIsTheOldOne() passed after 0.017 seconds.
+✔ Test aKeyedDestinationLabelNamesTheRouteWhenKnown() passed after 0.017 seconds.
+✔ Test framedKeepsTheSizeAndMovesThePositionInsideIt() passed after 0.017 seconds.
+✔ Test aRouteForAnotherPairIsNotUsed() passed after 0.017 seconds.
+✔ Test aFaultedScreenIsReportedAsNeedingAttention() passed after 0.016 seconds.
+✔ Test wholeRatesHaveNoDecimals() passed after 0.016 seconds.
+✔ Test categoriesCountEachKindAndKeepAudioSeparate() passed after 0.016 seconds.
+✔ Test theHeaderNamesTheSelectedCategory() passed after 0.016 seconds.
+✔ Test nothingRunningMeansNoReadout() passed after 0.016 seconds.
+✔ Test rateComesFromTheAudienceScreenAndCountsAreSummedOverRunningScreens() passed after 0.016 seconds.
+✔ Test aTimerElementWithoutItsTimerDrawsNothingInTheSample() passed after 0.017 seconds.
+✔ Test simulatedDevicesAreLabelledSimulatedEverywhereTheyAreShown() passed after 0.018 seconds.
+✔ Test anEmptyBinHasZeroCounts() passed after 0.016 seconds.
+✘ Test everyColourTokenHasAColourSetAndEveryColourSetHasAToken() failed after 0.016 seconds with 1 issue.
+✘ Test textTokensReachFourPointFiveOnTheirSurfaces() failed after 0.018 seconds with 1 issue.
+↳ /// Text colours on the surfaces they sit on, at least 4.5:1, in both appearances. The two exceptions are the pairs the
+↳ /// design README names itself: light `cyan` (and the two tokens with its value) on `surface-2` is 4.4:1.
+✘ Test theReadmesNamedPairsHold() failed after 0.018 seconds with 1 issue.
+✔ Test quittingWithNoScreensOpenJustQuits() passed after 0.016 seconds.
+✔ Test virtualKeyCodesForDeleteAreRecognised() passed after 0.016 seconds.
+✔ Test hidingTheAppIsOnlyAllowedWhenNoScreenIsOpen() passed after 0.016 seconds.
+✘ Test colourSetValuesMatchTheTokensInBothAppearances() failed after 0.016 seconds with 1 issue.
+✔ Test closingTheOperatorWindowWhileScreensAreOpenIsRefusedWithAMessage() passed after 0.016 seconds.
+✔ Test bTogglesBlackoutWhenNothingIsBeingTyped() passed after 0.016 seconds.
+✔ Test quittingWhileScreensAreOpenAsksFirstAndSaysWhatWillHappen() passed after 0.016 seconds.
+✔ Test bIsNotBlackoutWithCommandControlOptionOrShift() passed after 0.016 seconds.
+✔ Test bIsKeyCode11() passed after 0.016 seconds.
+✘ Test theAppIconSetHasEveryMacSize() failed after 0.016 seconds with 1 issue.
+✔ Test deleteIsForTheSelectedObjectWhenNothingIsBeingTyped() passed after 0.016 seconds.
+✔ Test theAppNeverQuitsBecauseTheLastWindowClosedWhileScreensAreOpen() passed after 0.016 seconds.
+✔ Test toneFollowsTheSectionName() passed after 0.016 seconds.
+✔ Test deleteStaysInATextFieldASheetOrAMenuShortcut() passed after 0.016 seconds.
+✔ Test separatedPlaysOfTheSameSectionAreSeparateRuns() passed after 0.016 seconds.
+✔ Test holdingBDoesNotToggleAgain() passed after 0.016 seconds.
+✔ Test bIsTypedTextInAFieldAndNotInASheet() passed after 0.016 seconds.
+✔ Test consecutiveSlidesOfOneSectionFormARun() passed after 0.016 seconds.
+✔ Test aSceneWithoutMediaNeedsNoFramesAndIsCached() passed after 0.016 seconds.
+✔ Test aSectionPlayedTwiceInARowShowsItsRepeatCount() passed after 0.016 seconds.
+✔ Test aSceneWithMediaAsksForOneStillFrameAndIsNotCached() passed after 0.015 seconds.
+✔ Test clickClearsWordsAndMenuOffersClearAll() passed after 0.015 seconds.
+✔ Test positionLineHasTitleSectionAndSlideNumbers() passed after 0.015 seconds.
+✔ Test theLiveLineJoinsTheLinesOfTheFirstLanguage() passed after 0.015 seconds.
+✔ Test nothingGoesToTheTransportWhileATextInputIsBeingEdited() passed after 0.014 seconds.
+✔ Test escapeInTheSearchFieldLeavesItAndOtherKeysStayInTheField() passed after 0.014 seconds.
+✔ Test keyCodesMapToKeys() passed after 0.014 seconds.
+✔ Test removingAMirrorRemovesItsNoteAndKeepsTheOthersAligned() passed after 0.014 seconds.
+✔ Test menuShortcutsAreNeverTransportKeys() passed after 0.014 seconds.
+✔ Test aStoredValueIsRestoredAndAnythingElseIsDark() passed after 0.013 seconds.
+✔ Test threeChoicesInOrderWithDarkTheDefault() passed after 0.013 seconds.
+✔ Test transportKeysReachTheShowWhenNothingIsBeingTyped() passed after 0.014 seconds.
+✔ Test theViewAsksForAnExplicitSchemeExceptForSystem() passed after 0.013 seconds.
+✔ Test nothingGoesToTheTransportWhileASheetIsOpen() passed after 0.014 seconds.
+✔ Suite UI002_PlaylistKindStorageTests passed after 0.023 seconds.
+✔ Suite UI002_PlaylistSteppingTests passed after 0.023 seconds.
+✔ Suite UI002_CountdownTests passed after 0.023 seconds.
+✔ Suite ClearAllKeyTests passed after 0.023 seconds.
+✔ Suite UI001_RolePillTests passed after 0.023 seconds.
+✔ Suite ReflowImpactTests passed after 0.023 seconds.
+✔ Suite ThemeEditingRulesTests passed after 0.023 seconds.
+✔ Suite ImageUsageTests passed after 0.023 seconds.
+✔ Suite KeyRepeatRoutingTests passed after 0.023 seconds.
+✔ Suite UI002_HeaderLabelTests passed after 0.023 seconds.
+✔ Suite SectionOrderEditingTests passed after 0.023 seconds.
+✔ Suite ImportPlanTests passed after 0.023 seconds.
+✘ Suite UI002_ContrastTests failed after 0.023 seconds with 2 issues.
+✔ Suite UI001_ModeTests passed after 0.023 seconds.
+✔ Suite ClearAllCommandTests passed after 0.023 seconds.
+✔ Suite StageEditingTests passed after 0.023 seconds.
+✔ Suite HW002_ScreenEditingTests passed after 0.023 seconds.
+✔ Suite HW004_KeyingCaptionTests passed after 0.023 seconds.
+✔ Suite UI002_MediaBinCategoryTests passed after 0.023 seconds.
+✔ Suite UI001_OutputHealthTests passed after 0.023 seconds.
+✘ Suite DesignTokenParityTests failed after 0.023 seconds with 3 issues.
+✔ Suite DeleteKeyRoutingTests passed after 0.023 seconds.
+✔ Suite QuitPolicyTests passed after 0.023 seconds.
+✔ Suite UI002_ThumbnailPolicyTests passed after 0.023 seconds.
+✔ Suite UI002_ClearControlTests passed after 0.023 seconds.
+✔ Suite UI001_BlackoutKeyTests passed after 0.023 seconds.
+✔ Suite UI001_SectionRunTests passed after 0.023 seconds.
+✔ Suite UI002_MirrorNoteTests passed after 0.023 seconds.
+✔ Suite UI002_AppearanceChoiceTests passed after 0.023 seconds.
+✔ Suite KeyRoutingTests passed after 0.023 seconds.
+✔ Test migrationV8FollowsV7AndKeepsTheEarlierOnesInOrder() passed after 0.028 seconds.
+✔ Test aCountdownCanBeEditedInPlace() passed after 0.029 seconds.
+✔ Test movingAndRemovingWorkAcrossKinds() passed after 0.030 seconds.
+✔ Test headersAndCountdownsAreStoredBetweenPresentationsInOrder() passed after 0.030 seconds.
+✔ Test aHeaderHasNoSlidesAndDeletingASongLeavesHeadersAlone() passed after 0.031 seconds.
+✔ Test rowsWrittenBeforeV8BecomePresentationItems() passed after 0.044 seconds.
+✔ Suite UI002_PlaylistKindStoreTests passed after 0.046 seconds.
+✔ Test volumeAndMuteAreClampedAndReported() passed after 0.693 seconds.
+✔ Test aStageScreenWithoutAnEntryFallsBackToTheBuiltInScene() passed after 2.497 seconds.
+✔ Test publishingWithoutMediaChangesNothing() passed after 2.496 seconds.
+✔ Test legacyFilesLiveBesideTheLibraryFile() passed after 2.495 seconds.
+✔ Test storeErrorsReadAsPlainSentences() passed after 2.493 seconds.
+✔ Test theFirstChangeAlwaysPublishes() passed after 2.493 seconds.
+✔ Test nothingInUseMeansNoFileSystemCalls() passed after 2.498 seconds.
+✔ Test theFilesAreCheckedOffTheMainThreadAndTheResultComesBack() passed after 2.498 seconds.
+✔ Test filterIgnoresCaseAndAccentsAndKeepsOrder() passed after 2.497 seconds.
+✔ Test aReportAboutAnotherAssetChangesNothing() passed after 2.498 seconds.
+✔ Test aFileThatCannotBeProbedIsReportedAndNotAdded() passed after 2.495 seconds.
+✔ Test aClipWithoutAStoredLengthEndsOnThePlayersReport() passed after 2.510 seconds.
+✔ Test settingTheBackgroundStartsALoopingLayerAndTellsTheApp() passed after 2.508 seconds.
+✔ Test aStillImageCanBeTheBackground() passed after 2.508 seconds.
+✔ Test aStalledForegroundClipEndsToo() passed after 2.513 seconds.
+✔ Test startingIsNotAFailure() passed after 2.513 seconds.
+✔ Test aClipIsRefusedWhileTheScreensAreStopped() passed after 2.512 seconds.
+✔ Test aFailedBackgroundReportsAndFallsBackToTheTheme() passed after 2.513 seconds.
+✔ Test aFailedForegroundClipEndsAndTheErrorNamesTheFile() passed after 2.513 seconds.
+✔ Suite ClipAvailabilityTests passed after 2.516 seconds.
+✔ Test resizeIsClampedToTheMinimumAndTheScreenEdge() passed after 2.517 seconds.
+✔ Test aVideoOrAnUnknownIdIsNotPlayedAsASound() passed after 2.522 seconds.
+✔ Test aFreeDefaultPlaceIsKept() passed after 2.521 seconds.
+✔ Test aSecondElementDoesNotLandOnTheFirst() passed after 2.522 seconds.
+✔ Test choosingADeviceSendsEveryPlayingCueThereAndTellsTheApp() passed after 2.519 seconds.
+✔ Test aSoundFileIsKeptInTheBinButNeverBecomesALayer() passed after 2.523 seconds.
+✔ Test thePublishedStageSceneChangesWhenATimerValueChanges() passed after 2.526 seconds.
+✔ Test overrunTimerIsDrawnInTheWarningColour() passed after 2.526 seconds.
+✔ Test aFullLayoutStillGetsAnElementOnScreen() passed after 2.527 seconds.
+✔ Test theBookmarkIsStoredWithTheAsset() passed after 2.524 seconds.
+✔ Test aSecondWithNoVisibleChangeProducesAnEqualSnapshot() passed after 2.528 seconds.
+✔ Test stageShowsNotesButAudienceAndBroadcastNeverShowNotesOrTimers() passed after 2.528 seconds.
+✔ Suite StageFreeSpaceTests passed after 2.531 seconds.
+✔ Test choosingTheSameDeviceAgainDoesNotTellTheAppAgain() passed after 2.526 seconds.
+✔ Test stopAllStopsEveryCueIncludingOverlapOnes() passed after 2.527 seconds.
+✔ Test playingAgainReplacesTheClipFromTheStart() passed after 2.527 seconds.
+✔ Test theBuiltInLayoutThroughTheModelMatchesTheBuiltInStageScene() passed after 2.532 seconds.
+✔ Test theAppOnlyTicksForScreensWhoseLayoutHasAClockOrTimer() passed after 2.530 seconds.
+✔ Test nothingChosenMeansTheSystemDefault() passed after 2.533 seconds.
+✔ Test stopTakesTheCueAwayAndSilencesTheMeter() passed after 2.533 seconds.
+✔ Test anOverlapCueStartsWithoutStoppingAnything() passed after 2.532 seconds.
+✔ Test elapsedTimerCountsUp() passed after 2.531 seconds.
+✔ Test dragMovesFromTheStartFrameAndStaysOnScreen() passed after 2.532 seconds.
+✔ Test timerInputIsChecked() passed after 2.532 seconds.
+✔ Test everyChangeThatCanAlterAStagePictureIsAnnounced() passed after 2.532 seconds.
+✔ Test aTimerElementNeedsAnExistingTimer() passed after 2.532 seconds.
+✔ Test aCueStartedWhileTheScreensAreStoppedIsNotStoppedByTheShowStayingStopped() passed after 2.535 seconds.
+✔ Test blankOrUnknownLayoutOperationsSetAnError() passed after 2.532 seconds.
+✔ Test stopObservingReleasesTheDeviceListener() passed after 2.534 seconds.
+✔ Test aFileTheEngineCannotOpenIsReportedAndTheCueThatWasPlayingKeepsPlaying() passed after 2.538 seconds.
+✔ Test countdownToATimeTodayFollowsTheClockAndGoesOverrunAfterIt() passed after 2.533 seconds.
+✔ Test playStartsAClipOnceFromTheStart() passed after 2.537 seconds.
+✔ Test editingAnUnknownElementChangesNothing() passed after 2.533 seconds.
+✔ Test firstLaunchHasOnlyTheBuiltInLayout() passed after 2.533 seconds.
+✔ Test aFinishReportFromAnEngineThatWasAlreadyStoppedChangesNothing() passed after 2.535 seconds.
+✔ Test pressingPlayOnAPlayingCueDoesNotRestartIt() passed after 2.539 seconds.
+✔ Test aLoopingCueNeverEndsAndTheSwitchWorksWhilePlaying() passed after 2.536 seconds.
+✔ Test theClockEndsACueThatDoesNotLoopAndTheEngineReportEndsOneWithoutADuration() passed after 2.536 seconds.
+✔ Test pauseResumeAndSeekFollowTheTransportClock() passed after 2.536 seconds.
+✔ Test aMuteOrLevelChangeIsReportedToTheApp() passed after 2.538 seconds.
+✔ Test aFileThatCannotBeReadIsReportedAndNothingStarts() passed after 2.540 seconds.
+✔ Test theStageSceneShowsTheClockInTheChosenStyle() passed after 2.534 seconds.
+✔ Test seekingPastTheEndIsClampedAndAnUnknownCueIsIgnored() passed after 2.537 seconds.
+✔ Suite AudioTransportTests passed after 2.542 seconds.
+✔ Test removingTheFileFromTheBinStopsItsCue() passed after 2.540 seconds.
+✔ Test theMeterShowsTheLoudestOfTheCuesAndGoesQuietWhenTheLastStops() passed after 2.539 seconds.
+✔ Test aClipWhoseFileIsMissingIsRefusedAndOneThatFailsLaterIsRemoved() passed after 2.539 seconds.
+✔ Test startingAClipHidesTheLyricsOnAudienceAndBroadcastAndEndingRestoresThem() passed after 2.539 seconds.
+✔ Test pauseHoldsTheClipAndResumeContinuesIt() passed after 2.539 seconds.
+✔ Test theClipEndsWhenThePlayerSaysSoNearItsEnd() passed after 2.540 seconds.
+✔ Test seekMovesThePositionAndKeepsPausedPaused() passed after 2.540 seconds.
+✔ Test addingTheSameFileTwiceKeepsOneEntry() passed after 2.537 seconds.
+✔ Test stopRemovesMediaFromEveryScene() passed after 2.539 seconds.
+✔ Test aMissingFileIsRefusedWithAMessageAndChangesNothing() passed after 2.537 seconds.
+✔ Test playOpensTheFileOnItsOwnEngineWithTheCurrentLevelAndDevice() passed after 2.541 seconds.
+✔ Test theBuiltInLayoutIsReadOnlyAndExplainsHowToEdit() passed after 2.536 seconds.
+✔ Test theStageNeverShowsMediaOrLosesItsWords() passed after 2.540 seconds.
+✔ Test aStillImageStaysUntilStopped() passed after 2.540 seconds.
+✔ Test theListHoldsOnlyTheSoundFilesOfTheBin() passed after 2.542 seconds.
+✔ Suite AudioListAndPlayTests passed after 2.544 seconds.
+✔ Test theChosenBackgroundReachesAScreenWhoseThemeUsesMediaBehindTheWords() passed after 2.540 seconds.
+✔ Test positionAndRemainingFollowTheClock() passed after 2.540 seconds.
+✔ Test theWordsComeBackByTheClockEvenIfThePlayerNeverReportsTheEnd() passed after 2.540 seconds.
+✔ Test tickEndsAFinishedClipAndReportsTheChange() passed after 2.541 seconds.
+✔ Test stopRemovesTheClipAndDoesNothingWithoutOne() passed after 2.541 seconds.
+✔ Test clearKeepsTheClipOnTheScreensAndStopRemovesIt() passed after 2.541 seconds.
+✔ Suite MediaScenesTests passed after 2.544 seconds.
+✔ Test aPausedClipNeverEndsByTheClock() passed after 2.541 seconds.
+✔ Test aNormalCueStopsTheOtherNormalCuesButNotAnOverlapBed() passed after 2.539 seconds.
+✔ Test anEngineThatLosesItsDeviceByItselfIsReportedOnce() passed after 2.539 seconds.
+✔ Test startingACueStopsTheOneThatWasPlaying() passed after 2.539 seconds.
+✔ Test aBurstOfChecksRunsOneAtATimeAndTheLastPathsWin() passed after 2.543 seconds.
+✔ Test aFileThatComesBackClearsTheProblemOnTheNextCheck() passed after 2.543 seconds.
+✔ Test aBlankLookNameIsRefusedWithAMessage() passed after 2.540 seconds.
+✔ Suite ImageAvailabilityMonitorTests passed after 2.546 seconds.
+✔ Test removeDropsTheReferenceAndNeverTheFile() passed after 2.540 seconds.
+✔ Test addingStoresWhatTheProberFound() passed after 2.541 seconds.
+✔ Test renameChangesTheNameOnly() passed after 2.541 seconds.
+✔ Test aStoredChoiceThatPointsAtAMissingLayoutIsIgnoredAtLoad() passed after 2.540 seconds.
+✔ Test aFailedWriteSetsAMessageTheOperatorCanActOn() passed after 2.541 seconds.
+✔ Test theSimulatedDeviceIsOffByDefault() passed after 2.541 seconds.
+✔ Test stoppingTheShowStopsTheClipButKeepsTheBackground() passed after 2.545 seconds.
+✔ Suite MediaForegroundTests passed after 2.548 seconds.
+✔ Test theBinSurvivesARelaunch() passed after 2.545 seconds.
+✔ Test quickEditWithNothingLiveExplainsItself() passed after 2.551 seconds.
+✔ Test importWithBlankTitleLeavesNothingBehind() passed after 2.551 seconds.
+✔ Test theLastLibraryCannotBeDeleted() passed after 2.551 seconds.
+✔ Test aBackgroundTheEngineCouldNotOpenIsTakenOutButStaysChosen() passed after 2.552 seconds.
+✔ Test addingSeveralKeepsTheGoodOnesAndReportsTheBadOnes() passed after 2.552 seconds.
+✔ Test clearAllWithNothingLiveDoesNothingAndDoesNotFail() passed after 2.559 seconds.
+✔ Test nothingIsAddedWithoutAnOpenSlide() passed after 2.557 seconds.
+✔ Test aBackgroundWhoseFileIsGoneAtLaunchIsReportedAndComesBackWithTheFile() passed after 2.556 seconds.
+✔ Test theListChangingWithoutTheChosenDeviceMovingDoesNothingVisible() passed after 2.556 seconds.
+✔ Test invalidInputSetsLastError() passed after 2.557 seconds.
+✔ Test aDamagedStoredModeFallsBackToShow() passed after 2.564 seconds.
+✔ Test aFailedSaveSetsAnOperatorMessageAndDoesNotThrow() passed after 2.561 seconds.
+✔ Test missingOldFilesAreFine() passed after 2.565 seconds.
+✔ Test deletingALayoutReturnsItsScreensToTheBuiltInOne() passed after 2.563 seconds.
+✔ Test countdownStartPauseAndResetUseTheInjectedClock() passed after 2.563 seconds.
+✔ Test addingAndRemovingElementsOfEveryKind() passed after 2.563 seconds.
+✔ Test theBackgroundComesBackAfterARelaunchButTheForegroundDoesNot() passed after 2.565 seconds.
+✔ Test importWithNoTextCreatesNothing() passed after 2.564 seconds.
+✔ Test clearingTheBackgroundIsRememberedToo() passed after 2.565 seconds.
+✔ Suite MediaBackgroundTests passed after 2.571 seconds.
+✔ Test typedFrameFontColourAndAlignmentAreAppliedAndClamped() passed after 2.566 seconds.
+✔ Test editsAreClampedSavedAndOnlyForCustomThemes() passed after 2.567 seconds.
+✔ Test theKindFilterShowsOneKindOrAll() passed after 2.568 seconds.
+✔ Test timersAreRenamedAndDeletedAndStored() passed after 2.566 seconds.
+✔ Test theClockReadsAsSetAndTheSettingIsKept() passed after 2.573 seconds.
+✔ Test anUnreadableOldFileIsReportedLeftAloneAndDefaultsAreUsed() passed after 2.575 seconds.
+✔ Test aFailedBackgroundWriteIsRetriedAndFlushedByTheModel() passed after 2.579 seconds.
+✔ Suite MediaWriteRetryTests passed after 2.584 seconds.
+✔ Test createDuplicateRenameAndDeleteAreStored() passed after 2.579 seconds.
+✔ Test removingTheBackgroundOrTheClipTakesItOutOfTheLayers() passed after 2.580 seconds.
+✔ Suite MediaBinTests passed after 2.586 seconds.
+✔ Test oldFilesAreIgnoredWhenTheTablesAlreadyHaveRows() passed after 2.584 seconds.
+✔ Test lookDeleteKeepsTheLastOneAndMovesTheSelection() passed after 2.585 seconds.
+✔ Test choosingADeviceThatIsNotThereFallsBackToTheDefaultAndSaysSo() passed after 2.588 seconds.
+✔ Test aDeviceThatDisappearsWhilePlayingFallsBackKeepsPlayingAndReports() passed after 2.588 seconds.
+✔ Test aProfileWithSDIAndMirrorsSurvivesTheSettingsModel() passed after 2.588 seconds.
+✔ Test darkByDefaultAndTheChoiceSurvivesARelaunch() passed after 2.593 seconds.
+✔ Test aPropAddedWhileTheDiskFailedKeepsItsBookmarkWhenLaterChangesSupersedeIt() passed after 2.590 seconds.
+✔ Suite UI002_AppearanceSettingTests passed after 2.597 seconds.
+✔ Test firstLaunchGetsDefaultScreensAndAStandardLookAndStoresThem() passed after 2.593 seconds.
+✔ Test importLyricsCreatesAPresentationWithPairedSlides() passed after 2.594 seconds.
+✔ Test everyKindOfEditCanBeUndoneAndRedone() passed after 2.598 seconds.
+✔ Test newObjectsDoNotLandOnTopOfEachOther() passed after 2.601 seconds.
+✔ Test shapeFillStrokeAndCornersCanBeChanged() passed after 2.602 seconds.
+✔ Test undoDoesNotRollBackWordsTypedInTheOtherEditor() passed after 2.602 seconds.
+✔ Test textAndItsStyleCanBeChanged() passed after 2.603 seconds.
+✔ Test duplicatingAgainstTheEdgeStillOffsetsTheCopy() passed after 2.603 seconds.
+✔ Test aDragIsOneUndoStep() passed after 2.604 seconds.
+✔ Test aNewEditAfterUndoDropsTheRedoSteps() passed after 2.604 seconds.
+✔ Test undoOfAnAddRestoresTheSelection() passed after 2.605 seconds.
+✔ Test imagesCanSwitchBetweenFitAndFill() passed after 2.605 seconds.
+✔ Test openingAPresentationFillsPreviewOnly() passed after 2.606 seconds.
+✔ Test textValuesStayInsideWhatCanBeDrawn() passed after 2.606 seconds.
+✔ Test firstRunCreatesOneLibraryAndOnePlaylist() passed after 2.606 seconds.
+✔ Test resizingKeepsTheCornerAndTheMinimumSize() passed after 2.606 seconds.
+✔ Test deleteRemovesTheSelectedObjectOnly() passed after 2.607 seconds.
+✔ Test anUnknownObjectChangesNothing() passed after 2.608 seconds.
+✔ Test historyIsPerSlide() passed after 2.608 seconds.
+✔ Test editsReachThePreviewAtOnceButNotTheLiveOutput() passed after 2.608 seconds.
+✔ Test aDragThatMovedNothingLeavesNoStep() passed after 2.608 seconds.
+✔ Test newObjectsKeepClearOfTheSlidesOwnWords() passed after 2.610 seconds.
+✔ Suite SlideEditorReservedSpaceTests passed after 2.614 seconds.
+✔ Test historyIsBoundedToOneHundredSteps() passed after 2.623 seconds.
+✔ Test typingARunOfTextIsOneStep() passed after 2.623 seconds.
+✔ Test flushWritesWhatEarlierFailed() passed after 2.621 seconds.
+✔ Test firstRunIsShowAndTheChoiceSurvivesARelaunch() passed after 2.625 seconds.
+✔ Test typedFramesAreKeptOnTheSlide() passed after 2.623 seconds.
+✔ Test eachStageScreenKeepsItsOwnLayoutAcrossRelaunches() passed after 2.621 seconds.
+✔ Suite StageModelTests passed after 2.628 seconds.
+✔ Test aDragIsMeasuredFromWhereItStartedAndStaysOnTheSlide() passed after 2.624 seconds.
+✔ Test opacityIsClamped() passed after 2.624 seconds.
+✔ Test createDuplicateRenameAndListInOrder() passed after 2.622 seconds.
+✔ Test selectionBelongsToItsSlide() passed after 2.627 seconds.
+✔ Test duplicateMakesAnOffsetCopyAboveTheOriginalAndSelectsIt() passed after 2.629 seconds.
+✔ Test movingThePreviewSelectionRepublishesNothing() passed after 2.626 seconds.
+✔ Test searchFindsWithoutDiacriticsAndOpensAHit() passed after 2.629 seconds.
+✔ Test aThemeThatDoesNotExistIsRefusedWithAMessage() passed after 2.627 seconds.
+✔ Test stackingOrderCanBeChanged() passed after 2.631 seconds.
+✔ Test aStoredDeviceThatIsNotConnectedAtLaunchPlaysOnTheDefaultButIsKeptAndReported() passed after 2.632 seconds.
+✔ Test aPlainRectangleHasNoCornerRadiusToChange() passed after 2.633 seconds.
+✔ Test theModelRemembersTitleAndSectionOfTheLiveSlide() passed after 2.630 seconds.
+✔ Test changingModeNeverTouchesTheShow() passed after 2.636 seconds.
+✔ Suite UI001_LiveLineTests passed after 2.638 seconds.
+✔ Suite UI001_ModeRestoreTests passed after 2.639 seconds.
+✔ Test goLiveNextClearStop() passed after 2.634 seconds.
+✔ Test theOverlapMarkSurvivesARelaunch() passed after 2.634 seconds.
+✔ Test showChangesAreAnnounced() passed after 2.634 seconds.
+✔ Test typingInTheLiveSlideInPreviewStillLeavesTheScreensAlone() passed after 2.632 seconds.
+✔ Suite AudioOneAtATimeTests passed after 2.640 seconds.
+✔ Test typingInASlideThatIsNotLiveRepublishesNothing() passed after 2.632 seconds.
+✔ Test blackoutTogglesAndTellsTheApp() passed after 2.633 seconds.
+✔ Test clearKeepsItAndStopEndsIt() passed after 2.634 seconds.
+✔ Test blackoutAloneChangesWhatTheScreensMustRepublish() passed after 2.635 seconds.
+✔ Test publishedScenesGoBlackOnAudienceAndTransparentOnBroadcast() passed after 2.635 seconds.
+✔ Test speakerNotesOfTheLiveSlideStillReachTheStageScreen() passed after 2.634 seconds.
+✔ Test clearHidesTheWordsButLeavesTheClipPlaying() passed after 2.639 seconds.
+✔ Test clearLeavesTheCuePlaying() passed after 2.638 seconds.
+✔ Test nextAndGoLiveLiftIt() passed after 2.636 seconds.
+✔ Test clearAllLeavesTheCuePlayingToo() passed after 2.639 seconds.
+✔ Suite UI001_BlackoutModelTests passed after 2.642 seconds.
+✔ Test quickEditSavesWordsAndKeepsThePreviewObjects() passed after 2.634 seconds.
+✔ Suite QuickEditWithObjectsTests passed after 2.643 seconds.
+✔ Test stopStopsTheCues() passed after 2.641 seconds.
+✔ Suite AudioShowControlTests passed after 2.645 seconds.
+✔ Test clearAllThenNextBringsTheWordsBack() passed after 2.643 seconds.
+✔ Test newerTypingIsNotLostWhenAnOlderWriteSucceeds() passed after 2.641 seconds.
+✔ Test flushWritesPendingTypingAtOnce() passed after 2.641 seconds.
+✔ Test deletingTheLiveCountdownClearsTheScreensAndStopsTheTimer() passed after 2.645 seconds.
+✔ Test aDraftForASlideThatNoLongerExistsIsDroppedWithAMessage() passed after 2.642 seconds.
+✔ Test clearAllHidesTheWordsAndStopsTheClip() passed after 2.645 seconds.
+✔ Test closingTheScreensStopsTheForegroundClip() passed after 2.645 seconds.
+✔ Test closingTheScreensKeepsTheBackgroundForWhenTheyOpenAgain() passed after 2.645 seconds.
+✔ Suite ClearAllTests passed after 2.648 seconds.
+✔ Test theChosenDeviceSurvivesARelaunch() passed after 2.643 seconds.
+✔ Suite AudioDeviceTests passed after 2.648 seconds.
+✔ Test theIndicatorNamesTheReasonAndStaysUntilTheWriteSucceeds() passed after 2.642 seconds.
+✔ Test everythingThatChangesTheScreensStillRepublishes() passed after 2.641 seconds.
+✔ Suite LivePublicationTests passed after 2.648 seconds.
+✔ Test stoppingTheShowStopsTheCountdown() passed after 2.646 seconds.
+✔ Test playlistItemUsesItsArrangement() passed after 2.646 seconds.
+✔ Test reopeningASongShowsTypingThatIsStillWaitingToBeSaved() passed after 2.645 seconds.
+✔ Test flushWritesADraftWhoseEarlierWriteFailed() passed after 2.645 seconds.
+✔ Test countsPerLibraryAndTheBilingualMarker() passed after 2.648 seconds.
+✔ Suite UI001_LibraryOverviewTests passed after 2.651 seconds.
+✔ Test theChoiceIsStoredAndComesBackAfterARelaunch() passed after 2.646 seconds.
+✔ Test changesAreWrittenAndReadBackAfterARelaunch() passed after 2.647 seconds.
+✔ Suite HW002_DeveloperSettingTests passed after 2.652 seconds.
+✔ Test aNewOrderStartsAsTheNaturalOrderAndGetsADefaultName() passed after 2.643 seconds.
+✔ Test volumeIsClampedAppliedToEveryCueAndKeptAcrossARelaunch() passed after 2.651 seconds.
+✔ Suite AudioLevelTests passed after 2.654 seconds.
+✔ Test aHeaderCannotBeSelectedOrTakenLive() passed after 2.652 seconds.
+✔ Test undoAndRedoAreSavedLikeAnyEdit() passed after 2.650 seconds.
+✔ Test anEmptyPlaylistOrOneOfHeadersOnlyDoesNothingOnNext() passed after 2.653 seconds.
+✔ Test reflowKeepsNotesOfUnchangedSlidesAndListsTheRest() passed after 2.653 seconds.
+✔ Suite ReflowKeepsNotesTests passed after 2.656 seconds.
+✔ Test headersAndCountdownsAreAddedInOrder() passed after 2.655 seconds.
+✔ Test theLiveSlidesNotesReachTheStageAndFollowTheSlide() passed after 2.655 seconds.
+✔ Test reflowReplacesSlidesAndKeepsLiveOnScreen() passed after 2.652 seconds.
+✔ Suite StagePublishingTests passed after 2.658 seconds.
+✔ Test oldJSONFilesAreImportedOnceAndLeftUntouched() passed after 2.654 seconds.
+✔ Test switchingSongsSavesTheOldSongFirst() passed after 2.654 seconds.
+✔ Test libraryCreateRenameDeleteAndSelection() passed after 2.656 seconds.
+✔ Test aCountdownAsTheLastItemEndsTheStepping() passed after 2.659 seconds.
+✔ Test nextIntoACountdownStartsItAndShowsTheTimeAsTheSlide() passed after 2.659 seconds.
+✔ Test theCountdownTicksDownAndStaysAtZeroWithoutMovingOn() passed after 2.659 seconds.
+✔ Test deletingAThemeClearsScreensAndPresentationsThatUsedIt() passed after 2.655 seconds.
+✔ Test quickEditChangesLiveAndStore() passed after 2.657 seconds.
+✔ Test searchHitInAnotherLibrarySwitchesToIt() passed after 2.656 seconds.
+✔ Test playlistAddReorderRemove() passed after 2.658 seconds.
+✔ Test anOrderFromAnotherSongIsRefusedWithAMessage() passed after 2.654 seconds.
+✔ Test renameAndDelete() passed after 2.653 seconds.
+✔ Test nextStopsAtEndWhenNotInAPlaylist() passed after 2.659 seconds.
+✔ Test editingTheOpenPresentationNeverChangesLive() passed after 2.659 seconds.
+✔ Test switchingPresentationDropsTheHistory() passed after 2.659 seconds.
+✔ Test relaunchOnACountdownSelectsItWithoutGoingLive() passed after 2.662 seconds.
+✔ Test aCountdownSelectedAfterALibrarySongThenASlideStillGoesToTheSlide() passed after 2.655 seconds.
+✔ Test theImageChooserSuppliesThePathAndCancelAddsNothing() passed after 2.661 seconds.
+✔ Test aPresentationThemeChangesTheAudienceSceneAndNotTheBroadcastOne() passed after 2.658 seconds.
+✔ Test aDoubleClickedSlideIsRecordedAgainstItsOwnItemWhileACountdownIsSelected() passed after 2.656 seconds.
+✔ Test aSongOpenedFromTheLibraryHasNoItemAndASlideChosenAfterACountdownStartsTheSlide() passed after 2.656 seconds.
+✔ Test structuralEditsAreRefusedWhileACustomOrderPlays() passed after 2.659 seconds.
+✔ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() passed after 2.656 seconds.
+✔ Test writesReachTheFileInTheOrderTheyWereMade() passed after 2.660 seconds.
+✔ Suite SettingsModelTests passed after 2.666 seconds.
+✔ Test deletingTheLivePresentationKeepsItOnScreen() passed after 2.662 seconds.
+✔ Test aSlideChosenWhileTheCountdownIsLiveStartsThatSlideAndNextStepsFromIt() passed after 2.657 seconds.
+✔ Test theLiveThemeBelongsToTheLivePresentationNotTheOpenOne() passed after 2.660 seconds.
+✔ Test nextWithNothingLiveAndACountdownSelectedPutsTheSongsSlideLiveAgainstTheSong() passed after 2.657 seconds.
+✔ Test relaunchOnAHeaderLandsOnTheNextPlayableItem() passed after 2.665 seconds.
+✔ Test closingTheOpenPresentationDoesNotThrowAwayAnotherSongsUnsavedTyping() passed after 2.661 seconds.
+✔ Test nextAtTheEndOfASongSkipsTheHeaderAndStartsTheNextSong() passed after 2.666 seconds.
+✔ Test previousAtTheStartOfASongSkipsTheHeader() passed after 2.666 seconds.
+✔ Suite UI002_PlaylistItemsTests passed after 2.668 seconds.
+✔ Test choicesForAnItemThatIsNotOpenComeFromItsOwnSong() passed after 2.658 seconds.
+✔ Test theFirstNextFromAStoppedShowCapturesTheTheme() passed after 2.665 seconds.
+✔ Test stopDuringAPlaylistStepIsNotUndoneByTheStep() passed after 2.665 seconds.
+✔ Test stopForgetsTheCapturedTheme() passed after 2.666 seconds.
+✔ Test movingToTheNextSlideOfTheLiveSongDoesNotApplyTheNewTheme() passed after 2.666 seconds.
+✔ Test restoreIgnoresDeletedItems() passed after 2.664 seconds.
+✔ Test aCountdownChosenLastStillStartsTheCountdown() passed after 2.659 seconds.
+✔ Test clearDuringAPlaylistStepStaysCleared() passed after 2.666 seconds.
+✔ Test slideAddMoveDeleteOnTheOpenPresentation() passed after 2.665 seconds.
+✔ Test previousAfterThatStepsBackFromTheSong() passed after 2.660 seconds.
+✔ Test aThemeOfAPresentationInAnotherLibraryIsFoundWhenItsPlaylistItemOpens() passed after 2.663 seconds.
+✔ Test editingAThemeThatIsInUseStillChangesTheScreensAtOnce() passed after 2.667 seconds.
+✔ Suite ThemeModelTests passed after 2.669 seconds.
+✔ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() passed after 2.660 seconds.
+✔ Test relaunchRestoresThePlaceToPreviewNeverToLive() passed after 2.666 seconds.
+✔ Test nextStepsAcrossPlaylistItems() passed after 2.666 seconds.
+✔ Suite WorkspaceModelTests passed after 2.670 seconds.
+✔ Test choosingAThemeForTheLivePresentationChangesPreviewAtOnceAndTheScreensFromTheNextTrigger() passed after 2.667 seconds.
+✔ Test steppingIntoTheNextPlaylistItemCapturesThatItemsTheme() passed after 2.667 seconds.
+✔ Suite LiveThemeCaptureTests passed after 2.671 seconds.
+✔ Test addRemoveAndReorderSectionsAreSaved() passed after 2.661 seconds.
+✔ Test aPlaylistItemPlaysTheChosenOrderAndFallsBackWhenItIsDeleted() passed after 2.662 seconds.
+✔ Test sectionSlideCountsDoNotDependOnThePlayOrder() passed after 2.662 seconds.
+✔ Suite SectionOrderModelTests passed after 2.672 seconds.
+✔ Test twoNextsArrivingTogetherBothAdvanceInOrder() passed after 2.669 seconds.
+✔ Test theSavedPlaceFollowsTheLastChoice() passed after 2.663 seconds.
+✔ Suite FIXD_S2_GoLiveTargetTests passed after 2.672 seconds.
+✔ Test nextThenPreviousArrivingTogetherEndWhereTheyStarted() passed after 2.669 seconds.
+✔ Suite TransportSerialisationTests passed after 2.673 seconds.
+✔ Test theModelReportsTheOrdersAndPlaylistItemsAReflowWouldDamage() passed after 2.671 seconds.
+✔ Test playlistItemsWithSlidesStillStepNormally() passed after 2.673 seconds.
+✔ Test aReflowThatEmptiesAnOrderShowsThePlaylistItemAsEmpty() passed after 2.673 seconds.
+✔ Test previousStopsOnAnEmptyPlaylistItemToo() passed after 2.673 seconds.
+✔ Test nextStopsOnAnEmptyPlaylistItemWithAMessageInsteadOfSkippingIt() passed after 2.674 seconds.
+✔ Suite ReflowImpactModelTests passed after 2.676 seconds.
+✔ Test aNewerWriteIsNeverOverwrittenByAnOlderFailedOne() passed after 2.671 seconds.
+✔ Test deletingAPresentationAttemptsTheWriteFirstThenDropsItsDraftKnowingly() passed after 2.673 seconds.
+✔ Test everyKindCanBeAddedSelectedAndSavedWithinTwoSeconds() passed after 2.677 seconds.
+✔ Test aFailedSettingsWriteIsRetriedWithBackOffAndShownUntilItSucceeds() passed after 2.675 seconds.
+✔ Suite SlideEditorModelTests passed after 2.682 seconds.
+✔ Suite SettingsWriteRetryTests passed after 2.681 seconds.
+✔ Test typedTextIsSavedWithinTwoSecondsButShownAtOnce() passed after 2.678 seconds.
+✔ Suite WorkspaceModelExtraTests passed after 2.684 seconds.
+✔ Test coalescesAndFlushes() passed after 2.682 seconds.
+✔ Test continuousTypingStillSavesWithinTheCap() passed after 2.690 seconds.
+✔ Suite DebouncedSaverTests passed after 2.693 seconds.
+✔ Test aFailedWriteIsRetriedWithBackOffUntilItSucceeds() passed after 2.691 seconds.
+✔ Suite DraftSaveRetryTests passed after 2.697 seconds.
+✘ Test run with 417 tests in 72 suites failed after 2.698 seconds with 5 issues.

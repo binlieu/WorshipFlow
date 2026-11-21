@@ -1,0 +1,845 @@
+Building for debugging...
+[0/43] /private/tmp/wf-fixd-orig-p4m8/.build/arm64-apple-macosx/debug/WorshipFlowKitPackageTests.derived/runner.swift
+[1/43] Write sources
+[8/43] Write wf-bible-import-entitlement.plist
+[12/43] Write sources
+[19/43] Copying Info.plist
+[19/43] Write sources
+[19/43] Copying PrivacyInfo.xcprivacy
+[19/43] Write sources
+[34/43] Write swift-version--58304C5D6DBC2206.txt
+[35/43] Compiling DeckLinkAPIDispatch.cpp
+[36/220] Compiling DeckLinkC DeckLinkBridgeFakes.mm
+[37/220] Compiling DeckLinkC DeckLinkBridge.mm
+[39/220] Emitting module Domain
+[40/222] Compiling GRDB Database+SQLCipher.swift
+[41/222] Compiling GRDB Database+Schema.swift
+[42/222] Compiling Domain Theme.swift
+[43/222] Compiling Domain TimeFormat.swift
+[44/222] Compiling GRDB Database+Statements.swift
+[45/222] Compiling GRDB Database.swift
+[46/222] Compiling GRDB FTS3Pattern.swift
+[47/222] Compiling GRDB FTS3TokenizerDescriptor.swift
+[48/222] Compiling GRDB FTS4.swift
+[49/222] Compiling GRDB FTS5.swift
+[50/222] Compiling GRDB FTS5CustomTokenizer.swift
+[51/222] Compiling GRDB FTS5Pattern.swift
+[52/222] Compiling GRDB FTS5Tokenizer.swift
+[53/222] Compiling GRDB FTS5TokenizerDescriptor.swift
+[54/222] Compiling GRDB FTS5WrapperTokenizer.swift
+[55/222] Compiling GRDB Fixits.swift
+[56/222] Compiling GRDB JSONColumn.swift
+[57/222] Compiling GRDB Migration.swift
+[58/222] Compiling GRDB FTS3+QueryInterface.swift
+[59/222] Compiling GRDB FTS5+QueryInterface.swift
+[60/222] Compiling GRDB SQLJSONExpressible.swift
+[61/222] Compiling GRDB SQLJSONFunctions.swift
+[62/222] Compiling GRDB DatabaseMigrator.swift
+[63/222] Compiling GRDB Configuration.swift
+[64/222] Compiling GRDB Cursor.swift
+[65/301] Compiling ScriptureEngine Versification+VI1925.swift
+[66/302] Compiling ScriptureEngine VerseSlides.swift
+[67/302] Compiling ScriptureEngine USFMImporter.swift
+[68/302] Compiling ScriptureEngine TranslationFile.swift
+[69/302] Compiling ScriptureEngine Versification.swift
+[70/302] Compiling ScriptureEngine TextSplitter.swift
+[71/302] Compiling ScriptureEngine Translation.swift
+[72/302] Compiling ScriptureEngine Reference.swift
+[73/302] Compiling ScriptureEngine ReferenceFormatter.swift
+[74/302] Compiling ScriptureEngine ReferenceParser.swift
+[75/302] Compiling ScriptureEngine ScriptureSearch.swift
+[76/302] Compiling RenderEngine ImageLoading.swift
+[77/302] Compiling RenderEngine SharedGPU.swift
+[78/302] Compiling RenderEngine ShapeRasterizer.swift
+[79/302] Compiling RenderEngine ImageWarmer.swift
+[80/302] Compiling RenderEngine TextRasterizer.swift
+[83/302] Compiling SDIEngine SDIOutputSession.swift
+[84/302] Compiling SDIEngine SDIVideoMode.swift
+[85/302] Emitting module SDIEngine
+[88/302] Compiling SDIEngine SimulatedSDIDevice.swift
+[89/302] Compiling SDIEngine SDIProvider.swift
+[90/302] Compiling SDIEngine SimulatedClockDriver.swift
+[91/302] Compiling ScriptureEngine BookNames.swift
+[92/302] Compiling ScriptureEngine Canon.swift
+[93/302] Compiling SDIEngine SDIScheduler.swift
+[94/303] Compiling CueEngine CueExecutor.swift
+[95/303] Compiling CueEngine SlideActions.swift
+[96/303] Compiling CueEngine CueJSON.swift
+[97/303] Emitting module CueEngine
+[98/303] Compiling CueEngine CueAction.swift
+[99/303] Compiling CueEngine MIDIMessage.swift
+[100/303] Compiling CueEngine MIDIBinding.swift
+[101/303] Compiling CueEngine PlaybackMarker.swift
+[102/303] Compiling CueEngine Macro.swift
+[103/303] Compiling CueEngine Schedule.swift
+[104/303] Emitting module ScriptureEngine
+[107/324] Emitting module RenderEngine
+[108/324] Compiling RenderEngine Compositor.swift
+[109/333] Compiling GRDB ForeignKey.swift
+[110/333] Compiling GRDB Association.swift
+[111/333] Compiling GRDB AssociationAggregate.swift
+[112/333] Compiling GRDB BelongsToAssociation.swift
+[113/333] Compiling GRDB HasManyAssociation.swift
+[114/333] Compiling GRDB HasManyThroughAssociation.swift
+[115/333] Compiling GRDB HasOneAssociation.swift
+[116/333] Compiling GRDB HasOneThroughAssociation.swift
+[117/333] Compiling GRDB JoinAssociation.swift
+[118/333] Compiling GRDB CommonTableExpression.swift
+[119/333] Compiling GRDB QueryInterfaceRequest.swift
+[120/333] Compiling GRDB RequestProtocols.swift
+[121/333] Compiling GRDB Column.swift
+[122/333] Compiling GRDB DatabasePromise.swift
+[123/333] Compiling GRDB SQLAssociation.swift
+[124/333] Compiling GRDB SQLCollection.swift
+[125/333] Compiling GRDB SQLExpression.swift
+[126/333] Compiling GRDB Database+SchemaDefinition.swift
+[127/333] Compiling GRDB ForeignKeyDefinition.swift
+[128/333] Compiling GRDB IndexDefinition.swift
+[129/333] Compiling GRDB TableAlteration.swift
+[130/333] Compiling GRDB TableDefinition.swift
+[131/333] Compiling GRDB VirtualTableModule.swift
+[132/333] Compiling GRDB TableRecord+Association.swift
+[133/333] Compiling GRDB TableRecord+QueryInterfaceRequest.swift
+[134/333] Compiling GRDB EncodableRecord+Encodable.swift
+[135/333] Compiling GRDB EncodableRecord.swift
+[136/333] Compiling GRDB FetchableRecord+Decodable.swift
+[137/333] Compiling GRDB FetchableRecord+TableRecord.swift
+[138/333] Compiling GRDB FetchableRecord.swift
+[139/333] Compiling GRDB MutablePersistableRecord+DAO.swift
+[140/333] Compiling GRDB MutablePersistableRecord+Delete.swift
+[141/333] Compiling GRDB MutablePersistableRecord+Insert.swift
+[142/333] Compiling GRDB MutablePersistableRecord+Save.swift
+[143/333] Emitting module GRDB
+[144/349] Compiling GRDB MutablePersistableRecord+Update.swift
+[145/349] Compiling GRDB MutablePersistableRecord+Upsert.swift
+[146/349] Compiling GRDB MutablePersistableRecord.swift
+[147/349] Compiling GRDB PersistableRecord+Insert.swift
+[148/349] Compiling GRDB PersistableRecord+Save.swift
+[149/349] Compiling GRDB PersistableRecord+Upsert.swift
+[150/349] Compiling GRDB PersistableRecord.swift
+[151/349] Compiling GRDB Record.swift
+[152/349] Compiling GRDB TableRecord.swift
+[153/349] Compiling GRDB CaseInsensitiveIdentifier.swift
+[154/349] Compiling GRDB Inflections+English.swift
+[155/349] Compiling GRDB Inflections.swift
+[156/349] Compiling GRDB Mutex.swift
+[157/349] Compiling GRDB OnDemandFuture.swift
+[158/349] Compiling GRDB OrderedDictionary.swift
+[159/349] Compiling GRDB Pool.swift
+[160/349] Compiling GRDB StatementAuthorizer.swift
+[161/349] Compiling GRDB StatementColumnConvertible.swift
+[162/349] Compiling GRDB CGFloat.swift
+[163/349] Compiling GRDB Data.swift
+[164/349] Compiling GRDB DatabaseDateComponents.swift
+[165/349] Compiling GRDB DatabaseValueConvertible+ReferenceConvertible.swift
+[166/349] Compiling GRDB Date.swift
+[167/349] Compiling GRDB Decimal.swift
+[168/349] Compiling GRDB NSData.swift
+[169/349] Compiling GRDB NSNull.swift
+[170/349] Compiling GRDB NSNumber.swift
+[171/349] Compiling GRDB NSString.swift
+[172/349] Compiling GRDB SQLiteDateParser.swift
+[173/349] Compiling GRDB URL.swift
+[174/349] Compiling GRDB UUID.swift
+[175/349] Compiling GRDB DatabaseValueConvertible+Decodable.swift
+[176/349] Compiling GRDB DatabaseValueConvertible+Encodable.swift
+[177/349] Compiling GRDB SQLForeignKeyRequest.swift
+[178/349] Compiling GRDB SQLFunctions.swift
+[179/349] Compiling GRDB SQLOperators.swift
+[180/349] Compiling GRDB SQLOrdering.swift
+[181/349] Compiling GRDB SQLRelation.swift
+[182/349] Compiling GRDB SQLSelection.swift
+[183/349] Compiling GRDB SQLSubquery.swift
+[184/349] Compiling GRDB Table.swift
+[185/349] Compiling GRDB SQLColumnGenerator.swift
+[186/349] Compiling GRDB SQLGenerationContext.swift
+[187/349] Compiling GRDB SQLIndexGenerator.swift
+[188/349] Compiling GRDB SQLQueryGenerator.swift
+[189/349] Compiling GRDB SQLTableAlterationGenerator.swift
+[190/349] Compiling GRDB SQLTableGenerator.swift
+[191/349] Compiling GRDB TableAlias.swift
+[192/349] Compiling GRDB SQLInterpolation+QueryInterface.swift
+[193/349] Compiling GRDB ColumnDefinition.swift
+[194/349] Compiling GRDB DatabaseSchemaSource.swift
+[195/349] Compiling GRDB DatabaseSnapshot.swift
+[196/349] Compiling GRDB DatabaseSnapshotPool.swift
+[197/349] Compiling GRDB DatabaseValue.swift
+[198/349] Compiling GRDB DatabaseValueConvertible.swift
+[199/349] Compiling GRDB DatabaseWriter.swift
+[200/349] Compiling GRDB DispatchQueueActor.swift
+[201/349] Compiling GRDB FetchRequest.swift
+[202/349] Compiling GRDB Row.swift
+[203/349] Compiling GRDB RowAdapter.swift
+[204/349] Compiling GRDB RowDecodingError.swift
+[205/349] Compiling GRDB SQL.swift
+[206/349] Compiling GRDB SQLInterpolation.swift
+[207/349] Compiling GRDB SQLRequest.swift
+[208/349] Compiling GRDB SchedulingWatchdog.swift
+[209/349] Compiling GRDB SerializedDatabase.swift
+[210/349] Compiling GRDB Statement.swift
+[211/349] Compiling SDIEngine TestPattern.swift
+[212/358] Compiling RenderEngineTests TextCacheTests.swift
+[213/358] Emitting module CompositionTests
+[214/358] Compiling RenderEngineTests SlideObjectRenderTests.swift
+[215/358] Compiling RenderEngineTests ImageLayerTests.swift
+[216/358] Compiling RenderEngineTests MediaLayerCompositorTests.swift
+[217/358] Compiling GRDB ReadWriteLock.swift
+[218/358] Compiling GRDB ReceiveValuesOn.swift
+[219/358] Compiling GRDB Refinable.swift
+[220/358] Compiling GRDB Utils.swift
+[221/358] Compiling GRDB DatabaseCancellable.swift
+[222/358] Compiling GRDB ValueConcurrentObserver.swift
+[223/358] Compiling GRDB ValueWriteOnlyObserver.swift
+[224/358] Compiling GRDB Fetch.swift
+[225/358] Compiling GRDB Map.swift
+[226/358] Compiling GRDB RemoveDuplicates.swift
+[227/358] Compiling GRDB Trace.swift
+[228/358] Compiling GRDB ValueReducer.swift
+[229/358] Compiling GRDB SharedValueObservation.swift
+[230/358] Compiling GRDB ValueObservation.swift
+[231/358] Compiling GRDB ValueObservationScheduler.swift
+[232/358] Compiling GRDB resource_bundle_accessor.swift
+[233/358] Compiling MediaEngine MediaThumbnailer.swift
+[234/358] Compiling MediaEngine MediaRegistry.swift
+[235/358] Compiling MediaEngine AudioDeviceCatalog.swift
+[236/358] Compiling MediaEngine StillImageLoader.swift
+[237/358] Compiling MediaEngine AudioCuePlayer.swift
+[238/358] Compiling MediaEngine LoopingVideoSource.swift
+/private/tmp/wf-fixd-orig-p4m8/Sources/MediaEngine/LoopingVideoSource.swift:60:66: warning: type 'Any' does not conform to the 'Sendable' protocol
+ 58 |             kCVPixelBufferIOSurfacePropertiesKey as String: [String: Any](),
+ 59 |         ]
+ 60 |         let out = AVPlayerItemVideoOutput(pixelBufferAttributes: attributes)
+    |                                                                  `- warning: type 'Any' does not conform to the 'Sendable' protocol
+ 61 |         out.suppressesPlayerRendering = true
+ 62 |         item.add(out)
+[239/358] Compiling MediaEngine MediaProbe.swift
+[240/358] Compiling MediaEngine AudioLevelMeter.swift
+[241/358] Emitting module MediaEngine
+[242/358] Compiling MediaEngine VideoPlayerSource.swift
+[243/387] Compiling GRDB DatabaseValueConvertible+RawRepresentable.swift
+[244/387] Compiling GRDB JSONRequiredEncoder.swift
+[245/387] Compiling GRDB Optional.swift
+[246/387] Compiling GRDB StandardLibrary.swift
+[247/387] Compiling GRDB TransactionClock.swift
+[248/387] Compiling GRDB TransactionObserver.swift
+[249/387] Compiling GRDB WALSnapshot.swift
+[250/387] Compiling GRDB WALSnapshotTransaction.swift
+[251/387] Compiling GRDB Database+Dump.swift
+[252/387] Compiling GRDB DatabaseReader+dump.swift
+[253/387] Compiling GRDB DumpFormat.swift
+[254/387] Compiling GRDB DebugDumpFormat.swift
+[255/387] Compiling GRDB JSONDumpFormat.swift
+[256/387] Compiling GRDB LineDumpFormat.swift
+[257/387] Compiling GRDB ListDumpFormat.swift
+[258/387] Compiling GRDB QuoteDumpFormat.swift
+[259/387] Compiling GRDB FTS3.swift
+[260/387] Compiling OutputEngine HardwareTestModels.swift
+[261/387] Compiling OutputEngine HardwareTestRunner.swift
+[262/387] Compiling OutputEngine OutputRenderer.swift
+[263/387] Compiling OutputEngine OutputTarget.swift
+[264/387] Compiling OutputEngine OutputWindow.swift
+[265/387] Compiling OutputEngine HardwareTestBundle.swift
+[266/387] Compiling OutputEngine HardwareTestCapture.swift
+[267/387] Compiling OutputEngine HardwareTestController.swift
+[268/387] Compiling OutputEngine HardwareTestVideoSteps.swift
+[269/387] Compiling OutputEngine HardwareTestZip.swift
+[270/387] Compiling OutputEngine MediaFrames.swift
+[271/387] Compiling GRDB DatabasePublishers.swift
+[272/387] Compiling GRDB DatabaseQueue.swift
+[273/387] Compiling GRDB DatabaseReader.swift
+[274/387] Compiling GRDB DatabaseRegion.swift
+[275/387] Compiling GRDB DatabaseRegionObservation.swift
+[276/387] Compiling GRDB DatabaseSchemaCache.swift
+[277/387] Compiling OutputEngine MetalOutput.swift
+[278/387] Compiling OutputEngine OutputCoordinator.swift
+[279/387] Compiling OutputEngine OutputPlanner.swift
+[280/387] Compiling OutputEngine HardwareTestSteps.swift
+[281/387] Compiling OutputEngine HardwareTestSummary.swift
+[282/387] Compiling OutputEngine HardwareTestSupport.swift
+[283/387] Compiling OutputEngine RunLoopThread.swift
+[284/387] Compiling OutputEngine SDIEnvironment.swift
+[285/387] Compiling OutputEngine SDIOutput.swift
+[286/387] Compiling OutputEngine ConnectorMapPresenter.swift
+[287/387] Compiling OutputEngine DisplayOutput.swift
+[288/387] Compiling OutputEngine FrameStatistics.swift
+[289/387] Compiling OutputEngine DiagnosticBundle.swift
+[290/387] Compiling OutputEngine SDIPresets.swift
+[291/387] Compiling OutputEngine SDIRenderAhead.swift
+[292/387] Compiling OutputEngine ScreensPresentation.swift
+[293/387] Compiling OutputEngine HardwareTestLaunch.swift
+[294/394] Emitting module RenderEngineTests
+[295/394] Compiling RenderEngineTests FourOutputBenchmarkTests.swift
+[296/394] Compiling RenderEngineTests CompositorTests.swift
+[297/394] Compiling RenderEngineTests ImageCacheTests.swift
+[298/394] Compiling RenderEngineTests EngineReviewFixTests.swift
+[299/394] Compiling DomainTests UI002_MediaLayersTests.swift
+[306/395] Compiling CompositionTests ThemeAndLookTests.swift
+[307/395] Compiling CompositionTests ThemeAndLookExtraTests.swift
+[308/405] Compiling StageTests StageParityTests.swift
+[309/405] Compiling StageTests StageLayoutTests.swift
+[310/406] Emitting module StageTests
+[311/419] Compiling MediaRulesTests MediaLayerEdgeTests.swift
+[312/419] Emitting module MediaRulesTests
+[313/419] Compiling MediaRulesTests MediaTransportTests.swift
+[314/419] Compiling Persistence SearchIndex.swift
+[315/420] Compiling DeckLinkSDI DeckLinkMapping.swift
+[316/421] Compiling Persistence StoreError.swift
+[317/421] Compiling DeckLinkSDI DeckLinkOutputPort.swift
+[318/421] Compiling DeckLinkSDI DeckLinkModeMapping.swift
+[319/421] Compiling DeckLinkSDI DeckLinkConnectorLayout.swift
+[320/421] Compiling DeckLinkSDI DeckLinkDevice.swift
+[321/421] Compiling ScriptureEngineTests VersificationTableTests.swift
+[322/422] Compiling DeckLinkSDI DeckLinkEnvironment.swift
+[323/422] Compiling DeckLinkSDI DeckLinkIdentifier.swift
+[324/422] Compiling DeckLinkSDI DeckLinkDeviceReport.swift
+[325/422] Compiling DeckLinkSDI DeckLinkDeviceProvider.swift
+[326/422] Compiling DeckLinkSDI DeckLinkInputPort.swift
+[327/422] Compiling DeckLinkSDI DeckLinkSnapshot.swift
+[328/422] Compiling Persistence ScriptureTables.swift
+[329/422] Compiling Persistence LibraryStore.swift
+[330/422] Compiling Persistence Schema.swift
+[331/422] Compiling Persistence Records.swift
+[332/422] Compiling Persistence LibraryStore+Structure.swift
+[333/422] Compiling Persistence LibraryStore+Overview.swift
+[334/422] Compiling Persistence LibraryStore+Playlists.swift
+[335/422] Emitting module Persistence
+[338/422] Compiling Persistence CueTables.swift
+[339/422] Compiling Persistence LibraryStore+Content.swift
+[340/433] Compiling ScriptureEngineTests USFMImporterTests.swift
+[341/433] Compiling ScriptureEngineTests TranslationFileTests.swift
+[342/433] Compiling ScriptureEngineTests VerseSlidesTests.swift
+[343/433] Compiling ScriptureEngineTests TextSplitterTests.swift
+[344/433] Emitting module ScriptureEngineTests
+[345/433] Compiling ScriptureEngineTests Fixtures.swift
+[346/433] Compiling ScriptureEngineTests ScriptureSearchTests.swift
+[347/433] Compiling ScriptureEngineTests ReferenceTests.swift
+[348/433] Compiling DomainTests UI002_ConnectedNoteTests.swift
+[355/433] Emitting module DomainTests
+[358/433] Emitting module DeckLinkSDI
+[364/436] Emitting module SettingsStoreTests
+[365/441] Compiling SettingsStoreTests UI002_ConnectedNoteStoreTests.swift
+[366/441] Compiling MediaEngineTests VideoPlayerSourceTests.swift
+[367/441] Compiling DomainTests UI002_PlaylistKindsTests.swift
+[368/441] Emitting module OutputEngine
+[369/441] Compiling StageStoreTests StageStoreExtraTests.swift
+[370/441] Emitting module StageStoreTests
+[371/441] Compiling StageStoreTests StageStoreTests.swift
+[372/479] Compiling CueEngineTests MacroTests.swift
+[373/479] Compiling CueEngineTests SlideActionTests.swift
+[374/479] Compiling CueEngineTests ScheduleTests.swift
+[375/479] Compiling CueEngineTests PlaybackMarkerTests.swift
+[376/479] Emitting module ScriptureStore
+[377/479] Compiling ScriptureStore ScriptureStore.swift
+[378/479] Compiling ScriptureStore ScriptureStore+Import.swift
+[379/479] Compiling ScriptureStore ScriptureLibrary.swift
+[380/479] Compiling ScriptureStore ScriptureStore+Read.swift
+[381/479] Compiling ScriptureEngineTests VersificationTests.swift
+[382/509] Compiling SDIEngineTests HW004_KeyingProfileTests.swift
+[383/509] Compiling SDIEngineTests HWTEST_InputTests.swift
+[384/509] Compiling SDIEngineTests HW004_RouteAndProviderTests.swift
+[385/509] Compiling SDIEngineTests HWTEST_PatternTests.swift
+[386/509] Compiling SDIEngineTests SDIOutputSessionTests.swift
+[387/509] Compiling SDIEngineTests HW002_SessionAndClockTests.swift
+[388/509] Compiling SDIEngineTests SDIEngineTests.swift
+[389/509] Emitting module SDIEngineTests
+[390/509] Compiling SDIEngineTests FIXC_S8_CallbackThreadTests.swift
+[391/509] Compiling ScriptureStoreTests MySQLBibleSource.swift
+[392/509] Compiling ScriptureStoreTests TranslationFileSource.swift
+[393/509] Compiling ScriptureStoreTests ToolExporterTests.swift
+[394/509] Compiling ScriptureStoreTests ToolFakes.swift
+[395/509] Compiling ScriptureStoreTests ToolLibraryGuardTests.swift
+[396/509] Compiling ScriptureStoreTests LibraryGuard.swift
+[397/509] Compiling SettingsStoreTests SettingsStoreTests.swift
+[398/509] Compiling SettingsStoreTests SettingsStoreExtraTests.swift
+[399/509] Compiling SettingsStoreTests HW002_ScreenProfileStoreTests.swift
+[400/509] Compiling OutputEngine SignalMapPresenter.swift
+[401/509] Compiling OutputEngine SleepGuard.swift
+[402/509] Compiling OutputEngine WindowOutput.swift
+[403/509] Compiling BibleImportTool MySQLRunner.swift
+[404/509] Compiling BibleImportTool TranslationFileSource.swift
+[405/509] Compiling BibleImportTool TranslationExporter.swift
+[406/510] Compiling CueEngineTests MIDIMessageTests.swift
+[407/510] Emitting module CueEngineTests
+[408/510] Compiling CueEngineTests MIDIBindingTests.swift
+[409/510] Compiling CueEngineTests CUE002a_StoredShapeTests.swift
+[410/510] Compiling CueEngineTests CueActionTests.swift
+[411/510] Compiling CueEngineTests CueExecutorTests.swift
+[412/510] Compiling BibleImportTool main.swift
+[416/513] Compiling BibleImportTool ImportToolCLI.swift
+[417/513] Compiling BibleImportTool LibraryGuard.swift
+[418/513] Compiling BibleImportTool Help.swift
+[419/513] Compiling BibleImportTool Environment.swift
+[420/513] Compiling BibleImportTool Arguments.swift
+[421/513] Emitting module BibleImportTool
+[422/513] Compiling BibleImportTool MySQLBibleSource.swift
+[423/513] Compiling ScriptureStoreTests ImportToolCLI.swift
+[424/513] Compiling ScriptureStoreTests ScriptureLibraryTests.swift
+[425/513] Compiling ScriptureStoreTests ScriptureStorePerformanceTests.swift
+[425/513] Write Objects.LinkFileList
+[427/513] Compiling OperatorCore StageEditing.swift
+[428/513] Compiling OperatorCore StageModel.swift
+[429/513] Compiling OperatorCore ThemeEditing.swift
+[430/513] Compiling MediaEngineTests MediaRegistryAudioTests.swift
+[431/513] Compiling MediaEngineTests TestMedia.swift
+[432/513] Compiling MediaEngineTests MediaProbeTests.swift
+[433/513] Emitting module MediaEngineTests
+[434/513] Compiling MediaEngineTests EngineReviewFixTests.swift
+[435/513] Compiling MediaEngineTests AudioCueTests.swift
+[436/513] Compiling ScriptureStoreTests ScriptureStoreTests.swift
+[437/513] Compiling ScriptureStoreTests StoreFixtures.swift
+[438/513] Compiling ScriptureStoreTests Help.swift
+[439/513] Compiling ScriptureStoreTests TranslationExporter.swift
+[440/513] Compiling ScriptureStoreTests ToolArgumentTests.swift
+[441/513] Compiling ScriptureStoreTests ToolCLITests.swift
+[442/513] Compiling ScriptureStoreTests Arguments.swift
+[443/513] Compiling ScriptureStoreTests Environment.swift
+[444/513] Compiling ScriptureStoreTests MySQLRunner.swift
+[445/513] Compiling OperatorCore PublishedScenes.swift
+[446/513] Compiling OperatorCore QuitPolicy.swift
+[447/513] Compiling OperatorCore RetryingWriteChain.swift
+[448/513] Compiling ScriptureStoreTests ScriptureStoreSearchTests.swift
+[449/513] Compiling OperatorCore SectionOrderEditing.swift
+[450/513] Compiling OperatorCore SettingsModel.swift
+[454/513] Emitting module OperatorCore
+[473/513] Compiling OperatorCore WorkspaceModel+Themes.swift
+[474/513] Compiling PersistenceTests UI002_PlaylistKindStoreTests.swift
+[475/536] Compiling SlideObjectTests SlideObjectExtraTests.swift
+[476/536] Emitting module SlideObjectTests
+[477/536] Compiling SlideObjectTests SlideObjectTests.swift
+[477/536] Linking wf-bible-import
+[478/536] Applying wf-bible-import
+[481/536] Compiling OperatorCore WorkspaceModel+Transport.swift
+[482/536] Compiling OperatorCore WorkspaceModel.swift
+[483/536] Compiling PersistenceTests SongStructureStoreTests.swift
+[484/536] Compiling PersistenceTests SongStructureExtraTests.swift
+[485/536] Compiling PersistenceTests SlideObjectStoreExtraTests.swift
+[486/536] Compiling PersistenceTests SearchBackendTests.swift
+[487/536] Compiling PersistenceTests ScriptureSchemaTests.swift
+[488/536] Compiling PersistenceTests ReflowCarryStoreTests.swift
+[489/536] Compiling PersistenceTests CUE002a_CueSchemaTests.swift
+[490/536] Emitting module PersistenceTests
+[491/536] Compiling PersistenceTests LibraryStoreTests.swift
+[492/568] Compiling OperatorCoreTests FixB_QuitPolicyTests.swift
+[493/568] Compiling OperatorCoreTests FixB_ReflowImpactModelTests.swift
+[494/568] Compiling OperatorCoreTests UI001_BlackoutTests.swift
+[495/568] Compiling OperatorCoreTests SectionOrderTests.swift
+[496/568] Compiling OperatorCoreTests HW002_DeveloperSettingTests.swift
+[497/568] Compiling OperatorCoreTests HW002_ScreenEditingTests.swift
+[498/568] Compiling OperatorCoreTests StagePublishingTests.swift
+[499/568] Compiling OperatorCoreTests ThemeEditingTests.swift
+[500/568] Compiling OperatorCoreTests FixB_DraftSaveTests.swift
+[501/568] Compiling OperatorCoreTests FixB_ImageAvailabilityTests.swift
+[502/570] Compiling OperatorCoreTests FixB_LivePublicationTests.swift
+[503/570] Compiling OperatorCoreTests FixB_LiveThemeTests.swift
+[504/570] Compiling OperatorCoreTests HW004_KeyingCaptionTests.swift
+[505/570] Compiling OperatorCoreTests ImportPlanTests.swift
+[506/570] Compiling OperatorCoreTests SettingsModelTests.swift
+[507/570] Compiling OperatorCoreTests SlideEditorModelTests.swift
+[508/570] Compiling OperatorCoreTests AudioModelTests.swift
+[509/570] Emitting module ScriptureStoreTests
+[510/570] Compiling OperatorCoreTests FixB_TransportTests.swift
+[511/570] Compiling OperatorCoreTests FixB_WriteRetryTests.swift
+[516/573] Emitting module OperatorCoreTests
+macro expansion #expect:1:22: warning: no calls to throwing functions occur within 'try' expression
+`- /private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/FixB_ReflowImpactModelTests.swift:48:99: note: expanded code originates here
+46 |         #expect(impact.first?.becomesEmpty == true)
+47 |         #expect(impact.first?.playlistItemTitles == ["B"])
+48 |         #expect(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty)   // nothing lost: nothing said
+   |         `- note: in expansion of macro 'expect' here
+   +--- macro expansion #expect ----------------------------------------
+   |1 | Testing.__checkValue(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty,expression: .__fromSyntaxNode("try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+   |  |                      `- warning: no calls to throwing functions occur within 'try' expression
+   +--------------------------------------------------------------------
+49 |         // Reading the impact changes nothing.
+50 |         #expect(r.model.groups.map(\.name) == ["Verse 1", "Chorus"])
+macro expansion #expect:1:22: warning: no calls to throwing functions occur within 'try' expression
+`- /private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/FixB_ReflowImpactModelTests.swift:48:99: note: expanded code originates here
+46 |         #expect(impact.first?.becomesEmpty == true)
+47 |         #expect(impact.first?.playlistItemTitles == ["B"])
+48 |         #expect(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty)   // nothing lost: nothing said
+   |         `- note: in expansion of macro 'expect' here
+   +--- macro expansion #expect ----------------------------------------
+   |1 | Testing.__checkValue(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty,expression: .__fromSyntaxNode("try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+   |  |                      `- warning: no calls to throwing functions occur within 'try' expression
+   +--------------------------------------------------------------------
+49 |         // Reading the impact changes nothing.
+50 |         #expect(r.model.groups.map(\.name) == ["Verse 1", "Chorus"])
+macro expansion #expect:1:22: warning: no calls to throwing functions occur within 'try' expression
+`- /private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/FixB_ReflowImpactModelTests.swift:48:99: note: expanded code originates here
+46 |         #expect(impact.first?.becomesEmpty == true)
+47 |         #expect(impact.first?.playlistItemTitles == ["B"])
+48 |         #expect(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty)   // nothing lost: nothing said
+   |         `- note: in expansion of macro 'expect' here
+   +--- macro expansion #expect ----------------------------------------
+   |1 | Testing.__checkValue(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty,expression: .__fromSyntaxNode("try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+   |  |                      `- warning: no calls to throwing functions occur within 'try' expression
+   +--------------------------------------------------------------------
+49 |         // Reading the impact changes nothing.
+50 |         #expect(r.model.groups.map(\.name) == ["Verse 1", "Chorus"])
+macro expansion #expect:1:22: warning: no calls to throwing functions occur within 'try' expression
+`- /private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/FixB_ReflowImpactModelTests.swift:48:99: note: expanded code originates here
+46 |         #expect(impact.first?.becomesEmpty == true)
+47 |         #expect(impact.first?.playlistItemTitles == ["B"])
+48 |         #expect(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty)   // nothing lost: nothing said
+   |         `- note: in expansion of macro 'expect' here
+   +--- macro expansion #expect ----------------------------------------
+   |1 | Testing.__checkValue(try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty,expression: .__fromSyntaxNode("try await r.model.reflowImpact(id: r.b.id, results: results(twoSections)).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+   |  |                      `- warning: no calls to throwing functions occur within 'try' expression
+   +--------------------------------------------------------------------
+49 |         // Reading the impact changes nothing.
+50 |         #expect(r.model.groups.map(\.name) == ["Verse 1", "Chorus"])
+[525/573] Compiling ScriptureStoreTests ToolMySQLSourceTests.swift
+[526/573] Compiling ScriptureStoreTests ToolProcessRunnerTests.swift
+[527/573] Compiling OperatorCoreTests UI001_ShellTests.swift
+[528/573] Compiling OperatorCoreTests UI002_AppearanceTests.swift
+[529/573] Compiling OperatorCoreTests UI002_ChromeTests.swift
+[531/573] Compiling OperatorCoreTests FixB_ClipAvailabilityTests.swift
+/private/tmp/wf-fixd-orig-p4m8/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+/private/tmp/wf-fixd-orig-p4m8/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[544/575] Emitting module OutputEngineTests
+[545/575] Compiling OutputEngineTests UI002_ScreensPresentationTests.swift
+[546/575] Compiling OutputEngineTests UI002_SignalMapTests.swift
+[555/575] Compiling OperatorCoreTests StageEditingTests.swift
+[556/575] Compiling OperatorCoreTests StageFreeSpaceTests.swift
+[557/575] Compiling OperatorCoreTests StageModelTests.swift
+[560/575] Compiling OperatorCoreTests MediaScenesTests.swift
+[565/575] Compiling OperatorCoreTests UI002_PlaylistItemsTests.swift
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:55:9: warning: no 'async' operations occur within 'await' expression
+ 53 |         await build(r, ["A", "H", "B"])
+ 54 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+ 55 |         await r.model.goLive(at: 1)               // last slide of A
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 56 |         await r.model.next()
+ 57 |         #expect(r.model.show.liveSlide?.primary == "b1")
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:65:9: warning: no 'async' operations occur within 'await' expression
+ 63 |         await build(r, ["A", "H", "B"])
+ 64 |         await r.model.openPlaylistItem(r.model.playlistItems[2].id)
+ 65 |         await r.model.goLive(at: 0)
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 66 |         await r.model.previous()
+ 67 |         #expect(r.model.show.liveSlide?.primary == "a2")
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:74:9: warning: no 'async' operations occur within 'await' expression
+ 72 |         await build(r, ["A", "C"])
+ 73 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+ 74 |         await r.model.goLive(at: 1)
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 75 |         await r.model.next()
+ 76 |         #expect(r.model.liveCountdown?.itemID == r.model.playlistItems[1].id)
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:107:9: warning: no 'async' operations occur within 'await' expression
+105 |         await build(r, ["A", "C"])
+106 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+107 |         await r.model.goLive(at: 1)
+    |         `- warning: no 'async' operations occur within 'await' expression
+108 |         await r.model.next()
+109 |         await r.model.next()                                  // nothing after the countdown
+[566/575] Compiling OperatorCoreTests WorkspaceModelExtraTests.swift
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:55:9: warning: no 'async' operations occur within 'await' expression
+ 53 |         await build(r, ["A", "H", "B"])
+ 54 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+ 55 |         await r.model.goLive(at: 1)               // last slide of A
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 56 |         await r.model.next()
+ 57 |         #expect(r.model.show.liveSlide?.primary == "b1")
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:65:9: warning: no 'async' operations occur within 'await' expression
+ 63 |         await build(r, ["A", "H", "B"])
+ 64 |         await r.model.openPlaylistItem(r.model.playlistItems[2].id)
+ 65 |         await r.model.goLive(at: 0)
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 66 |         await r.model.previous()
+ 67 |         #expect(r.model.show.liveSlide?.primary == "a2")
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:74:9: warning: no 'async' operations occur within 'await' expression
+ 72 |         await build(r, ["A", "C"])
+ 73 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+ 74 |         await r.model.goLive(at: 1)
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 75 |         await r.model.next()
+ 76 |         #expect(r.model.liveCountdown?.itemID == r.model.playlistItems[1].id)
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:107:9: warning: no 'async' operations occur within 'await' expression
+105 |         await build(r, ["A", "C"])
+106 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+107 |         await r.model.goLive(at: 1)
+    |         `- warning: no 'async' operations occur within 'await' expression
+108 |         await r.model.next()
+109 |         await r.model.next()                                  // nothing after the countdown
+[567/575] Compiling OperatorCoreTests WorkspaceModelTests.swift
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:55:9: warning: no 'async' operations occur within 'await' expression
+ 53 |         await build(r, ["A", "H", "B"])
+ 54 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+ 55 |         await r.model.goLive(at: 1)               // last slide of A
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 56 |         await r.model.next()
+ 57 |         #expect(r.model.show.liveSlide?.primary == "b1")
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:65:9: warning: no 'async' operations occur within 'await' expression
+ 63 |         await build(r, ["A", "H", "B"])
+ 64 |         await r.model.openPlaylistItem(r.model.playlistItems[2].id)
+ 65 |         await r.model.goLive(at: 0)
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 66 |         await r.model.previous()
+ 67 |         #expect(r.model.show.liveSlide?.primary == "a2")
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:74:9: warning: no 'async' operations occur within 'await' expression
+ 72 |         await build(r, ["A", "C"])
+ 73 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+ 74 |         await r.model.goLive(at: 1)
+    |         `- warning: no 'async' operations occur within 'await' expression
+ 75 |         await r.model.next()
+ 76 |         #expect(r.model.liveCountdown?.itemID == r.model.playlistItems[1].id)
+
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/UI002_PlaylistItemsTests.swift:107:9: warning: no 'async' operations occur within 'await' expression
+105 |         await build(r, ["A", "C"])
+106 |         await r.model.openPlaylistItem(r.model.playlistItems[0].id)
+107 |         await r.model.goLive(at: 1)
+    |         `- warning: no 'async' operations occur within 'await' expression
+108 |         await r.model.next()
+109 |         await r.model.next()                                  // nothing after the countdown
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/ThemeEditingTests.swift:25:31: warning: '#require(_:_:)' is redundant because 'fixed.secondary' never equals 'nil' (from macro 'require')
+ 23 |         #expect(fixed.primary.frame.height == ThemeEditing.minimumFrameSide && fixed.primary.frame.y == 0)
+ 24 |         #expect(fixed.secondary?.style.fontSize == 64)
+ 25 |         let s = try? #require(fixed.secondary)
+    |                               `- warning: '#require(_:_:)' is redundant because 'fixed.secondary' never equals 'nil' (from macro 'require')
+ 26 |         #expect((s?.frame.x ?? -1) >= 0 && (s?.frame.x ?? 2) + (s?.frame.width ?? 2) <= 1)
+ 27 |         #expect((s?.frame.y ?? -1) >= 0 && (s?.frame.y ?? 2) + (s?.frame.height ?? 2) <= 1)
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/ThemeEditingTests.swift:25:31: warning: '#require(_:_:)' is redundant because 'fixed.secondary' never equals 'nil' (from macro 'require')
+ 23 |         #expect(fixed.primary.frame.height == ThemeEditing.minimumFrameSide && fixed.primary.frame.y == 0)
+ 24 |         #expect(fixed.secondary?.style.fontSize == 64)
+ 25 |         let s = try? #require(fixed.secondary)
+    |                               `- warning: '#require(_:_:)' is redundant because 'fixed.secondary' never equals 'nil' (from macro 'require')
+ 26 |         #expect((s?.frame.x ?? -1) >= 0 && (s?.frame.x ?? 2) + (s?.frame.width ?? 2) <= 1)
+ 27 |         #expect((s?.frame.y ?? -1) >= 0 && (s?.frame.y ?? 2) + (s?.frame.height ?? 2) <= 1)
+/private/tmp/wf-fixd-orig-p4m8/Tests/OperatorCoreTests/ThemeEditingTests.swift:25:31: warning: '#require(_:_:)' is redundant because 'fixed.secondary' never equals 'nil' (from macro 'require')
+ 23 |         #expect(fixed.primary.frame.height == ThemeEditing.minimumFrameSide && fixed.primary.frame.y == 0)
+ 24 |         #expect(fixed.secondary?.style.fontSize == 64)
+ 25 |         let s = try? #require(fixed.secondary)
+    |                               `- warning: '#require(_:_:)' is redundant because 'fixed.secondary' never equals 'nil' (from macro 'require')
+ 26 |         #expect((s?.frame.x ?? -1) >= 0 && (s?.frame.x ?? 2) + (s?.frame.width ?? 2) <= 1)
+ 27 |         #expect((s?.frame.y ?? -1) >= 0 && (s?.frame.y ?? 2) + (s?.frame.height ?? 2) <= 1)
+[574/577] Compiling WorshipFlowKitPackageTests runner.swift
+[575/577] Emitting module WorshipFlowKitPackageTests
+[575/577] Write Objects.LinkFileList
+[576/577] Linking WorshipFlowKitPackageTests
+Build complete! (48.77s)
+Test Suite 'Selected tests' started at 2026-11-21 05:16:25.630.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:16:25.632.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:16:25.632.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:16:25.632.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite FIXD_S3_HonestStepTests started.
+◇ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() started.
+✘ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() recorded an issue at FIXD_S3_HonestStepTests.swift:34:9: Expectation failed: (s.outcome → .passed) != .passed
+↳ The unplug was reported by the engine and the app stayed responsive. The replug was not tested.
+✘ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() recorded an issue at FIXD_S3_HonestStepTests.swift:35:9: Expectation failed: (s.outcome.rawValue → "passed") == "partial"
+↳ .passed
+✘ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() recorded an issue at FIXD_S3_HonestStepTests.swift:36:9: Expectation failed: (s.summary.lowercased() → "the unplug was reported by the engine and the app stayed responsive. the replug was not tested.").contains("unplug was measured")
+↳ The unplug was reported by the engine and the app stayed responsive. The replug was not tested.
+✘ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() recorded an issue at FIXD_S3_HonestStepTests.swift:37:9: Expectation failed: (s.summary.lowercased().contains("replug") → true) && (s.summary.contains("Not measured") → false)
+↳ The unplug was reported by the engine and the app stayed responsive. The replug was not tested.
+✘ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() recorded an issue at FIXD_S3_HonestStepTests.swift:38:9: Expectation failed: (s.value("Device back after replug")?.contains("NOT MEASURED") → false) == true
+✘ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() failed after 0.196 seconds with 5 issues.
+◇ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() started.
+✘ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:44:9: Expectation failed: (s.outcome → .passed) != .passed
+↳ The engine reported the unplug, the app stayed responsive, and the output ran again after the replug.
+✘ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:45:9: Expectation failed: (s.outcome.rawValue → "passed") == "partial"
+✘ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() failed after 0.390 seconds with 2 issues.
+◇ Test aFullyMeasuredUnplugStillPasses() started.
+✔ Test aFullyMeasuredUnplugStillPasses() passed after 0.380 seconds.
+◇ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() started.
+✘ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() recorded an issue at FIXD_S3_HonestStepTests.swift:67:9: Expectation failed: (s.outcome != .passed → true) && (s.outcome != .skipped → false)
+↳ .skipped The tester skipped the checks.
+✘ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() recorded an issue at FIXD_S3_HonestStepTests.swift:68:9: Expectation failed: (s.outcome.rawValue → "skipped") == "partial"
+✘ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() recorded an issue at FIXD_S3_HonestStepTests.swift:69:9: Expectation failed: (s.summary → "The tester skipped the checks.").contains("Colour bars")
+↳ The tester skipped the checks.
+✘ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() failed after 0.015 seconds with 3 issues.
+◇ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() started.
+✘ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:83:9: Expectation failed: (s.outcome → .passed) != .passed
+↳ The tester saw what was expected.
+✘ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:84:9: Expectation failed: (s.outcome.rawValue → "passed") == "partial"
+✘ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:85:9: Expectation failed: s.measurements.contains { $0.value.contains("NOT ASKED") }
+✘ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() failed after 0.015 seconds with 3 issues.
+◇ Test fourOutputsWithNoCablesAreNotPassed() started.
+✘ Test fourOutputsWithNoCablesAreNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:94:9: Expectation failed: (s.outcome → .passed) != .passed
+↳ All four connectors ran together for 1 s with no dropped or late frames.
+✘ Test fourOutputsWithNoCablesAreNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:95:9: Expectation failed: (s.outcome.rawValue → "passed") == "partial"
+✘ Test fourOutputsWithNoCablesAreNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:96:9: Expectation failed: (s.summary → "All four connectors ran together for 1 s with no dropped or late frames.").contains("identity not checked")
+↳ All four connectors ran together for 1 s with no dropped or late frames.
+✘ Test fourOutputsWithNoCablesAreNotPassed() recorded an issue at FIXD_S3_HonestStepTests.swift:97:9: Expectation failed: (s.value("Connector 1 result") → nil) == "ran, identity not checked"
+✘ Test fourOutputsWithNoCablesAreNotPassed() failed after 0.401 seconds with 4 issues.
+◇ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() started.
+✘ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() recorded an issue at FIXD_S3_HonestStepTests.swift:119:9: Expectation failed: (first → "REAL DEVICE TESTED: DeckLink Duo 2. The numbers below were measured on this card.").hasPrefix("DEVICE INFORMATION ONLY: no video test was run")
+↳ REAL DEVICE TESTED: DeckLink Duo 2. The numbers below were measured on this card.
+✘ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() recorded an issue at FIXD_S3_HonestStepTests.swift:120:9: Expectation failed: !((loaded.summary → "REAL DEVICE TESTED: DeckLink Duo 2. The numbers below were measured on this card.
+Device tested: DeckLink Duo 2 (real hardware)
+This report describes what was measured on this run. It is not a certification.
+Started 2027-01-15T08:00:00Z UTC, finished 2027-01-15T08:00:00Z UTC. Length chosen: quick.
+Totals: 2 passed, 0 failed, 0 skipped, 0 needs a person
+
+STEPS AND OUTCOMES
+1. Environment                    PASSED
+2. Devices                        PASSED
+
+THE DRIVER AND THE CARD
+  - Blackmagic driver: installed
+  - Driver API version: 16.0
+  - Framework can be loaded (entitlement check): yes (the driver answered)
+  - Key route reported by the device (connectors 1 and 2): none reported
+  - Key route reported by the device (connectors 3 and 4): none reported
+
+DETAILS
+
+1. Environment: PASSED
+  Recorded the machine, the displays and the driver state. No user name, file path under the home folder, or serial number is recorded.
+  Pass criteria: Information only. It passes when the operating system version can be read.
+  - WORSHIPFLOW: 9.9.9 (build 99)
+  - macOS: 27.2 (26C100)
+  - Mac model: Mac16,10
+  - Chip: Apple M4
+  - Memory: 16 GB
+  - Processor cores: 10
+  (7 more measurements are in report.json)
+
+2. Devices: PASSED
+  Found 1 device: DeckLink Duo 2.
+  Pass criteria: At least one connected device is reported. Everything the device says about itself is recorded below.
+  - Devices found: 1
+  - Device 1: DeckLink Duo 2
+  - Device 1 simulated: no
+  - Device 1 connected: yes
+  - Device 1 connectors: 4
+  - Device 1 fill and key: yes
+  (10 more measurements are in report.json)
+
+MACHINE
+  WORSHIPFLOW 9.9.9 (99), macOS 27.2 (26C100), Mac16,10, Apple M4, 16 GB
+").contains("REAL DEVICE TESTED") → true)
+✘ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() recorded an issue at FIXD_S3_HonestStepTests.swift:121:9: Expectation failed: !((loaded.summary → "REAL DEVICE TESTED: DeckLink Duo 2. The numbers below were measured on this card.
+Device tested: DeckLink Duo 2 (real hardware)
+This report describes what was measured on this run. It is not a certification.
+Started 2027-01-15T08:00:00Z UTC, finished 2027-01-15T08:00:00Z UTC. Length chosen: quick.
+Totals: 2 passed, 0 failed, 0 skipped, 0 needs a person
+
+STEPS AND OUTCOMES
+1. Environment                    PASSED
+2. Devices                        PASSED
+
+THE DRIVER AND THE CARD
+  - Blackmagic driver: installed
+  - Driver API version: 16.0
+  - Framework can be loaded (entitlement check): yes (the driver answered)
+  - Key route reported by the device (connectors 1 and 2): none reported
+  - Key route reported by the device (connectors 3 and 4): none reported
+
+DETAILS
+
+1. Environment: PASSED
+  Recorded the machine, the displays and the driver state. No user name, file path under the home folder, or serial number is recorded.
+  Pass criteria: Information only. It passes when the operating system version can be read.
+  - WORSHIPFLOW: 9.9.9 (build 99)
+  - macOS: 27.2 (26C100)
+  - Mac model: Mac16,10
+  - Chip: Apple M4
+  - Memory: 16 GB
+  - Processor cores: 10
+  (7 more measurements are in report.json)
+
+2. Devices: PASSED
+  Found 1 device: DeckLink Duo 2.
+  Pass criteria: At least one connected device is reported. Everything the device says about itself is recorded below.
+  - Devices found: 1
+  - Device 1: DeckLink Duo 2
+  - Device 1 simulated: no
+  - Device 1 connected: yes
+  - Device 1 connectors: 4
+  - Device 1 fill and key: yes
+  (10 more measurements are in report.json)
+
+MACHINE
+  WORSHIPFLOW 9.9.9 (99), macOS 27.2 (26C100), Mac16,10, Apple M4, 16 GB
+").contains("were measured on this card") → true)
+✘ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() failed after 0.018 seconds with 3 issues.
+◇ Test aRunThatSentVideoStillSaysTheDeviceWasTested() started.
+✔ Test aRunThatSentVideoStillSaysTheDeviceWasTested() passed after 0.199 seconds.
+◇ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() started.
+✘ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() recorded an issue at FIXD_S3_HonestStepTests.swift:135:9: Expectation failed: (HardwareTestSummary.render(report).components(separatedBy: "\n")[0] → "REAL DEVICE TESTED: DeckLink Duo 2. The numbers below were measured on this card.").hasPrefix("DEVICE INFORMATION ONLY")
+✘ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() failed after 0.003 seconds with 1 issue.
+✘ Suite FIXD_S3_HonestStepTests failed after 1.622 seconds with 21 issues.
+◇ Suite FIXD_S7_CablingTests started.
+◇ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() started.
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() recorded an issue at FIXD_S7_CablingTests.swift:16:9: Expectation failed: (seen.items → ["connectKeyCables"]).contains("confirmCables")
+↳ ["connectKeyCables"]
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() recorded an issue at FIXD_S7_CablingTests.swift:17:9: Expectation failed: (seen.items.filter { $0 == "confirmCables" }.count → 0) == 1
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() recorded an issue at FIXD_S7_CablingTests.swift:21:9: Expectation failed: s.measurements.contains { $0.name.hasPrefix("First run") }
+↳ // both runs are kept
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() recorded an issue at FIXD_S7_CablingTests.swift:25:9: Expectation failed: (finding → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("with the cables as instructed")
+↳ UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+  Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() recorded an issue at FIXD_S7_CablingTests.swift:26:9: Expectation failed: (finding → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("Two cables swapped would look the same")
+↳ UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+  Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() recorded an issue at FIXD_S7_CablingTests.swift:27:9: Expectation failed: !((finding → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("(measured, with the cables as the guide says)") → true)
+✘ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() failed after 0.498 seconds with 6 issues.
+◇ Test aCorrectResultIsNotRepeatedOrQuestioned() started.
+✔ Test aCorrectResultIsNotRepeatedOrQuestioned() passed after 0.457 seconds.
+◇ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() started.
+✘ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() recorded an issue at FIXD_S7_CablingTests.swift:54:9: Expectation failed: (s.outcome → .failed) == .passed
+↳ Problems with fill and key: fill and key are reversed compared with what the device reports (SDI 2 carried the fill, but the expected fill connector is SDI 1).
+✘ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() recorded an issue at FIXD_S7_CablingTests.swift:55:9: Expectation failed: (s.findings.joined(separator: "\n") → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("most likely a cabling mistake")
+✘ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() recorded an issue at FIXD_S7_CablingTests.swift:56:9: Expectation failed: (s.value("First run: route measured") → nil) != nil
+✘ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() failed after 0.456 seconds with 3 issues.
+◇ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() started.
+✘ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() recorded an issue at FIXD_S7_CablingTests.swift:66:9: Expectation failed: (s.findings.joined(separator: "\n") → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("same answer as the first")
+✘ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() recorded an issue at FIXD_S7_CablingTests.swift:67:9: Expectation failed: (s.findings.joined(separator: "\n") → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("Two cables swapped would look the same")
+✘ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() failed after 0.456 seconds with 2 issues.
+◇ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() started.
+✘ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() recorded an issue at FIXD_S7_CablingTests.swift:75:9: Expectation failed: (s.findings.joined(separator: "\n") → "UNV-03: SDI 1 carries the key and SDI 2 carries the fill (measured, with the cables as the guide says).
+Measured fill on SDI 2, key on SDI 1: the hardware disagrees with the device's report (fill on SDI 1, key on SDI 2); the manual has no table for this model. The app's old assumption (fill on the first connector) is wrong for this device: the planner now follows the route the device reports.").contains("not repeated")
+✘ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() failed after 0.458 seconds with 1 issue.
+✘ Suite FIXD_S7_CablingTests failed after 2.327 seconds with 12 issues.
+✘ Suite HWTEST_Heavy failed after 3.950 seconds with 33 issues.
+↳ /// The suites that run whole simulated tests are heavy (1080p frames), so they run one after another: parallel copies
+↳ /// would starve the wall-clock tests elsewhere in the package.
+✘ Test run with 14 tests in 3 suites failed after 3.950 seconds with 33 issues.

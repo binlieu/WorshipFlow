@@ -116,3 +116,11 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 
 - [ ] Type a word into a slide, wait six seconds, force-quit (Option-Command-Escape). Reopen: the word is there.
 - [ ] Reopen the app: the same playlist item and slide are selected, and nothing is live.
+
+## Hardware Test window and Blackout (FIX-D)
+
+- [ ] Open the Hardware Test window (Help menu) with a show running in the operator window: Space, Return, the arrows and B do nothing to the show while the Hardware Test window is in front.
+- [ ] Start a test, then try to open the screens from the operator window: the app refuses and says the Hardware Test is running.
+- [ ] Quit the app during a test (Force Quit is fine). A folder ending `WORSHIPFLOW-hardware-test-unfinished` is on the Desktop. Open the Hardware Test window again: it offers "Save its report...". Save it, and the folder disappears.
+- [ ] Play a video clip with sound over a live slide, press B: the sound stops with the picture. Press B again: the sound is back at the same level.
+- [ ] In a playlist, click a countdown, then click a slide of the song above it, then Go Live (Return): the slide goes live, not the countdown.

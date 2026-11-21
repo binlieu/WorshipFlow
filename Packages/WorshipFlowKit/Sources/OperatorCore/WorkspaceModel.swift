@@ -34,8 +34,11 @@ public final class WorkspaceModel {
     /// R11: playlist items that would show no slides (their section order has no sections left, or the song has no
     /// slides). Shown as empty in the playlist; Next and Previous stop on them with a message.
     public internal(set) var emptyPlaylistItemIDs: Set<UUID> = []
-    /// Set only while the open presentation was opened from a playlist item.
+    /// The playlist item the operator chose last: a song, or a countdown (whose slides are not on screen). Go Live acts on it.
     public internal(set) var selectedPlaylistItemID: UUID?
+    /// FIX-D S2: the playlist item the open presentation was opened from, whatever is selected now. Nil when it was opened from
+    /// the library. A slide chosen after a countdown belongs to this item, and Next and Previous step from it.
+    @ObservationIgnored public internal(set) var openPlaylistItemID: UUID?
     public internal(set) var openPresentationID: UUID?
     /// The open presentation's slides in play order (the item's arrangement applied).
     public internal(set) var slides: [Slide] = []

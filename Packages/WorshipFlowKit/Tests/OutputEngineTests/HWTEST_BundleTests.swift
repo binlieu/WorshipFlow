@@ -167,7 +167,7 @@ enum HWTestSamples {
     @Test func photosAreCopiedByNameWithoutTheirPath() throws {
         let dir = try scratch(); defer { try? FileManager.default.removeItem(at: dir) }
         let photo = dir.appendingPathComponent("My Holiday.JPG")
-        try Data([1, 2, 3, 4]).write(to: photo)
+        try TestPhoto.write(to: photo)          // FIX-D S5: a photo is decoded and written again, so the fixture must be a picture
         let writer = try HardwareTestBundleWriter(directory: dir.appendingPathComponent("work"))
         let name = try writer.attachPhoto(from: photo)
         #expect(name == "photos/photo-1.jpg")
@@ -176,7 +176,10 @@ enum HWTestSamples {
         try writer.finish(report: HWTestSamples.report(), log: "", zipTo: zip)
         let loaded = try HardwareTestBundle.load(from: zip)
         #expect(loaded.photoNames == ["photos/photo-1.jpg", "photos/photo-2.jpg"])
-        #expect(try HardwareTestZip.read(from: zip).first { $0.name == "photos/photo-1.jpg" }?.data == Data([1, 2, 3, 4]))
+        // FIX-D S5: the bytes are no longer the file's own (they are the picture re-encoded without its metadata)
+        let stored = try #require(try HardwareTestZip.read(from: zip).first { $0.name == "photos/photo-1.jpg" }?.data)
+        #expect(TestPhoto.pixelSize(of: stored)?.0 == 64)
+        #expect(stored != (try Data(contentsOf: photo)))
     }
 
     @Test func aMissingPhotoThrowsAndLeavesNoTrace() throws {

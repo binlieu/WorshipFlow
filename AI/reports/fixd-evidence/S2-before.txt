@@ -1,0 +1,61 @@
+[0/1] Planning build
+Building for debugging...
+[0/6] Write sources
+[1/6] Write swift-version--58304C5D6DBC2206.txt
+[3/6] Compiling OperatorCoreTests FIXD_S2_GoLiveTargetTests.swift
+[4/6] Emitting module OperatorCoreTests
+[4/6] Write Objects.LinkFileList
+[5/6] Linking WorshipFlowKitPackageTests
+Build complete! (5.51s)
+Test Suite 'Selected tests' started at 2026-11-21 05:25:13.146.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:25:13.147.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:25:13.147.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:25:13.147.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite FIXD_S2_GoLiveTargetTests started.
+◇ Test aSongOpenedFromTheLibraryHasNoItemAndASlideChosenAfterACountdownStartsTheSlide() started.
+◇ Test aDoubleClickedSlideIsRecordedAgainstItsOwnItemWhileACountdownIsSelected() started.
+◇ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() started.
+◇ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() started.
+◇ Test theSavedPlaceFollowsTheLastChoice() started.
+◇ Test previousAfterThatStepsBackFromTheSong() started.
+◇ Test aCountdownSelectedAfterALibrarySongThenASlideStillGoesToTheSlide() started.
+◇ Test nextWithNothingLiveAndACountdownSelectedPutsTheSongsSlideLiveAgainstTheSong() started.
+◇ Test aSlideChosenWhileTheCountdownIsLiveStartsThatSlideAndNextStepsFromIt() started.
+◇ Test aCountdownChosenLastStillStartsTheCountdown() started.
+✘ Test theSavedPlaceFollowsTheLastChoice() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:152:9: Expectation failed: (r.model.selectedPlaylistItemID → 078D79B2-8D73-40D2-81A0-723FF4D8F7AE) == (r.itemA → D25AA400-AA58-4CAA-BE3C-570331EC6CFB)
+✘ Test aDoubleClickedSlideIsRecordedAgainstItsOwnItemWhileACountdownIsSelected() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:111:9: Expectation failed: (r.model.show.liveSlide?.primary == "a2" && r.model.liveItemID == r.itemA → false) && (r.model.liveCountdown == nil → <not evaluated>)
+✘ Test nextWithNothingLiveAndACountdownSelectedPutsTheSongsSlideLiveAgainstTheSong() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:122:9: Expectation failed: (r.model.liveItemID → 9B2615D9-A6AD-49AE-96AC-7F931A5FA6C6) == (r.itemA → E0F0D333-3FFF-479F-934A-D7F4DEDB0934)
+✘ Test aDoubleClickedSlideIsRecordedAgainstItsOwnItemWhileACountdownIsSelected() failed after 0.119 seconds with 1 issue.
+✘ Test aCountdownSelectedAfterALibrarySongThenASlideStillGoesToTheSlide() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:144:9: Expectation failed: (r.model.show.liveSlide?.primary == "a1" → false) && (r.model.liveCountdown == nil → <not evaluated>)
+✘ Test aCountdownSelectedAfterALibrarySongThenASlideStillGoesToTheSlide() failed after 0.119 seconds with 1 issue.
+✘ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:44:9: Expectation failed: (r.model.show.liveSlide?.primary → "5:00") == "a2"
+↳ Optional("5:00")
+✘ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:45:9: Expectation failed: (r.model.liveCountdown → LiveCountdown(itemID: 308085DB-989E-4A99-9E5B-7D722C46D51A, run: Domain.CountdownRun(endsAt: 2026-11-21 13:30:13 +0000, total: 300), label: "Starting soon")) == nil
+✘ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:46:9: Expectation failed: (r.model.liveItemID → 308085DB-989E-4A99-9E5B-7D722C46D51A) == (r.itemA → B9209C6C-81EE-4E35-97D8-55BAA3BDEF51)
+✘ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:47:9: Expectation failed: (r.model.selectedPlaylistItemID → 308085DB-989E-4A99-9E5B-7D722C46D51A) == (r.itemA → B9209C6C-81EE-4E35-97D8-55BAA3BDEF51)
+✘ Test aSlideChosenAfterACountdownIsWhatGoLiveStarts() failed after 0.120 seconds with 4 issues.
+✘ Test previousAfterThatStepsBackFromTheSong() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:70:9: Expectation failed: (r.model.show.liveSlide?.primary == "b1" → false) && (r.model.liveItemID == r.itemB → <not evaluated>)
+✔ Test aSongOpenedFromTheLibraryHasNoItemAndASlideChosenAfterACountdownStartsTheSlide() passed after 0.121 seconds.
+✘ Test aSlideChosenWhileTheCountdownIsLiveStartsThatSlideAndNextStepsFromIt() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:101:9: Expectation failed: (r.model.show.liveSlide?.primary == "a2" && r.model.liveCountdown == nil → false) && (r.model.liveItemID == r.itemA → <not evaluated>)
+✘ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:57:9: Expectation failed: (r.model.show.liveSlide?.primary → "b1") == "a2"
+✘ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:59:9: Expectation failed: (r.model.liveCountdown?.itemID → nil) == (r.countdown → 86612A51-4ADF-42E9-B40D-47D8DAF87805)
+✘ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:61:9: Expectation failed: (r.model.show.liveSlide?.primary == "b1" → false) && (r.model.liveItemID == r.itemB → <not evaluated>)
+✘ Test nextAfterThatStepsFromTheSongNotFromTheCountdown() failed after 0.122 seconds with 3 issues.
+✘ Test nextWithNothingLiveAndACountdownSelectedPutsTheSongsSlideLiveAgainstTheSong() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:124:9: Expectation failed: (r.model.liveCountdown?.itemID → nil) == (r.countdown → 9B2615D9-A6AD-49AE-96AC-7F931A5FA6C6)
+✘ Test previousAfterThatStepsBackFromTheSong() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:72:9: Expectation failed: (r.model.liveCountdown?.itemID → nil) == (r.countdown → 6AD55038-C972-441F-B46E-5DC5C89AA0CA)
+✘ Test nextWithNothingLiveAndACountdownSelectedPutsTheSongsSlideLiveAgainstTheSong() failed after 0.122 seconds with 2 issues.
+✘ Test aSlideChosenWhileTheCountdownIsLiveStartsThatSlideAndNextStepsFromIt() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:103:9: Expectation failed: (r.model.liveCountdown?.itemID → nil) == (r.countdown → F7EB3B16-78AA-4874-8727-BC70A1732456)
+✘ Test aSlideChosenWhileTheCountdownIsLiveStartsThatSlideAndNextStepsFromIt() failed after 0.122 seconds with 2 issues.
+✘ Test previousAfterThatStepsBackFromTheSong() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:74:9: Expectation failed: (r.model.show.liveSlide?.primary == "a2" → false) && (r.model.liveItemID == r.itemA → <not evaluated>)
+✘ Test previousAfterThatStepsBackFromTheSong() failed after 0.123 seconds with 3 issues.
+✔ Test aCountdownChosenLastStillStartsTheCountdown() passed after 0.123 seconds.
+✘ Test theSavedPlaceFollowsTheLastChoice() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:156:9: Expectation failed: (again.selectedPlaylistItemID → 078D79B2-8D73-40D2-81A0-723FF4D8F7AE) == (r.itemA → D25AA400-AA58-4CAA-BE3C-570331EC6CFB)
+✘ Test theSavedPlaceFollowsTheLastChoice() recorded an issue at FIXD_S2_GoLiveTargetTests.swift:157:9: Expectation failed: (again.slides.count == 2 → false) && (again.show.selectedIndex == 1 → <not evaluated>)
+✘ Test theSavedPlaceFollowsTheLastChoice() failed after 0.123 seconds with 3 issues.
+✘ Suite FIXD_S2_GoLiveTargetTests failed after 0.123 seconds with 19 issues.
+✘ Test run with 10 tests in 1 suite failed after 0.124 seconds with 19 issues.

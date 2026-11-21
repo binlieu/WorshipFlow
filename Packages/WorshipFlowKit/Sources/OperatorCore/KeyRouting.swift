@@ -88,3 +88,22 @@ public enum KeyRouting {
         return nil
     }
 }
+
+// FIX-D S15: the transport keys (Space, Return, the arrows, B, Escape) drive the show, so they must not be active while the
+// Hardware Test is what the person is looking at: they would move the hidden show and could open screens on the card under
+// test. The decision is pure; the app's key monitor passes the window it was given and the launch mode.
+extension KeyRouting {
+    /// True for the Hardware Test window, by its title or by the identifier SwiftUI gives a window made with `id: "hardware-test"`.
+    public static func isHardwareTestWindow(title: String?, identifier: String?) -> Bool {
+        if let title, title.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare("Hardware Test") == .orderedSame { return true }
+        if let identifier, identifier.lowercased().contains("hardware-test") { return true }
+        return false
+    }
+
+    /// Whether the transport key monitor may act on a key pressed in `window`. Off in the Hardware Test window and, when the app
+    /// was started with `--hardware-test`, everywhere: that session is a test of the card, not a service.
+    public static func transportKeysActive(windowTitle: String?, windowIdentifier: String?, launchedWithHardwareTest: Bool) -> Bool {
+        if launchedWithHardwareTest { return false }
+        return !isHardwareTestWindow(title: windowTitle, identifier: windowIdentifier)
+    }
+}

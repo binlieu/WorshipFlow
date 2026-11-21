@@ -119,7 +119,11 @@ final class AppModel {
     /// The Hardware Test window's controller (HWTEST-001). It refuses to start while the screens are open.
     @ObservationIgnored lazy var hardwareTest = HardwareTestController(
         realProvider: { AppHardwareTest.realProvider() }, environment: AppHardwareTest.environment(),
-        screensOpen: { [unowned self] in self.screensOn || self.soak != nil })
+        screensOpen: { [unowned self] in self.screensOn || self.soak != nil },
+        unfinishedParent: AppHardwareTest.unfinishedParent(),
+        onRunningChange: { [unowned self] running in self.hardwareTestRunning = running })
+    /// FIX-D S15: true while a Hardware Test run is going on. The screens cannot be opened then (the test uses the card).
+    @ObservationIgnored private(set) var hardwareTestRunning = false
 
     private init() {
         sceneBox = SceneBox(PublishedScenes(state: ShowState(), clockText: nil))
@@ -330,7 +334,7 @@ final class AppModel {
     private func showChanged(_ state: ShowState) {
         let wasStopped = show.isStopped
         show = state
-        media?.showStateChanged(isLive: !state.isStopped)     // Stop takes a playing clip off the screens too
+        media?.showStateChanged(isLive: !state.isStopped, isBlackedOut: state.isBlackedOut)     // Stop takes a playing clip off the screens too; Blackout takes its sound off
         audio?.showStateChanged(isLive: !state.isStopped)     // ... and ends the sound cues (Clear and Clear all leave them)
         // R15: typing, moving the selection and loading a deck change preview only; the screens are republished
         // (every scene composed again) only when what they show changed.
@@ -427,6 +431,9 @@ final class AppModel {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             // Only real windows (operator or output window), never menus or panels.
             guard let window = event.window, window.canBecomeMain else { return event }
+            // FIX-D S15: the Hardware Test window, and a session started for a hardware test, never drive the show with keys.
+            guard KeyRouting.transportKeysActive(windowTitle: window.title, windowIdentifier: window.identifier?.rawValue,
+                                                 launchedWithHardwareTest: HardwareTestLaunchMode.opensHardwareTest) else { return event }
             let responder = window.firstResponder
             let textInput = responder is NSText || responder is NSTextField
             let inSearch = textInput && Self.isInsideSearchField(responder)
@@ -893,6 +900,12 @@ final class AppModel {
     // MARK: Screens
 
     func startScreens() {
+        // FIX-D S15: a Hardware Test run is using the card, so no screen is opened until it ends.
+        if let why = HardwareTestGuard.screensRefusal(testIsRunning: hardwareTestRunning) {
+            sdiProfileNotice = why
+            Self.tellOperator("The screens cannot be opened now", why)
+            return
+        }
         let pending = keyingProfileChanges()
         guard pending.isEmpty else {
             guard !changingProfiles else { return }
@@ -943,6 +956,14 @@ final class AppModel {
         changingProfiles = false
         sdiDevicesChanged()
         openScreensNow()      // a screen whose card could not key says so itself; the others open as usual
+    }
+
+    private static func tellOperator(_ title: String, _ text: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = text
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     /// The operator decides: changing a card's profile can interrupt outputs on its other connectors.

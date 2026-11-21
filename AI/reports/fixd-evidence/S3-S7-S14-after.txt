@@ -1,0 +1,99 @@
+[0/1] Planning build
+Building for debugging...
+[0/10] Write sources
+[3/10] Write swift-version--58304C5D6DBC2206.txt
+[4/10] Compiling DeckLinkC DeckLinkBridgeFakes.mm
+[5/10] Compiling DeckLinkC DeckLinkBridge.mm
+[7/21] Emitting module OutputEngine
+[8/21] Compiling OutputEngine OutputCoordinator.swift
+[9/28] Compiling DeckLinkSDI DeckLinkEnvironment.swift
+[10/28] Compiling DeckLinkSDI DeckLinkInputPort.swift
+[11/28] Compiling DeckLinkSDI DeckLinkDeviceReport.swift
+[12/28] Emitting module DeckLinkSDI
+[13/28] Compiling DeckLinkSDI DeckLinkOutputPort.swift
+[14/28] Compiling DeckLinkSDI DeckLinkModeMapping.swift
+[15/28] Compiling DeckLinkSDI DeckLinkConnectorLayout.swift
+[16/28] Compiling DeckLinkSDI DeckLinkDevice.swift
+[17/28] Compiling DeckLinkSDI DeckLinkIdentifier.swift
+[18/28] Compiling DeckLinkSDI DeckLinkDeviceProvider.swift
+[19/28] Compiling DeckLinkSDI DeckLinkMapping.swift
+[20/29] Compiling DeckLinkSDI DeckLinkSnapshot.swift
+[21/29] Compiling OutputEngineTests FIXD_S3_HonestStepTests.swift
+[22/32] Compiling OutputEngineTests OutputCoordinatorTests.swift
+[23/32] Compiling OutputEngineTests EngineReviewFixTests.swift
+[24/32] Compiling OutputEngineTests FIXC_S16_AssignmentChangeTests.swift
+[25/32] Compiling OutputEngineTests FIXD_S7_CablingTests.swift
+[26/32] Compiling OutputEngineTests HW002_CoordinatorSDITests.swift
+[27/32] Emitting module OutputEngineTests
+[28/32] Compiling OutputEngineTests HWTEST_LaunchTests.swift
+[29/32] Compiling OutputEngineTests FIXD_S1_ProfileRestoreTests.swift
+[30/32] Compiling OutputEngineTests HWTEST_RunnerTests.swift
+[30/32] Write Objects.LinkFileList
+[31/32] Linking WorshipFlowKitPackageTests
+Build complete! (9.55s)
+Test Suite 'Selected tests' started at 2026-11-21 05:16:44.590.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:16:44.591.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:16:44.591.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:16:44.591.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite FIXD_S1_ProfileRestoreTests started.
+◇ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() started.
+✔ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() passed after 1.071 seconds.
+◇ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() started.
+✔ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() passed after 0.003 seconds.
+◇ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() started.
+✔ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() passed after 0.825 seconds.
+◇ Test aRestoreThatReturnsButChangesNothingIsNotVerified() started.
+✔ Test aRestoreThatReturnsButChangesNothingIsNotVerified() passed after 0.459 seconds.
+◇ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() started.
+✔ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() passed after 0.463 seconds.
+◇ Test aDeclinedChangeLeavesTheProfileAloneAndSaysNothingAboutRestoring() started.
+✔ Test aDeclinedChangeLeavesTheProfileAloneAndSaysNothingAboutRestoring() passed after 0.002 seconds.
+◇ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() started.
+✔ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() passed after 0.463 seconds.
+◇ Test theLayoutAtTheStartIsInTheReport() started.
+✔ Test theLayoutAtTheStartIsInTheReport() passed after 0.001 seconds.
+◇ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() started.
+✔ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() passed after 1.010 seconds.
+◇ Test thePlannerFollowsTheLayoutAndNeverAFixedNumber() started.
+✔ Test thePlannerFollowsTheLayoutAndNeverAFixedNumber() passed after 0.001 seconds.
+✔ Suite FIXD_S1_ProfileRestoreTests passed after 4.304 seconds.
+◇ Suite FIXD_S3_HonestStepTests started.
+◇ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() started.
+✔ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() passed after 0.188 seconds.
+◇ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() started.
+✔ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() passed after 0.388 seconds.
+◇ Test aFullyMeasuredUnplugStillPasses() started.
+✔ Test aFullyMeasuredUnplugStillPasses() passed after 0.393 seconds.
+◇ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() started.
+✔ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() passed after 0.015 seconds.
+◇ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() started.
+✔ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() passed after 0.014 seconds.
+◇ Test fourOutputsWithNoCablesAreNotPassed() started.
+✔ Test fourOutputsWithNoCablesAreNotPassed() passed after 0.403 seconds.
+◇ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() started.
+✔ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() passed after 0.020 seconds.
+◇ Test aRunThatSentVideoStillSaysTheDeviceWasTested() started.
+✔ Test aRunThatSentVideoStillSaysTheDeviceWasTested() passed after 0.195 seconds.
+◇ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() started.
+✔ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() passed after 0.003 seconds.
+✔ Suite FIXD_S3_HonestStepTests passed after 1.624 seconds.
+◇ Suite FIXD_S7_CablingTests started.
+◇ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() started.
+✔ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() passed after 0.459 seconds.
+◇ Test aCorrectResultIsNotRepeatedOrQuestioned() started.
+✔ Test aCorrectResultIsNotRepeatedOrQuestioned() passed after 0.455 seconds.
+◇ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() started.
+✔ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() passed after 0.458 seconds.
+◇ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() started.
+✔ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() passed after 0.465 seconds.
+◇ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() started.
+✔ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() passed after 0.462 seconds.
+✔ Suite FIXD_S7_CablingTests passed after 2.301 seconds.
+✔ Suite HWTEST_Heavy passed after 8.230 seconds.
+✔ Test run with 24 tests in 4 suites passed after 8.230 seconds.

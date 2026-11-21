@@ -55,8 +55,12 @@ extension WorkspaceModel {
         transportEpoch &+= 1
         selectedPlaylistItemID = item.id
         let text = CountdownText.format(run.remaining(at: countdownClock()))
+        let keptSelection = show.selectedIndex
         apply(.load(ShowDeck(presentationID: item.id, slides: [SlideContent(primary: text)])))
         apply(.trigger(index: 0))
+        // FIX-D S2: the countdown is live, but the preview goes back to the open presentation with the operator's own selection,
+        // so a slide chosen next is a slide of that presentation and Go Live starts it.
+        apply(.restore(deck: previewDeck(), selectedIndex: keptSelection))
         liveItemID = item.id
         liveSlideIDs = []
         liveSlideNotes = [""]

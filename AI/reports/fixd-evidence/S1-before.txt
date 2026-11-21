@@ -1,0 +1,140 @@
+[0/1] Planning build
+Building for debugging...
+[0/6] Write sources
+[1/6] Write swift-version--58304C5D6DBC2206.txt
+[3/24] Compiling OutputEngineTests EngineReviewFixTests.swift
+[4/24] Compiling OutputEngineTests FIXC_S9_RenderAheadTests.swift
+[5/24] Compiling OutputEngineTests FIXD_S1_ProfileRestoreTests.swift
+[6/24] Compiling OutputEngineTests HW002_SDIBenchmarkTests.swift
+[7/24] Compiling OutputEngineTests HW002_SDIOutputTests.swift
+[8/24] Compiling OutputEngineTests UI002_DiagnosticBundleTests.swift
+[9/24] Compiling OutputEngineTests UI002_SDIPresetTests.swift
+[10/24] Compiling OutputEngineTests HW002_CoordinatorSDITests.swift
+[11/24] Compiling OutputEngineTests HW002_OutputPlannerTests.swift
+[12/24] Compiling OutputEngineTests HWTEST_RunnerTests.swift
+[13/24] Compiling OutputEngineTests MediaFramesTests.swift
+[14/24] Compiling OutputEngineTests HWTEST_BundleTests.swift
+/Volumes/Storage/chilt/worshipflow/Packages/WorshipFlowKit/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/Volumes/Storage/chilt/worshipflow/Packages/WorshipFlowKit/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[15/24] Compiling OutputEngineTests HWTEST_LaunchTests.swift
+/Volumes/Storage/chilt/worshipflow/Packages/WorshipFlowKit/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/Volumes/Storage/chilt/worshipflow/Packages/WorshipFlowKit/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[16/24] Compiling OutputEngineTests HW004_KitTests.swift
+[17/24] Compiling OutputEngineTests HW004_PlannerAndHandleTests.swift
+[18/24] Compiling OutputEngineTests OutputCoordinatorTests.swift
+[19/24] Compiling OutputEngineTests SleepGuardTests.swift
+[20/24] Emitting module OutputEngineTests
+[21/24] Compiling OutputEngineTests FrameStatisticsTests.swift
+[22/24] Compiling OutputEngineTests HW002_ConnectorMapTests.swift
+[23/26] Compiling OutputEngineTests UI002_ScreensPresentationTests.swift
+[24/26] Compiling OutputEngineTests UI002_SignalMapTests.swift
+[24/26] Write Objects.LinkFileList
+[25/26] Linking WorshipFlowKitPackageTests
+Build complete! (9.80s)
+Test Suite 'Selected tests' started at 2026-11-21 05:04:21.413.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:04:21.414.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:04:21.414.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:04:21.414.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite FIXD_S1_ProfileRestoreTests started.
+◇ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() started.
+✘ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:28:9: Expectation failed: (card.profile(ofPair: 0) == .halfDuplex → false) && (card.profile(ofPair: 1) == .halfDuplex → <not evaluated>)
+✘ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:29:9: Expectation failed: (report.profileRestore?.state → nil) == .restoredAndVerified
+↳ nil
+✘ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:30:9: Expectation failed: (report.profileAtStart?.contains("connectors 1 and 2: half duplex") → nil) == true
+✘ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:34:13: Expectation failed: (s.outcome → .failed) == .passed
+↳ .modeSweep: Asked the device about 10 modes without running video. It says 1080p59.94 is not supported for output.
+✘ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:34:13: Expectation failed: (s.outcome → .failed) == .passed
+↳ .unplugReplug: The output could not be started before the unplug: The SDI card does not support the video mode 1080p59.94.
+✘ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() failed after 0.676 seconds with 5 issues.
+◇ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() started.
+✘ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:46:9: Expectation failed: (key.outcome != .failed → false) && (key.outcome != .passed → <not evaluated>)
+↳ SDI 4 could not be opened for input: SDI connector 4 is not available. It does not exist or is already in use.
+✘ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:47:9: Expectation failed: (key.summary → "SDI 4 could not be opened for input: SDI connector 4 is not available. It does not exist or is already in use.").contains("can receive")
+↳ SDI 4 could not be opened for input: SDI connector 4 is not available. It does not exist or is already in use.
+✘ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:48:9: Expectation failed: (card.profile(ofPair: 0) == .halfDuplex → false) && (card.profile(ofPair: 1) == .halfDuplex → <not evaluated>)
+✘ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:49:9: Expectation failed: (report.profileRestore?.state → nil) == .restoredAndVerified
+✘ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:50:9: Expectation failed: (report.step(.modeSweep).outcome → .failed) == .passed
+↳ Asked the device about 10 modes without running video. It says 1080p59.94 is not supported for output.
+✘ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() failed after 0.033 seconds with 5 issues.
+◇ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() started.
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:58:9: Expectation failed: (report.profileRestore?.state → nil) == .failed
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:60:9: Expectation failed: (headline.contains("NOT RESTORED") → false) && (headline.contains("keying profile") → <not evaluated>)
+↳ SIMULATED RUN: no real card was used, so none of these numbers say anything about real hardware.
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:63:9: Expectation failed: (sweep.outcome → .failed) == .passed
+↳ Asked the device about 10 modes without running video. It says 1080p59.94 is not supported for output.
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:64:9: Expectation failed: (sweep.profileNote?.contains("keying profile") → nil) == true
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:65:9: Expectation failed: (report.step(.unplugReplug).outcome → .failed) == .passed
+↳ The output could not be started before the unplug: The SDI card does not support the video mode 1080p59.94.
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:66:9: Expectation failed: (report.step(.unplugReplug).profileNote?.contains("keying profile") → nil) == true
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:69:9: Expectation failed: (four.outcome == .skipped → false) && (four.summary.contains("only") → <not evaluated>)
+↳ SDI 1 could not be started with the others: The SDI card does not support the video mode 1080p59.94.
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:70:9: Expectation failed: (four.profileNote?.contains("keying profile") → nil) == true
+✘ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() failed after 0.461 seconds with 8 issues.
+◇ Test aRestoreThatReturnsButChangesNothingIsNotVerified() started.
+✘ Test aRestoreThatReturnsButChangesNothingIsNotVerified() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:78:9: Expectation failed: (report.profileRestore?.state → nil) == .notVerified
+↳ nil
+✘ Test aRestoreThatReturnsButChangesNothingIsNotVerified() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:79:9: Expectation failed: (HardwareTestSummary.render(report).components(separatedBy: "\n")[0] → "SIMULATED RUN: no real card was used, so none of these numbers say anything about real hardware.").contains("NOT RESTORED")
+✘ Test aRestoreThatReturnsButChangesNothingIsNotVerified() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:80:9: Expectation failed: (report.step(.modeSweep).profileNote?.contains("keying profile") → nil) == true
+✘ Test aRestoreThatReturnsButChangesNothingIsNotVerified() failed after 0.458 seconds with 3 issues.
+◇ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() started.
+✘ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:92:9: Expectation failed: (report.profileRestore?.state → nil) == .notVerified
+✘ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:93:9: Expectation failed: (report.step(.modeSweep).profileNote → nil) != nil
+✘ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() failed after 0.457 seconds with 2 issues.
+◇ Test aDeclinedChangeLeavesTheProfileAloneAndSaysNothingAboutRestoring() started.
+✔ Test aDeclinedChangeLeavesTheProfileAloneAndSaysNothingAboutRestoring() passed after 0.002 seconds.
+◇ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() started.
+✘ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:109:9: Expectation failed: (report.profileAtStart?.contains("connectors 1 and 2: one sub-device, full duplex") → nil) == true
+✘ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() failed after 0.505 seconds with 1 issue.
+◇ Test theLayoutAtTheStartIsInTheReport() started.
+✘ Test theLayoutAtTheStartIsInTheReport() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:116:9: Expectation failed: (report.profileAtStart?.contains("connectors 3 and 4: half duplex") → nil) == true
+✘ Test theLayoutAtTheStartIsInTheReport() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:117:9: Expectation failed: (report.profileAtStart?.contains("SDI 1: out/in") → nil) == true
+↳ nil
+✘ Test theLayoutAtTheStartIsInTheReport() failed after 0.001 seconds with 2 issues.
+◇ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() started.
+✘ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:125:9: Expectation failed: (out.outcome → .failed) == .passed
+↳ The output could not be started on SDI 1: The SDI card does not support the video mode 1080p59.94.
+✘ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:126:9: Expectation failed: (out.value("Connector") → "SDI 1") == "SDI 2"
+✘ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:128:9: Expectation failed: (sweep.outcome → .failed) == .passed
+↳ Asked the device about 10 modes without running video. It says 1080p59.94 is not supported for output.
+✘ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() recorded an issue at FIXD_S1_ProfileRestoreTests.swift:130:9: Expectation failed: (loop.value("Output") → nil) == "SDI 2"
+↳ The output run could not start the output, so there is nothing to loop back.
+✘ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() failed after 0.004 seconds with 4 issues.
+◇ Test thePlannerFollowsTheLayoutAndNeverAFixedNumber() started.
+✔ Test thePlannerFollowsTheLayoutAndNeverAFixedNumber() passed after 0.001 seconds.
+✘ Suite FIXD_S1_ProfileRestoreTests failed after 2.601 seconds with 30 issues.
+✘ Suite HWTEST_Heavy failed after 2.601 seconds with 30 issues.
+↳ /// The suites that run whole simulated tests are heavy (1080p frames), so they run one after another: parallel copies
+↳ /// would starve the wall-clock tests elsewhere in the package.
+✘ Test run with 10 tests in 2 suites failed after 2.601 seconds with 30 issues.

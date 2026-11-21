@@ -1,0 +1,414 @@
+[0/1] Planning build
+Building for debugging...
+[0/7] Write sources
+[2/7] Write swift-version--58304C5D6DBC2206.txt
+[4/8] Emitting module OutputEngine
+[5/8] Compiling OutputEngine HardwareTestRunner.swift
+[6/8] Compiling OutputEngine HardwareTestBundle.swift
+[7/13] Compiling OutputEngine HardwareTestSteps.swift
+[8/13] Compiling OutputEngine HardwareTestLaunch.swift
+[9/13] Compiling OutputEngine DiagnosticBundle.swift
+[10/13] Compiling OutputEngine HardwareTestController.swift
+[11/13] Compiling OutputEngine HardwareTestVideoSteps.swift
+[12/40] Compiling OutputEngineTests FIXD_S7_CablingTests.swift
+[13/40] Compiling OutputEngineTests FrameStatisticsTests.swift
+[14/40] Compiling OutputEngineTests HW002_ConnectorMapTests.swift
+[15/42] Compiling OutputEngineTests EngineReviewFixTests.swift
+[16/42] Compiling OutputEngineTests FIXC_S11_PrerollTests.swift
+[17/42] Compiling OutputEngineTests FIXC_S16_AssignmentChangeTests.swift
+[18/42] Compiling OutputEngineTests FIXD_S4_IdentityTests.swift
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/FIXD_S5_NamesTests.swift:33:22: warning: no calls to throwing functions occur within 'try' expression
+31 |         let zip = dir.appendingPathComponent("o.zip")
+32 |         try writer.finish(report: report, log: "owner Jane Q. Pastor on stjohns-mac-mini\n", zipTo: zip)
+33 |         for entry in try (try HardwareTestZip.read(from: zip)) {
+   |                      `- warning: no calls to throwing functions occur within 'try' expression
+34 |             let text = String(decoding: entry.data, as: UTF8.self)
+35 |             for leak in ["Pastor Dave", "Jane Q", "stjohns"] { #expect(!text.contains(leak), "\(leak) in \(entry.name)") }
+[19/42] Compiling OutputEngineTests FIXD_S5_NamesTests.swift
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/FIXD_S5_NamesTests.swift:33:22: warning: no calls to throwing functions occur within 'try' expression
+31 |         let zip = dir.appendingPathComponent("o.zip")
+32 |         try writer.finish(report: report, log: "owner Jane Q. Pastor on stjohns-mac-mini\n", zipTo: zip)
+33 |         for entry in try (try HardwareTestZip.read(from: zip)) {
+   |                      `- warning: no calls to throwing functions occur within 'try' expression
+34 |             let text = String(decoding: entry.data, as: UTF8.self)
+35 |             for leak in ["Pastor Dave", "Jane Q", "stjohns"] { #expect(!text.contains(leak), "\(leak) in \(entry.name)") }
+[20/42] Compiling OutputEngineTests FIXD_S5_PrivacyTests.swift
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/FIXD_S5_NamesTests.swift:33:22: warning: no calls to throwing functions occur within 'try' expression
+31 |         let zip = dir.appendingPathComponent("o.zip")
+32 |         try writer.finish(report: report, log: "owner Jane Q. Pastor on stjohns-mac-mini\n", zipTo: zip)
+33 |         for entry in try (try HardwareTestZip.read(from: zip)) {
+   |                      `- warning: no calls to throwing functions occur within 'try' expression
+34 |             let text = String(decoding: entry.data, as: UTF8.self)
+35 |             for leak in ["Pastor Dave", "Jane Q", "stjohns"] { #expect(!text.contains(leak), "\(leak) in \(entry.name)") }
+[21/42] Compiling OutputEngineTests MediaFramesTests.swift
+[22/42] Compiling OutputEngineTests OutputCoordinatorTests.swift
+[23/42] Compiling OutputEngineTests SleepGuardTests.swift
+[24/42] Compiling OutputEngineTests UI002_ScreensPresentationTests.swift
+[25/42] Compiling OutputEngineTests UI002_SignalMapTests.swift
+[26/42] Compiling OutputEngineTests FIXC_S9_RenderAheadTests.swift
+[27/42] Compiling OutputEngineTests FIXD_S1_ProfileRestoreTests.swift
+[28/42] Compiling OutputEngineTests FIXD_S3_HonestStepTests.swift
+[29/42] Emitting module OutputEngineTests
+[30/42] Compiling OutputEngineTests HW002_CoordinatorSDITests.swift
+[31/42] Compiling OutputEngineTests HW002_OutputPlannerTests.swift
+[32/42] Compiling OutputEngineTests HW002_SDIBenchmarkTests.swift
+[33/42] Compiling OutputEngineTests HW002_SDIOutputTests.swift
+[34/42] Compiling OutputEngineTests HW004_KitTests.swift
+[35/42] Compiling OutputEngineTests HW004_PlannerAndHandleTests.swift
+[36/42] Compiling OutputEngineTests UI002_DiagnosticBundleTests.swift
+[37/42] Compiling OutputEngineTests UI002_SDIPresetTests.swift
+[38/42] Compiling OutputEngineTests HWTEST_BundleTests.swift
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[39/42] Compiling OutputEngineTests HWTEST_LaunchTests.swift
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[40/42] Compiling OutputEngineTests HWTEST_RunnerTests.swift
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/HWTEST_BundleTests.swift:70:35: warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 68 |         #expect(head.contains("real hardware"))
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+    |                                   `- warning: '#require(_:_:)' is redundant because 'text.range(of: "1. Environment")' never equals 'nil' (from macro 'require')
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+
+/private/tmp/wf-fixd-k7q2x9/Tests/OutputEngineTests/HWTEST_BundleTests.swift:71:37: warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 69 |         #expect(head.contains("This report describes what was measured on this run. It is not a certification."))
+ 70 |         let table = try? #require(text.range(of: "1. Environment"))
+ 71 |         let details = try? #require(text.range(of: "DETAILS"))
+    |                                     `- warning: '#require(_:_:)' is redundant because 'text.range(of: "DETAILS")' never equals 'nil' (from macro 'require')
+ 72 |         #expect(table != nil && details != nil && table!.lowerBound < details!.lowerBound)
+ 73 |         for word in ["PASSED", "FAILED", "SKIPPED", "NEEDS A PERSON"] { #expect(text.contains(word)) }
+[40/42] Write Objects.LinkFileList
+[41/42] Linking WorshipFlowKitPackageTests
+Build complete! (12.49s)
+Test Suite 'Selected tests' started at 2026-11-21 05:20:15.465.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:20:15.466.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:20:15.466.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:20:15.466.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite HWTEST_BundleTests started.
+◇ Suite HWTEST_InputTests started.
+◇ Suite HWTEST_PatternTests started.
+◇ Suite FIXD_S1_ProfileRestoreTests started.
+◇ Test aZipIsReadableByUnzipAndByOurReader() started.
+◇ Test photosAreCopiedByNameWithoutTheirPath() started.
+◇ Test aNewerSchemaVersionStillDecodesAndKeepsItsNumber() started.
+◇ Test aSimulatedReportSaysSoOnItsFirstLine() started.
+◇ Test theFileNameCarriesTheDateAndSaysSimulated() started.
+◇ Test aCorruptedZipIsRejected() started.
+◇ Test theBundleNeverContainsTheUserNameOrHomePath() started.
+◇ Test theRedactorLeavesOrdinaryTextAlone() started.
+◇ Test aBriefSummaryTrimsPassedStepsAndAFullOneKeepsEverything() started.
+◇ Test aConnectedInputReceivesWhatTheOutputShowsOneFrameLater() started.
+◇ Test aMissingPhotoThrowsAndLeavesNoTrace() started.
+◇ Test aKeyedPairReachesTwoInputsFillAndKey() started.
+◇ Test unpluggingFailsTheInputAndClearsItsSignal() started.
+◇ Test aFixedModeThatDoesNotMatchTheSourceSeesNoSignal() started.
+◇ Test anUnfinishedReportIsMarkedIncomplete() started.
+◇ Test theTotalsAreCounted() started.
+◇ Test disablingStopsDelivery() started.
+◇ Test aReportRoundTripsThroughJSON() started.
+◇ Test theWriterWritesIncrementallyAndTheBundleRoundTrips() started.
+◇ Test droppingEveryNthFrameLeavesGaps() started.
+◇ Test theSummaryStartsWithTheStatementThenTheTable() started.
+◇ Test swappingFillAndKeyIsInjectable() started.
+◇ Test disconnectingTheCableRemovesTheSignal() started.
+◇ Test aDeviceWithoutAnInputSideStillCompilesAndRefusesInputs() started.
+◇ Test theSignalIsLostWhenTheOutputStops() started.
+◇ Test theCounterSurvivesYUVConversion() started.
+◇ Test enablingAnUnknownModeThrows() started.
+◇ Test anOutputAndAnInputCannotShareAConnector() started.
+◇ Test framesWithoutACounterDecodeToNil() started.
+◇ Test shiftingByOnePixelMovesTheImageRight() started.
+◇ Test theAlphaWindowHasAnOpaqueBoxAHalfBoxAndATransparentSurround() started.
+◇ Test alphaIsIgnoredUnlessAsked() started.
+◇ Test anUnconnectedInputReportsNoSignal() started.
+◇ Test aWrongModeIsReportedInAutoDetectAndRefusedWhenFixed() started.
+◇ Test openingAnInputChecksTheConnector() started.
+◇ Test aCounterSourceMakesTheSameFramesAsTheGenerators() started.
+◇ Test colourBarsAreOpaqueEightBarsAndRepeatable() started.
+◇ Test differentSizesAreReportedNotCompared() started.
+◇ Test theGridIsOnePixelWide() started.
+◇ Test theCounterSurvivesLevelShiftsNoiseAndAShift() started.
+◇ Test identicalFramesCompareEqual() started.
+◇ Test aSmallDifferenceIsMeasuredAndLocated() started.
+◇ Test theAlphaRampRisesFromZeroTo255() started.
+◇ Test theCounterRidesOnColourBarsAtFullSize() started.
+◇ Test theFrameIndexRoundTrips() started.
+◇ Test aDamagedCellFailsTheCheck() started.
+◇ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() started.
+✔ Test aSimulatedReportSaysSoOnItsFirstLine() passed after 0.004 seconds.
+✔ Test theFileNameCarriesTheDateAndSaysSimulated() passed after 0.004 seconds.
+✔ Test aNewerSchemaVersionStillDecodesAndKeepsItsNumber() passed after 0.007 seconds.
+✔ Test aBriefSummaryTrimsPassedStepsAndAFullOneKeepsEverything() passed after 0.006 seconds.
+✔ Test aFixedModeThatDoesNotMatchTheSourceSeesNoSignal() passed after 0.007 seconds.
+✔ Test aKeyedPairReachesTwoInputsFillAndKey() passed after 0.007 seconds.
+✔ Test aConnectedInputReceivesWhatTheOutputShowsOneFrameLater() passed after 0.007 seconds.
+✔ Test theTotalsAreCounted() passed after 0.007 seconds.
+✔ Test unpluggingFailsTheInputAndClearsItsSignal() passed after 0.007 seconds.
+✔ Test anUnfinishedReportIsMarkedIncomplete() passed after 0.007 seconds.
+✔ Test disablingStopsDelivery() passed after 0.008 seconds.
+✔ Test droppingEveryNthFrameLeavesGaps() passed after 0.008 seconds.
+✔ Test aReportRoundTripsThroughJSON() passed after 0.008 seconds.
+✔ Test swappingFillAndKeyIsInjectable() passed after 0.008 seconds.
+✔ Test disconnectingTheCableRemovesTheSignal() passed after 0.008 seconds.
+✔ Test aDeviceWithoutAnInputSideStillCompilesAndRefusesInputs() passed after 0.008 seconds.
+✔ Test theSummaryStartsWithTheStatementThenTheTable() passed after 0.008 seconds.
+✔ Test enablingAnUnknownModeThrows() passed after 0.008 seconds.
+✔ Test anOutputAndAnInputCannotShareAConnector() passed after 0.008 seconds.
+✔ Test theSignalIsLostWhenTheOutputStops() passed after 0.008 seconds.
+✔ Test shiftingByOnePixelMovesTheImageRight() passed after 0.008 seconds.
+✔ Test theAlphaWindowHasAnOpaqueBoxAHalfBoxAndATransparentSurround() passed after 0.008 seconds.
+✔ Test alphaIsIgnoredUnlessAsked() passed after 0.008 seconds.
+✔ Test anUnconnectedInputReportsNoSignal() passed after 0.008 seconds.
+✔ Test aWrongModeIsReportedInAutoDetectAndRefusedWhenFixed() passed after 0.008 seconds.
+✔ Test openingAnInputChecksTheConnector() passed after 0.008 seconds.
+✔ Test framesWithoutACounterDecodeToNil() passed after 0.008 seconds.
+✔ Test aCorruptedZipIsRejected() passed after 0.008 seconds.
+✔ Test differentSizesAreReportedNotCompared() passed after 0.008 seconds.
+✔ Test theRedactorLeavesOrdinaryTextAlone() passed after 0.008 seconds.
+✔ Test theGridIsOnePixelWide() passed after 0.008 seconds.
+✔ Test aSmallDifferenceIsMeasuredAndLocated() passed after 0.007 seconds.
+✔ Test identicalFramesCompareEqual() passed after 0.007 seconds.
+✔ Test aCounterSourceMakesTheSameFramesAsTheGenerators() passed after 0.008 seconds.
+✔ Test colourBarsAreOpaqueEightBarsAndRepeatable() passed after 0.008 seconds.
+✔ Test theAlphaRampRisesFromZeroTo255() passed after 0.007 seconds.
+✔ Test aDamagedCellFailsTheCheck() passed after 0.007 seconds.
+✔ Test aMissingPhotoThrowsAndLeavesNoTrace() passed after 0.009 seconds.
+✔ Test theBundleNeverContainsTheUserNameOrHomePath() passed after 0.009 seconds.
+✔ Suite HWTEST_InputTests passed after 0.009 seconds.
+✔ Test theFrameIndexRoundTrips() passed after 0.009 seconds.
+✔ Test theWriterWritesIncrementallyAndTheBundleRoundTrips() passed after 0.010 seconds.
+✔ Test theCounterRidesOnColourBarsAtFullSize() passed after 0.013 seconds.
+✔ Test photosAreCopiedByNameWithoutTheirPath() passed after 0.018 seconds.
+✔ Test theCounterSurvivesYUVConversion() passed after 0.171 seconds.
+✔ Test theCounterSurvivesLevelShiftsNoiseAndAShift() passed after 0.374 seconds.
+✔ Suite HWTEST_PatternTests passed after 0.376 seconds.
+✔ Test theProfileIsRestoredAfterFillAndKeyAndTheLaterStepsRunInTheOriginalLayout() passed after 1.017 seconds.
+◇ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() started.
+✔ Test whenAProfileChangeMovesBothPairsTheKeyedLoopbackIsNotWiredAndNothingIsReportedFalsely() passed after 0.003 seconds.
+◇ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() started.
+✔ Test aZipIsReadableByUnzipAndByOurReader() passed after 1.617 seconds.
+✔ Suite HWTEST_BundleTests passed after 1.617 seconds.
+✔ Test aProfileThatCouldNotBeRestoredIsSaidInTheHeadlineAndTheLaterStepsAreLabelled() passed after 0.838 seconds.
+◇ Test aRestoreThatReturnsButChangesNothingIsNotVerified() started.
+✔ Test aRestoreThatReturnsButChangesNothingIsNotVerified() passed after 0.461 seconds.
+◇ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() started.
+✔ Test aCardThatCannotRestoreItsProfileIsReportedAsNotVerified() passed after 0.463 seconds.
+◇ Test aDeclinedChangeLeavesTheProfileAloneAndSaysNothingAboutRestoring() started.
+✔ Test aDeclinedChangeLeavesTheProfileAloneAndSaysNothingAboutRestoring() passed after 0.003 seconds.
+◇ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() started.
+✔ Test theCardNeverNeedingAChangeLeavesNoRestoreRecord() passed after 0.460 seconds.
+◇ Test theLayoutAtTheStartIsInTheReport() started.
+✔ Test theLayoutAtTheStartIsInTheReport() passed after 0.001 seconds.
+◇ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() started.
+✔ Test aCardThatStartsInTheKeyingProfileHasItsOutputOnTheConnectorThatCanSendIt() passed after 1.052 seconds.
+◇ Test thePlannerFollowsTheLayoutAndNeverAFixedNumber() started.
+✔ Test thePlannerFollowsTheLayoutAndNeverAFixedNumber() passed after 0.001 seconds.
+✔ Suite FIXD_S1_ProfileRestoreTests passed after 4.307 seconds.
+◇ Suite FIXD_S3_HonestStepTests started.
+◇ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() started.
+✔ Test skippingTheReplugIsNotPassedAndSaysWhatWasMeasured() passed after 0.194 seconds.
+◇ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() started.
+✔ Test aResponseTimeThatCouldNotBeMeasuredIsNotPassed() passed after 0.392 seconds.
+◇ Test aFullyMeasuredUnplugStillPasses() started.
+✔ Test aFullyMeasuredUnplugStillPasses() passed after 0.388 seconds.
+◇ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() started.
+✔ Test oneQuestionAnsweredYesAndOneSkippedIsPartAndNotSkipped() passed after 0.014 seconds.
+◇ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() started.
+✔ Test aKeyedQuestionThatCouldNotBeAskedIsNotPassed() passed after 0.014 seconds.
+◇ Test fourOutputsWithNoCablesAreNotPassed() started.
+✔ Test fourOutputsWithNoCablesAreNotPassed() passed after 0.391 seconds.
+◇ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() started.
+✔ Test aDiagnosticExportWithNoVideoStepSaysDeviceInformationOnly() passed after 0.014 seconds.
+◇ Test aRunThatSentVideoStillSaysTheDeviceWasTested() started.
+✔ Test aRunThatSentVideoStillSaysTheDeviceWasTested() passed after 0.186 seconds.
+◇ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() started.
+✔ Test aRunWhoseVideoStepsAllSkippedSaysDeviceInformationOnly() passed after 0.003 seconds.
+✔ Suite FIXD_S3_HonestStepTests passed after 1.600 seconds.
+◇ Suite FIXD_S4_IdentityTests started.
+◇ Test aCleanCardHasEveryConnectorsOwnPictureSeenAndPasses() started.
+✔ Test aCleanCardHasEveryConnectorsOwnPictureSeenAndPasses() passed after 1.933 seconds.
+◇ Test twoConnectorsWiredTheWrongWayRoundInsideTheCardAreCaught() started.
+✔ Test twoConnectorsWiredTheWrongWayRoundInsideTheCardAreCaught() passed after 1.919 seconds.
+◇ Test twoConnectorsSwappedAcrossTheHalvesAreNeverCountedAsPassed() started.
+✔ Test twoConnectorsSwappedAcrossTheHalvesAreNeverCountedAsPassed() passed after 3.687 seconds.
+◇ Test skippingTheSecondSetOfCablesLeavesTwoConnectorsUnchecked() started.
+✔ Test skippingTheSecondSetOfCablesLeavesTwoConnectorsUnchecked() passed after 1.170 seconds.
+◇ Test skippingEveryCableMeansNoConnectorIsCountedAsPassed() started.
+✔ Test skippingEveryCableMeansNoConnectorIsCountedAsPassed() passed after 0.369 seconds.
+◇ Test aCableThatCarriesNothingIsNotCountedEvenThoughTheTesterSaidContinue() started.
+✔ Test aCableThatCarriesNothingIsNotCountedEvenThoughTheTesterSaidContinue() passed after 2.622 seconds.
+◇ Test theIdentityIsInsideTheFrameCounterAndSurvivesTheCheck() started.
+✔ Test theIdentityIsInsideTheFrameCounterAndSurvivesTheCheck() passed after 0.014 seconds.
+◇ Test aCardThatCannotSendOnEveryConnectorSkipsTheStepWithTheReason() started.
+✔ Test aCardThatCannotSendOnEveryConnectorSkipsTheStepWithTheReason() passed after 0.001 seconds.
+✔ Suite FIXD_S4_IdentityTests passed after 11.720 seconds.
+◇ Suite FIXD_S5_NamesTests started.
+◇ Test theSameCardAlwaysGivesTheSameShortIdAndTwoCardsDiffer() started.
+✔ Test theSameCardAlwaysGivesTheSameShortIdAndTwoCardsDiffer() passed after 0.001 seconds.
+◇ Test theNamesOfAPersonAndAMacAreScrubbedFromDisplayAndDeviceNames() started.
+✔ Test theNamesOfAPersonAndAMacAreScrubbedFromDisplayAndDeviceNames() passed after 0.004 seconds.
+✔ Suite FIXD_S5_NamesTests passed after 0.006 seconds.
+◇ Suite FIXD_S5_PrivacyTests started.
+◇ Test theCardsPersistentIdIsReplacedByAShortHash() started.
+✔ Test theCardsPersistentIdIsReplacedByAShortHash() passed after 0.002 seconds.
+◇ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() started.
+✔ Test aPhotoIsReEncodedWithoutItsMetadataUnderANeutralName() passed after 0.006 seconds.
+◇ Test aPhotoTurnedOnItsSideIsMadeUprightBecauseTheOrientationTagIsNotKept() started.
+✔ Test aPhotoTurnedOnItsSideIsMadeUprightBecauseTheOrientationTagIsNotKept() passed after 0.002 seconds.
+◇ Test aFileThatIsNotAPictureIsRefusedNotCopied() started.
+✔ Test aFileThatIsNotAPictureIsRefusedNotCopied() passed after 0.001 seconds.
+◇ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() started.
+✔ Test aRunWithAPhotoOnAnotherVolumeLeavesNeitherItsPathNorItsNameNorItsLocationInTheBundle() passed after 0.025 seconds.
+✔ Suite FIXD_S5_PrivacyTests passed after 0.037 seconds.
+◇ Suite FIXD_S7_CablingTests started.
+◇ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() started.
+✔ Test aReversedResultAsksTheTesterToConfirmTheCablesAndRunsOnceMore() passed after 0.464 seconds.
+◇ Test aCorrectResultIsNotRepeatedOrQuestioned() started.
+✔ Test aCorrectResultIsNotRepeatedOrQuestioned() passed after 0.463 seconds.
+◇ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() started.
+✔ Test crossedCablesThatTheTesterFixesWhenAskedAreNotReportedAsAReversedCard() passed after 0.468 seconds.
+◇ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() started.
+✔ Test crossedCablesThatStayCrossedAreReportedWithBothRunsAndTheCaveat() passed after 0.464 seconds.
+◇ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() started.
+✔ Test skippingTheConfirmationKeepsTheFirstResultAndSaysItWasNotRepeated() passed after 0.862 seconds.
+✔ Suite FIXD_S7_CablingTests passed after 2.723 seconds.
+◇ Suite LaunchTests started.
+◇ Test withoutTheFlagThereIsNoHardwareTest() started.
+✔ Test withoutTheFlagThereIsNoHardwareTest() passed after 0.001 seconds.
+◇ Test theFlagAloneOpensTheWindow() started.
+✔ Test theFlagAloneOpensTheWindow() passed after 0.001 seconds.
+◇ Test theHeadlessFlagsAreRead() started.
+✔ Test theHeadlessFlagsAreRead() passed after 0.001 seconds.
+◇ Test injectedFaultsAreReadAndReportedCorrectly() started.
+✔ Test injectedFaultsAreReadAndReportedCorrectly() passed after 3.805 seconds.
+◇ Test aMissingOutputValueIsNotHeadless() started.
+✔ Test aMissingOutputValueIsNotHeadless() passed after 0.001 seconds.
+◇ Test aHeadlessSimulatedRunWritesTheBundleAndExitsZero() started.
+✔ Test aHeadlessSimulatedRunWritesTheBundleAndExitsZero() passed after 3.488 seconds.
+◇ Test aDirectoryPathGetsAGeneratedSimulatedFileName() started.
+✔ Test aDirectoryPathGetsAGeneratedSimulatedFileName() passed after 0.019 seconds.
+◇ Test failingStepsDoNotChangeTheExitCode() started.
+✔ Test failingStepsDoNotChangeTheExitCode() passed after 0.015 seconds.
+◇ Test anUnwritableOutputIsTheKitFailing() started.
+✔ Test anUnwritableOutputIsTheKitFailing() passed after 0.022 seconds.
+◇ Test headlessNeedsAnOutputPath() started.
+✔ Test headlessNeedsAnOutputPath() passed after 0.001 seconds.
+✔ Suite LaunchTests passed after 7.352 seconds.
+◇ Suite ControllerTests started.
+◇ Test withNoCardItSaysSoAndOffersTheSimulatedDemonstration() started.
+✔ Test withNoCardItSaysSoAndOffersTheSimulatedDemonstration() passed after 0.001 seconds.
+◇ Test screensBeingOpenRefusesToStartAndSaysWhy() started.
+✔ Test screensBeingOpenRefusesToStartAndSaysWhy() passed after 0.001 seconds.
+◇ Test aSimulatedDemonstrationProducesASimulatedReportYouCanSave() started.
+✔ Test aSimulatedDemonstrationProducesASimulatedReportYouCanSave() passed after 0.058 seconds.
+◇ Test aRealRunWithNoCardStillMakesAReport() started.
+✔ Test aRealRunWithNoCardStillMakesAReport() passed after 0.061 seconds.
+◇ Test theTesterIsAskedAndAnswersFlowThrough() started.
+✔ Test theTesterIsAskedAndAnswersFlowThrough() passed after 1.007 seconds.
+◇ Test progressNamesTheCurrentStep() started.
+✔ Test progressNamesTheCurrentStep() passed after 0.025 seconds.
+✔ Suite ControllerTests passed after 1.155 seconds.
+◇ Suite RunnerTests started.
+◇ Test thePresetsHaveTheLengthsThePeopleAreTold() started.
+✔ Test thePresetsHaveTheLengthsThePeopleAreTold() passed after 0.001 seconds.
+◇ Test aCleanSimulatedRunAnswersEveryStepItCan() started.
+✔ Test aCleanSimulatedRunAnswersEveryStepItCan() passed after 3.416 seconds.
+◇ Test theEnvironmentStepRecordsTheMachineAndTheDriver() started.
+✔ Test theEnvironmentStepRecordsTheMachineAndTheDriver() passed after 0.001 seconds.
+◇ Test theDevicesStepListsEverythingTheDeviceReports() started.
+✔ Test theDevicesStepListsEverythingTheDeviceReports() passed after 0.001 seconds.
+◇ Test theOutputRunSamplesEverySecondAndPassesWithoutLossOrLateness() started.
+✔ Test theOutputRunSamplesEverySecondAndPassesWithoutLossOrLateness() passed after 0.182 seconds.
+◇ Test aStarvedOutputIsReportedWithTheTimesItHappened() started.
+✔ Test aStarvedOutputIsReportedWithTheTimesItHappened() passed after 0.328 seconds.
+◇ Test aCleanLoopbackSeesEveryFrameOneFrameLateWithNoError() started.
+✔ Test aCleanLoopbackSeesEveryFrameOneFrameLateWithNoError() passed after 0.803 seconds.
+◇ Test droppedFramesOnTheCableAreCountedAsMissing() started.
+✔ Test droppedFramesOnTheCableAreCountedAsMissing() passed after 0.624 seconds.
+◇ Test aOnePixelShiftShowsAsPixelError() started.
+✔ Test aOnePixelShiftShowsAsPixelError() passed after 0.948 seconds.
+◇ Test aWrongDetectedModeFailsTheLoopback() started.
+✔ Test aWrongDetectedModeFailsTheLoopback() passed after 0.808 seconds.
+◇ Test noCableMeansNoSignalAndTheRunCarriesOn() started.
+✔ Test noCableMeansNoSignalAndTheRunCarriesOn() passed after 0.502 seconds.
+◇ Test theTesterCanSkipTheCablesAndSeesWhichConnectorsToJoin() started.
+✔ Test theTesterCanSkipTheCablesAndSeesWhichConnectorsToJoin() passed after 0.002 seconds.
+◇ Test theCablePromptNamesTheConnectors() started.
+✔ Test theCablePromptNamesTheConnectors() passed after 0.002 seconds.
+◇ Test aCleanKeyedLoopbackFindsFillOnOneAndKeyOnTwo() started.
+✔ Test aCleanKeyedLoopbackFindsFillOnOneAndKeyOnTwo() passed after 0.458 seconds.
+◇ Test swappedFillAndKeyAreReportedAsReversed() started.
+✔ Test swappedFillAndKeyAreReportedAsReversed() passed after 0.462 seconds.
+◇ Test oneCableOnlyIsReportedAsPartial() started.
+✔ Test oneCableOnlyIsReportedAsPartial() passed after 0.058 seconds.
+◇ Test theSweepAsksTheDeviceAboutEveryModeWithoutRunningVideo() started.
+✔ Test theSweepAsksTheDeviceAboutEveryModeWithoutRunningVideo() passed after 0.001 seconds.
+◇ Test aDeviceThatRefusesKeyingAt1080p5994FailsTheSweep() started.
+✔ Test aDeviceThatRefusesKeyingAt1080p5994FailsTheSweep() passed after 0.001 seconds.
+◇ Test fourOutputsRunTogetherWithMemoryAndCpuSamples() started.
+✔ Test fourOutputsRunTogetherWithMemoryAndCpuSamples() passed after 1.986 seconds.
+◇ Test aCardWithFewerThanFourConnectorsSkipsTheFourOutputStep() started.
+✔ Test aCardWithFewerThanFourConnectorsSkipsTheFourOutputStep() passed after 0.002 seconds.
+◇ Test withNoDeviceEveryDeviceStepIsSkippedWithTheReason() started.
+✔ Test withNoDeviceEveryDeviceStepIsSkippedWithTheReason() passed after 0.005 seconds.
+◇ Test aStepThatThrowsFailsAndTheRunCarriesOn() started.
+✔ Test aStepThatThrowsFailsAndTheRunCarriesOn() passed after 0.002 seconds.
+◇ Test aStepThatNeverReturnsTimesOutAndTheRunCarriesOn() started.
+✔ Test aStepThatNeverReturnsTimesOutAndTheRunCarriesOn() passed after 0.336 seconds.
+◇ Test theBundleHoldsEveryFinishedStepBeforeTheNextOneStarts() started.
+✔ Test theBundleHoldsEveryFinishedStepBeforeTheNextOneStarts() passed after 0.025 seconds.
+◇ Test progressEventsDescribeEachStep() started.
+✔ Test progressEventsDescribeEachStep() passed after 0.002 seconds.
+◇ Test anUnplugIsReportedByTheEngineAndTheAppStaysResponsive() started.
+✔ Test anUnplugIsReportedByTheEngineAndTheAppStaysResponsive() passed after 0.368 seconds.
+◇ Test anUnplugThatNeverHappenedFails() started.
+✔ Test anUnplugThatNeverHappenedFails() passed after 1.082 seconds.
+◇ Test aSluggishAppFailsTheUnplugStep() started.
+✔ Test aSluggishAppFailsTheUnplugStep() passed after 0.189 seconds.
+◇ Test theUnplugStepIsSkippedUnlessAsked() started.
+✔ Test theUnplugStepIsSkippedUnlessAsked() passed after 0.001 seconds.
+◇ Test yesToEveryQuestionPasses() started.
+✔ Test yesToEveryQuestionPasses() passed after 0.013 seconds.
+◇ Test aNoFailsAndAPhotoIsAttachedWithoutItsPath() started.
+✔ Test aNoFailsAndAPhotoIsAttachedWithoutItsPath() passed after 0.024 seconds.
+◇ Test unansweredQuestionsNeedAPerson() started.
+✔ Test unansweredQuestionsNeedAPerson() passed after 0.013 seconds.
+◇ Test skippingEveryQuestionSkipsTheStep() started.
+✔ Test skippingEveryQuestionSkipsTheStep() passed after 0.012 seconds.
+✔ Suite RunnerTests passed after 12.677 seconds.
+✔ Suite HWTEST_Heavy passed after 41.582 seconds.
+✔ Test run with 134 tests in 13 suites passed after 41.582 seconds.

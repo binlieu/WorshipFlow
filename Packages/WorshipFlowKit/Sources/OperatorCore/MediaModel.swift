@@ -65,6 +65,9 @@ public final class MediaModel {
     /// Foreground audio, 0...1 and mute (default output device). A background loop is always muted.
     public private(set) var volume: Double = 0.5
     public private(set) var isMuted = false
+    /// FIX-D (coordinator decision): Blackout is on, so the foreground clip's sound is off. The operator's own volume and mute
+    /// choices are not changed; the sound comes back at the level it had when Blackout lifts.
+    public private(set) var isMutedByBlackout = false
     /// True while a slide is live or cleared. A clip is only played over a running show, and stops with it.
     public private(set) var showIsLive = false
 
@@ -288,9 +291,15 @@ public final class MediaModel {
     // MARK: Show and audio
 
     /// The app says whether the show is running. A clip stops when the show does (Stop empties every screen).
-    public func showStateChanged(isLive: Bool) {
+    public func showStateChanged(isLive: Bool, isBlackedOut: Bool = false) {
         showIsLive = isLive
         if !isLive { stopForeground() }
+        // Blackout also takes the clip's sound off the speakers (the picture is already black), and a clip started during
+        // Blackout starts silent; lifting Blackout (or Stop, which ends it) puts the operator's level back.
+        let blackout = isLive && isBlackedOut
+        guard blackout != isMutedByBlackout else { return }
+        isMutedByBlackout = blackout
+        onAudioChange?(Float(volume), isMuted || isMutedByBlackout)
     }
 
     /// R17: the screens were closed. The clip playing over the slide stops (its sound with it); the background stays
@@ -301,13 +310,13 @@ public final class MediaModel {
         let v = value.isFinite ? min(1, max(0, value)) : 0
         guard v != volume else { return }
         volume = v
-        onAudioChange?(Float(volume), isMuted)
+        onAudioChange?(Float(volume), isMuted || isMutedByBlackout)
     }
 
     public func setMuted(_ muted: Bool) {
         guard muted != isMuted else { return }
         isMuted = muted
-        onAudioChange?(Float(volume), isMuted)
+        onAudioChange?(Float(volume), isMuted || isMutedByBlackout)
     }
 
     // MARK: Problems found while playing

@@ -7,6 +7,9 @@ public enum HardwareTestOutcome: String, Codable, Sendable, CaseIterable {
     case passed, failed, skipped
     /// The step ran as far as it can on its own; a person has to look at something or answer something.
     case needsHuman
+    /// Part of what the step claims was measured and part was not (for example the unplug was measured and the replug
+    /// was skipped). FIX-D S3: a step is PASSED only when everything it claims was measured.
+    case partial
 
     public var label: String {
         switch self {
@@ -14,6 +17,7 @@ public enum HardwareTestOutcome: String, Codable, Sendable, CaseIterable {
         case .failed: return "FAILED"
         case .skipped: return "SKIPPED"
         case .needsHuman: return "NEEDS A PERSON"
+        case .partial: return "PARTLY MEASURED"
         }
     }
 }
@@ -53,10 +57,15 @@ public struct HardwareStepResult: Codable, Equatable, Sendable {
     /// UTC, no zone name.
     public var startedAt: String
     public var durationSeconds: Double
+    /// FIX-D S1: set when the step ran while the card was still in the keying profile (the original profile could not be put
+    /// back), so a reader knows which connector layout the step's numbers belong to.
+    public var profileNote: String?
 
     public init(id: HardwareTestStepID, number: Int, title: String, outcome: HardwareTestOutcome, summary: String,
                 passCriteria: String = "", measurements: [HardwareMeasurement] = [], findings: [String] = [], events: [String] = [],
-                samples: [String: [Double]] = [:], sampleIntervalSeconds: Double? = nil, startedAt: String = "", durationSeconds: Double = 0) {
+                samples: [String: [Double]] = [:], sampleIntervalSeconds: Double? = nil, startedAt: String = "", durationSeconds: Double = 0,
+                profileNote: String? = nil) {
+        self.profileNote = profileNote
         self.id = id
         self.number = number
         self.title = title
@@ -71,6 +80,26 @@ public struct HardwareStepResult: Codable, Equatable, Sendable {
         self.startedAt = startedAt
         self.durationSeconds = durationSeconds
     }
+}
+
+/// FIX-D S1: the outcome of putting the card's profile back after the kit changed it for the fill and key step.
+public struct HardwareProfileRestore: Codable, Equatable, Sendable {
+    public enum State: String, Codable, Sendable {
+        /// The profile was put back and a second reading of the card agrees with the one taken at the start.
+        case restoredAndVerified
+        /// The card refused, or the call failed.
+        case failed
+        /// The call returned, but the card's layout could not be shown to match the one at the start.
+        case notVerified
+    }
+    public var state: State
+    public var detail: String
+    public init(state: State, detail: String) {
+        self.state = state
+        self.detail = detail
+    }
+    /// True when later steps ran in the keying profile.
+    public var leftInKeyingProfile: Bool { state != .restoredAndVerified }
 }
 
 public struct HardwareDisplayInfo: Codable, Equatable, Sendable {
@@ -198,6 +227,13 @@ public struct HardwareTestReport: Codable, Equatable, Sendable {
     public var environment: HardwareEnvironmentInfo?
     public var steps: [HardwareStepResult]
     public var disclaimer: String
+    /// FIX-D S1: the profile and connector layout the card was in before any step ran, in words; nil when the provider cannot say.
+    public var profileAtStart: String?
+    /// FIX-D S1: what became of a profile change the kit made. Nil: the kit never changed the card's profile.
+    public var profileRestore: HardwareProfileRestore?
+    /// FIX-D S6: the step that was running when the file was last written, so a report left by a crash says where it stopped.
+    public var runningStep: Int?
+    public var runningStepTitle: String?
 
     public init(simulated: Bool, deviceName: String?, deviceID: String?, preset: String, startedAt: String) {
         schemaVersion = Self.currentSchemaVersion

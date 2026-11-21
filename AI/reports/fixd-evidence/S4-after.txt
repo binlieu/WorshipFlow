@@ -1,0 +1,41 @@
+[0/1] Planning build
+Building for debugging...
+[0/6] Write sources
+[2/6] Write swift-version--58304C5D6DBC2206.txt
+[4/6] Emitting module OutputEngine
+[5/6] Compiling OutputEngine HardwareTestSimulation.swift
+[6/8] Compiling OutputEngineTests FIXD_S4_IdentityTests.swift
+[7/8] Emitting module OutputEngineTests
+[7/9] Write Objects.LinkFileList
+[8/9] Linking WorshipFlowKitPackageTests
+Build complete! (5.64s)
+Test Suite 'Selected tests' started at 2026-11-21 05:18:04.698.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:18:04.699.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:18:04.699.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:18:04.699.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite FIXD_S4_IdentityTests started.
+◇ Test aCleanCardHasEveryConnectorsOwnPictureSeenAndPasses() started.
+✔ Test aCleanCardHasEveryConnectorsOwnPictureSeenAndPasses() passed after 1.941 seconds.
+◇ Test twoConnectorsWiredTheWrongWayRoundInsideTheCardAreCaught() started.
+✔ Test twoConnectorsWiredTheWrongWayRoundInsideTheCardAreCaught() passed after 2.829 seconds.
+◇ Test twoConnectorsSwappedAcrossTheHalvesAreNeverCountedAsPassed() started.
+✔ Test twoConnectorsSwappedAcrossTheHalvesAreNeverCountedAsPassed() passed after 3.758 seconds.
+◇ Test skippingTheSecondSetOfCablesLeavesTwoConnectorsUnchecked() started.
+✔ Test skippingTheSecondSetOfCablesLeavesTwoConnectorsUnchecked() passed after 1.142 seconds.
+◇ Test skippingEveryCableMeansNoConnectorIsCountedAsPassed() started.
+✔ Test skippingEveryCableMeansNoConnectorIsCountedAsPassed() passed after 0.353 seconds.
+◇ Test aCableThatCarriesNothingIsNotCountedEvenThoughTheTesterSaidContinue() started.
+✔ Test aCableThatCarriesNothingIsNotCountedEvenThoughTheTesterSaidContinue() passed after 2.500 seconds.
+◇ Test theIdentityIsInsideTheFrameCounterAndSurvivesTheCheck() started.
+✔ Test theIdentityIsInsideTheFrameCounterAndSurvivesTheCheck() passed after 0.012 seconds.
+◇ Test aCardThatCannotSendOnEveryConnectorSkipsTheStepWithTheReason() started.
+✔ Test aCardThatCannotSendOnEveryConnectorSkipsTheStepWithTheReason() passed after 0.001 seconds.
+✔ Suite FIXD_S4_IdentityTests passed after 12.540 seconds.
+✔ Suite HWTEST_Heavy passed after 12.541 seconds.
+✔ Test run with 8 tests in 2 suites passed after 12.541 seconds.

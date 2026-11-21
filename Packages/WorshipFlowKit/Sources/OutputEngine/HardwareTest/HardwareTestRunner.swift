@@ -100,6 +100,12 @@ public final class HardwareTestContext: @unchecked Sendable {
     private var waitingSince: UInt64?
     private var startFailed = false
     private var env: HardwareEnvironmentInfo?
+    // FIX-D S1: the card as it was before any step, whether this kit changed its profile, and how putting it back went.
+    private var startInfo: SDIDeviceInfo?
+    private var startRecord: HardwareProfileRecord?
+    private var switchedByKit = false
+    private var restoreResult: HardwareProfileRestore?
+    private var consent = false
 
     init(configuration: HardwareTestConfiguration, provider: HardwareTestProvider, allDevices: [HardwareTestDevice], device: HardwareTestDevice?,
          clock: any HardwareTestClock, interaction: any HardwareTestInteraction, environment: HardwareEnvironmentSource,
@@ -139,8 +145,118 @@ public final class HardwareTestContext: @unchecked Sendable {
             if let since = waitingSince { humanWait += Double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - since) / 1e9 }
             waitingSince = nil
         }
-        log.add("Answer: \(answer)")
+        // FIX-D S5: the log says what was answered, never the path or name of a file the tester chose.
+        log.add("Answer: \(Self.describe(answer))")
         return answer
+    }
+
+    // MARK: the card's profile (FIX-D S1)
+
+    /// The card with the layout it has now: read again from the provider, because a profile change alters which connectors
+    /// can do what. Falls back to the card found at the start when the provider no longer lists it.
+    public func currentDevice() -> HardwareTestDevice? {
+        guard let device else { return nil }
+        return provider.devices().first { $0.id == device.id && $0.isConnected() } ?? device
+    }
+
+    /// The card's layout now (see `currentDevice`).
+    var currentInfo: SDIDeviceInfo? { currentDevice()?.info }
+
+    /// Reads the profile and layout before any step runs.
+    func recordStart() {
+        guard let device else { return }
+        lock.withLock {
+            startInfo = device.info
+            startRecord = device.captureProfiles?()
+        }
+    }
+
+    /// "connectors 1 and 2: half duplex; connectors 3 and 4: half duplex. Layout: SDI 1: out/in; ..." or nil.
+    var startDescription: String? {
+        let (info, record) = lock.withLock { (startInfo, startRecord) }
+        let profile = record?.text ?? device?.profile
+        let layout = info.flatMap { HardwareTestLayout.describe($0) }
+        switch (profile, layout) {
+        case let (p?, l?): return "\(p). Layout: \(l)"
+        case let (p?, nil): return p
+        case let (nil, l?): return "Layout: \(l)"
+        default: return nil
+        }
+    }
+
+    /// The tester agreed to a change of profile for the fill and key tests of this run.
+    var keyingConsent: Bool {
+        get { lock.withLock { consent } }
+        set { lock.withLock { consent = newValue } }
+    }
+
+    /// The kit changed the card's profile (for the fill and key step); it will be put back after the step.
+    func noteProfileSwitched() { lock.withLock { switchedByKit = true } }
+
+    public var profileRestore: HardwareProfileRestore? { lock.withLock { restoreResult } }
+
+    /// True while the card is in the keying profile because it could not be put back.
+    var leftInKeyingProfile: Bool { profileRestore?.leftInKeyingProfile == true }
+
+    /// The words that label a step run in the keying profile, with the layout its connectors were chosen from.
+    func keyingProfileNote() -> String? {
+        guard leftInKeyingProfile else { return nil }
+        let layout = currentInfo.flatMap { HardwareTestLayout.describe($0) }.map { " Connectors for this step came from the layout the card had then: \($0)." } ?? ""
+        return "Run in the keying profile: the card's earlier profile could not be put back (\(profileRestore?.detail ?? "unknown reason")).\(layout)"
+    }
+
+    /// Puts the profile back if this kit changed it, without asking (restoring is always wanted), then checks that the card
+    /// reports the profile and layout it had at the start. Retries a few times: ports of an abandoned step may still be closing.
+    func restoreProfileIfNeeded() async {
+        let (needed, record, startLayout) = lock.withLock { (switchedByKit, startRecord, startInfo) }
+        guard needed, device != nil else { return }
+        let fresh = currentDevice()
+        guard let record, let restore = fresh?.restoreProfiles ?? device?.restoreProfiles else {
+            let why = record == nil ? "the card's profile could not be read before it was changed, so there is nothing to put back"
+                                    : "this card cannot change its profile back from WORSHIPFLOW; set it in Blackmagic Desktop Video Setup"
+            finishRestore(.init(state: .notVerified, detail: why))
+            return
+        }
+        var failure: String?
+        for attempt in 1...3 {
+            do { try await restore(record); failure = nil; break } catch {
+                failure = HardwareTestSteps.describe(error)
+                log.add("Putting the profile back failed (attempt \(attempt) of 3): \(failure ?? "")")
+                if attempt < 3 { try? await clock.wait(seconds: 1) }
+            }
+        }
+        if let failure {
+            finishRestore(.init(state: .failed, detail: failure))
+            return
+        }
+        let again = currentDevice()
+        let recordMatches = again?.captureProfiles?().map { $0.pairs.map { [$0.firstConnector: $0.identifier] } == record.pairs.map { [$0.firstConnector: $0.identifier] } }
+        let layoutMatches = startLayout.map { start in again.map { $0.info.connectors == start.connectors && $0.info.profiles.map(\.activeName) == start.profiles.map(\.activeName) } ?? false }
+        if recordMatches == true || (recordMatches == nil && layoutMatches == true), layoutMatches != false {
+            lock.withLock { switchedByKit = false }
+            finishRestore(.init(state: .restoredAndVerified, detail: "The card is back in its earlier profile (\(record.text)) and reports the same layout."))
+        } else {
+            finishRestore(.init(state: .notVerified, detail: "The card was asked to go back to (\(record.text)), but its report afterwards does not match the one taken before the test."))
+        }
+    }
+
+    private func finishRestore(_ result: HardwareProfileRestore) {
+        lock.withLock {
+            // A restore that failed once stays failed: a later success does not undo the steps that ran in the keying profile.
+            if restoreResult?.leftInKeyingProfile != true { restoreResult = result }
+        }
+        log.add("Profile restore: \(result.state.rawValue). \(result.detail)")
+    }
+
+    static func describe(_ answer: HardwareAnswer) -> String {
+        switch answer {
+        case .proceed: return "proceed"
+        case .skip: return "skip"
+        case .yes: return "yes"
+        case .no: return "no"
+        case .attachment: return "a photo was chosen"
+        case .unavailable: return "unavailable"
+        }
     }
 
     func resetHumanWait() { lock.withLock { humanWait = 0; waitingSince = nil } }
@@ -197,11 +313,14 @@ public final class HardwareTestRunner: Sendable {
             configuration: configuration, provider: provider, allDevices: all, device: device, clock: clock, interaction: interaction,
             environment: environment, resources: resources, responsiveness: responsiveness, log: log, emit: onEvent,
             attach: { url in
-                do { return try writer?.attachPhoto(from: url) } catch { log.add("Could not attach the photo: \(error.localizedDescription)"); return nil }
+                do { return try writer?.attachPhoto(from: url) } catch { log.add("A photo could not be attached: it could not be read as a picture."); return nil }
             })
 
+        context.recordStart()
         var report = HardwareTestReport(simulated: device?.info.isSimulated ?? provider.isSimulated, deviceName: device?.info.displayName,
-                                        deviceID: device?.id, preset: configuration.preset.rawValue, startedAt: HardwareTestClockText.iso(now()))
+                                        deviceID: device.map { HardwareTestHash.short($0.id) }, preset: configuration.preset.rawValue, startedAt: HardwareTestClockText.iso(now()))
+        report.profileAtStart = context.startDescription
+        if let text = report.profileAtStart { log.add("The card's profile and layout before any step: \(text)") }
         log.add("Hardware test started (\(configuration.preset.rawValue)). Device: \(device?.info.displayName ?? "none found")"
                 + (report.simulated ? " (SIMULATED)" : ""))
         persist(report, log)
@@ -209,15 +328,26 @@ public final class HardwareTestRunner: Sendable {
         for (position, step) in steps.enumerated() {
             onEvent(.stepStarted(number: position + 1, total: steps.count, title: step.title))
             log.add("Step \(step.number): \(step.title)")
+            // FIX-D S6: the file says which step is running before it starts, so a crash inside the step is a report that says where.
+            report.runningStep = step.number
+            report.runningStepTitle = step.title
+            persist(report, log)
+            let note = context.keyingProfileNote()          // taken before the step: it is what the step ran in
             let started = now()
             let began = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-            let output = await execute(step, context)
+            var output = await execute(step, context)
             let seconds = Double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - began) / 1e9
+            await context.restoreProfileIfNeeded()
+            report.profileRestore = context.profileRestore
+            if step.id == .fillKeyLoopback || step.id == .humanChecks, let restore = context.profileRestore {
+                output.events.append("Putting the card's profile back: \(restore.state == .restoredAndVerified ? "done and checked" : "NOT done or NOT checked") (\(restore.detail))")
+            }
             let result = HardwareStepResult(
                 id: step.id, number: step.number, title: step.title, outcome: output.outcome, summary: output.summary,
                 passCriteria: output.passCriteria, measurements: output.measurements, findings: output.findings, events: output.events,
                 samples: output.samples, sampleIntervalSeconds: output.sampleIntervalSeconds,
-                startedAt: HardwareTestClockText.iso(started), durationSeconds: (seconds * 100).rounded() / 100)
+                startedAt: HardwareTestClockText.iso(started), durationSeconds: (seconds * 100).rounded() / 100,
+                profileNote: step.needsDevice ? note : nil)
             report.steps.append(result)
             report.environment = context.environmentInfo
             log.add("Step \(step.number) \(step.title): \(result.outcome.label). \(result.summary)")
@@ -226,6 +356,8 @@ public final class HardwareTestRunner: Sendable {
         }
 
         report.complete = true
+        report.runningStep = nil
+        report.runningStepTitle = nil
         report.finishedAt = HardwareTestClockText.iso(now())
         log.add("Hardware test finished.")
         var url: URL?

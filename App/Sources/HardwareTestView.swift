@@ -39,6 +39,8 @@ struct HardwareTestView: View {
     private var setup: some View {
         VStack(alignment: .leading, spacing: 18) {
             if let why = controller.refusal { notice(why, systemImage: "hand.raised.fill", tint: .orange) }
+            unfinished
+            if let saved = savedURL { notice("Saved: \(saved.lastPathComponent). Please send this file back.", systemImage: "checkmark.circle.fill", tint: .green) }
             cardStatus
             GroupBox("What you need") {
                 VStack(alignment: .leading, spacing: 6) {
@@ -49,9 +51,9 @@ struct HardwareTestView: View {
             }
             GroupBox("Which connectors to join") {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Cable A:   SDI 1  ──────▶  SDI 3")
-                    Text("Cable B:   SDI 2  ──────▶  SDI 4")
-                    Text("SDI means the round BNC sockets on the card, numbered 1 to 4. Push each end in until it clicks. The app will tell you when to connect them.")
+                    Text("Usually:   SDI 1  ──────▶  SDI 3")
+                    Text("            SDI 2  ──────▶  SDI 4")
+                    Text("SDI means the round BNC sockets on the card, numbered 1 to 4. Push each end in until it clicks. The app tells you exactly which sockets to join each time it asks, and may ask you to move the cables to check every socket.")
                         .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 .font(.system(.body, design: .monospaced)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
@@ -77,6 +79,24 @@ struct HardwareTestView: View {
             }
             Text("The simulated card is a demonstration only: it uses no real card, and its report is marked SIMULATED in its file name and its first line.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// FIX-D S6: a run that did not finish (or was never saved) is offered here, so a crash on first contact with the card
+    /// still gives the developers a report.
+    @ViewBuilder
+    private var unfinished: some View {
+        if let run = controller.unfinishedRun {
+            VStack(alignment: .leading, spacing: 8) {
+                notice((run.reachedTheEnd ? "A previous test was finished but its report was never saved. " : "A previous test did not finish. ") + run.description,
+                       systemImage: "exclamationmark.arrow.triangle.2.circlepath", tint: .orange)
+                HStack {
+                    Button("Save its report…") { saveUnfinished() }.buttonStyle(.borderedProminent).accessibilityIdentifier("hwtest.saveUnfinished")
+                    if let problem = saveProblem { Text(problem).font(.callout).foregroundStyle(.red) }
+                }
+                Text("Its files are in the folder \"\(run.folder.lastPathComponent)\" on your Desktop. Saving the report here puts them in one file to send back, then removes that folder.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -184,8 +204,8 @@ struct HardwareTestView: View {
                 notice("This was a demonstration with the simulated card. Its report is marked SIMULATED and says nothing about a real card.", systemImage: "testtube.2", tint: .purple)
             }
             if let verdict = controller.verdictLine, !controller.runWasSimulated {
-                notice(verdict, systemImage: verdict.hasPrefix("REAL DEVICE TESTED") ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
-                       tint: verdict.hasPrefix("REAL DEVICE TESTED") ? .green : .orange)
+                let clean = verdict.hasPrefix("REAL DEVICE TESTED") && !verdict.contains("NOT RESTORED") && !verdict.contains("DID NOT FINISH")
+                notice(verdict, systemImage: clean ? "checkmark.seal.fill" : "exclamationmark.triangle.fill", tint: clean ? .green : .orange)
             }
             Text("The test is finished.").font(.title2.bold())
             if let problem = controller.errorMessage { notice(problem, systemImage: "xmark.octagon.fill", tint: .red) }
@@ -224,6 +244,20 @@ struct HardwareTestView: View {
         } catch { saveProblem = "The report could not be saved there: \(error.localizedDescription). Try another folder." }
     }
 
+    private func saveUnfinished() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.zip]
+        panel.nameFieldStringValue = controller.suggestedUnfinishedFileName
+        panel.directoryURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
+        panel.message = "Save the report of the test that did not finish. Then send this one file back."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try controller.saveUnfinishedReport(to: url)
+            savedURL = url
+            saveProblem = nil
+        } catch { saveProblem = "The report could not be saved there: \(error.localizedDescription). Try another folder." }
+    }
+
     private func showInFinder() {
         if let url = savedURL ?? controller.bundleURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
@@ -234,6 +268,7 @@ struct HardwareTestView: View {
         case .failed: return "xmark.circle.fill"
         case .skipped: return "forward.circle"
         case .needsHuman: return "person.crop.circle.badge.questionmark"
+        case .partial: return "circle.lefthalf.filled"
         }
     }
 
@@ -243,6 +278,7 @@ struct HardwareTestView: View {
         case .failed: return .red
         case .skipped: return .secondary
         case .needsHuman: return .orange
+        case .partial: return .orange
         }
     }
 }

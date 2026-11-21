@@ -1,0 +1,116 @@
+SIMULATED RUN: no real card was used, so none of these numbers say anything about real hardware. THE CARD'S PROFILE WAS NOT RESTORED after the fill and key step (it failed), so step 6 and the steps after it ran in the keying profile.
+Device tested: Simulated SDI Duo 2 card (4 connectors, profiles) (SIMULATED, no real card)
+The card's profile before the test: connectors 1 and 2: half duplex; connectors 3 and 4: half duplex. Layout: SDI 1: out/in; SDI 2: out/in; SDI 3: out/in; SDI 4: out/in
+This report describes what was measured on this run. It is not a certification.
+Started 2026-11-21T13:33:38Z UTC, finished 2026-11-21T13:33:46Z UTC. Length chosen: quick.
+Totals: 6 passed, 0 failed, 3 skipped, 0 needs a person
+
+STEPS AND OUTCOMES
+1. Environment                    PASSED
+2. Devices                        PASSED
+3. Output run                     PASSED
+4. Loopback                       PASSED
+5. Fill and key loopback          PASSED
+6. Mode sweep                     PASSED
+7. Four outputs at once           SKIPPED
+8. Unplug and replug              SKIPPED
+9. Human checks                   SKIPPED
+
+THE DRIVER AND THE CARD
+  - Blackmagic driver: not installed
+  - Framework can be loaded (entitlement check): unknown: no driver was found
+  - Key route reported by the device (connectors 1 and 2): fill on SDI 2, key on SDI 1
+  - Key route reported by the device (connectors 3 and 4): fill on SDI 4, key on SDI 3
+
+DETAILS
+
+1. Environment: PASSED
+  Recorded the machine, the displays and the driver state. No user name, file path under the home folder, or serial number is recorded.
+  Pass criteria: Information only. It passes when the operating system version can be read.
+  - WORSHIPFLOW: 0.0.1 (build 1)
+  - macOS: 27.2 (26B123)
+  - Mac model: Mac16,10
+  - Chip: Apple M4
+  - Memory: 16 GB
+  - Processor cores: 10
+  (7 more measurements are in report.json)
+
+2. Devices: PASSED
+  Found 1 device: Simulated SDI Duo 2 card (4 connectors, profiles).
+  Pass criteria: At least one connected device is reported. Everything the device says about itself is recorded below.
+  - Devices found: 1
+  - Device 1: Simulated SDI Duo 2 card (4 connectors, profiles)
+  - Device 1 simulated: yes
+  - Device 1 connected: yes
+  - Device 1 connectors: 4
+  - Device 1 fill and key: yes
+  (10 more measurements are in report.json)
+
+3. Output run: PASSED
+  Ran 30 s on SDI 1 at 1080p59.94: 1798 frames completed, 0 dropped, 0 late.
+  Pass criteria: Pass needs zero dropped and zero late frames over the whole run, at least 90% of the expected frames completed, and the output still running at the end. Anything else is reported with the times it happened.
+  - Connector: SDI 1
+  - Video mode: 1080p59.94
+  - Test length: 30 s
+  - Frames scheduled: 1801
+  - Frames completed: 1798
+  - Late frames: 0
+  (5 more measurements are in report.json)
+
+4. Loopback: PASSED
+  SDI 1 to SDI 3: 899 frames received over 15 s, none missing, repeated or out of order, largest pixel error 0.
+  Pass criteria: Signal detected on SDI 3 within 5 seconds in 1080p59.94; no missing, repeated or out-of-order frames; every frame's counter readable; at least 90% of the expected frames received; largest pixel error against the pattern sent at most 24 levels (of 255) and mean at most 3.0. The delay in frames is reported, not judged.
+  - Signal detected: yes
+  - Detected mode: 1080p59.94
+  - Mode sent: 1080p59.94
+  - Output: SDI 1
+  - Input: SDI 3
+  - Test length: 15 s
+  (13 more measurements are in report.json)
+
+5. Fill and key loopback: PASSED
+  With the cables as instructed, fill arrived on SDI 4 and key on SDI 3, as the device reports. The key matched the alpha and the fill behaved as configured in both alpha modes.
+  Pass criteria: Cables as stated in the prompt: the two connectors of the pair starting at SDI 1 go to two connectors that can receive. Pass needs a signal on both inputs; the fill and key on the connectors the device reports (UNV-03; with no reported route, the fill on SDI 1 and the key on SDI 2), measured with the cables as instructed, and compared with the device's report and the manual's table; if the result is the reverse of the report, the tester is asked to check the cables and the step runs once more, and both runs are kept; the key within 16 levels of the alpha sent at the centre of each box and the surround, with a mean error of at most 4 and fewer than 0.5% of pixels over 16 levels (tolerance stated here, not hidden); the fill premultiplied when configured premultiplied and straight when configured straight (the 50% box reads about 128 or about 255, within 24); and the alpha ramp followed within 24 levels. Both alpha modes are tried.
+  - SDI 1 carries: key
+  - SDI 2 carries: fill
+  - Route reported by the device: fill on SDI 2, key on SDI 1
+  - Source of the reported route: the simulated card's own implementation
+  - Route in the manual's table: fill on SDI 2, key on SDI 1
+  - Route measured: fill on SDI 2, key on SDI 1
+  (16 more measurements are in report.json)
+  * The card's profile was changed from "half duplex" to "one sub-device, full duplex" so connectors 1 and 2 can send fill and key. It is put back after this step.
+  * Putting the card's profile back: NOT done or NOT checked (the simulated card would not go back to its earlier profile)
+
+6. Mode sweep: PASSED
+  Asked the device about 10 modes without running video. It says 1080p59.94 works for output and for fill and key.
+  Pass criteria: The device says it supports 1080p59.94 for output, and, when it reports fill and key, with fill and key too. This step asks the device and runs no video, so a "supported" is only what the device said, in the profile it was in when asked.
+  Run in the keying profile: the card's earlier profile could not be put back (the simulated card would not go back to its earlier profile). Connectors for this step came from the layout the card had then: SDI 1: in (key); SDI 2: out (fill); SDI 3: out/in; SDI 4: out/in.
+  - 1080p59.94 output: supported
+  - 1080p59.94 with fill and key: supported
+  - 1080p60 output: supported
+  - 1080p60 with fill and key: supported
+  - 1080p50 output: supported
+  - 1080p50 with fill and key: supported
+  (14 more measurements are in report.json)
+
+7. Four outputs at once: SKIPPED
+  In the card's profile as it is now only SDI 2, 3, 4 can send output, so four outputs at once cannot be tested.
+  Pass criteria: On every one of the four connectors: zero dropped and zero late frames, at least 90% of the expected frames completed, and the output still running. Each connector counts as PASSED only when its own picture (its connector number is in the picture) was seen on an input; a connector that ran without being looked at says "ran, identity not checked" and the step is then only partly measured. Memory and CPU of this app are recorded every second as evidence for UNV-04; they have no pass limit.
+  Run in the keying profile: the card's earlier profile could not be put back (the simulated card would not go back to its earlier profile). Connectors for this step came from the layout the card had then: SDI 1: in (key); SDI 2: out (fill); SDI 3: out/in; SDI 4: out/in.
+
+8. Unplug and replug: SKIPPED
+  This step was not selected: the tester did not choose the unplug test.
+  Run in the keying profile: the card's earlier profile could not be put back (the simulated card would not go back to its earlier profile). Connectors for this step came from the layout the card had then: SDI 1: in (key); SDI 2: out (fill); SDI 3: out/in; SDI 4: out/in.
+
+9. Human checks: SKIPPED
+  This step was not selected: the tester did not choose the monitor checks.
+  Run in the keying profile: the card's earlier profile could not be put back (the simulated card would not go back to its earlier profile). Connectors for this step came from the layout the card had then: SDI 1: in (key); SDI 2: out (fill); SDI 3: out/in; SDI 4: out/in.
+  * Putting the card's profile back: NOT done or NOT checked (the simulated card would not go back to its earlier profile)
+
+FINDINGS ON THE UNVERIFIED FACTS
+  - UNV-03: with the cables as instructed (SDI 1 to SDI 3, SDI 2 to SDI 4), the fill arrived on SDI 4 and the key on SDI 3; that is, SDI 2 carries the fill and SDI 1 carries the key if the cables are as shown. Two cables swapped would look the same.
+  - Observed fill on SDI 2, key on SDI 1, with the cables as instructed: that agrees with the device's report (fill on SDI 2, key on SDI 1); agrees with the manual's table (fill on SDI 2, key on SDI 1). If the cables are as shown, the app's old assumption (fill on the first connector) is wrong for this device, and the planner follows the route the device reports.
+  - UNV-02: the device says 1080p59.94 is supported for output and supported with fill and key. This is the device's own answer, in the profile it was in when asked; no video was run.
+
+MACHINE
+  WORSHIPFLOW 0.0.1 (1), macOS 27.2 (26B123), Mac16,10, Apple M4, 16 GB

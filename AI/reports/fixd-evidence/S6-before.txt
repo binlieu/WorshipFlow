@@ -1,0 +1,51 @@
+[0/1] Planning build
+Building for debugging...
+[0/7] Write sources
+[2/7] Write swift-version--58304C5D6DBC2206.txt
+[4/17] Compiling OutputEngine HardwareTestSteps.swift
+[5/17] Compiling OutputEngine HardwareTestSupport.swift
+[6/17] Compiling OutputEngine HardwareTestVideoSteps.swift
+[7/18] Compiling OutputEngine DiagnosticBundle.swift
+[8/18] Compiling OutputEngine HardwareTestBundle.swift
+[9/18] Compiling OutputEngine HardwareTestSummary.swift
+[10/18] Compiling OutputEngine HardwareTestModels.swift
+[11/18] Compiling OutputEngine HardwareTestCapture.swift
+[12/18] Compiling OutputEngine HardwareTestController.swift
+[13/18] Compiling OutputEngine HardwareTestLaunch.swift
+[14/18] Compiling OutputEngine HardwareTestRunner.swift
+[15/18] Emitting module OutputEngine
+[16/18] Compiling OutputEngine HardwareTestZip.swift
+[17/21] Compiling OutputEngineTests FIXD_S6_RunningStepTests.swift
+[18/21] Emitting module OutputEngineTests
+[19/21] Compiling OutputEngineTests FIXC_S9_RenderAheadTests.swift
+[20/26] Compiling OutputEngineTests FIXD_S5_PrivacyTests.swift
+[21/26] Compiling OutputEngineTests FIXD_S3_HonestStepTests.swift
+[22/26] Compiling OutputEngineTests HWTEST_LaunchTests.swift
+[23/26] Compiling OutputEngineTests FIXD_S7_CablingTests.swift
+[24/26] Compiling OutputEngineTests HWTEST_RunnerTests.swift
+[24/26] Write Objects.LinkFileList
+[25/26] Linking WorshipFlowKitPackageTests
+Build complete! (10.57s)
+Test Suite 'Selected tests' started at 2026-11-21 05:22:54.385.
+Test Suite 'WorshipFlowKitPackageTests.xctest' started at 2026-11-21 05:22:54.386.
+Test Suite 'WorshipFlowKitPackageTests.xctest' passed at 2026-11-21 05:22:54.386.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-11-21 05:22:54.386.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite HWTEST_Heavy started.
+◇ Suite FIXD_S6_RunningStepTests started.
+◇ Test theFileNamesTheRunningStepBeforeTheStepStartsAndNothingAfterTheEnd() started.
+✘ Test theFileNamesTheRunningStepBeforeTheStepStartsAndNothingAfterTheEnd() recorded an issue at FIXD_S6_RunningStepTests.swift:30:9: Expectation failed: (seen.rows.map { $0.0 } → [nil, nil]) == ([1, 2] → [Optional(1), Optional(2)])
+± inserted [nil, nil], removed [Optional(1), Optional(2)]
+↳ [(nil, nil, 0), (nil, nil, 1)]
+✘ Test theFileNamesTheRunningStepBeforeTheStepStartsAndNothingAfterTheEnd() recorded an issue at FIXD_S6_RunningStepTests.swift:31:9: Expectation failed: (seen.rows.map { $0.1 } → [nil, nil]) == (["Step 1", "Step 2"] → [Optional("Step 1"), Optional("Step 2")])
+± inserted [nil, nil], removed [Optional("Step 1"), Optional("Step 2")]
+✘ Test theFileNamesTheRunningStepBeforeTheStepStartsAndNothingAfterTheEnd() failed after 0.016 seconds with 2 issues.
+✘ Suite FIXD_S6_RunningStepTests failed after 0.016 seconds with 2 issues.
+✘ Suite HWTEST_Heavy failed after 0.016 seconds with 2 issues.
+↳ /// The suites that run whole simulated tests are heavy (1080p frames), so they run one after another: parallel copies
+↳ /// would starve the wall-clock tests elsewhere in the package.
+✘ Test run with 1 test in 2 suites failed after 0.017 seconds with 2 issues.

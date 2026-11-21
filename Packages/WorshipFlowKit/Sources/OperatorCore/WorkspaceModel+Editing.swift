@@ -47,7 +47,7 @@ extension WorkspaceModel {
     // MARK: Structure of the open presentation
 
     private func requireNaturalOrder(_ what: String) -> Bool {
-        guard selectedPlaylistItemID.flatMap({ id in playlistItems.first { $0.id == id }?.arrangementID }) == nil else {
+        guard openPlaylistItemID.flatMap({ id in playlistItems.first { $0.id == id }?.arrangementID }) == nil else {
             lastError = "Could not \(what): this item plays a custom section order. Choose \"Natural order\" for the item, make the change, then choose the order again."
             return false
         }

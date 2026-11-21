@@ -465,7 +465,7 @@ extension HWTEST_Heavy {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let photo = dir.appendingPathComponent("my pastor's phone.jpg")
-        try Data([9, 9]).write(to: photo)
+        try TestPhoto.write(to: photo)          // FIX-D S5: a photo is decoded and written again, so the fixture must be a picture
         let writer = try HardwareTestBundleWriter(directory: dir.appendingPathComponent("work"))
         let answers = ScriptedInteraction { p in
             switch p.kind {
