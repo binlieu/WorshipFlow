@@ -11,3 +11,4 @@
 | KI-007 | OUT-001 timing (NFR-01) is not verified. Runs so far: 30 s Debug window on a 100 Hz display gave 9 dropped of 2,996; a 120 s Release window run presented nothing because the window was behind a full-screen app. The 60-minute run needs a free display at 60 Hz: `scripts/soak.sh`. | Open. Needs the owner to free a display. |
 | KI-008 | Frame statistics come from the drawable's presented time, so an occluded output reports zero presented frames. Correct for a covered window, but the operator readout should say "hidden", not look like a stall. | Open. Fix in OUT-002. |
 | KI-009 | Not exercised in OUT-001: keyboard shortcuts, the stage window toggle, closing an output mid-run, unplugging a display, the loop seam, GPU load. | Open. Covered by OUT-002 tests and a field checklist. |
+| KI-010 | SYS-001 crash survival is tested by dropping the store without closing it, not by killing a process or cutting power. | Open. Kill test belongs with OUT-004 autosave. |

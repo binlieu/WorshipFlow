@@ -12,7 +12,7 @@ Implementation IDs are three-digit (ADR-0002). "Catalogue" lists the `docs/MASTE
 
 | ID | Slice | Catalogue | Depends on | Model | Why this model | Status |
 |---|---|---|---|---|---|---|
-| SYS-001 | SQLite store through GRDB: schema v1, migrations, autosave, crash recovery | NFR-06, NFR-07 | OUT-001 | Sonnet | Persistence with test-first migrations | In progress |
+| SYS-001 | SQLite store through GRDB: schema v1, migrations, autosave, crash recovery | NFR-06, NFR-07 | OUT-001 | Sonnet | Persistence with test-first migrations | Unit Tested. Follow-ups: observation streams, debounced autosave (with OUT-004), tables for groups, arrangements, themes, media |
 | SLIDE-001 | Slide and presentation model, text and shape and image objects, fills and effects | PRES-01, MEDIA-07 | SYS-001 | Sonnet | Domain plus render integration | Todo |
 | SLIDE-002 | Themes and templates, bilingual text areas | PRES-06, PRES-10 | SLIDE-001 | Sonnet | Feature work | Todo |
 | LIB-001 | Libraries and presentations: create, rename, delete, move | PRES-02 | SYS-001 | Sonnet | Repository plus UI | Todo |

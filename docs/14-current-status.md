@@ -11,7 +11,8 @@ Phase 0 (render spike) is implemented and unit tested; its timing exit criterion
 | Slice | Implemented | Unit Tested | Simulated | Hardware Verified | Live-Service Verified |
 |---|---|---|---|---|---|
 | OUT-001 render spike | Yes | Yes (21 tests) | n/a | Not Verified | Not Verified |
-| SYS-001 SQLite store | In progress | Not Verified | n/a | n/a | Not Verified |
+| SYS-001 SQLite store | Yes | Yes | n/a | n/a | Not Verified |
+| OUT-002 screens and live control | In progress | Not Verified | Not Verified | Not Verified | Not Verified |
 
 Every other slice in `AI/TASK-BREAKDOWN.md` is Todo.
 
