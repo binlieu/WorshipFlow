@@ -31,6 +31,8 @@ let package = Package(
         // MEDIA-002: media transport rules.
         .testTarget(name: "MediaRulesTests", dependencies: ["Domain"]),
         .testTarget(name: "MediaEngineTests", dependencies: ["MediaEngine", "Domain"]),
+        // SLIDE-001a: slide objects (shapes, images, text boxes) across model, compositor and storage.
+        .testTarget(name: "SlideObjectTests", dependencies: ["Domain", "RenderEngine", "Persistence"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
