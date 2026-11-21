@@ -57,21 +57,35 @@ One window, sized for 1440 × 900 pt minimum comfortable, 1100 × 640 pt hard mi
 
 | Region | Size | Contents |
 |---|---|---|
-| Toolbar | 52 pt | Sidebar toggle, service title, **mode switcher**, output chips, search (⌘F) |
-| Sidebar | 256 pt (240–380) | Libraries, library items, playlist |
-| Centre | flexible, ≥ 460 pt | The mode's main surface |
-| Inspector | 372 pt (320–440) | Preview and Live monitors, screens, Look, props, timers — or the mode's inspector |
+| Toolbar | 52 pt | Sidebar toggle, service title, **mode switcher**, timers, output chips |
+| Sidebar | 256 pt (240–380) | Search, libraries, library items, playlist |
+| Centre | flexible, ≥ 460 pt | The mode's main surface; in Show, the slide grid over the media bin dock |
+| Inspector | 372 pt (320–440) | Preview and Live monitors, screens, Look, then tabs (Props, Cues, Audio, Quick edit) — or the mode's inspector |
 | Transport bar | 56 pt | Live state and current line, Previous / Go Live / Next, Clear, Blackout, Stop, frame health, audio meters |
 
 The mode switcher is a segmented control with six modes. **Show**, **Media** and **Cues** keep the transport bar; **Edit**, **Stage** and **Screens** are preparation modes and drop it to give the canvas room, but the toolbar chips still show what is live.
 
 ## Screens
 
-### 1. Show — operator workspace (`OUT-004`, `LIB`, `CUE`)
+### 1. Show — operator workspace (`OUT-004`, `LIB`, `MEDIA`, `CUE`)
 
 ![Show](screens/01-operator-show.png)
 
-The existing workspace, reorganised. Slides are grouped by section with coloured labels; the playlist gains headers (Pre-service, Worship, Message, Response). Preview and Live sit side by side at the top of the inspector so the operator compares them at a glance, with Stage and Broadcast thumbnails beneath. Looks are four large buttons, not a pop-up. The quick-edit strip under the grid states plainly that it edits Preview only.
+Everything the operator changes during a service is on this one screen.
+
+- **Sidebar.** One search field at the top of Libraries searches titles and lyrics (⌘F) and filters the list beneath it; there is no separate search in the toolbar.
+- **Slides.** Five across, grouped by section with coloured labels.
+- **Media bin dock.** Under the slide grid: tabs for Backgrounds, Videos, Images and Audio, a strip of thumbnails with the same Preview and Live rings as slides, and a choice of background or foreground layer. Clicking a tile changes the media without leaving Show. The dock can be collapsed with the chevron.
+- **Media controller.** The row under the thumbnails drives whatever clip is running: restart, pause, stop, elapsed and remaining time, scrubber, loop, volume, and the screens it is on. It appears only while a video or audio file is loaded.
+- **Monitors.** Preview and Live side by side, Stage and Broadcast beneath, each captioned with its connector.
+- **Look.** One compact row of short buttons (Full, Notes, Lower 3rd, BG only) with a chevron for the rest.
+- **Tabs.** Props, Cues and Audio share the lower part of the right-hand column, so it can grow without crowding.
+- **Timers.** Service elapsed and the sermon countdown sit in the toolbar beside the AUD, STG and BRD chips, visible in every mode.
+- **Screen configuration** is not on this screen; it lives in the Screens tab of the mode switcher.
+
+![Quick edit](screens/01b-operator-show-quick-edit.png)
+
+**Quick edit** (⌘E) adds a fourth tab on the right with only the current slide's two languages and notes, a small "Preview only" chip, and Done (esc). The tab is absent when nothing is being edited.
 
 Light theme: `screens/09-operator-show-light.png`.
 
@@ -99,7 +113,7 @@ Layouts on the left, a 1080p canvas with labelled elements (current, next, clock
 
 ![Media](screens/05-media-audio.png)
 
-Media bin grid with kind and duration on each tile, the same Preview/Live rings as slides, a transport strip with in/out and markers, and an audio panel with cue player, routing matrix, device choice and levels. Offline media is called out in the sidebar with a Locate action.
+The full library view of what the Show dock offers: media bin grid with kind and duration on each tile, the same Preview/Live rings as slides, a transport strip with in/out and markers, and an audio panel with cue player, routing matrix, device choice and levels. Offline media is called out in the sidebar with a Locate action.
 
 ### 6. Cues — macros, slide actions, control inputs (`CUE`)
 
@@ -181,6 +195,7 @@ SF Symbols in the app; the mockups use simple line stand-ins. Suggested symbols 
 ## Building it in SwiftUI
 
 - Put the colours in the asset catalog as named colour sets with Any/Dark appearances (`Color("surface")`), not as literals. Output colours (`canvas`, `lyric-ink`, `lyric-ink-2`, `plate`) are render-engine constants and do not follow the operator's appearance.
+- The media bin dock is a `VSplitView` pane under the slide grid, reusing `MediaBinPanel` and `MediaTransportStrip`; remember its height and collapsed state in settings.
 - Mode switcher: `Picker` with `.segmented` in a `ToolbarItem(placement: .principal)`. Sidebar and inspector: the existing `NavigationSplitView` plus `.inspector`, or keep `HSplitView`.
 - Use regular control size for everything except the transport bar (`.controlSize(.large)`). The Go Live button is `.borderedProminent` tinted `live-fill`.
 - Thumbnail rings are overlays outside the image (2 pt offset) so they never cover lyric text.

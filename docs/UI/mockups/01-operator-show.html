@@ -1,19 +1,39 @@
 <!doctype html><meta charset="utf-8"><title>WORSHIPFLOW — Show</title><link rel="stylesheet" href="ui.css"><script src="ui.js"></script>
 <style>.body{display:grid;grid-template-columns:256px 1fr 372px;min-height:0}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 12px}
-.sl{font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;margin:14px 0 8px}.sl:first-child{margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0 10px}
+.sl{font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;margin:0 0 5px}.grid+.sl{margin-top:9px}
 .mon .thumb{border-radius:6px}.mh{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.look{display:grid;grid-template-columns:1fr 1fr;gap:6px}.look .btn{justify-content:center}
+.dock{border-top:1px solid var(--border);background:var(--surface)}.mrow{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;padding:10px 14px 6px}
+.m{background-size:cover}.dur{position:absolute;right:4px;bottom:4px;font:600 9px/13px "SF Mono",ui-monospace,monospace;background:rgba(0,0,0,.6);padding:0 3px;border-radius:3px}
+.scrub{height:5px;border-radius:3px;background:var(--surface-3);position:relative;flex:1}.scrub i{position:absolute;left:0;top:0;bottom:0;width:38%;background:var(--cyan);border-radius:3px}.scrub u{position:absolute;left:38%;top:-4px;width:13px;height:13px;border-radius:50%;background:#fff;margin-left:-6px;box-shadow:0 0 0 1px var(--border-strong)}
+.ctl{display:flex;align-items:center;gap:8px;padding:6px 14px 10px}.ib{height:24px;width:28px;padding:0;justify-content:center}
+.lk{display:flex;gap:4px}.lk .btn{flex:1;justify-content:center;padding:0 4px;height:24px;font-size:11px}
+.prow{display:flex;align-items:center;gap:8px;height:28px}
 </style><body><div class="win" id="w"></div><script>
+const ED=new URLSearchParams(location.search).get('edit')==='1';
+const G=['radial-gradient(110% 100% at 80% 90%,#2d7d6c,#123b52 50%,#050f1c)','radial-gradient(120% 90% at 20% 10%,#1f6f8f,#0c2f55 45%,#05101f)','linear-gradient(160deg,#3b2a5c,#0d1c3a 60%,#04101e)','linear-gradient(200deg,#7a4b1d,#3a1d24 55%,#0a0d1a)','radial-gradient(90% 90% at 50% 50%,#35506e,#0b1626)','linear-gradient(135deg,#0f4c5c,#062138)','linear-gradient(20deg,#1d2a4a,#0a1020)'];
 const sec=(c,n,r)=>`<div class="sl"><span class="dot" style="color:var(--${c})"></span><span style="color:var(--${c})">${n}</span><span class="c-muted" style="font-weight:400">${r||''}</span></div>`;
-const cell=(n,a,b,cls,tag,cap)=>`<div>${thumb(a,b,cls,tag)}<div class="cap"><b>${n}</b>${cap}</div></div>`;
+const cell=(n,a,b,cls,tag,cap)=>`<div>${thumb(a,b,cls,tag)}<div class="cap" style="margin-top:3px"><b>${n}</b>${cap}</div></div>`;
+const med=(n,d,g,cls='',tag='')=>`<div><div class="thumb m ${cls}" style="background:${G[g]}">${tag}${d?`<span class="dur">${d}</span>`:''}</div><div class="cap" style="margin-top:3px"><b style="overflow:hidden;text-overflow:ellipsis;font-weight:500">${n}</b></div></div>`;
 const LIVE='<span class="tag">LIVE</span>',PV='<span class="tag pv">PREVIEW</span>';
+const propsTab=`<div class="sec">
+  <div class="prow">${I('image')}Church logo bug<span class="grow"></span><span class="pill c-aud" style="height:16px">AUD</span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl on"></span></div>
+  <div class="prow">${I('text')}Service title strap<span class="grow"></span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl"></span></div>
+  <div class="prow">${I('text')}Speaker name<span class="grow"></span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl"></span></div>
+  <div class="prow">${I('mega')}Giving reminder<span class="grow"></span><span class="pill c-aud" style="height:16px">AUD</span><span class="tgl"></span></div></div>
+ <div class="sec grow"><div class="h" style="margin-bottom:6px">Stage message</div><div class="row"><span class="field ph grow">Wrap up in 2 min…</span><span class="btn">${I('msg','s')}Send</span></div></div>`;
+const editTab=`<div class="sec grow"><div class="row" style="margin-bottom:8px"><b>Slide 4 of 9</b><span class="c-muted" style="font-size:11px">Chorus</span><span class="grow"></span><span class="pill c-aud" style="height:18px">Preview only</span></div>
+  <div class="h" style="margin-bottom:4px">English</div><div class="field" style="height:46px;align-items:flex-start;padding-top:5px;border-color:var(--sel);box-shadow:0 0 0 2px color-mix(in srgb,var(--sel) 35%,transparent)">My God, my Savior<br>has ransomed me</div>
+  <div class="h" style="margin:8px 0 4px">Tiếng Việt</div><div class="field" style="height:46px;align-items:flex-start;padding-top:5px">Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi</div>
+  <div class="h" style="margin:8px 0 4px">Speaker notes · stage only</div><div class="field ph" style="height:30px">None</div>
+  <div class="row" style="margin-top:10px"><span class="c-muted" style="font-size:11px">Saved 2 s ago · live at next trigger</span><span class="grow"></span><span class="btn">Done <span class="kbd">esc</span></span></div></div>`;
 w.innerHTML=toolbar('Show')+`<div class="body">
 <div class="side">
  <div class="sec"><div class="row" style="margin-bottom:6px"><span class="h">Libraries</span><span class="grow"></span>${I('plus','s')}</div>
+  <div class="field ph" style="margin-bottom:6px">${I('search','s')}Search titles and lyrics<span class="car kbd">⌘F</span></div>
   <div class="li on">${I('music')}Songs<span class="n">214</span></div><div class="li">${I('book')}Scripture<span class="n">38</span></div>
   <div class="li">${I('text')}Sermons<span class="n">12</span></div><div class="li">${I('mega')}Announcements<span class="n">9</span></div></div>
- <div class="sec" style="flex:0 0 190px;overflow:hidden"><div class="field ph" style="margin-bottom:6px">${I('search','s')}Filter songs</div>
+ <div class="sec" style="flex:0 0 152px;overflow:hidden">
   <div class="li">${I('music')}10,000 Reasons</div><div class="li on">${I('music')}Amazing Grace<span class="n">EN · VI</span></div><div class="li">${I('music')}Be Thou My Vision</div><div class="li">${I('music')}Great Is Thy Faithfulness</div><div class="li">${I('music')}How Great Thou Art</div></div>
  <div class="sec grow"><div class="row" style="margin-bottom:6px"><span class="h">Playlist</span><span class="field" style="height:22px;margin-left:6px">Sunday 9:00 ${I('down','s')}</span><span class="grow"></span>${I('dots')}</div>
   <div class="li sub">Pre-service</div><div class="li">${I('timer')}Countdown 5:00</div><div class="li">${I('mega')}Announcements loop</div>
@@ -24,34 +44,32 @@ w.innerHTML=toolbar('Show')+`<div class="body">
 </div>
 <div class="main">
  <div class="bar"><span style="font-size:17px;font-weight:700;line-height:22px;white-space:nowrap">Amazing Grace</span><span class="field" style="margin-left:8px">Arrangement: Sunday ${I('down','s')}</span><span class="pill c-muted">EN + VI</span><span class="grow"></span>
-  <span class="btn">${I('plus')}Add slide</span><span class="btn">${I('reflow')}Reflow…</span><span class="btn">${I('edit')}Quick edit <span class="kbd">⌘E</span></span><div class="seg"><b class="on">${I('grid','s')}</b><b>${I('list','s')}</b></div></div>
- <div style="padding:14px;overflow:hidden;flex:1">
-  ${sec('verse','Verse 1')}<div class="grid">${cell(1,'Amazing grace, how sweet the sound<br>That saved a wretch like me','Ân điển lạ lùng thay<br>Đã cứu vớt tôi','bg1','','Amazing grace, how sweet…')}${cell(2,'I once was lost, but now am found<br>Was blind, but now I see','Tôi từng lạc mất, nay được tìm thấy<br>Từng mù loà, nay tôi thấy','bg1','','I once was lost…')}</div>
+  <span class="btn">${I('plus')}Add slide</span><span class="btn">${I('reflow')}Reflow…</span><span class="btn" ${ED?'style="box-shadow:0 0 0 2px var(--sel)"':''}>${I('edit')}Quick edit <span class="kbd">⌘E</span></span><div class="seg"><b class="on">${I('grid','s')}</b><b>${I('list','s')}</b></div></div>
+ <div style="padding:10px 14px;overflow:hidden;flex:1">
+  ${sec('verse','Verse 1')}<div class="grid">${cell(1,'Amazing grace, how sweet the sound<br>That saved a wretch like me','Ân điển lạ lùng thay<br>Đã cứu vớt tôi','bg1','','Amazing grace…')}${cell(2,'I once was lost, but now am found<br>Was blind, but now I see','Tôi từng lạc mất, nay được tìm thấy<br>Từng mù loà, nay tôi thấy','bg1','','I once was lost…')}</div>
   ${sec('chorus','Chorus','× 2')}<div class="grid">${cell(3,'My chains are gone<br>I’ve been set free','Xiềng xích đã tan<br>Tôi được tự do','bg2 live',LIVE,'My chains are gone…')}${cell(4,'My God, my Savior<br>has ransomed me','Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi','bg2 sel',PV,'My God, my Savior…')}${cell(5,'And like a flood<br>His mercy reigns','Như dòng nước lũ<br>ơn thương xót Ngài tuôn tràn','bg2','','And like a flood…')}${cell(6,'Unending love<br>Amazing grace','Tình yêu vô tận<br>Ân điển lạ lùng','bg2','','Unending love…')}</div>
-  ${sec('verse','Verse 2')}<div class="grid">${cell(7,'’Twas grace that taught my heart to fear<br>And grace my fears relieved','Chính ân điển dạy lòng tôi kính sợ<br>Và ân điển xua tan sợ hãi','bg1','','’Twas grace that taught…')}${cell(8,'How precious did that grace appear<br>The hour I first believed','Ân điển ấy quý báu dường bao<br>Giờ tôi mới tin','bg1','','How precious did…')}</div>
-  ${sec('bridge','Ending')}<div class="grid">${cell(9,'','','bg3','','Blank — motion background only')}</div>
+  ${sec('verse','Verse 2')}<div class="grid">${cell(7,'’Twas grace that taught my heart to fear<br>And grace my fears relieved','Chính ân điển dạy lòng tôi kính sợ<br>Và ân điển xua tan sợ hãi','bg1','','’Twas grace…')}${cell(8,'How precious did that grace appear<br>The hour I first believed','Ân điển ấy quý báu dường bao<br>Giờ tôi mới tin','bg1','','How precious…')}</div>
+  ${sec('bridge','Ending')}<div class="grid">${cell(9,'','','bg3','','Blank · background only')}</div>
  </div>
- <div style="border-top:1px solid var(--border);padding:8px 14px;background:var(--surface)"><div class="row" style="margin-bottom:6px"><b>Slide 4 of 9</b><span class="pill c-aud">In preview</span><span class="grow"></span><span class="c-muted" style="font-size:11px">Editing here changes Preview only. The audience sees it when you go live again.</span></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"><div class="field" style="height:44px;align-items:flex-start;padding-top:5px">My God, my Savior<br>has ransomed me</div><div class="field" style="height:44px;align-items:flex-start;padding-top:5px">Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi</div><div class="field ph" style="height:44px;align-items:flex-start;padding-top:5px">Speaker notes — stage screens only</div></div></div>
+ <div class="dock">
+  <div class="tabs" style="align-items:center"><span class="h" style="margin-right:6px">Media bin</span><b class="on">${I('film','s')}Backgrounds</b><b>${I('film','s')}Videos</b><b>${I('image','s')}Images</b><b>${I('music','s')}Audio</b><span class="grow"></span>
+   <div class="seg" style="margin:4px 0"><b class="on">Background layer</b><b>Foreground</b></div><span class="btn ghost" style="height:22px;padding:0 4px">${I('plus','s')}</span><span class="btn ghost" style="height:22px;padding:0 4px">${I('down','s')}</span></div>
+  <div class="mrow">${med('Waves — teal','0:30',0,'live',LIVE)}${med('Deep blue drift','0:20',1,'sel')}${med('Violet haze','0:45',2)}${med('Dawn light','1:00',3)}${med('Soft particles','0:30',4)}${med('Ocean slow','0:40',5)}${med('Night sky','0:25',6)}</div>
+  <div class="ctl"><span class="btn ib">${I('prev','s')}</span><span class="btn ib" style="background:var(--surface-3)">${I("pause","s")}</span><span class="btn ib">${I("stop",'s')}</span>
+   <b style="white-space:nowrap;font-size:12px">Waves — teal.mov</b><span class="mono">00:11.4</span><div class="scrub"><i></i><u></u></div><span class="mono c-muted">−00:18.6</span>
+   <span class="pill c-ok" style="height:22px">${I('loop','s')}Loop</span>${I('speaker')}<div class="scrub" style="flex:0 0 70px"><i style="width:60%;background:var(--blue)"></i><u style="left:60%"></u></div><span class="pill c-aud" style="height:18px">AUD</span></div>
+ </div>
 </div>
 <div class="side r">
- <div class="sec mon" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+ <div class="sec mon" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
   <div><div class="mh"><span class="badge c-aud">Preview</span><span class="c-muted" style="font-size:11px">slide 4</span></div>${thumb('My God, my Savior<br>has ransomed me','Chúa tôi, Cứu Chúa tôi<br>đã chuộc tôi','bg2 sel')}</div>
-  <div><div class="mh"><span class="badge fill" style="background:var(--live-fill);color:#fff">Live</span><span class="c-muted" style="font-size:11px">Audience</span></div>${thumb('My chains are gone<br>I’ve been set free','Xiềng xích đã tan<br>Tôi được tự do','bg2 live')}</div></div>
- <div class="sec mon"><div class="row" style="margin-bottom:8px"><span class="h">Screens</span><span class="grow"></span><span class="btn ghost" style="height:20px">Configure…</span></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div><div class="mh"><span class="badge fill" style="background:var(--live-fill);color:#fff">Live</span><span class="c-muted" style="font-size:11px">Audience · SDI 3</span></div>${thumb('My chains are gone<br>I’ve been set free','Xiềng xích đã tan<br>Tôi được tự do','bg2 live')}</div>
   <div><div class="thumb" style="align-items:flex-start;text-align:left;padding:6%"><div class="l1" style="font-size:8cqw">My chains are gone<br>I’ve been set free</div><div class="l1" style="font-size:5.5cqw;color:#9fb2c7;margin-top:4cqw">NEXT · My God, my Savior</div><div style="position:absolute;right:6%;top:6%;font-size:6cqw;font-weight:700;color:#ffd17b">10:32</div></div>
-   <div class="cap"><span class="dot c-stg"></span><b>Stage</b>SDI 4 · 1080p59.94</div></div>
+   <div class="cap"><span class="dot c-stg"></span><b>Stage</b>SDI 4</div></div>
   <div><div class="thumb checker" style="justify-content:flex-end;padding-bottom:5%"><div style="background:rgba(7,19,33,.86);width:88%;border-radius:1.5cqw;padding:2.5cqw"><div class="l1" style="font-size:5.4cqw">My chains are gone, I’ve been set free</div><div class="l2" style="margin-top:1cqw;font-size:4.2cqw">Xiềng xích đã tan, tôi được tự do</div></div></div>
-   <div class="cap"><span class="dot c-brd"></span><b>Broadcast</b>SDI 1+2 · Fill + Key</div></div></div>
-  <div class="row mono c-muted" style="margin-top:8px"><span class="badge c-brd" style="font-family:Inter">Simulated</span>Not Hardware Verified</div></div>
- <div class="sec"><div class="h" style="margin-bottom:8px">Look</div><div class="look"><span class="btn" style="box-shadow:0 0 0 2px var(--sel)">Worship — full</span><span class="btn">Sermon — notes</span><span class="btn">Lower third only</span><span class="btn">Background only</span></div></div>
- <div class="sec"><div class="h" style="margin-bottom:8px">Props and messages</div>
-  <div class="row" style="height:26px">${I('image')}Church logo bug<span class="grow"></span><span class="pill c-aud" style="height:16px">AUD</span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl on"></span></div>
-  <div class="row" style="height:26px">${I('text')}Service title strap<span class="grow"></span><span class="pill c-brd" style="height:16px">BRD</span><span class="tgl"></span></div>
-  <div class="row" style="height:26px">${I('msg')}Stage message<span class="grow"></span><span class="field ph" style="width:150px;height:22px">Wrap up in 2 min…</span></div></div>
- <div class="sec grow"><div class="h" style="margin-bottom:8px">Timers</div>
-  <div class="row" style="height:28px">${I('clock')}Service elapsed<span class="grow"></span><b class="mono" style="font-size:15px">00:10:32</b></div>
-  <div class="row" style="height:28px">${I('timer')}Sermon countdown<span class="grow"></span><b class="mono c-muted" style="font-size:15px">25:00</b><span class="btn" style="height:22px">${I('play','s')}Start</span></div></div>
+   <div class="cap"><span class="dot c-brd"></span><b>Broadcast</b>SDI 1+2<span class="grow"></span><span class="badge c-brd" style="font-size:9px">Sim</span></div></div></div>
+ <div class="sec" style="padding-top:8px;padding-bottom:8px"><div class="row"><span class="h" style="width:36px">Look</span><div class="lk grow"><span class="btn" style="background:var(--surface-3);box-shadow:0 0 0 1.5px var(--sel)">Full</span><span class="btn">Notes</span><span class="btn">Lower 3rd</span><span class="btn">BG only</span></div><span class="btn ghost" style="height:24px;padding:0 2px">${I('down','s')}</span></div></div>
+ <div class="tabs"><b class="${ED?'':'on'}">Props</b><b>Cues</b><b>Audio</b><b class="${ED?'on':''}" style="${ED?'':'display:none'}">${I('edit','s')}Quick edit<span class="dot c-aud" style="width:6px;height:6px"></span></b></div>
+ ${ED?editTab:propsTab}
 </div></div>`+transport();
 </script></body>

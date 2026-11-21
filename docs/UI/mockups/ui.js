@@ -1,4 +1,4 @@
-const P={sidebar:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M9 5v14"/>',search:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',plus:'<path d="M12 5v14M5 12h14"/>',
+const P={pause:'<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/>',sidebar:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M9 5v14"/>',search:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',plus:'<path d="M12 5v14M5 12h14"/>',
 play:'<path d="M7 5v14l12-7z" fill="currentColor"/>',prev:'<path d="M11 6 4 12l7 6zM20 6l-7 6 7 6z" fill="currentColor"/>',next:'<path d="m13 6 7 6-7 6zM4 6l7 6-7 6z" fill="currentColor"/>',
 stop:'<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>',clear:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m5 19 14-14"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/>',
 music:'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',book:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/>',
@@ -19,8 +19,8 @@ const MODES=[['Show','play'],['Edit','edit'],['Media','film'],['Stage','stage'],
 const toolbar=(mode,extra='')=>`<div class="tb"><div class="lights"><i></i><i></i><i></i></div><span class="btn ghost">${I('sidebar')}</span>
 <div class="col"><span class="title">Sunday 9:00 — 22 Nov</span><span class="sub">WORSHIPFLOW · Lakeshore library</span></div><div class="grow"></div>
 <div class="seg">${MODES.map(m=>`<b class="${m[0]==mode?'on':''}">${I(m[1],'s')}${m[0]}</b>`).join('')}</div><div class="grow"></div>${extra}
-<span class="pill c-aud"><span class="d"></span>AUD</span><span class="pill c-stg"><span class="d"></span>STG</span><span class="pill c-brd"><span class="d"></span>BRD</span>
-<div class="field ph search">${I('search')}Search titles and lyrics<span class="car kbd">⌘F</span></div></div>`;
+<div class="tm">${I('clock','s')}<span class="c-muted">Service</span><b class="mono">00:10:32</b><span class="sep"></span>${I('timer','s')}<span class="c-muted">Sermon</span><b class="mono c-muted">25:00</b><span class="btn" style="height:20px;padding:0 6px">${I('play','s')}</span></div>
+<span class="pill c-aud"><span class="d"></span>AUD</span><span class="pill c-stg"><span class="d"></span>STG</span><span class="pill c-brd"><span class="d"></span>BRD</span></div>`;
 const transport=(state='live')=>`<div class="tp">
 <span class="badge fill" style="background:var(--live-fill);color:#fff;font-size:11px;padding:3px 8px">LIVE</span>
 <div class="col" style="min-width:0"><span style="font-weight:600;white-space:nowrap">My chains are gone, I’ve been set free</span><span class="sub c-muted" style="font-size:11px">Amazing Grace · Chorus · slide 3 of 9</span></div><div class="grow"></div>
