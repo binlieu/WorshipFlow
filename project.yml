@@ -22,6 +22,8 @@ targets:
         product: MediaEngine
       - package: WorshipFlowKit
         product: OutputEngine
+      - package: WorshipFlowKit
+        product: Persistence
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app
