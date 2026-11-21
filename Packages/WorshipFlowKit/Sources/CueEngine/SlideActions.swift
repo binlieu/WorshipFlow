@@ -52,6 +52,12 @@ public struct SlideActionSet: Sendable, Equatable, Codable {
 
     public init() { bySlide = [:] }
 
+    /// For data read from storage, which may break the transport rule (a macro was edited after the slide was set up).
+    /// Empty lists are dropped. Use `problems(library:)` to look for trouble.
+    public init(unvalidated actions: [UUID: [CueAction]]) {
+        bySlide = actions.filter { !$0.value.isEmpty }
+    }
+
     public var slideIDs: [UUID] { bySlide.keys.sorted { $0.uuidString < $1.uuidString } }
 
     public func actions(for slideID: UUID) -> [CueAction] { bySlide[slideID] ?? [] }

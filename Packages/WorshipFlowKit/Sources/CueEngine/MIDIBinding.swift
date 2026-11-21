@@ -104,6 +104,9 @@ private extension ClosedRange where Bound == Int {
 }
 
 public struct MIDIBinding: Sendable, Equatable, Hashable, Codable, Identifiable {
+    /// CUE-002a: the stored format version. A missing version reads as 1.
+    public static let currentVersion = 1
+
     public var id: UUID
     public var name: String
     public var pattern: MIDIPattern
@@ -115,6 +118,25 @@ public struct MIDIBinding: Sendable, Equatable, Hashable, Codable, Identifiable 
         self.pattern = pattern
         self.command = command
     }
+
+    private enum CodingKeys: String, CodingKey { case version, id, name, pattern, command }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        pattern = try c.decode(MIDIPattern.self, forKey: .pattern)
+        command = try c.decode(MIDICommand.self, forKey: .command)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.currentVersion, forKey: .version)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(pattern, forKey: .pattern)
+        try c.encode(command, forKey: .command)
+    }
 }
 
 public struct MIDIConflict: Sendable, Equatable, Hashable {
@@ -124,9 +146,25 @@ public struct MIDIConflict: Sendable, Equatable, Hashable {
 }
 
 public struct MIDIBindingSet: Sendable, Equatable, Codable {
+    /// CUE-002a: the stored format version. A missing version reads as 1.
+    public static let currentVersion = 1
+
     public var bindings: [MIDIBinding]
 
     public init(bindings: [MIDIBinding] = []) { self.bindings = bindings }
+
+    private enum CodingKeys: String, CodingKey { case version, bindings }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        bindings = try c.decodeIfPresent([MIDIBinding].self, forKey: .bindings) ?? []
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.currentVersion, forKey: .version)
+        try c.encode(bindings, forKey: .bindings)
+    }
 
     /// The first binding, in list order, whose pattern matches.
     public func binding(for message: MIDIMessage) -> MIDIBinding? {

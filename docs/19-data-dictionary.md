@@ -257,3 +257,58 @@ Primary key `(translationID, bookOrder, chapter, verse)`. A full Bible is about 
 ### Derived scripture search index (not a migration)
 
 `scriptureSearch` is an FTS5 virtual table `(textFolded, translationID UNINDEXED, bookOrder UNINDEXED, chapter UNINDEXED, verse UNINDEXED)`, tokenizer `unicode61 remove_diacritics 0`. Created at open when the system SQLite has FTS5 and rebuilt from `scriptureVerse` if missing; dropped when FTS5 is absent, in which case search uses `LIKE` on `textFolded`. It is only read through a join to `scriptureVerse`, so a stale row cannot produce a result. `ScriptureStore` writes it in the same transaction as the verses.
+
+## Schema v9 (migration `v9`, CUE-002a)
+
+Show control: macros, slide actions, scheduled events, the schedule engine's state and MIDI bindings. Every `definition` and `state` column is JSON text written by `CueStore` with sorted keys and a top-level `version` (currently 1 for each shape). A missing version reads as 1; a newer version is read as far as it is understood and is never overwritten by an older build. UUIDs inside the JSON are the engine's own `Codable` form (upper-case text); dates inside the JSON are seconds since 2001-01-01 (`Date`'s default), so a fractional second survives. Rows of earlier tables are not touched.
+
+### cueMacro
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | Copy of the name inside `definition`, for listing; `definition` is the source of truth |
+| definition | TEXT NOT NULL | `Macro` JSON: `{"version", "id", "name", "steps": [action, ...]}`. Actions are `CueAction` objects (`kind` plus fields); an unknown kind is kept as it is |
+| sortOrder | INTEGER NOT NULL | Dense 0...n-1; the operator's order. Index `cueMacro_on_sortOrder` |
+| createdAt | DATETIME NOT NULL | |
+| updatedAt | DATETIME NOT NULL | |
+
+A macro may name a macro that is not stored (macros are saved in any order); cycles and nesting deeper than 8 are refused at save.
+
+### cueSlideActions
+| Column | Type | Notes |
+|---|---|---|
+| slideID | TEXT PK | FK `slide.id`, ON DELETE CASCADE. At most one row per slide |
+| definition | TEXT NOT NULL | `CueActionList` JSON: `{"version", "actions": [...]}`. Transport actions are refused at save, also through macros |
+| createdAt | DATETIME NOT NULL | |
+| updatedAt | DATETIME NOT NULL | |
+
+`LibraryStore.replaceContent` (a reflow) deletes and re-creates a presentation's slides, which would cascade these rows away; it takes them out first and writes them back, in the same transaction, against the new ids of the slides whose words did not change (the same matching as speaker notes: same section, same first-language words, first unused match). Rows of slides that nothing matches are dropped.
+
+### cueScheduledEvent
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| name | TEXT NOT NULL | Copy of the name inside `definition` |
+| enabled | BOOLEAN NOT NULL | Copy of `isEnabled` inside `definition` |
+| definition | TEXT NOT NULL | `ScheduledEvent` JSON: `{"version", "id", "name", "isEnabled", "timing", "payload", "activeFrom"}`. `payload` is a list of actions or a macro id |
+| createdAt | DATETIME NOT NULL | |
+| updatedAt | DATETIME NOT NULL | |
+
+No sort column: events list in insertion order (`rowid`), which the engine uses to order events that fall at the same time. A replaced row keeps its place.
+
+### cueScheduleState
+| Column | Type | Notes |
+|---|---|---|
+| id | INTEGER PK | CHECK `id = 1`: one row |
+| state | TEXT NOT NULL | `ScheduleEngineState` JSON: `{"version", "gracePeriod", "lastHandled": [{"event", "at"}, ...], "lastCheckedAt"}` |
+| lastCheckedAt | DATETIME | Copy of `lastCheckedAt` inside `state`, written in the same statement |
+| updatedAt | DATETIME NOT NULL | |
+
+`lastHandled` entries for events that no longer exist are dropped when the event is deleted and ignored when the library is loaded.
+
+### cueMIDIBinding
+| Column | Type | Notes |
+|---|---|---|
+| id | TEXT PK | UUID |
+| definition | TEXT NOT NULL | `MIDIBinding` JSON: `{"version", "id", "name", "pattern", "command"}` |
+| sortOrder | INTEGER NOT NULL | Dense 0...n-1; the engine uses the first binding in this order that matches. Index `cueMIDIBinding_on_sortOrder` |

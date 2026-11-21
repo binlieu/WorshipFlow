@@ -14,6 +14,9 @@ public enum Weekday: Int, Sendable, Equatable, Hashable, Codable, CaseIterable {
 }
 
 public struct ScheduledEvent: Sendable, Equatable, Codable, Identifiable {
+    /// CUE-002a: the stored format version. A missing version reads as 1.
+    public static let currentVersion = 1
+
     public enum Timing: Sendable, Equatable, Codable {
         case once(Date)
         case weekly(weekdays: Set<Weekday>, hour: Int, minute: Int, timeZoneID: String)
@@ -40,6 +43,29 @@ public struct ScheduledEvent: Sendable, Equatable, Codable, Identifiable {
         self.timing = timing
         self.payload = payload
         self.activeFrom = activeFrom
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, id, name, isEnabled, timing, payload, activeFrom }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        timing = try c.decode(Timing.self, forKey: .timing)
+        payload = try c.decode(Payload.self, forKey: .payload)
+        activeFrom = try c.decodeIfPresent(Date.self, forKey: .activeFrom) ?? .distantPast
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.currentVersion, forKey: .version)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(isEnabled, forKey: .isEnabled)
+        try c.encode(timing, forKey: .timing)
+        try c.encode(payload, forKey: .payload)
+        try c.encode(activeFrom, forKey: .activeFrom)
     }
 
     public var cueActions: [CueAction] {
@@ -182,8 +208,46 @@ public struct ScheduleDue: Sendable, Equatable {
     }
 }
 
+/// CUE-002a: what the engine remembers between runs, apart from its events: the grace period, the last occurrence
+/// handled per event, and the latest check. The store keeps the events one per row and this in a single row.
+public struct ScheduleEngineState: Sendable, Equatable, Codable {
+    public static let currentVersion = 1
+
+    public var gracePeriod: TimeInterval
+    public var lastHandled: [UUID: Date]
+    public var lastCheckedAt: Date?
+
+    public init(gracePeriod: TimeInterval = ScheduleEngine.defaultGracePeriod, lastHandled: [UUID: Date] = [:], lastCheckedAt: Date? = nil) {
+        self.gracePeriod = gracePeriod
+        self.lastHandled = lastHandled
+        self.lastCheckedAt = lastCheckedAt
+    }
+
+    private struct Handled: Codable { var event: UUID; var at: Date }
+    private enum CodingKeys: String, CodingKey { case version, gracePeriod, lastHandled, lastCheckedAt }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        gracePeriod = try c.decodeIfPresent(TimeInterval.self, forKey: .gracePeriod) ?? ScheduleEngine.defaultGracePeriod
+        let entries = try c.decodeIfPresent([Handled].self, forKey: .lastHandled) ?? []
+        lastHandled = Dictionary(entries.map { ($0.event, $0.at) }, uniquingKeysWith: { a, b in max(a, b) })
+        lastCheckedAt = try c.decodeIfPresent(Date.self, forKey: .lastCheckedAt)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.currentVersion, forKey: .version)
+        try c.encode(gracePeriod, forKey: .gracePeriod)
+        // A dictionary keyed by UUID would be written as a flat array; a list of entries in a fixed order reads better.
+        try c.encode(lastHandled.sorted { $0.key.uuidString < $1.key.uuidString }.map { Handled(event: $0.key, at: $0.value) }, forKey: .lastHandled)
+        try c.encodeIfPresent(lastCheckedAt, forKey: .lastCheckedAt)
+    }
+}
+
 public struct ScheduleEngine: Sendable, Equatable, Codable {
     public static let defaultGracePeriod: TimeInterval = 300
+    /// CUE-002a: the stored format version of the whole engine. A missing version reads as 1.
+    public static let currentVersion = 1
 
     public var events: [ScheduledEvent]
     public var gracePeriod: TimeInterval
@@ -197,6 +261,35 @@ public struct ScheduleEngine: Sendable, Equatable, Codable {
         self.gracePeriod = gracePeriod
         self.lastHandled = [:]
         self.lastCheckedAt = nil
+    }
+
+    /// An engine restored from storage: the events and what was remembered about them.
+    public init(events: [ScheduledEvent], state: ScheduleEngineState) {
+        self.events = events
+        self.gracePeriod = state.gracePeriod
+        self.lastHandled = state.lastHandled
+        self.lastCheckedAt = state.lastCheckedAt
+    }
+
+    /// Everything the engine remembers besides its events.
+    public var state: ScheduleEngineState {
+        ScheduleEngineState(gracePeriod: gracePeriod, lastHandled: lastHandled, lastCheckedAt: lastCheckedAt)
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, events, state }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let events = try c.decodeIfPresent([ScheduledEvent].self, forKey: .events) ?? []
+        let state = try c.decodeIfPresent(ScheduleEngineState.self, forKey: .state) ?? ScheduleEngineState()
+        self.init(events: events, state: state)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.currentVersion, forKey: .version)
+        try c.encode(events, forKey: .events)
+        try c.encode(state, forKey: .state)
     }
 
     /// Events that cannot work as they are, with operator-readable reasons.

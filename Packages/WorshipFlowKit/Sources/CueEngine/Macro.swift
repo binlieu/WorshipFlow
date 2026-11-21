@@ -2,6 +2,9 @@
 import Foundation
 
 public struct Macro: Sendable, Equatable, Hashable, Codable, Identifiable {
+    /// CUE-002a: the stored format version. A missing version reads as 1; newer data is read as far as it is understood.
+    public static let currentVersion = 1
+
     public var id: UUID
     public var name: String
     public var steps: [CueAction]
@@ -14,6 +17,23 @@ public struct Macro: Sendable, Equatable, Hashable, Codable, Identifiable {
 
     var calledMacroIDs: [UUID] {
         steps.compactMap { if case .runMacro(let id) = $0 { return id } else { return nil } }
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, id, name, steps }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        steps = try c.decodeIfPresent([CueAction].self, forKey: .steps) ?? []
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(Self.currentVersion, forKey: .version)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(steps, forKey: .steps)
     }
 }
 

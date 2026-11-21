@@ -237,6 +237,48 @@ enum Schema {
             try db.create(index: "playlistItem_on_arrangementID", on: "playlistItem", columns: ["arrangementID"])
         }
 
+        // CUE-002a: macros, slide actions, scheduled events, the schedule engine's state and MIDI bindings. Each definition is JSON
+        // text with its own `version` (see `CueEngine`). A slide's actions are deleted with the slide; a reflow re-attaches them to the
+        // slides whose words did not change (see `LibraryStore.replaceContent`). Rows of the other tables are untouched.
+        migrator.registerMigration("v9") { db in
+            try db.create(table: "cueMacro") { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("definition", .text).notNull()
+                t.column("sortOrder", .integer).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            try db.create(index: "cueMacro_on_sortOrder", on: "cueMacro", columns: ["sortOrder"])
+            try db.create(table: "cueSlideActions") { t in
+                t.column("slideID", .text).primaryKey().references("slide", onDelete: .cascade)
+                t.column("definition", .text).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            try db.create(table: "cueScheduledEvent") { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("enabled", .boolean).notNull()
+                t.column("definition", .text).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            // One row, enforced: the engine's fired-occurrence state and the latest check are written together.
+            try db.create(table: "cueScheduleState") { t in
+                t.column("id", .integer).primaryKey().check { $0 == 1 }
+                t.column("state", .text).notNull()
+                t.column("lastCheckedAt", .datetime)
+                t.column("updatedAt", .datetime).notNull()
+            }
+            try db.create(table: "cueMIDIBinding") { t in
+                t.column("id", .text).primaryKey()
+                t.column("definition", .text).notNull()
+                t.column("sortOrder", .integer).notNull()
+            }
+            try db.create(index: "cueMIDIBinding_on_sortOrder", on: "cueMIDIBinding", columns: ["sortOrder"])
+        }
+
         return migrator
     }
 }

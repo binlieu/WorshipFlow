@@ -33,6 +33,9 @@ extension LibraryStore {
             let keep = Set(keptIDs.values)
 
             let carry = try Self.carryOver(db, presentationID: presentationID, groups: existing, results: results)
+            // CUE-002a: slide actions are deleted with their slide, so take the ones that stay out first and write them back
+            // against the new slide ids.
+            let actionCarry = try Self.slideActionCarry(db, presentationID: presentationID, groups: existing, results: results)
 
             // Slides first, so nothing references a group that is about to go.
             try db.execute(sql: "DELETE FROM slide WHERE presentationID = ?", arguments: [presentationID.dbText])
@@ -58,13 +61,17 @@ extension LibraryStore {
             }
 
             let now = Date()
+            var newSlideIDs: [UUID] = []
             for (order, result) in results.enumerated() {
                 let groupID = result.sectionName.flatMap { keptIDs[$0] }
-                try SlideRecord(id: UUID(), presentationID: presentationID, sortOrder: order,
+                let slideID = UUID()
+                newSlideIDs.append(slideID)
+                try SlideRecord(id: slideID, presentationID: presentationID, sortOrder: order,
                                 primaryText: result.content.primary, secondaryText: result.content.secondary,
                                 notes: carry.notes[order], createdAt: now, updatedAt: now, groupID: groupID,
                                 objects: SlideObjectsJSON.encode(carry.objects[order])).insert(db)
             }
+            try Self.restoreSlideActions(db, actionCarry, newSlideIDs: newSlideIDs)
             try Self.touch(db, presentationID: presentationID, backend: backend)
         }
     }

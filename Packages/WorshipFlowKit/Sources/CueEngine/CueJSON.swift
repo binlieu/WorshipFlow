@@ -44,3 +44,12 @@ public enum CueJSON: Sendable, Equatable, Hashable, Codable {
 
     var uuidValue: UUID? { stringValue.flatMap { UUID(uuidString: $0) } }
 }
+
+/// CUE-002a: the format version of a stored cue document.
+public enum CueStorage {
+    /// The top-level `version` of a stored JSON document; nil when the text is not an object or has no integer version.
+    public static func version(in data: Data) -> Int? {
+        struct Probe: Decodable { var version: Int? }
+        return (try? JSONDecoder().decode(Probe.self, from: data))?.version
+    }
+}
