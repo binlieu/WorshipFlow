@@ -17,6 +17,8 @@ let package = Package(
         .library(name: "ScriptureEngine", targets: ["ScriptureEngine"]),
         .library(name: "ScriptureStore", targets: ["ScriptureStore"]),
         .library(name: "CueStore", targets: ["CueStore"]),
+        .library(name: "MIDIIO", targets: ["MIDIIO"]),
+        .library(name: "RemoteControl", targets: ["RemoteControl"]),
         .executable(name: "wf-bible-import", targets: ["BibleImportTool"]),
     ],
     dependencies: [
@@ -64,6 +66,11 @@ let package = Package(
         // CUE-002a: storage of macros, slide actions, schedule and MIDI bindings in the church library.
         .target(name: "CueStore", dependencies: ["CueEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(name: "CueStoreTests", dependencies: ["CueStore", "CueEngine", "Persistence"]),
+        // CUE-003: CoreMIDI devices behind a protocol. CUE-004: local remote-control server (off by default).
+        .target(name: "MIDIIO", dependencies: ["CueEngine"]),
+        .testTarget(name: "MIDIIOTests", dependencies: ["MIDIIO", "CueEngine"]),
+        .target(name: "RemoteControl", dependencies: ["CueEngine", "Domain"]),
+        .testTarget(name: "RemoteControlTests", dependencies: ["RemoteControl", "CueEngine", "Domain"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
