@@ -122,7 +122,7 @@ struct DeveloperSection: View {
             VStack(alignment: .leading, spacing: 6) {
                 Toggle("Show simulated SDI device", isOn: Binding(get: { model.showSimulatedSDIDevice },
                                                                     set: { model.setShowSimulatedSDIDevice($0) }))
-                    .toggleStyle(.checkbox)
+                    .toggleStyle(.wfCheckbox)
                     .accessibilityIdentifier("developer.showSimulatedSDI")
                 Text("Adds a simulated four-connector SDI card (no real hardware) to the destinations below.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -146,7 +146,7 @@ struct ScreenRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Toggle("Enabled", isOn: binding(\.isEnabled)).toggleStyle(.checkbox)
+                Toggle("Enabled", isOn: binding(\.isEnabled)).toggleStyle(.wfCheckbox)
                 TextField("Name", text: binding(\.name)).textFieldStyle(.roundedBorder).frame(maxWidth: 180)
                 Picker("Role", selection: binding(\.role)) {
                     ForEach(ScreenRole.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
@@ -256,7 +256,7 @@ struct ScreenRow: View {
     private func layerToggle(_ title: String, _ layer: LayerKind) -> some View {
         Toggle(title, isOn: Binding(get: { model.screenLook(for: profile.id).visibleLayers.contains(layer) },
                                     set: { model.setLayer(layer, visible: $0, forScreen: profile.id) }))
-            .toggleStyle(.checkbox)
+            .toggleStyle(.wfCheckbox)
     }
 
     private var isRunning: Bool { readout.state == .running || readout.state == .hidden }
@@ -405,7 +405,7 @@ struct DestinationEditor: View {
                 let device = model.sdiDevice(id: deviceID)
                 HStack(spacing: 10) {
                     Toggle("Fill and key", isOn: Binding(get: { keying }, set: { setKeying($0) }))
-                        .toggleStyle(.checkbox)
+                        .toggleStyle(.wfCheckbox)
                         .disabled(device?.supportsKeying == false)
                         .accessibilityLabel("Fill and key for \(profile.name)")
                     if keying {
@@ -518,7 +518,7 @@ struct PropsPanel: View {
             ForEach(model.props) { prop in
                 HStack {
                     Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { model.setProp(prop.id, isOn: $0) }))
-                        .toggleStyle(.switch)
+                        .toggleStyle(.wf)
                     Spacer()
                     if model.unavailableImages.contains(prop.imagePath) {
                         Text("File not readable").font(.caption).foregroundStyle(.orange)

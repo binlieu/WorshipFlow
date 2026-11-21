@@ -47,7 +47,7 @@ struct TimersPanel: View {
                     Text("24 hour").tag(true)
                 }.pickerStyle(.segmented).frame(maxWidth: 190).accessibilityLabel("Clock hours")
                 Toggle("Seconds", isOn: Binding(get: { stage.clockStyle.showsSeconds }, set: { stage.setClockStyle(showsSeconds: $0) }))
-                    .toggleStyle(.checkbox)
+                    .toggleStyle(.wfCheckbox)
             }
             Text("Now: \(stage.timeOfDayText(at: stage.now))").font(.caption).foregroundStyle(.secondary)
         }

@@ -21,18 +21,28 @@ struct PillTag: View {
     let text: String
     let color: Color
     var height: CGFloat = 20
-    var weight: Font.Weight = .bold
+    var weight: Font.Weight = .semibold
     var size: CGFloat = 11
-    var tracking: CGFloat = 0.4
+    var tracking: CGFloat = 0
     var maxWidth: CGFloat? = nil
+    /// `.dot`: the design's status dot before the word (Running); `.symbol`: an icon (Signal lost).
+    var lead: Lead = .none
+    enum Lead { case none, dot, symbol(String) }
 
     var body: some View {
-        Text(text).font(.system(size: size, weight: weight)).tracking(tracking).foregroundStyle(color)
-            .lineLimit(1).truncationMode(.tail)
-            .padding(.horizontal, 9).frame(height: height)
-            .wfOutline(Capsule(style: .circular), stroke: color)
-            .frame(maxWidth: maxWidth)
-            .fixedSize(horizontal: maxWidth == nil, vertical: true)
+        HStack(spacing: 5) {
+            switch lead {
+            case .none: EmptyView()
+            case .dot: Circle().fill(color).frame(width: 7, height: 7).accessibilityHidden(true)
+            case .symbol(let name): Image(systemName: name).font(.system(size: 10)).accessibilityHidden(true)
+            }
+            Text(text).font(.system(size: size, weight: weight)).tracking(tracking).lineLimit(1).truncationMode(.tail)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 8).frame(height: height)
+            .wfOutline(Capsule(style: .circular), stroke: Tok.borderStrong)
+            .frame(maxWidth: maxWidth ?? .infinity)
+            .fixedSize(horizontal: true, vertical: true)
     }
 }
 
@@ -44,16 +54,16 @@ struct Badge: View {
 
     var body: some View {
         Text(text).font(.wfBadge).tracking(0.6)
-            .padding(.horizontal, 6).padding(.vertical, 2)
+            .padding(.horizontal, 6).padding(.vertical, 1)
             .foregroundStyle(foreground)
-            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: stroke, fill: background)
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: stroke, fill: background)
             .fixedSize()
     }
 
     private var foreground: Color {
         switch style {
         case .live: Tok.onLive
-        case .preview: Tok.bg
+        case .preview: Tok.blue
         case .outline(let c): c
         case .warning: Tok.warning
         }
@@ -61,7 +71,6 @@ struct Badge: View {
     private var background: Color {
         switch style {
         case .live: Tok.liveFill
-        case .preview: Tok.blue
         default: .clear
         }
     }
@@ -101,11 +110,11 @@ struct RolePillView: View {
             case .off: Circle().stroke(Tok.muted, lineWidth: 1).frame(width: 7, height: 7)
             case .fault: Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 9)).foregroundStyle(Tok.warning)
             }
-            Text(pill.abbreviation).font(.system(size: 11, weight: .bold)).tracking(0.4)
+            Text(pill.abbreviation).font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(pill.status == .off ? Tok.muted : pill.role.tokenColor)
         }
-        .padding(.horizontal, 9).frame(height: 20)
-        .wfOutline(Capsule(style: .circular), stroke: pill.status == .off ? Tok.borderStrong : pill.role.tokenColor)
+        .padding(.horizontal, 8).frame(height: 20)
+        .wfOutline(Capsule(style: .circular), stroke: Tok.borderStrong)
         .padding(1)   // room inside a toolbar item, which clips to its bounds
         .fixedSize()
         .help("\(pill.accessibilityText)")
@@ -119,10 +128,11 @@ struct KeyHint: View {
     let key: String
     var onFill = false
     var body: some View {
-        Text(key).font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .padding(.horizontal, 4).padding(.vertical, 1)
-            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: onFill ? Tok.onLive.opacity(0.7) : Tok.borderStrong)
-            .foregroundStyle(onFill ? Tok.onLive : Tok.muted)
+        // The design's `.kbd`: mono 10/14 medium, padding 0 4, radius 3, the border and the text in the label colour at 75 %.
+        Text(key).font(.system(size: 10, weight: .medium, design: .monospaced))
+            .padding(.horizontal, 4).frame(height: 14)
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: (onFill ? Tok.onLive : Tok.text).opacity(0.75))
+            .foregroundStyle((onFill ? Tok.onLive : Tok.text).opacity(0.75))
             .accessibilityHidden(true)
     }
 }
@@ -145,28 +155,45 @@ struct TransportButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .semibold))
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             .frame(height: Space.transportHeight)
             .foregroundStyle(prominent ? Tok.onLive : Tok.text)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.lg),
                        stroke: prominent ? Tok.liveFill : (active ? Tok.warning : Tok.borderStrong),
                        fill: prominent ? Tok.liveFill : (active ? Tok.surface3 : Tok.surface2), lineWidth: active ? 2 : 1)
-            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
             .contentShape(RoundedRectangle(cornerRadius: Radius.lg))
     }
 }
 
-/// A 26 pt resting control for headers.
+/// A 26 pt control (the design's `.btn`): resting, `primary` (brand gradient, "Run"), or `ghost` (no fill or outline, "Configure…").
+/// Disabled is 45 % opacity, as in the design (`.btn.off`).
 struct HeaderButtonStyle: ButtonStyle {
+    enum Kind { case normal, primary, ghost }
     var selected = false
+    var kind: Kind = .normal
+    /// A 1.5 pt ring in the selection blue (the Look row's selected button, the Quick edit button while its tab is open).
+    var ring: Color? = nil
+    var compact = false
     @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.md)
         configuration.label
             .font(.system(size: 12, weight: .medium))
-            .padding(.horizontal, 10).frame(height: Space.controlHeight)
-            .foregroundStyle(Tok.text)
-            .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: selected ? Tok.surface3 : Tok.surface2)
-            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
+            .padding(.horizontal, compact ? 4 : 10).frame(height: Space.controlHeight)
+            .foregroundStyle(kind == .primary ? Tok.onBrand : (kind == .ghost ? Tok.muted : Tok.text))
+            .background {
+                switch kind {
+                case .primary: shape.fill(Tok.brandGradient)
+                case .ghost: Color.clear
+                case .normal: shape.fill(selected ? Tok.surface3 : Tok.surface2)
+                }
+            }
+            .overlay { if kind == .normal { shape.strokeBorder(Tok.borderStrong, lineWidth: 1) } }
+            .overlay { if let ring { shape.strokeBorder(ring, lineWidth: 1.5) } }
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
+            .contentShape(shape)
     }
 }
 
@@ -187,6 +214,7 @@ struct HeaderControlButton: View {
     let control: HeaderChrome.Control
     let symbol: String
     let compact: Bool
+    var ring: Color? = nil
     let action: () -> Void
 
     var body: some View {
@@ -199,7 +227,7 @@ struct HeaderControlButton: View {
                 }
             }
         }
-        .buttonStyle(HeaderButtonStyle())
+        .buttonStyle(HeaderButtonStyle(ring: ring))
         .help(control.tooltip)
         .accessibilityLabel(control.accessibilityLabel)
     }
@@ -209,6 +237,8 @@ struct HeaderControlButton: View {
 struct AdaptiveHeader<Content: View>: View {
     /// The width at which the labelled version fits (measured on the default layout).
     let labelledWidth: Double
+    /// Show's header is the design's 42 pt (padding 8 around a 26 pt control); the other modes keep `Space.headerHeight`.
+    var height: CGFloat = Space.headerHeight
     @ViewBuilder let content: (_ compact: Bool) -> Content
 
     var body: some View {
@@ -216,6 +246,6 @@ struct AdaptiveHeader<Content: View>: View {
             content(!HeaderChrome.showsLabels(availableWidth: geo.size.width, labelledWidth: labelledWidth))
                 .frame(width: geo.size.width, height: geo.size.height)
         }
-        .frame(height: Space.headerHeight)
+        .frame(height: height)
     }
 }

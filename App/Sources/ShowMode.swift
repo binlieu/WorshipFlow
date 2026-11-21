@@ -16,16 +16,54 @@ struct ShowModeView: View {
     var searchFocused: FocusState<Bool>.Binding
 
     var body: some View {
-        HSplitView {
-            LibrarySidebar(app: app, workspace: workspace, query: $query, searchFocused: searchFocused)
-                .frame(minWidth: 240, idealWidth: Space.sidebarWidth, maxWidth: 276)
+        HStack(spacing: 0) {
+            if app.ui.sidebarVisible {
+                LibrarySidebar(app: app, workspace: workspace, query: $query, searchFocused: searchFocused)
+                    .frame(width: app.ui.sidebarWidth)
+                    .overlay(alignment: .trailing) { Rectangle().fill(Tok.border).frame(width: 1) }
+                ColumnHandle(width: Binding(get: { app.ui.sidebarWidth }, set: { app.ui.sidebarWidth = $0 }), range: 240...380, grows: 1, name: "Sidebar width")
+            }
             ShowCentre(app: app, workspace: workspace)
-                .frame(minWidth: 460)
+                .frame(minWidth: 460, maxWidth: .infinity)
                 .focusable().focused(gridFocused).focusEffectDisabled()
                 .onChange(of: workspace.openPresentationID) { _, new in if new != nil { app.ui.scriptureOpen = false } }     // opening a song closes the passage view
+            ColumnHandle(width: Binding(get: { app.ui.inspectorWidth }, set: { app.ui.inspectorWidth = $0 }), range: 320...440, grows: -1, name: "Inspector width")
             ShowInspector(app: app, workspace: workspace)
-                .frame(minWidth: 320, idealWidth: Space.inspectorWidth, maxWidth: 380)
+                .frame(width: app.ui.inspectorWidth)
+                .overlay(alignment: .leading) { Rectangle().fill(Tok.border).frame(width: 1) }
         }
+    }
+}
+
+/// A 9 pt drag strip on a column edge (the design's resizable columns: sidebar 240-380, inspector 320-440). Keyboard: with the
+/// strip focused the arrow keys move it by 8 pt. The visible edge is the 1 pt border the column draws itself.
+struct ColumnHandle: View {
+    @Binding var width: Double
+    let range: ClosedRange<Double>
+    /// +1 when dragging right widens the column (the sidebar), -1 when dragging left widens it (the inspector).
+    let grows: Double
+    let name: String
+    @State private var start: Double?
+
+    var body: some View {
+        Color.clear.frame(width: 0)
+            .overlay {
+                Color.clear.frame(width: 9).contentShape(Rectangle())
+                    .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { drag in
+                            if start == nil { start = width }
+                            width = min(max((start ?? width) + grows * Double(drag.translation.width), range.lowerBound), range.upperBound)
+                        }
+                        .onEnded { _ in start = nil })
+                    .accessibilityElement()
+                    .accessibilityLabel(name)
+                    .accessibilityValue("\(Int(width)) points")
+                    .accessibilityAdjustableAction { direction in
+                        width = min(max(width + (direction == .increment ? 8 : -8), range.lowerBound), range.upperBound)
+                    }
+            }
+            .zIndex(1)
     }
 }
 

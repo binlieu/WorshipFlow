@@ -69,7 +69,8 @@ extension AppModel {
             Ending:
             Ân điển lạ lùng, ân điển lạ lùng
             """
-            if let p = await workspace.importLyrics(title: "Amazing Grace", primaryText: song, secondaryText: viet, maxLines: 2) {
+            let designMode = ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil
+            if let p = await workspace.importLyrics(title: "Amazing Grace", primaryText: designMode ? Self.designSong : song, secondaryText: designMode ? Self.designSongVI : viet, maxLines: 2) {
                 _ = await workspace.importLyrics(title: "Be Thou My Vision", primaryText: "Be Thou my vision, O Lord of my heart\nNaught be all else to me", secondaryText: nil, maxLines: 2)
                 await workspace.openPresentation(p.id)
                 if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil {
@@ -80,14 +81,14 @@ extension AppModel {
                 await workspace.addToPlaylist(p.id)
             } else { note("import failed: \(workspace.lastError ?? "?")") }
             // UI-003: several files in the bin (comma separated paths); the first video becomes the background that plays.
-            if let list = ProcessInfo.processInfo.environment["UI_SNAPSHOT_MEDIA"] {
+            if let list = designMode ? Self.designMediaList(in: dir) : ProcessInfo.processInfo.environment["UI_SNAPSHOT_MEDIA"] {
                 addMedia(list.split(separator: ",").map { URL(fileURLWithPath: String($0)) })
                 try? await Task.sleep(for: .seconds(2.5))
                 if let asset = media?.assets.first(where: { $0.kind == .video }) { media?.setBackground(asset.id) }
             }
             // UI-003: a prop (image), timers (service elapsed running, sermon countdown stopped) and a stage message.
-            if let path = ProcessInfo.processInfo.environment["UI_SNAPSHOT_PROP"] { addProp(URL(fileURLWithPath: path)) }
-            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_TIMERS"] != nil, let stage {
+            if let path = designMode ? Self.designPropPath(in: dir) : ProcessInfo.processInfo.environment["UI_SNAPSHOT_PROP"] { addProp(URL(fileURLWithPath: path)) }
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_TIMERS"] != nil || designMode, let stage {
                 if let service = stage.addElapsed(name: "Service") { stage.startTimer(service.id) }
                 _ = stage.addCountdown(name: "Sermon", minutes: 25, seconds: 0)
             }
@@ -172,13 +173,24 @@ extension AppModel {
 
             // Extra Looks so the compact row has something to hold.
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SDI"] != nil {
-                for name in ["Notes", "Lower 3rd", "BG only", "Sermon"] { addLook(); if let last = looks.last { renameLook(last.id, to: name) } }
+                // UI-005a: in the design capture the Looks are the design's four (the first, existing one is renamed Full).
+                if ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil, let first = looks.first { renameLook(first.id, to: "Full") }
+                for name in (ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil ? ["Notes", "Lower 3rd", "BG only"] : ["Notes", "Lower 3rd", "BG only", "Sermon"]) { addLook(); if let last = looks.last { renameLook(last.id, to: name) } }
             }
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGEMSG"] != nil { stage?.sendMessage("Wrap up in 2 min") }
 
             // CUE-002b: the cue wiring in the running app (macro, slide action, schedule, MIDI note, remote request), then out.
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_CUES"] != nil {
                 await runCuesScenario(note: { note($0) }, capture: { await capture($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
+            // UI-005a: the five design pictures (Show dark, Quick edit, Show light, components dark and light), at 1440 x 900 points.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil {
+                await runDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)
                 try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
                 await flushWorkspace()
                 await stopCue()

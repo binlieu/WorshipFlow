@@ -91,12 +91,16 @@ struct WorkspaceView: View {
                 Divider()
                 MediaTransportStrip(media: media)
             }
-            TransportBar(app: app, workspace: workspace)
+            // UI-005a: the design drops the bar in Edit, Stage and Screens; the keys still work and the toolbar shows the live chip.
+            if workspace.mode.showsTransportBar { TransportBar(app: app, workspace: workspace) }
         }
         .background(Tok.bg)
+        .toolbarBackground(Tok.surface, for: .windowToolbar)
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .navigationTitle(serviceName)
         .navigationSubtitle(serviceSubtitle)
         .toolbar {
+            ToolbarItem(placement: .navigation) { sidebarToggle }
             ToolbarItem(placement: .principal) { modeSwitcher }
             ToolbarItem(placement: .primaryAction) { toolbarStatus }
         }
@@ -163,33 +167,22 @@ struct WorkspaceView: View {
         "WorshipFlow · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")"
     }
 
+    /// The design's sidebar toggle (a ghost icon button left of the title). Only the Show mode has the sidebar.
+    private var sidebarToggle: some View {
+        Button { app.ui.sidebarVisible.toggle() } label: {
+            Image(systemName: "sidebar.left").font(.system(size: 14)).foregroundStyle(Tok.muted).frame(width: 28, height: 24)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut("s", modifiers: [.command, .option])
+        .disabled(workspace.mode != .show)
+        .help(app.ui.sidebarVisible ? "Hide the sidebar (Option-Command-S)" : "Show the sidebar (Option-Command-S)")
+        .accessibilityLabel(app.ui.sidebarVisible ? "Hide the sidebar" : "Show the sidebar")
+    }
+
     /// The segmented mode switcher: icon and word per mode, Command-1 to Command-6.
     private var modeSwitcher: some View {
-        HStack(spacing: Space.s1) {
-            ForEach(WorkspaceMode.allCases) { mode in
-                let selected = workspace.mode == mode
-                Button { workspace.setMode(mode) } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: Self.symbol(mode)).font(.system(size: 11))
-                        Text(mode.title).font(.system(size: 12, weight: selected ? .semibold : .regular))
-                    }
-                    .padding(.horizontal, 10).frame(height: 24)
-                    .foregroundStyle(selected ? Tok.text : Tok.muted)
-                    .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("\(mode.title) (Command-\(mode.commandDigit))")
-                .accessibilityLabel(mode.title)
-                .accessibilityHint("Command-\(mode.commandDigit)")
-                .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
-            }
-        }
-        .padding(Space.s1)
-        .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.border, fill: Tok.surface2)
-        .padding(1)   // room inside the toolbar item, which clips to its bounds
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Mode")
+        WFSegmented(items: WorkspaceMode.allCases.map { .init(value: $0, title: $0.title, symbol: Self.symbol($0), label: "\($0.title) (Command-\($0.commandDigit))") },
+                    selection: Binding(get: { workspace.mode }, set: { workspace.setMode($0) }), accessibilityName: "Mode")
     }
 
     static func symbol(_ mode: WorkspaceMode) -> String {
@@ -203,12 +196,34 @@ struct WorkspaceView: View {
         }
     }
 
-    /// Timers, then the AUD, STG and BRD pills: visible in every mode.
+    /// Timers, then the AUD, STG and BRD pills: visible in every mode. The screens button (moved here from the transport bar)
+    /// opens and closes the screens; in the modes without the transport bar a LIVE chip says what is on the screens.
     private var toolbarStatus: some View {
         HStack(spacing: Space.s4) {
+            if !workspace.mode.showsTransportBar, app.mode != .stopped { liveChip }
             if let stage = app.stage { ToolbarTimersView(stage: stage) }
+            Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
+                Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display").font(.system(size: 13)).frame(width: 28, height: 24)
+            }
+            .buttonStyle(HeaderButtonStyle(kind: .ghost, compact: true))
+            .help(app.screensOn ? "Close screens" : "Open screens")
+            .accessibilityLabel(app.screensOn ? "Close screens" : "Open screens")
             HStack(spacing: 6) { ForEach(app.rolePills) { RolePillView(pill: $0) } }
         }
+    }
+
+    private var liveChip: some View {
+        HStack(spacing: 6) {
+            switch app.mode {
+            case .live: ThumbTag(text: "LIVE", kind: .live)
+            case .cleared: ThumbTag(text: "CLEARED", kind: .warning)
+            case .blackout: ThumbTag(text: "BLACKOUT", kind: .warning)
+            case .stopped: EmptyView()
+            }
+            Text(workspace.show.liveSlide.map(LiveSummary.line(for:)) ?? "").font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: 220, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("On the screens: \(workspace.livePositionLine ?? "")")
     }
 }
 
@@ -231,16 +246,12 @@ struct ErrorBar: View {
     let dismiss: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).accessibilityHidden(true)
-            Text(message).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
-            Spacer()
-            Button("Dismiss", action: dismiss)
+        // UI-005a: the design's message card; the one existing action (Dismiss) stays. Retry and Details need a per-error action (UI-005b).
+        MessageCard(message: message) {
+            Button("Dismiss", action: dismiss).buttonStyle(HeaderButtonStyle())
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(Tok.warning.opacity(0.16))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Error: \(message)")
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(Tok.bg)
     }
 }
 

@@ -20,7 +20,7 @@ struct CentrePane: View {
         } else {
             VStack(spacing: 0) {
                 ShowHeader(app: app, workspace: workspace)
-                Divider()
+                Rectangle().fill(Tok.border).frame(height: 1)
                 if app.ui.gridAsList { SlideList(app: app, workspace: workspace) } else { SlideGrid(app: app, workspace: workspace) }
             }
         }
@@ -37,7 +37,7 @@ struct ShowHeader: View {
     private var presentation: Presentation? { workspace.presentations.first { $0.id == workspace.openPresentationID } }
 
     var body: some View {
-        AdaptiveHeader(labelledWidth: 660) { compact in header(compact: compact) }
+        AdaptiveHeader(labelledWidth: 660, height: 42) { compact in header(compact: compact) }
             .padding(.horizontal, Space.s5)
             .onAppear { title = presentation?.title ?? "" }
             .onChange(of: workspace.openPresentationID) { _, _ in title = presentation?.title ?? "" }
@@ -47,28 +47,29 @@ struct ShowHeader: View {
 
     private func header(compact: Bool) -> some View {
         HStack(spacing: Space.s3) {
-            TextField("Title", text: $title)
-                .textFieldStyle(.plain).font(.system(size: 20, weight: .bold)).frame(minWidth: 80, maxWidth: 300)
-                .focused($titleFocused)
-                .layoutPriority(-1)
-                .onSubmit { commitTitle() }
-                .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
-                .accessibilityLabel("Presentation title")
+            // The design's 17 / 22 bold title. It is still the field that renames the presentation: a hidden copy of the text
+            // gives the field the width of its words.
+            Text(title.isEmpty ? "Title" : title).font(.system(size: 17, weight: .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, maxWidth: 300)
+                .overlay {
+                    TextField("Title", text: $title)
+                        .textFieldStyle(.plain).font(.system(size: 17, weight: .bold))
+                        .focused($titleFocused)
+                        .onSubmit { commitTitle() }
+                        .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
+                        .accessibilityLabel("Presentation title")
+                }
             if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }), item.kind == .presentation {
-                Menu {
+                WFPopup(title: "Arrangement: \(workspace.arrangements.first { $0.id == item.arrangementID }?.name ?? "Natural order")", accessibilityName: "Arrangement") {
                     Button("Natural order") { Task { await workspace.setArrangement(nil, forPlaylistItem: itemID) } }
                     ForEach(workspace.arrangements) { a in
                         Button(a.name) { Task { await workspace.setArrangement(a.id, forPlaylistItem: itemID) } }
                     }
-                } label: {
-                    Text("Arrangement: \(workspace.arrangements.first { $0.id == item.arrangementID }?.name ?? "Natural order")")
-                        .lineLimit(1)
                 }
-                .menuStyle(.button).fixedSize()
+                .frame(maxWidth: 190).fixedSize(horizontal: false, vertical: true)
                 .help("The section order this playlist item plays")
             }
             if let id = workspace.openPresentationID, workspace.bilingualPresentationIDs.contains(id) {
-                Badge(text: "EN + VI", style: .outline(Tok.borderStrong)).foregroundStyle(Tok.muted)
+                PillTag(text: "EN + VI", color: Tok.muted)
                     .accessibilityLabel("Two languages")
             }
             Spacer(minLength: 4)
@@ -86,13 +87,10 @@ struct ShowHeader: View {
             HeaderControlButton(control: .addToPlaylist, symbol: "text.badge.plus", compact: true) {
                 if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
             }
-            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact) { app.openQuickEdit() }
+            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact, ring: app.ui.tabs.quickEditIsOpen ? Tok.blue : nil) { app.openQuickEdit() }
                 .disabled(workspace.slides.isEmpty)
-            Picker("View", selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 })) {
-                Image(systemName: "square.grid.2x2").tag(false).accessibilityLabel("Grid")
-                Image(systemName: "list.bullet").tag(true).accessibilityLabel("List")
-            }
-            .pickerStyle(.segmented).labelsHidden().fixedSize().accessibilityLabel("Slide view")
+            WFSegmented(items: [.init(value: false, symbol: "square.grid.2x2", label: "Grid"), .init(value: true, symbol: "list.bullet", label: "List")],
+                        selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 }), accessibilityName: "Slide view")
         }
     }
 
@@ -118,10 +116,10 @@ private struct SectionHeader: View {
         if let name = run.name {
             HStack(spacing: 6) {
                 Circle().fill(run.tone.color).frame(width: 8, height: 8)
-                Text(name).font(.system(size: 13, weight: .semibold)).foregroundStyle(run.tone.color)
-                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.system(size: 12)).foregroundStyle(Tok.muted) }
+                Text(name).font(.system(size: 11, weight: .semibold)).foregroundStyle(run.tone.color)
+                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.system(size: 11)).foregroundStyle(Tok.muted) }
             }
-            .padding(.top, 6)
+            .padding(.bottom, 5)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(run.repeatCount > 1 ? "\(name), played \(run.repeatCount) times" : name)
             .accessibilityAddTraits(.isHeader)
@@ -159,7 +157,7 @@ struct SlideGrid: View {
     /// Five thumbnails across at the design's window size, more when wider, never fewer than one (`SlideGridLayout`).
     private func columns(for width: CGFloat) -> [GridItem] {
         let count = SlideGridLayout.columnCount(width: Double(width))
-        return Array(repeating: GridItem(.flexible(minimum: 100, maximum: 300), spacing: SlideGridLayout.spacing, alignment: .top), count: count)
+        return Array(repeating: GridItem(.flexible(minimum: 100, maximum: 300), spacing: 10, alignment: .top), count: count)
     }
 
     @ViewBuilder private func grid(width: CGFloat) -> some View {
@@ -169,10 +167,10 @@ struct SlideGrid: View {
                     Text("This presentation has no slides. Use Add slide, or Reflow to paste the words.")
                         .foregroundStyle(Tok.muted).padding(24)
                 }
-                LazyVStack(alignment: .leading, spacing: 10) {
+                LazyVStack(alignment: .leading, spacing: 9) {
                     ForEach(sectionRuns(workspace)) { run in
                         SectionHeader(run: run)
-                        LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: SlideGridLayout.spacing) {
+                        LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
                             ForEach(run.indices, id: \.self) { i in
                                 cell(i, color: run.tone.color).id(i)
                             }
@@ -181,7 +179,7 @@ struct SlideGrid: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Space.s5)
+                .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 14)
             }
             .onChange(of: workspace.show.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
         }
@@ -191,21 +189,21 @@ struct SlideGrid: View {
         let slide = workspace.slides[i]
         let selected = workspace.show.selectedIndex == i
         let live = liveIndex(app, workspace) == i
-        return VStack(alignment: .leading, spacing: 4) {
-            // The rings are drawn outside the picture (never over the words): blue for preview, 3 pt red for live.
+        return VStack(alignment: .leading, spacing: 3) {
+            // The rings are drawn outside the picture (never over the words): idle 1 pt, preview 2 pt blue, live 3 pt red, at a 2 pt offset.
             SlideThumbnail(app: app, slide: slide.content)
                 .overlay(alignment: .topLeading) { tags(live: live, selected: selected).padding(5) }
                 .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: app.media.map { Set($0.allAssets.map(\.id)) }).padding(5) }
-                .padding(3)
-                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.blue : .clear, lineWidth: 2))
-                .padding(live ? 4 : 0)
-                .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(live ? ringColor : .clear, lineWidth: 3))
+                .wfThumbState(radius: 4, preview: selected && !live, live: live, liveColor: ringColor)
+                .padding(5)    // room for the outer ring inside the cell
+                .padding(-5)
             HStack(spacing: 6) {
-                Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit()).foregroundStyle(Tok.text)
-                Text(slide.content.primary.split(whereSeparator: \.isNewline).first.map(String.init) ?? "")
-                    .font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(1)
+                Text("\(i + 1)").font(.system(size: 11, weight: .semibold).monospacedDigit()).foregroundStyle(Tok.text)
+                let first = slide.content.primary.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
+                Text(first.isEmpty ? "Blank · background only" : first)
+                    .font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1)
             }
-            .padding(.horizontal, 4)
+            .padding(.top, 2)
         }
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { app.triggerSlide(i) }
@@ -230,12 +228,12 @@ struct SlideGrid: View {
     @ViewBuilder private func tags(live: Bool, selected: Bool) -> some View {
         if live {
             switch app.mode {
-            case .cleared: Badge(text: "CLEARED", style: .warning)
-            case .blackout: Badge(text: "BLACKOUT", style: .warning)
-            default: Badge(text: "LIVE", style: .live)
+            case .cleared: ThumbTag(text: "CLEARED", kind: .warning)
+            case .blackout: ThumbTag(text: "BLACKOUT", kind: .warning)
+            default: ThumbTag(text: "LIVE", kind: .live)
             }
         } else if selected {
-            Badge(text: "PREVIEW", style: .preview)
+            ThumbTag(text: "PREVIEW", kind: .preview)
         }
     }
 
@@ -343,16 +341,18 @@ struct WordsEditorField: View {
     let label: String
     @Binding var text: String
     var minHeight: CGFloat = 52
+    /// What shows in an empty field (the design's notes field says "None"); the label is still what VoiceOver reads.
+    var placeholder: String? = nil
 
     var body: some View {
-        TextEditor(text: $text).font(.system(size: 13)).scrollContentBackground(.hidden)
+        TextEditor(text: $text).font(.system(size: 12)).scrollContentBackground(.hidden)
             .padding(4)
             .frame(minHeight: minHeight)
             .background(Tok.bg, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
-                    Text(label).font(.system(size: 13)).foregroundStyle(Tok.muted).padding(.horizontal, 9).padding(.vertical, 12)
+                    Text(placeholder ?? label).font(.system(size: 12)).foregroundStyle(Tok.muted).padding(.horizontal, 9).padding(.vertical, 12)
                         .allowsHitTesting(false)
                 }
             }

@@ -104,7 +104,7 @@ private struct ScreensList: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Toggle("Enabled", isOn: Binding(get: { profile.isEnabled }, set: { var p = profile; p.isEnabled = $0; app.updateProfile(p) }))
-                .toggleStyle(.switch).labelsHidden().tint(Tok.cyan).fixedSize()
+                .toggleStyle(.wfBare).fixedSize()
                 .accessibilityLabel("\(profile.name) enabled")
         }
         .padding(Space.s3)
@@ -493,7 +493,7 @@ private struct ScreenDetail: View {
 
     private func layer(_ title: String, _ layer: LayerKind) -> some View {
         Toggle(title, isOn: Binding(get: { app.screenLook(for: profile.id).visibleLayers.contains(layer) },
-                                    set: { app.setLayer(layer, visible: $0, forScreen: profile.id) })).toggleStyle(.checkbox)
+                                    set: { app.setLayer(layer, visible: $0, forScreen: profile.id) })).toggleStyle(.wfCheckbox)
     }
 
     private var mirrors: some View {

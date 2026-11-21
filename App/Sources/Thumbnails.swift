@@ -239,6 +239,8 @@ extension ScenePreview {
 struct SlideThumbnail: View {
     let app: AppModel
     let slide: SlideContent
+    /// The design's thumbnails are radius 4; the monitors in the inspector are radius 6.
+    var cornerRadius: CGFloat = Radius.sm
 
     var body: some View {
         // Reading `appearanceRevision` makes the thumbnail follow Look, theme and prop changes, and nothing else:
@@ -247,7 +249,7 @@ struct SlideThumbnail: View {
         let scene = app.thumbnailScene(for: slide)
         let policy = ThumbnailPolicy(scene: scene)      // UI-002: a media background shows as one still frame, not flat black
         ScenePreview(scene: scene, width: 320, cached: policy.cacheable, frames: policy.wantsFrames ? app.mediaFrames : nil, animated: policy.animates)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
 }
 
@@ -255,13 +257,13 @@ struct SlideThumbnail: View {
 struct LiveScreenPreview: View {
     let app: AppModel
     let screenID: UUID
+    var cornerRadius: CGFloat = Radius.sm
 
     var body: some View {
         let _ = app.liveRevision
         let keyed = app.profiles.first { $0.id == screenID }?.destination.isKeyed ?? false
         ScenePreview(scene: app.scene(forScreen: screenID), width: 320, cached: false, frames: app.mediaFrames, keyed: keyed)
-            .clipShape(RoundedRectangle(cornerRadius: 3))
-            .overlay(RoundedRectangle(cornerRadius: 3).stroke(.quaternary))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
 }
 

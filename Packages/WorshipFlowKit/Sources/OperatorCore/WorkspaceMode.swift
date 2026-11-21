@@ -36,3 +36,15 @@ public enum WorkspaceMode: String, CaseIterable, Sendable, Equatable, Identifiab
         stored.flatMap(WorkspaceMode.init(rawValue:)) ?? .show
     }
 }
+
+/// UI-005a: the design drops the transport bar in the three preparation modes (README, "Window anatomy"). Hiding the bar hides
+/// buttons only: the transport KEYS (`KeyRouting`) never read the mode, so they drive the show in every mode. In the modes without
+/// the bar the toolbar carries a live chip so the operator still sees what is on the screens.
+public extension WorkspaceMode {
+    var showsTransportBar: Bool {
+        switch self {
+        case .show, .media, .cues: true
+        case .edit, .stage, .screens: false
+        }
+    }
+}

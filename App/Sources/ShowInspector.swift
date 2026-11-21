@@ -1,5 +1,6 @@
-// UI-003 Part 1: the right-hand column of Show. Preview and Live side by side, every other enabled screen beneath, one
-// compact row of Looks, tabs (Props, Cues, Audio and, while open, Quick edit) and the stage message pinned at the bottom.
+// UI-003 Part 1 / UI-005a: the right-hand column of Show, drawn to docs/UI (01-operator-show). Preview and Live side by side, the
+// other enabled screens beneath, one slim row for what the design does not draw (Edit live slide, the live background override,
+// Configure), one compact row of Looks, tabs (Props, Cues, Audio and, while open, Quick edit) and the stage message under them.
 // Screen configuration is not here: "Configure…" switches to the Screens mode.
 import SwiftUI
 import Domain
@@ -11,19 +12,17 @@ struct ShowInspector: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    monitors.padding(.horizontal, Space.s5).padding(.top, Space.s5).padding(.bottom, Space.s4)
-                    otherScreens.padding(.horizontal, Space.s5).padding(.bottom, Space.s4)
-                    lookRow.padding(.horizontal, Space.s5).padding(.bottom, Space.s3)
-                    overrideRow.padding(.horizontal, Space.s5)
-                    tabBar
-                    tabContent.padding(Space.s5)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                monitors.padding(.horizontal, 12).padding(.vertical, 10)
+                slimRow.padding(.horizontal, 12).padding(.bottom, 8)
+                Rectangle().fill(Tok.border).frame(height: 1)
+                lookRow.padding(.horizontal, 12).padding(.vertical, 8)
+                tabBar
+                tabContent
+                Rectangle().fill(Tok.border).frame(height: 1)
+                if let stage = app.stage { StageMessageView(stage: stage).padding(.horizontal, 12).padding(.vertical, 10) }
             }
-            Rectangle().fill(Tok.border).frame(height: 1)
-            if let stage = app.stage { StageMessageView(stage: stage).padding(Space.s5) }
         }
         .background(Tok.surface)
         .onChange(of: workspace.slides.isEmpty) { _, empty in app.ui.tabs.selectedSlideChanged(hasSelectedSlide: !empty) }
@@ -31,51 +30,83 @@ struct ShowInspector: View {
 
     private var live: ScreenProfile? { ShowMonitors.live(app.profiles) }
 
-    // MARK: Preview and Live
+    // MARK: Monitors
+
+    /// The connector a screen is on, short: "SDI 3", "SDI 1+2" (fill and key), or the place's own name ("Window").
+    private func connectorText(_ profile: ScreenProfile) -> String {
+        if case .sdi(_, let connector, let keying, _) = profile.destination { return keying ? "SDI \(connector)+\(connector + 1)" : "SDI \(connector)" }
+        return app.destinationName(profile.destination)
+    }
 
     private var monitors: some View {
-        HStack(alignment: .top, spacing: Space.s3) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Badge(text: "PREVIEW", style: .preview)
-                    if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.system(size: 12)).foregroundStyle(Tok.muted) }
-                }
-                preview
-                // The tab edits the SELECTED slide in preview. It never changes the screens.
-                Button { app.openQuickEdit() } label: {
+        let others = ShowMonitors.others(app.profiles)
+        return Grid(horizontalSpacing: 10, verticalSpacing: 10) {
+            GridRow(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Image(systemName: "pencil")
-                        Text(QuickEditLabels.previewTitle)
-                        KeyHint(key: QuickEditLabels.previewShortcut)
-                    }.frame(maxWidth: .infinity)
+                        Badge(text: "PREVIEW", style: .preview)
+                        if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.system(size: 11)).foregroundStyle(Tok.muted) }
+                    }
+                    preview
                 }
-                .buttonStyle(HeaderButtonStyle()).disabled(workspace.slides.isEmpty)
-                .help("Edit the selected slide in the side panel. \(QuickEditLabels.previewChip): the screens change when you go live with it.")
-                .accessibilityLabel("Quick edit the selected slide. Preview only.")
-            }
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    liveBadge
-                    Text(live?.name ?? "Audience").font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(1)
-                }
-                liveMonitor
-                // The other quick edit: it DELIBERATELY changes what the audience sees now, so it says so and is outlined in
-                // the warning colour, apart from the preview edit beside it.
-                Button { app.requestLiveQuickEdit() } label: {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Image(systemName: "pencil.and.outline")
-                        Text(QuickEditLabels.liveTitle)
-                    }.frame(maxWidth: .infinity)
-                }
-                .buttonStyle(HeaderButtonStyle())
-                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.warning, lineWidth: 1.5))
-                .disabled(workspace.show.liveSlide == nil)
-                .help("\(HeaderChrome.Control.editLiveSlide.tooltip)")
-                .accessibilityLabel("Edit live slide. Changes what the audience sees now.")
-                .popover(isPresented: Binding(get: { app.ui.showLiveQuickEdit }, set: { app.ui.showLiveQuickEdit = $0 }), arrowEdge: .bottom) {
-                    QuickEditView(workspace: workspace) { app.ui.showLiveQuickEdit = false }
+                        liveBadge
+                        Text(live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience").font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1)
+                    }
+                    liveMonitor
                 }
             }
+            if !others.isEmpty {
+                GridRow(alignment: .top) {
+                    screenCard(others[0])
+                    if others.count > 1 { screenCard(others[1]) } else { Color.clear }
+                }
+                if others.count > 2 {
+                    GridRow(alignment: .top) {
+                        screenCard(others[2])
+                        if others.count > 3 { screenCard(others[3]) } else { Color.clear }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The row for what the design does not draw but the operator needs: Edit live slide (the one edit that changes Live),
+    /// the live background override with Drop, and Configure.
+    private var slimRow: some View {
+        HStack(spacing: 6) {
+            Button { app.requestLiveQuickEdit() } label: {
+                HStack(spacing: 5) { Image(systemName: "pencil.and.outline"); Text(QuickEditLabels.liveTitle) }
+            }
+            .buttonStyle(HeaderButtonStyle(ring: Tok.warning)).fixedSize()
+            .disabled(workspace.show.liveSlide == nil)
+            .help("\(HeaderChrome.Control.editLiveSlide.tooltip)")
+            .accessibilityLabel("Edit live slide. Changes what the audience sees now.")
+            .popover(isPresented: Binding(get: { app.ui.showLiveQuickEdit }, set: { app.ui.showLiveQuickEdit = $0 }), arrowEdge: .bottom) {
+                QuickEditView(workspace: workspace) { app.ui.showLiveQuickEdit = false }
+            }
+            overrideChip
+            Spacer(minLength: 4)
+            if app.profiles.filter(\.isEnabled).isEmpty { Text("No screens enabled").font(.system(size: 11)).foregroundStyle(Tok.muted) }
+            Button("Configure…") { workspace.setMode(.screens) }.buttonStyle(HeaderButtonStyle(kind: .ghost))
+                .help("Screen settings are in the Screens mode (Command-6)")
+        }
+    }
+
+    /// Shown while a background chosen in the media bin is on: it replaces every slide's own background on the live screens
+    /// (and is never written to the presentation). The button drops it.
+    @ViewBuilder private var overrideChip: some View {
+        if let media = app.media, media.hasLiveBackgroundOverride {
+            let name = media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "a background"
+            HStack(spacing: 5) {
+                Image(systemName: "film").font(.system(size: 11)).foregroundStyle(Tok.muted).accessibilityHidden(true)
+                Text("Override: \(name)").font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1).truncationMode(.middle)
+                Button("Drop") { media.dropBackgroundOverride() }.buttonStyle(HeaderButtonStyle(compact: true))
+                    .help("Drop the live background override and go back to each slide's own background")
+                    .accessibilityLabel("Drop the live background override")
+            }
+            .accessibilityElement(children: .contain)
         }
     }
 
@@ -83,26 +114,26 @@ struct ShowInspector: View {
         let index = workspace.show.selectedIndex
         Group {
             if workspace.slides.indices.contains(index) {
-                SlideThumbnail(app: app, slide: workspace.slides[index].content)
+                SlideThumbnail(app: app, slide: workspace.slides[index].content, cornerRadius: 6)
             } else if let open = workspace.openScripture, open.contents.indices.contains(index) {
-                SlideThumbnail(app: app, slide: open.contents[index])       // LIB-004c: a passage in preview
+                SlideThumbnail(app: app, slide: open.contents[index], cornerRadius: 6)       // LIB-004c: a passage in preview
             } else {
-                RoundedRectangle(cornerRadius: Radius.sm).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
+                RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
             }
         }
-        .padding(3)
-        .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.blue, lineWidth: 2))
+        .wfThumbState(radius: 6, preview: true)
+        .padding(4)
         .accessibilityLabel("Preview: the selected slide")
     }
 
     @ViewBuilder private var liveMonitor: some View {
         Group {
-            if let live { LiveScreenPreview(app: app, screenID: live.id) } else {
-                RoundedRectangle(cornerRadius: Radius.sm).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
+            if let live { LiveScreenPreview(app: app, screenID: live.id, cornerRadius: 6) } else {
+                RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
             }
         }
-        .padding(app.mode == .live ? 7 : 3)
-        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(app.mode == .live ? Tok.liveFill : Tok.border, lineWidth: app.mode == .live ? 3 : 1))
+        .wfThumbState(radius: 6, live: app.mode == .live, liveColor: Tok.liveFill)
+        .padding(app.mode == .live ? 5 : 0)
         .accessibilityLabel("Live: what the audience screen shows now")
     }
 
@@ -115,170 +146,121 @@ struct ShowInspector: View {
         }
     }
 
-    // MARK: Other screens
-
-    private var otherScreens: some View {
-        let others = ShowMonitors.others(app.profiles)
-        return VStack(alignment: .leading, spacing: Space.s3) {
-            if !others.isEmpty {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: Space.s3, alignment: .top), GridItem(.flexible(), spacing: Space.s3, alignment: .top)],
-                          alignment: .leading, spacing: Space.s3) {
-                    ForEach(others) { profile in screenCard(profile) }
-                }
-            }
-            HStack {
-                if app.profiles.filter(\.isEnabled).isEmpty {
-                    Text("No screens are enabled.").font(.caption).foregroundStyle(Tok.muted)
-                }
-                Spacer()
-                Button("Configure…") { workspace.setMode(.screens) }.buttonStyle(.plain).foregroundStyle(Tok.muted)
-                    .font(.system(size: 12)).help("Screen settings are in the Screens mode (Command-6)")
-            }
-        }
-    }
-
+    /// A stage or broadcast monitor with its ONE caption line: a dot, the role in bold, the connector, and SIM where it is simulated.
     private func screenCard(_ profile: ScreenProfile) -> some View {
         let readout = app.readouts.first { $0.id == profile.id }
         let simulated = readout?.sdi?.isSimulated == true || readout?.mirrors.contains { $0.sdi?.isSimulated == true } == true
-        return VStack(alignment: .leading, spacing: 4) {
-            LiveScreenPreview(app: app, screenID: profile.id)
-            HStack(spacing: 5) {
-                Circle().fill(profile.role.tokenColor).frame(width: 7, height: 7).accessibilityHidden(true)
-                Text(profile.role.rawValue.capitalized).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+        return VStack(alignment: .leading, spacing: 5) {
+            LiveScreenPreview(app: app, screenID: profile.id, cornerRadius: 6)
+                .wfThumbState(radius: 6)
+            HStack(spacing: 6) {
+                Circle().fill(profile.role.tokenColor).frame(width: 8, height: 8).accessibilityHidden(true)
+                Text(profile.role.rawValue.capitalized).font(.system(size: 11, weight: .semibold)).foregroundStyle(Tok.text).lineLimit(1)
+                Text(connectorText(profile)).font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1)
                 Spacer(minLength: 0)
-                if simulated { Badge(text: "SIM", style: .outline(Tok.broadcast)) }
-            }
-            Text(destinationText(profile)).font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-            if profile.name.caseInsensitiveCompare(profile.role.rawValue) != .orderedSame {
-                Text(profile.name).font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(1)
+                if simulated { Text("SIM").font(.system(size: 9, weight: .bold)).tracking(0.54).foregroundStyle(Tok.broadcast).padding(.horizontal, 6).padding(.vertical, 1)
+                    .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: Tok.broadcast).fixedSize() }
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(profile.name), \(profile.role.rawValue) screen, \(destinationText(profile))\(simulated ? ", simulated" : "")")
-    }
-
-    private func destinationText(_ profile: ScreenProfile) -> String {
-        let place = app.destinationName(profile.destination)
-        return profile.destination.isSDI ? "\(place) · \(profile.videoMode.name)" : place
+        .accessibilityLabel("\(profile.name), \(profile.role.rawValue) screen, \(app.destinationName(profile.destination))\(simulated ? ", simulated" : "")")
+        .help("\(profile.name): \(app.destinationName(profile.destination)) · \(profile.videoMode.name)")
     }
 
     // MARK: Look
 
     private var lookRow: some View {
-        GeometryReader { geo in lookButtons(width: geo.size.width) }.frame(height: Space.controlHeight)
+        GeometryReader { geo in lookButtons(width: geo.size.width) }.frame(height: 24)
     }
 
     private func lookButtons(width: CGFloat) -> some View {
         // The row minus its label and the chevron: as many Looks as their names allow, the rest in the menu.
-        let room = Double(width) - 38 - 30
+        let room = Double(width) - 36 - 8 - 28
         let split = LookRow.split(app.looks, selected: app.selectedLookID, capacity: LookRow.capacity(for: app.looks, availableWidth: room))
-        return HStack(spacing: 6) {
-            SectionLabel("Look").frame(width: 38, alignment: .leading)
+        return HStack(spacing: 4) {
+            SectionLabel("Look").frame(width: 36, alignment: .leading)
             ForEach(split.visible) { look in
                 let selected = look.id == app.selectedLookID
                 Button { app.selectLook(look.id) } label: {
-                    Text(look.name).lineLimit(1).fixedSize().frame(maxWidth: .infinity)
+                    Text(look.name).font(.system(size: 11, weight: .medium)).lineLimit(1).fixedSize().frame(maxWidth: .infinity, minHeight: 24)
                 }
-                .buttonStyle(HeaderButtonStyle(selected: selected))
-                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(selected ? Tok.cyan : .clear, lineWidth: 2))
+                .buttonStyle(LookButtonStyle(selected: selected))
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
             if !split.overflow.isEmpty {
                 Menu {
                     ForEach(split.overflow) { look in Button(look.name) { app.selectLook(look.id) } }
-                } label: { Image(systemName: "chevron.down") }
+                } label: { Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Tok.muted).frame(width: 24, height: 24) }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("More Looks")
                     .accessibilityLabel("More Looks")
             }
-            if app.looks.isEmpty { Text("No Looks yet.").font(.caption).foregroundStyle(Tok.muted) }
-        }
-    }
-
-    // MARK: Live background override (MEDIA-010)
-
-    /// Shown while a background chosen in the media bin is on: it replaces every slide's own background on the live screens
-    /// (and is never written to the presentation). The button drops it.
-    @ViewBuilder private var overrideRow: some View {
-        if let media = app.media, media.hasLiveBackgroundOverride {
-            let name = media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "a background"
-            HStack(spacing: 6) {
-                Image(systemName: "film").foregroundStyle(Tok.liveFill).accessibilityHidden(true)
-                Text("Live background override: \(name)").font(.system(size: 12)).lineLimit(1).truncationMode(.middle)
-                Spacer(minLength: 4)
-                Button("Drop") { media.dropBackgroundOverride() }.buttonStyle(HeaderButtonStyle())
-                    .help("Drop the override and go back to each slide's own background")
-                    .accessibilityLabel("Drop the live background override")
-            }
-            .padding(.bottom, Space.s3)
-            .accessibilityElement(children: .contain)
+            if app.looks.isEmpty { Text("No Looks yet.").font(.system(size: 11)).foregroundStyle(Tok.muted) }
         }
     }
 
     // MARK: Tabs
 
     private var tabBar: some View {
-        HStack(spacing: Space.s4) {
-            ForEach(app.ui.tabs.visible) { tab in
-                let selected = app.ui.tabs.selected == tab
-                Button { app.ui.tabs.select(tab) } label: {
-                    HStack(spacing: 4) {
-                        Text(tab.title).font(.system(size: 13, weight: selected ? .semibold : .regular))
-                        if tab == .quickEdit { Circle().fill(Tok.blue).frame(width: 6, height: 6).accessibilityHidden(true) }
-                    }
-                    .padding(.horizontal, 4).frame(height: 30)
-                    .foregroundStyle(selected ? Tok.text : Tok.muted)
-                    .overlay(alignment: .bottom) { Rectangle().fill(selected ? Tok.cyan : .clear).frame(height: 2) }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, Space.s5)
-        .overlay(alignment: .bottom) { Rectangle().fill(Tok.border).frame(height: 1) }
+        WFTabs(tabs: app.ui.tabs.visible.map { .init(value: $0, title: $0.title, symbol: $0 == .quickEdit ? "pencil" : nil, dot: $0 == .quickEdit) },
+               selection: Binding(get: { app.ui.tabs.selected }, set: { app.ui.tabs.select($0) }))
     }
 
     @ViewBuilder private var tabContent: some View {
         switch app.ui.tabs.selected {
-        case .props: props
+        case .props: props.padding(.horizontal, 12).padding(.vertical, 10)
         case .cues:
-            CuesTabView(app: app, workspace: workspace)
+            CuesTabView(app: app, workspace: workspace).padding(12)
         case .audio:
-            if let audio = app.audio { AudioPanel(audio: audio) } else { Text("Audio is not available.").foregroundStyle(Tok.muted) }
+            Group { if let audio = app.audio { AudioPanel(audio: audio) } else { Text("Audio is not available.").foregroundStyle(Tok.muted) } }.padding(12)
         case .quickEdit:
-            QuickEditTab(app: app, workspace: workspace)
+            QuickEditTab(app: app, workspace: workspace).padding(.horizontal, 12).padding(.vertical, 10)
         }
     }
 
     private var props: some View {
         let roles = LayerPresence.roles(showing: .props, screens: app.layerInputs)
-        return VStack(alignment: .leading, spacing: Space.s4) {
+        return VStack(alignment: .leading, spacing: 0) {
             if app.props.isEmpty {
-                Text("No props. Add a logo image in Screens to keep it above the slides.").font(.caption).foregroundStyle(Tok.muted)
+                Text("No props. Add a logo image in Screens to keep it above the slides.").font(.system(size: 11)).foregroundStyle(Tok.muted)
             }
             ForEach(app.props) { prop in
-                HStack(spacing: Space.s3) {
-                    Image(systemName: "photo").foregroundStyle(Tok.muted).frame(width: 18)
-                    Text(prop.name).lineLimit(1)
+                HStack(spacing: 8) {
+                    Image(systemName: "photo").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 15)
+                    Text(prop.name).font(.system(size: 13)).lineLimit(1)
                     Spacer()
                     if app.unavailableImages.contains(prop.imagePath) {
-                        Text("File not readable").font(.caption).foregroundStyle(Tok.warning)
+                        Text("File not readable").font(.system(size: 11)).foregroundStyle(Tok.warning)
                     }
                     // The roles whose screens show the props layer under the active Look: what is true, not decoration.
                     ForEach(roles, id: \.self) { role in
-                        PillTag(text: role == .audience ? "AUD" : "BRD", color: role.tokenColor)
+                        PillTag(text: role == .audience ? "AUD" : "BRD", color: role.tokenColor, height: 16)
                             .accessibilityLabel("\(role.rawValue) screens show props")
                     }
                     Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { app.setProp(prop.id, isOn: $0) }))
-                        .toggleStyle(.switch).labelsHidden().tint(Tok.cyan)
+                        .toggleStyle(.wfBare)
                 }
+                .frame(height: 28)
             }
             ForEach(Array(app.messages.enumerated()), id: \.offset) { _, m in
-                Text(m).font(.caption).foregroundStyle(Tok.warning)
+                Text(m).font(.system(size: 11)).foregroundStyle(Tok.warning)
             }
         }
+    }
+}
+
+/// The Look row's button: `.btn` at 24 pt and 11 pt text; selected = `surface-3` with a 1.5 pt selection-blue ring.
+struct LookButtonStyle: ButtonStyle {
+    let selected: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.md)
+        configuration.label
+            .padding(.horizontal, 4)
+            .foregroundStyle(Tok.text)
+            .background { shape.fill(selected ? Tok.surface3 : Tok.surface2) }
+            .overlay { shape.strokeBorder(Tok.borderStrong, lineWidth: 1) }
+            .overlay { if selected { shape.strokeBorder(Tok.blue, lineWidth: 1.5) } }
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .contentShape(shape)
     }
 }
 
@@ -297,20 +279,25 @@ struct QuickEditTab: View {
             if workspace.slides.indices.contains(index) {
                 let slide = workspace.slides[index]
                 HStack(spacing: 8) {
-                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.system(size: 14, weight: .semibold))
-                    if let section = sectionName(slide) { Text(section).font(.system(size: 12)).foregroundStyle(Tok.muted) }
+                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.system(size: 13, weight: .bold))
+                    if let section = sectionName(slide) { Text(section).font(.system(size: 11)).foregroundStyle(Tok.muted) }
                     Spacer(minLength: 4)
-                    PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 22, weight: .medium, size: 12, tracking: 0)
+                    PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 18)
                         .accessibilityLabel("Preview only. The screens do not change until this slide goes live.")
-                    Button { app.closeQuickEdit() } label: { HStack(spacing: 5) { Text("Done"); KeyHint(key: "esc") } }
-                        .buttonStyle(HeaderButtonStyle()).keyboardShortcut(.cancelAction)
-                        .help("Close the Quick edit tab (Escape)")
                 }
                 field("First language", slide: slide, kind: .first, focus: true)
                 field("Second language", slide: slide, kind: .second, focus: false)
                 field("Speaker notes — stage screens only", slide: slide, kind: .notes, focus: false)
-                Text(workspace.hasUnsavedDrafts ? "Saving…" : "Saved · \(QuickEditLabels.previewNote)")
-                    .font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                // The design's footer row: the saved note at the left, Done (esc) at the right.
+                HStack(spacing: 8) {
+                    Text(workspace.hasUnsavedDrafts ? "Saving…" : "Saved · \(QuickEditLabels.previewNote)")
+                        .font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Button { app.closeQuickEdit() } label: { HStack(spacing: 5) { Text("Done"); KeyHint(key: "esc") } }
+                        .buttonStyle(HeaderButtonStyle()).keyboardShortcut(.cancelAction)
+                        .help("Close the Quick edit tab (Escape)")
+                }
+                .padding(.top, 2)
             } else {
                 Text("Select a slide to edit its words.").foregroundStyle(Tok.muted)
             }
@@ -340,7 +327,7 @@ struct QuickEditTab: View {
             })
         return VStack(alignment: .leading, spacing: 3) {
             SectionLabel(label)
-            let editor = WordsEditorField(label: label, text: binding, minHeight: kind == .notes ? 34 : 50)
+            let editor = WordsEditorField(label: label, text: binding, minHeight: kind == .notes ? 30 : 46, placeholder: kind == .notes ? "None" : nil)
             if focus { editor.focused($firstFocused) } else { editor }
         }
     }

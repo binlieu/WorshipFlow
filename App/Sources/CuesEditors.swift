@@ -188,7 +188,7 @@ struct ScheduleEditor: View {
         }()
         return HStack(spacing: Space.s4) {
             Toggle("", isOn: Binding(get: { event.isEnabled }, set: { on in Task { @MainActor in await cue.setEventEnabled(on, id: event.id) } }))
-                .labelsHidden().toggleStyle(.switch).accessibilityLabel("\(event.name) enabled")
+                .toggleStyle(.wfBare).accessibilityLabel("\(event.name) enabled")
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.name).font(.system(size: 14, weight: .semibold))
                 Text("\(ScheduleText.timing(event.timing, calendar: .current)) \u{00B7} runs \(macro)").font(.system(size: 12)).foregroundStyle(Tok.muted)

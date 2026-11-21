@@ -22,7 +22,7 @@ struct MIDISection: View {
             Toggle(isOn: Binding(get: { cue.midi.isEnabled }, set: { on in Task { @MainActor in await cue.setMIDIEnabled(on) } })) {
                 Text("Use MIDI").font(.system(size: 14, weight: .semibold))
             }
-            .toggleStyle(.switch)
+            .toggleStyle(.wf)
             if !cue.midi.isEnabled {
                 CueNote(text: "MIDI is off: nothing is listening to any device, and WorshipFlow has no MIDI ports. Turn it on to bind pads and keys to the show.")
             } else {
@@ -76,7 +76,7 @@ struct MIDISection: View {
                     Text("\u{201C}\(s.virtualInputName)\u{201D} takes MIDI from them, \u{201C}\(s.virtualOutputName)\u{201D} sends MIDI to them.").font(.caption).foregroundStyle(Tok.muted)
                 }
             }
-            .toggleStyle(.switch)
+            .toggleStyle(.wf)
         }
         .frame(maxWidth: 520, alignment: .leading)
     }
@@ -143,7 +143,7 @@ struct RemoteSection: View {
             Toggle(isOn: Binding(get: { cue.remote.isEnabled }, set: { on in Task { @MainActor in await cue.setRemoteEnabled(on) } })) {
                 Text("Let a phone on this network control the show").font(.system(size: 14, weight: .semibold))
             }
-            .toggleStyle(.switch)
+            .toggleStyle(.wf)
             Text("The connection is plain HTTP: anyone on the same Wi-Fi can read it and reuse a paired phone\u{2019}s access until you revoke it, so use it only on a network you trust.")
                 .font(.system(size: 13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if let error = cue.remoteStatus.error { Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).font(.system(size: 13)) }

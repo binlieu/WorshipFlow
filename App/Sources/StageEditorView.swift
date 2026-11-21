@@ -235,7 +235,7 @@ struct StageEditorView: View {
                     if e.kind == .currentSlide || e.kind == .nextSlide {
                         Toggle("Show second language", isOn: Binding(get: { e.showsSecondLanguage },
                                                                      set: { stage.setShowsSecondLanguage($0, for: e.id, in: layoutID) }))
-                            .toggleStyle(.checkbox)
+                            .toggleStyle(.wfCheckbox)
                     }
                     Text("Position and size, in percent of the screen").font(.caption).foregroundStyle(.secondary)
                     Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {

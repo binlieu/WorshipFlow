@@ -212,7 +212,7 @@ struct ThemeEditorSheet: View {
             app.updateTheme(id) { t in
                 if on { t.secondary = t.secondary ?? Theme.fullScreen.secondary ?? t.primary } else { t.secondary = nil }
             }
-        })).toggleStyle(.checkbox)
+        })).toggleStyle(.wfCheckbox)
         if let second = theme.secondary {
             BlockEditor(app: app, themeID: id, isPrimary: false, title: "Second language", block: second)
         }

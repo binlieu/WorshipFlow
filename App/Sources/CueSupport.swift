@@ -57,7 +57,7 @@ struct ScreenTags: View {
     let screens: [CueScreen]
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(screens, id: \.self) { Badge(text: $0.tag, style: .outline($0.color)) }
+            ForEach(screens, id: \.self) { PillTag(text: $0.tag, color: $0.color, height: 18) }
         }
     }
 }

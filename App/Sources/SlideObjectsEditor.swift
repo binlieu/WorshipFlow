@@ -363,7 +363,7 @@ struct SlideInspector: View {
         }
         Toggle("Shadow", isOn: Binding(get: { t.style.shadow != nil }, set: { on in
             editor.setShadow(id, on ? TextShadow(offsetX: 4, offsetY: 4, blur: 8) : nil)
-        })).toggleStyle(.checkbox)
+        })).toggleStyle(.wfCheckbox)
         if let shadow = t.style.shadow {
             VStack(alignment: .leading, spacing: 4) {
                 number("Across", shadow.offsetX) { editor.setShadow(id, TextShadow(color: shadow.color, offsetX: $0, offsetY: shadow.offsetY, blur: shadow.blur)) }
@@ -383,7 +383,7 @@ struct SlideInspector: View {
         let id = o.id
         Toggle("Fill", isOn: Binding(get: { s.fill != nil }, set: { on in
             editor.setFill(id, on ? SlideEditing.defaultShapeFill : nil)
-        })).toggleStyle(.checkbox)
+        })).toggleStyle(.wfCheckbox)
         if let fill = s.fill { colorRow("Fill colour", color: fill) { editor.setFill(id, $0) } }
         Toggle("Outline", isOn: Binding(get: { s.strokeColor != nil && s.strokeWidth > 0 }, set: { on in
             if on {
@@ -392,7 +392,7 @@ struct SlideInspector: View {
             } else {
                 editor.setStrokeWidth(id, 0)
             }
-        })).toggleStyle(.checkbox)
+        })).toggleStyle(.wfCheckbox)
         if s.strokeColor != nil, s.strokeWidth > 0 {
             colorRow("Outline colour", color: s.strokeColor ?? .white) { editor.setStrokeColor(id, $0) }
             Stepper(value: Binding(get: { s.strokeWidth }, set: { editor.setStrokeWidth(id, $0) }),

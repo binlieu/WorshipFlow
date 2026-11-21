@@ -48,6 +48,12 @@ final class WorkspaceUIState {
     var programSheet: ProgramSheet?
     var showSectionOrders = false
     var showThemeEditor = false
+    /// UI-005a: the Show sidebar can be hidden (the toolbar's sidebar button); the two column widths are the design's 256 and 372.
+    var sidebarVisible = true
+    var sidebarWidth: Double = 256
+    var inspectorWidth: Double = 372
+    /// The height of the Libraries block over the playlist (the design's 338 pt).
+    var libraryHeight: Double = 330
     /// UI-001: the slide grid as thumbnails or as a list.
     var gridAsList = false
     /// UI-002: the screen selected in the Screens mode.

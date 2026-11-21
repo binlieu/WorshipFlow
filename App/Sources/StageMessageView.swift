@@ -13,7 +13,7 @@ struct StageMessageView: View {
             HStack {
                 SectionLabel("Stage message")
                 Spacer()
-                Text("Stage screens only").font(.wfCaption).foregroundStyle(Tok.muted)
+                Text("Stage screens only").font(.system(size: 11)).foregroundStyle(Tok.muted)
             }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) { field; recents; sendButton }
@@ -36,10 +36,8 @@ struct StageMessageView: View {
     }
 
     private var field: some View {
-        TextField("Wrap up in 2 min…", text: $text)
-            .textFieldStyle(.plain).padding(.horizontal, 8).frame(height: Space.controlHeight).frame(minWidth: 140)
-            .background(Tok.bg, in: RoundedRectangle(cornerRadius: Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+        TextField("", text: $text, prompt: Text("Wrap up in 2 min…").foregroundStyle(Tok.muted))
+            .textFieldStyle(.plain).wfField().frame(minWidth: 140)
             .onSubmit(submit)
             .accessibilityLabel("Stage message text")
     }
@@ -55,13 +53,15 @@ struct StageMessageView: View {
     }
 
     private var sendButton: some View {
-        Button(action: submit) { Label("Send", systemImage: "text.bubble").fixedSize() }
+        // The design draws Send always enabled; with nothing typed it does nothing (and says so to VoiceOver).
+        Button(action: submit) { HStack(spacing: 6) { Image(systemName: "text.bubble").font(.system(size: 12)); Text("Send") }.fixedSize() }
             .buttonStyle(HeaderButtonStyle())
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .help("Show this message on the stage screens")
+            .accessibilityHint(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Type a message first" : "")
     }
 
     private func submit() {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         stage.sendMessage(text)
         text = ""
     }

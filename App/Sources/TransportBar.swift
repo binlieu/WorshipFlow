@@ -8,7 +8,7 @@ struct TransportBar: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
-        HStack(spacing: Space.s3) {
+        HStack(spacing: 10) {
             stateBadge
             VStack(alignment: .leading, spacing: 1) {
                 Text(headline).font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.tail)
@@ -33,8 +33,6 @@ struct TransportBar: View {
             Button { app.stopShow() } label: { hinted("stop.fill", "Stop", nil) }
                 .buttonStyle(TransportButtonStyle())
                 .disabled(workspace.show.isStopped).help("Empty every screen and drop the live slide")
-            Divider().frame(height: 26)
-            screensButton
             health
         }
         .padding(.horizontal, Space.s5)
@@ -67,33 +65,32 @@ struct TransportBar: View {
 
     // MARK: Pieces
 
-    /// One split control: click clears the words; the attached menu offers Clear all.
+    /// The design's ONE button "Clear ⌄": it opens the menu whose first entry is the words-only clear (Escape).
     private var clearControl: some View {
-        HStack(spacing: 0) {
-            Button { app.clear() } label: { hinted("rectangle.slash", ClearControl.primary.title, "esc") }
-                .buttonStyle(SplitLeadingStyle())
-                .help("Escape: \(ClearControl.primary.detail)")
-            Rectangle().fill(Tok.borderStrong).frame(width: 1, height: Space.transportHeight)
-            Menu {
-                ForEach(ClearControl.menu, id: \.title) { action in
-                    Button("\(action.title) (Shift-Escape)") { app.clearAll() }.help(action.detail)
-                }
-                Divider()
-                // MEDIA-010: one clear per layer. Each is reversible: Go Live, Next or a new choice brings content back.
-                ForEach(ClearControl.layerMenu, id: \.title) { action in
-                    Button("\(action.title) (\(action.shortcut))") { performLayerClear(action) }.help(action.detail)
-                }
-            } label: {
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).frame(width: 26, height: Space.transportHeight)
-                    .foregroundStyle(Tok.text).background(Tok.surface2)
+        Menu {
+            Button("\(ClearControl.primary.title) (Escape)") { app.clear() }.help(ClearControl.primary.detail)
+            ForEach(ClearControl.menu, id: \.title) { action in
+                Button("\(action.title) (Shift-Escape)") { app.clearAll() }.help(action.detail)
             }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help("More clear options: \(ClearControl.Action.clearAll.detail)")
-            .accessibilityLabel("More clear options")
+            Divider()
+            // MEDIA-010: one clear per layer. Each is reversible: Go Live, Next or a new choice brings content back.
+            ForEach(ClearControl.layerMenu, id: \.title) { action in
+                Button("\(action.title) (\(action.shortcut))") { performLayerClear(action) }.help(action.detail)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "rectangle.slash")
+                Text("Clear")
+                KeyHint(key: "esc")
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+            }
+            .transportChrome()
         }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-        .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.borderStrong)
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
         .disabled(workspace.show.isStopped)
+        .opacity(workspace.show.isStopped ? 0.45 : 1)
+        .help("Escape clears the words. The menu also has Clear all and one clear per layer.")
+        .accessibilityLabel("Clear")
     }
 
     private func performLayerClear(_ action: ClearControl.Action) {
@@ -108,8 +105,8 @@ struct TransportBar: View {
 
     @ViewBuilder private var stateBadge: some View {
         switch app.mode {
-        case .live: Text("LIVE").font(.system(size: 12, weight: .bold)).tracking(0.6).foregroundStyle(Tok.onLive)
-            .padding(.horizontal, 10).frame(height: 28).background(Tok.liveFill, in: RoundedRectangle(cornerRadius: Radius.xs))
+        case .live: Text("LIVE").font(.system(size: 11, weight: .bold)).tracking(0.66).foregroundStyle(Tok.onLive)
+            .padding(.horizontal, 8).padding(.vertical, 3).background(Tok.liveFill, in: RoundedRectangle(cornerRadius: Radius.sm))
             .accessibilityLabel("Show state: live")
         case .stopped: badge("STOPPED", Tok.muted)
         case .cleared: badge("CLEARED", Tok.warning)
@@ -118,9 +115,9 @@ struct TransportBar: View {
     }
 
     private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text).font(.system(size: 12, weight: .bold)).tracking(0.6).foregroundStyle(color)
-            .padding(.horizontal, 10).frame(height: 28)
-            .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: color)
+        Text(text).font(.system(size: 11, weight: .bold)).tracking(0.66).foregroundStyle(color)
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: color)
             .accessibilityLabel("Show state: \(text.lowercased())")
     }
 
@@ -129,7 +126,11 @@ struct TransportBar: View {
         case .stopped: return "Nothing is on the screens"
         case .cleared: return "Cleared: the screens are blank, your place is kept"
         case .blackout: return "Blackout: audience screens are black, your place is kept"
-        case .live: return workspace.show.liveSlide.map(LiveSummary.line(for:)) ?? ""
+        case .live:
+            // UI-005a: the lines of the first language joined with a comma, as the design draws it.
+            guard let slide = workspace.show.liveSlide else { return "" }
+            let text = slide.primary.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
+            return text.isEmpty ? "(blank slide)" : text
         }
     }
 
@@ -147,17 +148,21 @@ struct TransportBar: View {
     @ViewBuilder private var health: some View {
         if let h = app.outputHealth {
             HStack(spacing: 8) {
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text(h.rateText).font(.wfMonoData).foregroundStyle(h.needsAttention ? Tok.warning : Tok.text)
-                    Text(h.countsText).font(.wfMonoData).foregroundStyle(Tok.muted)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Circle().fill(h.needsAttention ? Tok.warning : Tok.cyan).frame(width: 5, height: 5).accessibilityHidden(true)
+                        Text(h.rateText).foregroundStyle(h.needsAttention ? Tok.warning : Tok.text)
+                    }
+                    Text(h.countsText).foregroundStyle(Tok.muted)
                 }
+                .font(.system(size: 11, design: .monospaced))
                 if let audio = app.audio { MiniMeter(audio: audio) }
             }
             .fixedSize()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Output health: \(h.rateText), \(h.countsText)")
         } else {
-            Text("screens closed").font(.wfMonoData).foregroundStyle(Tok.muted).fixedSize()
+            Text("screens closed").font(.system(size: 11, design: .monospaced)).foregroundStyle(Tok.muted).fixedSize()
         }
     }
 }
@@ -166,7 +171,7 @@ struct SplitLeadingStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold)).padding(.horizontal, 12).frame(height: Space.transportHeight)
+            .font(.system(size: 13, weight: .semibold)).padding(.horizontal, 16).frame(height: Space.transportHeight)
             .foregroundStyle(Tok.text).background(Tok.surface2)
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .contentShape(Rectangle())
@@ -177,7 +182,7 @@ extension View {
     /// The look of a transport button, for controls that are not a plain Button (the Clear menu).
     func transportChrome() -> some View {
         self.font(.system(size: 13, weight: .semibold)).foregroundStyle(Tok.text)
-            .padding(.horizontal, 12).frame(height: Space.transportHeight)
+            .padding(.horizontal, 16).frame(height: Space.transportHeight)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.borderStrong, fill: Tok.surface2)
     }
 }
@@ -188,16 +193,19 @@ private struct MiniMeter: View {
 
     var body: some View {
         let levels = audio.levels
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(0..<2, id: \.self) { channel in
                 let rms = channel < levels.rms.count ? levels.rms[channel] : 0
                 GeometryReader { geo in
                     ZStack(alignment: .bottom) {
                         RoundedRectangle(cornerRadius: 2).fill(Tok.surface3)
-                        RoundedRectangle(cornerRadius: 2).fill(Tok.cyan).frame(height: geo.size.height * Self.position(rms))
+                        // Cyan up to 70 %, then warning; never red (red means on air; ADR plan default A4).
+                        Rectangle().fill(LinearGradient(stops: [.init(color: Tok.cyan, location: 0), .init(color: Tok.cyan, location: 0.7), .init(color: Tok.warning, location: 0.88), .init(color: Tok.warning, location: 1)], startPoint: .bottom, endPoint: .top))
+                            .frame(height: geo.size.height * Self.position(rms))
                     }
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
-                .frame(width: 5, height: 30)
+                .frame(width: 6, height: 34)
             }
         }
         .accessibilityElement(children: .ignore)

@@ -50,6 +50,16 @@ enum Space {
 
 enum Radius {
     static let xs: CGFloat = 3, sm: CGFloat = 4, md: CGFloat = 6, lg: CGFloat = 8, xl: CGFloat = 10
+    /// ui.css values the token file lacks (UI-005a): the segmented control's and the toolbar timers' track, and a segment inside it.
+    static let track: CGFloat = 7, segment: CGFloat = 5
+}
+
+/// ui.css values the token file lacks (UI-005a). The parity test pins them to the mockup's CSS.
+enum Metric {
+    static let thumbRingPreview: CGFloat = 2, thumbRingLive: CGFloat = 3, thumbRingOffset: CGFloat = 2
+    static let toggleWidth: CGFloat = 30, toggleHeight: CGFloat = 18, checkboxSize: CGFloat = 14
+    static let scrubTrack: CGFloat = 5, scrubThumb: CGFloat = 13
+    static let monitorGap: CGFloat = 10, lookHeight: CGFloat = 24, timerCapsuleHeight: CGFloat = 28
 }
 
 extension Font {

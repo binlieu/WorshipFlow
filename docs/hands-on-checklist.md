@@ -215,3 +215,13 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Import something big onto a nearly full drive: it says there is not enough room before copying anything.
 - [ ] Hot folders: follow a folder on a USB drive, unplug the drive, relaunch: the app opens at once, the folder says "missing" or "not answering", the show works. Plug it back: the files return (and a remembered hot-folder background plays again). Rename the followed folder in Finder: it keeps working. Drop a file that macOS cannot read into the folder: it is listed as unreadable once, not retried every two seconds. Play folder with an unreadable file in it: it skips it and says so once.
 - [ ] Media mode: select a video; the player starts muted, the speaker button turns the sound on, the line under it says which output it would use. Send the item live: the player pauses.
+
+## UI-005a shared components and Show
+
+- [ ] Open Show at 1440 x 900 in Dark and Light and hold it beside `docs/UI/screens/01-operator-show.png` and `09-operator-show-light.png`: toolbar, sidebar, grid, dock, inspector and transport bar line up; the toolbar's sidebar button hides and shows the sidebar (Option-Command-S).
+- [ ] Drag the edge between the sidebar and the slides, between the slides and the inspector, and the line between the song list and the playlist: they move within 240-380, 320-440 and the sidebar's height. Hide the sidebar and bring it back.
+- [ ] Tab through the toolbar, the header, the Look row, the tabs and the transport bar with full keyboard access on: every segmented control, toggle and tab can be reached and operated with Space; with VoiceOver on each says its name, its value (on or off, selected) and what it does. Up and Down in the song list change the song.
+- [ ] Props: each toggle switches its prop (the design's pill with the cyan "on"); the slider in the media controller scrubs and the volume changes the sound; both can be moved with the arrow keys and VoiceOver.
+- [ ] Edit, Stage and Screens have no transport bar: Space, Return, the arrows, B and Escape still move the show; the toolbar shows LIVE and the slide while something is on the screens.
+- [ ] The Clear button is one button with a menu (Clear words with Escape, Clear all, the layers); Stop has no key hint; the screens button is in the toolbar.
+- [ ] Edit live slide, the live background override (Drop) and Configure are in the slim row under the monitors; Quick edit is in the header only and gets a blue ring while its tab is open.
