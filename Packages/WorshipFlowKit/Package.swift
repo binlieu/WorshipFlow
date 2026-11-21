@@ -16,6 +16,7 @@ let package = Package(
         .library(name: "CueEngine", targets: ["CueEngine"]),
         .library(name: "ScriptureEngine", targets: ["ScriptureEngine"]),
         .library(name: "ScriptureStore", targets: ["ScriptureStore"]),
+        .library(name: "CueStore", targets: ["CueStore"]),
         .executable(name: "wf-bible-import", targets: ["BibleImportTool"]),
     ],
     dependencies: [
@@ -60,6 +61,9 @@ let package = Package(
         .target(name: "ScriptureStore", dependencies: ["ScriptureEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(name: "ScriptureStoreTests", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
         .executableTarget(name: "BibleImportTool", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
+        // CUE-002a: storage of macros, slide actions, schedule and MIDI bindings in the church library.
+        .target(name: "CueStore", dependencies: ["CueEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
+        .testTarget(name: "CueStoreTests", dependencies: ["CueStore", "CueEngine", "Persistence"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
