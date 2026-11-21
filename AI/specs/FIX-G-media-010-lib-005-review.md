@@ -1,0 +1,39 @@
+# FIX-G: fixes from the independent review of MEDIA-010 and LIB-005
+
+Feature IDs: MEDIA-010, LIB-005. Model: Sonnet. One agent owns all files; it starts after UI-004 is committed. This task owns migration v11.
+
+The independent review of commit 11ef7d6 (2026-11-21) found no critical defect, two high and several medium ones. The decision for each is below. Work test-first and the order is checked: write the test, run it, see it fail at runtime (or fail to compile only for a symbol the fix introduces), then change the code; record the failing output per item. New tests in new files `FIXG_*.swift`. Do not edit existing tests, with the one exception named in item 2.
+
+## Items
+
+1. **Fix (high): Clear background and Stop leave an unmuted background video's sound playing.** The scene hides the picture but the registry still plays the layer and its sound. A background that is cleared, stopped or blacked out is silent, and the sound returns with the picture. Prefer making the effective media carry no audible background in those states over patching the mute flag alone. Tests: unmute, Clear background: silent; Next: heard again; unmute, Stop: silent; Blackout composes as before.
+2. **Fix (high): a slide's own background is stored beside the slide, not with it.** It lives in `appState` JSON (KI-100) because an older test pinned the migration count. Consequences today: a lyric re-flow silently deletes every slide's own background, deleting a slide leaves an orphan, and an exported program does not carry them. Do it properly:
+   - Migration **v11**, additive: the slide's own background stored with the slide (a nullable column or a child table with a cascading foreign key; choose and say why). The migration moves existing `appState` entries across and removes them; entries for slides that no longer exist are dropped. Existing rows are otherwise untouched.
+   - The one permitted edit to an existing test: `noNewMigrationWasNeeded` in `LIB004c_ScripturePlaylistItemTests.swift` asserts the exact migration count; change it to assert `prefix(10)` and nothing else. Check the other migration tests use `prefix(n)` too; list any you had to change the same way.
+   - Re-flow carries a slide's own background over by the same match that carries notes and actions, and the re-flow sheet's loss list names any that cannot be carried.
+   - Duplicate slide and duplicate presentation copy it; delete removes it; undo restores it.
+   - LIB-005: the program package carries it (the file in `media/`, a relative reference on the slide), import restores it, and the format documentation is updated. A package written before this change still imports.
+   - Removing a bin asset that a slide uses as its own background: the slide shows the existing missing-media state and the operator is told which slides are affected before the removal.
+3. **Fix (medium): "use the imported one" can be overwritten by unsaved typing, and has no way back.** Flush the editor's drafts before the import is applied, and reload after. Before any import that replaces existing content, the app writes a backup of the library with SQLite's backup API into `Backups/` beside the library (name with the date and "before import"), keeps the newest five of that kind, and the import summary says where it is. If the backup cannot be written the replace is not done and the operator is told. A presentation that is live is not replaced: the import keeps both for that one and says so.
+4. **Fix (medium): hot-folder code can block the main thread when a volume is gone.** Resolve bookmarks with `.withoutUI` and `.withoutMounting`, and do the resolving, the `open()` for watching and every directory listing off the main actor. Launch never waits on a hot folder.
+5. **Fix (medium): a clip that is on air from a hot folder can be killed by a rescan.** An asset that is in a live layer stays registered while it plays, whatever the next scan says; a file already known as complete is not held back again because another scan started; a listing error keeps the last known items and shows the folder as unreachable. Check the launch order: a remembered hot-folder background is restored after the hot folders have loaded.
+6. **Fix (medium): polling and probing are unbounded.** One scan at a time per folder; a file that cannot be probed is remembered as unreadable and retried with a growing delay, not every two seconds; the probe cache is pruned to files that still exist; a folder is capped at 2,000 listed items with a notice. Play folder skips an unreadable file and goes on to the next, and says so once; if none is playable it stops and says so.
+7. **Fix (medium): import has no size guard.** Before copying, compare the summed sizes with the free space on the library's volume (leave a margin) and refuse in plain words if it will not fit. A copy stops as soon as it exceeds the size the manifest states for that file.
+8. **Fix (medium): a package can add a theme row with a built-in theme's id.** Refuse a package whose custom theme uses a built-in id, in plain words.
+9. **Fix (medium): the sidebar preview player starts with sound on, through the Mac's default output, which may be the house system.** The preview starts muted, with a clear speaker button and a line under it saying where it will be heard. Its mute choice is remembered for the session only. Go Live does not need to stop it, but sending the previewed item live pauses the preview.
+10. **Fix (low to medium): replacing a theme or Look by import while the show is live.** While anything is live, an import does not replace themes or Looks in use: it keeps both and says so. Check the review's suspicion that an imported Look refers to screen profiles by this Mac's ids: if so, map by role (audience, stage, broadcast) on import and record what cannot be mapped. Imported slide actions are listed in the import summary by kind and count before the operator confirms.
+11. **Fix (low): export planning.** Hash at utility priority, make planning cancellable, and refuse a destination inside the library's folder.
+12. **Fix (low): a moved or renamed hot folder shows as missing.** Scan the path the bookmark resolves to, and refresh a stale bookmark.
+13. Covered by item 2.
+14. **Add the tests the review found missing** where not already covered above: a symlinked directory inside `media/` and a hard link; non-UUID ids, deeply nested JSON and the media-file limit; a hot-folder asset vanishing while it plays; replace-import with an open presentation and drafts; the chunked copy and a cancel inside a copy (inject the copy step so no large file is needed).
+
+## Rules
+
+- No git state changes. No advisor tool. Do not request full computer control.
+- Do not edit `docs/UI`, `docs/adr`, `AI/specs`, the vendored `sdk/` folder, or existing test files other than as item 2 allows.
+- The product name is now written "WorshipFlow" in user-visible text (UI-004); the library folder and identifiers keep their spelling. Follow what is in the tree.
+- Never open the owner's real library under Application Support. If you launch the app: your own uniquely named scratch folder, a temporary `--library`, `--silent-audio`, stop only processes you started, nothing left in the home folder.
+- The repository is public: no user names, home paths, computer names or e-mail addresses in any file or picture. No assertions on wall-clock time.
+- Docs: `docs/16-known-issues.md` (close or update KI-098, KI-100 and the others these items change; new entries after the last one), `docs/17-change-log.md`, `docs/19-data-dictionary.md` (v11), `docs/hands-on-checklist.md`, and the two feature specs.
+- Finish with `./scripts/check.sh` twice; report both exit statuses and test counts truthfully. Leave no wait timers or background work running.
+- Report to `AI/reports/FIX-G-report.md`: per item what changed, the tests added, the failing output seen first, what is not verified, every deviation.
