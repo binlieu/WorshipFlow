@@ -28,6 +28,8 @@ targets:
         product: OperatorCore
       - package: WorshipFlowKit
         product: SDIEngine
+      - package: WorshipFlowKit
+        product: DeckLinkSDI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app

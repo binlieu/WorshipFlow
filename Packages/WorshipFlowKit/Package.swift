@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "OperatorCore", targets: ["OperatorCore"]),
         .library(name: "SDIEngine", targets: ["SDIEngine"]),
+        .library(name: "DeckLinkSDI", targets: ["DeckLinkSDI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -37,6 +38,14 @@ let package = Package(
         // HW-001: SDI device abstraction, scheduler, connector planning and simulator. No vendor SDK here.
         .target(name: "SDIEngine", dependencies: ["Domain"]),
         .testTarget(name: "SDIEngineTests", dependencies: ["SDIEngine", "Domain"]),
+        // HW-003: Blackmagic DeckLink bridge. DeckLinkC is Objective-C++ around the vendor headers in sdk/
+        // (ADR-0006); its public header is plain Objective-C. DeckLinkSDI adapts it to the SDIEngine protocols.
+        .target(name: "DeckLinkC",
+                exclude: ["sdk/README.md"],
+                cxxSettings: [.headerSearchPath("sdk")],
+                linkerSettings: [.linkedFramework("CoreFoundation"), .linkedFramework("Foundation"), .linkedFramework("CoreVideo")]),
+        .target(name: "DeckLinkSDI", dependencies: ["DeckLinkC", "SDIEngine", "Domain"]),
+        .testTarget(name: "DeckLinkSDITests", dependencies: ["DeckLinkSDI", "SDIEngine"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
@@ -45,5 +54,6 @@ let package = Package(
         .testTarget(name: "DomainTests", dependencies: ["Domain"]),
         .testTarget(name: "RenderEngineTests", dependencies: ["RenderEngine", "Domain"]),
         .testTarget(name: "OutputEngineTests", dependencies: ["OutputEngine"]),
-    ]
+    ],
+    cxxLanguageStandard: .cxx17
 )
