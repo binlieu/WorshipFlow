@@ -28,6 +28,9 @@ let package = Package(
         // STAGE-001a: stage layouts and timers, separate targets so parallel slices do not block each other.
         .testTarget(name: "StageTests", dependencies: ["Domain"]),
         .testTarget(name: "StageStoreTests", dependencies: ["Persistence", "Domain"]),
+        // MEDIA-002: media transport rules.
+        .testTarget(name: "MediaRulesTests", dependencies: ["Domain"]),
+        .testTarget(name: "MediaEngineTests", dependencies: ["MediaEngine", "Domain"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
