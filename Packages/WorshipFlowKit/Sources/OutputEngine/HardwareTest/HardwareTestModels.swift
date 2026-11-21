@@ -93,13 +93,56 @@ public struct HardwareDriverStatus: Codable, Equatable, Sendable {
     public var isInstalled: Bool
     public var apiVersion: String?
     public var driverVersion: String?
+    /// Whether this app can load Blackmagic's framework (the entitlement check, KI-055). Nil when the provider cannot say;
+    /// false when the framework's files are on the Mac and loading them was refused.
+    public var frameworkLoadable: Bool?
     /// For the tester, in plain words.
     public var message: String
-    public init(isInstalled: Bool, apiVersion: String? = nil, driverVersion: String? = nil, message: String) {
+    public init(isInstalled: Bool, apiVersion: String? = nil, driverVersion: String? = nil, frameworkLoadable: Bool? = nil, message: String) {
         self.isInstalled = isInstalled
         self.apiVersion = apiVersion
         self.driverVersion = driverVersion
+        self.frameworkLoadable = frameworkLoadable
         self.message = message
+    }
+
+    /// What a provider says about its environment (HW-004).
+    public init(_ environment: SDIEnvironmentStatus) {
+        self.init(isInstalled: environment.driverInstalled, apiVersion: environment.apiVersion, frameworkLoadable: environment.frameworkLoadable,
+                  message: environment.message)
+    }
+}
+
+/// Which of three situations the tester is in, and the words for it (HW-004): the driver is not installed, the driver is
+/// installed but no card is found, or a card is found.
+public struct HardwareCardState: Equatable, Sendable {
+    public enum Kind: Equatable, Sendable { case driverNotInstalled, noCardFound, cardFound }
+    public var state: Kind
+    public var text: String
+
+    public static func describe(driver: HardwareDriverStatus, cards: [String]) -> HardwareCardState {
+        if !cards.isEmpty { return HardwareCardState(state: .cardFound, text: "Card found: " + cards.joined(separator: ", ")) }
+        if !driver.isInstalled {
+            // Files on the Mac that could not be loaded is a different problem from nothing installed: the provider's words say so.
+            if driver.frameworkLoadable == false { return HardwareCardState(state: .driverNotInstalled, text: driver.message) }
+            return HardwareCardState(
+                state: .driverNotInstalled,
+                text: "Blackmagic Desktop Video is not installed on this Mac. Install Blackmagic Desktop Video from the Blackmagic Design support site, restart the Mac, open WORSHIPFLOW again, then press Rescan.")
+        }
+        let version = driver.apiVersion.map { " (driver API \($0))" } ?? ""
+        return HardwareCardState(
+            state: .noCardFound,
+            text: "Blackmagic Desktop Video is installed\(version), but no DeckLink card was found. Check the Thunderbolt cable and that the enclosure is switched on, then press Rescan.")
+    }
+}
+
+/// What the vendor's manual says, for the report to compare the hardware with. Not a measurement.
+enum HardwareTestManual {
+    /// The Duo 2's connector table for the paired profile (SDK manual, "Device Profiles"): fill on the pair's second
+    /// connector, key on the first. Nil for any other model: the table covers the Duo 2 only.
+    static func keyRoute(modelName: String, firstConnector: Int) -> (fill: Int, key: Int)? {
+        guard modelName.lowercased().contains("duo 2") else { return nil }
+        return (fill: firstConnector + 1, key: firstConnector)
     }
 }
 

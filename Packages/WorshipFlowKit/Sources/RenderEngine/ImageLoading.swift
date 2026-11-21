@@ -18,6 +18,9 @@ enum ImageDecoder {
 
     /// Test seam (R7): lets a test see which thread asks the file system for a modification date.
     nonisolated(unsafe) static var statProbe: (@Sendable (String) -> Void)?
+    /// Test seam (KI-060): called when a background load has finished and the path is free to be requested again, so a test
+    /// can wait for it instead of sleeping.
+    nonisolated(unsafe) static var backgroundLoadFinishedProbe: (@Sendable (String) -> Void)?
 
     static func modificationDate(of path: String) -> Date? {
         statProbe?(path)
@@ -215,6 +218,7 @@ final class ImageLoadCenter: @unchecked Sendable {
             pending.remove(path)
             finished.append(outcome)
             lock.unlock()
+            ImageDecoder.backgroundLoadFinishedProbe?(path)
         }
     }
 

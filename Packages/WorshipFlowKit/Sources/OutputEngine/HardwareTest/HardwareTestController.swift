@@ -68,8 +68,22 @@ public final class HardwareTestController {
         driverStatus = provider.driver()
     }
 
+    /// Looks again for cards without blocking the main thread: the scan runs elsewhere, then the window's state is updated.
+    public func rescan() async {
+        let provider = realProvider()
+        if let scan = provider.rescan { await Task.detached { scan() }.value }
+        refresh()
+    }
+
+    /// The first line of the finished report: whether a real device was tested. The window shows it above everything else.
+    public var verdictLine: String? { summaryText?.components(separatedBy: "\n").first }
+
     public var driverMessage: String { driverStatus.message }
     public var hasRealDevice: Bool { !realDevices.isEmpty }
+    /// Which of the three situations the tester is in (driver not installed, no card found, card found) and the words for it.
+    public var cardState: HardwareCardState {
+        HardwareCardState.describe(driver: driverStatus, cards: realDevices.map { $0.info.displayName })
+    }
 
     /// Why a run cannot start now, in plain words, or nil.
     public var refusal: String? {

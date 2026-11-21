@@ -27,6 +27,13 @@ struct ScreensPanel: View {
                     }
                 }
             }
+            if let environment = model.sdiEnvironment, environment.state == .driverNotInstalled || environment.state == .noCardFound {
+                SDIEnvironmentLine(text: environment.message) { model.rescanSDI() }
+            }
+            if let notice = model.sdiProfileNotice {
+                Text(notice).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("sdi.profileNotice")
+            }
             ForEach(model.sdiDevices) { device in
                 ConnectorMapView(device: device, rows: model.connectorRows[device.id] ?? [])
             }
@@ -38,6 +45,23 @@ struct ScreensPanel: View {
             }
             DeveloperSection(model: model)
         }
+    }
+}
+
+/// HW-004: one calm line when there is no Blackmagic driver or no card. Never an error dialog: everything else works.
+struct SDIEnvironmentLine: View {
+    let text: String
+    let rescan: () -> Void
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "info.circle").foregroundStyle(.secondary)
+            Text(text).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            Button("Rescan", action: rescan).controlSize(.small)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("sdi.environmentLine")
     }
 }
 
@@ -384,7 +408,7 @@ struct DestinationEditor: View {
                         .disabled(device?.supportsKeying == false)
                         .accessibilityLabel("Fill and key for \(profile.name)")
                     if keying {
-                        Text(ScreenEditing.keyingCaption(connector: connector)).font(.caption).foregroundStyle(.secondary)
+                        Text(ScreenEditing.keyingCaption(connector: connector, device: device)).font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 if keying {

@@ -70,7 +70,34 @@ public final class DeckLinkDevice: SDIDevice {
         let name = members.first?.info.modelName ?? "DeckLink"
         // The card can key if any of its profiles can; whether the current profile can is checked when a port is enabled.
         let keying = members.contains { $0.info.supportsExternalKeying || $0.info.profiles.contains { $0.supportsExternalKeying } }
-        return SDIDeviceInfo(displayName: name, connectorCount: layout.connectorCount, supportsExternalKeying: keying, isSimulated: false)
+        let layout = self.layout
+        let count = layout.connectorCount
+        var profiles: [SDIProfileState] = []
+        if count >= 2 {
+            var first = 1
+            while first + 1 <= count {
+                if let member = member(subDeviceIndex: (first - 1) / 2) {
+                    let i = member.info
+                    let active = layout.keyRoute(firstConnector: first) != nil && i.supportsExternalKeying
+                    profiles.append(DeckLinkDeviceReport.profileState(
+                        firstConnector: first, connectorCount: count, activeProfile: i.hasActiveProfile ? i.activeProfileID : nil,
+                        activeProfileKeys: active, profiles: Self.profileInfos(i)))
+                }
+                first += 2
+            }
+        }
+        return SDIDeviceInfo(displayName: name, connectorCount: count, supportsExternalKeying: keying, isSimulated: false,
+                             keyRoutes: DeckLinkDeviceReport.keyRoutes(layout: layout, connectorCount: count),
+                             connectors: DeckLinkDeviceReport.connectors(layout: layout), profiles: profiles)
+    }
+
+    static func profileInfos(_ i: DLBDeviceInfo) -> [DeckLinkProfileInfo] {
+        i.profiles.map {
+            DeckLinkProfileInfo(id: $0.profileID, name: DeckLinkProfile.name($0.profileID), isActive: $0.isActive,
+                                supportsExternalKeying: $0.supportsExternalKeying, supportsInternalKeying: $0.supportsInternalKeying,
+                                supportsPlayback: $0.supportsPlayback, supportsCapture: $0.supportsCapture,
+                                duplex: $0.duplexModeString, subDeviceCount: $0.numberOfSubDevices >= 0 ? Int($0.numberOfSubDevices) : nil)
+        }
     }
 
     public var isConnected: Bool { currentMembers().contains { $0.isPresent } }
@@ -118,12 +145,7 @@ public final class DeckLinkDevice: SDIDevice {
                 supportsInternalKeying: i.supportsInternalKeying, supportsExternalKeying: i.supportsExternalKeying,
                 supportsInputFormatDetection: i.supportsInputFormatDetection, duplex: i.duplexModeString,
                 activeProfile: i.hasActiveProfile ? i.activeProfileID : nil, hasSingleProfile: i.hasSingleProfile,
-                profiles: i.profiles.map {
-                    DeckLinkProfileInfo(id: $0.profileID, name: DeckLinkProfile.name($0.profileID), isActive: $0.isActive,
-                                        supportsExternalKeying: $0.supportsExternalKeying, supportsInternalKeying: $0.supportsInternalKeying,
-                                        supportsPlayback: $0.supportsPlayback, supportsCapture: $0.supportsCapture,
-                                        duplex: $0.duplexModeString, subDeviceCount: $0.numberOfSubDevices >= 0 ? Int($0.numberOfSubDevices) : nil)
-                })
+                profiles: Self.profileInfos(i))
         }
     }
 
@@ -178,6 +200,28 @@ public final class DeckLinkDevice: SDIDevice {
             }
         }
         refreshAll()
+    }
+
+    /// Switches the connector pair that starts at `firstConnector` to a profile that can key (KI-054). Used by the app after
+    /// the operator said yes; the pair must have no open port.
+    public func activateKeyingProfile(firstConnector: Int, timeout: TimeInterval = 5) async throws {
+        let pair = (firstConnector - 1) / 2
+        guard let member = member(subDeviceIndex: pair),
+              let target = DeckLinkDeviceReport.keyingProfile(among: Self.profileInfos(member.info).filter { !$0.isActive }) else {
+            throw DeckLinkError.profileUnavailable("This card reports no profile that sends a fill and key pair.")
+        }
+        try await activateProfile(target.id, forPair: pair, timeout: timeout)
+    }
+
+    /// The card as a provider hands it to the app and the hardware test.
+    public func provided() -> SDIProvidedDevice {
+        let pairs = layout.pairProfiles.enumerated().map { "connectors \($0.offset * 2 + 1) and \($0.offset * 2 + 2): " + ($0.element.map { DeckLinkProfile.name($0) } ?? "profile not reported") }
+        return SDIProvidedDevice(
+            id: identifier.description, info: info, profileDescription: pairs.joined(separator: "; "),
+            isConnected: { [self] in isConnected },
+            openOutput: { [self] in try openOutput(connector: $0) },
+            openInput: { [self] in try openInput(connector: $0) },
+            activateKeyingProfile: { [self] first in try await activateKeyingProfile(firstConnector: first) })
     }
 
     /// Re-reads every sub-device (after a profile change, or by another application).

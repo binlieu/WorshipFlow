@@ -108,9 +108,10 @@ import Testing
         #expect(DeckLinkMapping.sdiError(bridgeError(.busy), context: .open(connector: 4)) == .connectorUnavailable(4))
         #expect(DeckLinkMapping.sdiError(bridgeError(.badState), context: .schedule) == .notEnabled)
         #expect(DeckLinkMapping.sdiError(bridgeError(.badState), context: enablePlain) == .portClosed)
-        #expect(DeckLinkMapping.sdiError(bridgeError(.sdkFailure), context: .schedule) == .deviceDisconnected)
+        // HW-004 (KI-056): an SDK failure is a hardware fault carrying the SDK's words, no longer reported as "disconnected".
+        #expect(DeckLinkMapping.sdiError(bridgeError(.sdkFailure), context: .schedule) == .hardwareFault(detail: "detail"))
         #expect(DeckLinkMapping.sdiError(SDIError.portClosed, context: .schedule) == .portClosed)
-        #expect(DeckLinkMapping.sdiError(NSError(domain: "other", code: 1), context: .runtime) == .deviceDisconnected)
+        if case .hardwareFault = DeckLinkMapping.sdiError(NSError(domain: "other", code: 1), context: .runtime) {} else { Issue.record("an unrecognised error is a hardware fault") }
     }
 
     @Test func theSDKResultCodeSurvivesInTheLogDetail() {

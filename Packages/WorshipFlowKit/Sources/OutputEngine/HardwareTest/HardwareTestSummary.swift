@@ -15,13 +15,19 @@ public enum HardwareTestSummary {
 
     public static func render(_ report: HardwareTestReport, detail: Detail = .brief) -> String {
         var lines: [String] = []
+        // The first line says whether a real device was tested, so nobody has to read on to find out.
         if report.simulated {
             lines.append("SIMULATED RUN: no real card was used, so none of these numbers say anything about real hardware.")
+        } else if let name = report.deviceName {
+            lines.append("REAL DEVICE TESTED: \(name). The numbers below were measured on this card.")
         } else {
-            lines.append("WORSHIPFLOW hardware test report")
+            lines.append("NO REAL DEVICE WAS TESTED: no DeckLink card was found, so nothing in this report says anything about real hardware.")
         }
-        let device = report.deviceName ?? "none found"
-        lines.append("Device tested: \(device) (\(report.simulated ? "SIMULATED, no real card" : "real hardware"))")
+        if report.deviceName != nil {
+            lines.append("Device tested: \(report.deviceName ?? "") (\(report.simulated ? "SIMULATED, no real card" : "real hardware"))")
+        } else {
+            lines.append("Device tested: none found")
+        }
         lines.append(HardwareTestReport.disclaimer)
         if !report.complete {
             lines.append("INCOMPLETE: the test did not finish. Only the steps listed below were recorded.")
@@ -34,6 +40,16 @@ public enum HardwareTestSummary {
         for step in report.steps {
             let name = "\(step.number). \(step.title)"
             lines.append(name.padding(toLength: max(34, name.count + 2), withPad: " ", startingAt: 0) + step.outcome.label)
+        }
+        // The driver facts are what a reader looks for first when no card was found, so a brief summary shows them
+        // whatever else it trims: the driver state, its API version, the entitlement check and the device-reported key route.
+        let driverFacts = report.steps.first { $0.id == .environment }?.measurements.filter { m in
+            ["Blackmagic driver", "Driver API version", "Driver version", "Framework can be loaded", "Key route reported by the device"].contains { m.name.hasPrefix($0) }
+        } ?? []
+        if !driverFacts.isEmpty {
+            lines.append("")
+            lines.append("THE DRIVER AND THE CARD")
+            for m in driverFacts { lines.append("  - \(m.name): \(m.value)") }
         }
         lines.append("")
         lines.append("DETAILS")

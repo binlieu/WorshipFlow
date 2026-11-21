@@ -47,15 +47,14 @@ enum DeckLinkMapping {
         case runtime
     }
 
-    /// Translates a bridge error into the engine's error. SDIEngine has no general "hardware fault" case; those
-    /// failures map to `.deviceDisconnected` (its remedy, reconnect and retry, is the right one) and the detail is kept
-    /// in `detail(_:)` for the log and the diagnostics snapshot.
+    /// Translates a bridge error into the engine's error. A card that is gone is `.deviceDisconnected`; an SDK failure on a
+    /// card that is still there is `.hardwareFault(detail:)` with the bridge's own words and the SDK result code (KI-056),
+    /// so an operator is never told to reconnect a card that was never unplugged.
     static func sdiError(_ error: Error, context: Context) -> SDIError {
         if let sdi = error as? SDIError { return sdi }
+        let fault = SDIError.hardwareFault(detail: detail(error))
         let nsError = error as NSError
-        guard nsError.domain == DLBErrorDomain, let code = DLBError.Code(rawValue: nsError.code) else {
-            return .deviceDisconnected
-        }
+        guard nsError.domain == DLBErrorDomain, let code = DLBError.Code(rawValue: nsError.code) else { return fault }
         switch code {
         case .deviceRemoved, .driverNotInstalled:
             return .deviceDisconnected
@@ -68,7 +67,7 @@ enum DeckLinkMapping {
         case .busy:
             switch context {
             case .open(let c), .enable(let c, _, _): return .connectorUnavailable(c)
-            case .schedule, .runtime: return .deviceDisconnected
+            case .schedule, .runtime: return fault
             }
         case .badState:
             return context.isSchedule ? .notEnabled : .portClosed
@@ -76,9 +75,9 @@ enum DeckLinkMapping {
             if case .enable(_, let name, _) = context { return .unsupportedMode(name) }
             return .notEnabled
         case .outOfMemory, .sdkFailure, .profileTimeout:
-            return .deviceDisconnected
+            return fault
         @unknown default:
-            return .deviceDisconnected
+            return fault
         }
     }
 

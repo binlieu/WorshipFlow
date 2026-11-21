@@ -129,7 +129,25 @@ public enum HardwareTestSteps {
         ms.append(m("Blackmagic driver", driver.isInstalled ? "installed" : "not installed"))
         if let v = driver.apiVersion { ms.append(m("Driver API version", v)) }
         if let v = driver.driverVersion { ms.append(m("Driver version", v)) }
+        let loadable: String
+        switch driver.frameworkLoadable {
+        case true?: loadable = "yes"
+        case false?: loadable = "no: the framework's files are on this Mac but loading them was refused (an entitlement or library validation problem, KI-055)"
+        case nil: loadable = driver.isInstalled ? "yes (the driver answered)" : "unknown: no driver was found"
+        }
+        ms.append(m("Framework can be loaded (entitlement check)", loadable))
         ms.append(m("Driver message", driver.message))
+        // The key route the device reports, so the report shows what the app planned from before anything is measured.
+        if let card = ctx.device ?? ctx.allDevices.first {
+            var first = 1
+            while first + 1 <= card.info.connectorCount {
+                let text = card.info.keyRoute(firstConnector: first).map { "fill on SDI \($0.fillConnector), key on SDI \($0.keyConnector)" } ?? "none reported"
+                ms.append(m("Key route reported by the device (connectors \(first) and \(first + 1))", text))
+                first += 2
+            }
+        } else {
+            ms.append(m("Key route reported by the device", "no device found"))
+        }
         let usable = !sys.osVersion.isEmpty && sys.osVersion != "unknown"
         return HardwareStepOutput(
             outcome: usable ? .passed : .failed,

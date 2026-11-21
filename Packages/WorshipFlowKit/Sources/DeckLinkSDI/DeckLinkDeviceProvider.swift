@@ -15,11 +15,12 @@ public enum DeckLinkDeviceEvent: Sendable {
     case changed(DeckLinkDevice)
 }
 
-public final class DeckLinkDeviceProvider: Sendable {
+public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
     private struct State {
         var cards: [DeckLinkIdentifier: DeckLinkDevice] = [:]
         var discovery: DLBDiscovery?
         var onEvent: (@Sendable (DeckLinkDeviceEvent) -> Void)?
+        var subscribers: [UUID: AsyncStream<SDIDeviceEvent>.Continuation] = [:]
     }
 
     private let state = Mutex(State())
@@ -46,6 +47,13 @@ public final class DeckLinkDeviceProvider: Sendable {
     /// `onEvent` runs on an SDK thread and must not block. Calling this again replaces the handler.
     public func startMonitoring(onEvent: @escaping @Sendable (DeckLinkDeviceEvent) -> Void) throws {
         state.withLock { $0.onEvent = onEvent }
+        do { try startDiscoveryIfNeeded() } catch {
+            state.withLock { $0.onEvent = nil }
+            throw error
+        }
+    }
+
+    private func startDiscoveryIfNeeded() throws {
         if state.withLock({ $0.discovery }) != nil { return }
         let discovery = DLBDiscovery(
             arrived: { [weak self] device in self?.arrived(device) },
@@ -53,7 +61,6 @@ public final class DeckLinkDeviceProvider: Sendable {
         do {
             try discovery.start()
         } catch {
-            state.withLock { $0.onEvent = nil }
             let nsError = error as NSError
             if nsError.domain == DLBErrorDomain, nsError.code == DLBError.Code.driverNotInstalled.rawValue { throw DeckLinkError.driverNotInstalled }
             throw error
@@ -69,6 +76,33 @@ public final class DeckLinkDeviceProvider: Sendable {
             return d
         }
         discovery?.stop()
+    }
+
+    // MARK: SDIDeviceProviding
+
+    /// The cards known now, without scanning (safe on the main thread). `rescan()` looks again.
+    public func currentDevices() -> [SDIProvidedDevice] {
+        state.withLock { $0.cards.values.sorted { $0.identifier.description < $1.identifier.description } }.map { $0.provided() }
+    }
+
+    public func rescan() { refresh() }
+
+    /// Arrivals, removals and changes. Starts hot-plug monitoring the first time; with no driver the stream ends at once.
+    public func events() -> AsyncStream<SDIDeviceEvent> {
+        let (stream, continuation) = AsyncStream<SDIDeviceEvent>.makeStream()
+        let key = UUID()
+        state.withLock { $0.subscribers[key] = continuation }
+        continuation.onTermination = { [weak self] _ in self?.state.withLock { $0.subscribers[key] = nil } }
+        do { try startDiscoveryIfNeeded() } catch {
+            state.withLock { $0.subscribers[key] = nil }
+            continuation.finish()
+        }
+        return stream
+    }
+
+    public func environmentStatus() -> SDIEnvironmentStatus {
+        let names = state.withLock { $0.cards.values.map { $0.info.displayName } }.sorted()
+        return DeckLinkDeviceReport.environmentStatus(environment: environment, deviceNames: names)
     }
 
     /// The driver, every card and every open port, as plain values for the diagnostics screen and the test bundle.
@@ -166,7 +200,14 @@ public final class DeckLinkDeviceProvider: Sendable {
 
     private func emit(_ event: DeckLinkDeviceEvent?) {
         guard let event else { return }
-        let handler = state.withLock { $0.onEvent }
+        let (handler, subscribers) = state.withLock { ($0.onEvent, Array($0.subscribers.values)) }
         handler?(event)
+        let mapped: SDIDeviceEvent
+        switch event {
+        case .arrived(let card): mapped = .arrived(id: card.identifier.description)
+        case .removed(let card): mapped = .removed(id: card.identifier.description)
+        case .changed(let card): mapped = .changed(id: card.identifier.description)
+        }
+        for s in subscribers { s.yield(mapped) }
     }
 }

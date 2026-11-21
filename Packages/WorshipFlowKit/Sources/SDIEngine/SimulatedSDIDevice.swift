@@ -52,6 +52,10 @@ public final class SimulatedSDIDevice: SDIDevice {
 
     /// Brings the card back. Ports from before the unplug stay dead; open new ones.
     public func simulateReplug() { backend.replug() }
+
+    /// Connection changes from now on: `false` when the card is unplugged, `true` when it is plugged back in. Every call
+    /// makes its own stream, subscribed at once. This is what a provider turns into arrival and removal events.
+    public func connectionEvents() -> AsyncStream<Bool> { backend.connectionEvents() }
 }
 
 public final class SimulatedSDIOutputPort: SDIOutputPort {
@@ -203,6 +207,21 @@ final class SimulatedBackend: @unchecked Sendable {
         }
     }
 
+    private var subscribers: [UUID: AsyncStream<Bool>.Continuation] = [:]
+
+    func connectionEvents() -> AsyncStream<Bool> {
+        let (stream, continuation) = AsyncStream<Bool>.makeStream()
+        let key = UUID()
+        lock.withLock { subscribers[key] = continuation }
+        continuation.onTermination = { [weak self] _ in self?.lock.withLock { self?.subscribers[key] = nil } }
+        return stream
+    }
+
+    private func announce(connected now: Bool) {
+        let all = lock.withLock { Array(subscribers.values) }
+        for c in all { c.yield(now) }
+    }
+
     func unplug() {
         let handlers: [@Sendable (SDIError) -> Void] = lock.withLock {
             guard connected else { return [] }
@@ -215,9 +234,13 @@ final class SimulatedBackend: @unchecked Sendable {
             return hs
         }
         for h in handlers { h(.deviceDisconnected) }
+        announce(connected: false)
     }
 
-    func replug() { lock.withLock { connected = true } }
+    func replug() {
+        let was = lock.withLock { () -> Bool in let was = connected; connected = true; return was }
+        if !was { announce(connected: true) }
+    }
 
     func tick() {
         let (batches, inputBatches): ([(handler: (@Sendable (SDIFrameCompletion) -> Void)?, completions: [SDIFrameCompletion])], [InputBatch]) = lock.withLock {
@@ -318,10 +341,14 @@ final class SimulatedBackend: @unchecked Sendable {
             var fill = SDIFrame(width: frame.width, height: frame.height, bgra: split.fill)
             var key = SDIFrame(width: frame.width, height: frame.height, bgra: split.key)
             if faults.swapFillAndKey { swap(&fill, &key) }
-            shown[connector] = fill
-            shown[connector + 1] = key
-            inFlight[connector] = (fill, carriedMode)
-            inFlight[connector + 1] = (key, carriedMode)
+            // The card's own route: which connector of the pair carries the fill (KI-053).
+            let route = info.keyRoute(firstConnector: connector)
+            let fillConnector = route?.fillConnector ?? connector
+            let keyConnector = route?.keyConnector ?? connector + 1
+            shown[fillConnector] = fill
+            shown[keyConnector] = key
+            inFlight[fillConnector] = (fill, carriedMode)
+            inFlight[keyConnector] = (key, carriedMode)
         }
     }
 

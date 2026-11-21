@@ -16,7 +16,8 @@ public struct SDIFrame: Equatable, Sendable {
 
 public enum SDIKeying: Equatable, Sendable {
     case none
-    /// Fill on the connector, key on the next one.
+    /// Fill and key on the pair of connectors that starts at the port's connector. Which of the two carries the fill is
+    /// the device's to say (`SDIDeviceInfo.keyRoutes`); with no report, the fill is on the first.
     case external(fillAlphaMode: AlphaMode)
 }
 
@@ -37,6 +38,9 @@ public enum SDIError: Error, Equatable, Sendable, LocalizedError, CustomStringCo
     case keyingUnavailable(connector: Int)
     /// The port was closed, or belongs to an earlier connection of the device.
     case portClosed
+    /// The card is there but the SDK refused or failed an operation (HW-004, KI-056). `detail` is the SDK's own words,
+    /// kept for the log; it is never reported as "disconnected", because unplugging is a different problem with a different remedy.
+    case hardwareFault(detail: String)
 
     public var description: String {
         switch self {
@@ -52,6 +56,8 @@ public enum SDIError: Error, Equatable, Sendable, LocalizedError, CustomStringCo
             return "Fill and key cannot be used on SDI connector \(c). Start it on connector 1 or 3 with the next connector free."
         case .portClosed:
             return "That SDI output was closed. Open it again to continue."
+        case .hardwareFault(let detail):
+            return "The SDI card reported a problem and did not carry out the request. \(detail) Check the card and its cables, then start the output again."
         }
     }
 
@@ -64,16 +70,49 @@ public struct SDIDeviceInfo: Equatable, Sendable {
     public var supportsExternalKeying: Bool
     /// True for anything that is not real hardware, so a simulator is never mistaken for a card.
     public var isSimulated: Bool
+    /// Which connector of each keyable pair carries the fill and which the key, as the device reports it (KI-053). Empty:
+    /// the device says nothing, and fill is assumed on the first connector of the pair.
+    public var keyRoutes: [SDIKeyRoute]
+    /// What each connector can do in the card's current profile. Empty when the device does not say.
+    public var connectors: [SDIConnectorInfo]
+    /// The profile state of each connector pair. Empty when the device has no profiles to report (KI-054).
+    public var profiles: [SDIProfileState]
 
-    public init(displayName: String, connectorCount: Int, supportsExternalKeying: Bool, isSimulated: Bool) {
+    public init(displayName: String, connectorCount: Int, supportsExternalKeying: Bool, isSimulated: Bool,
+                keyRoutes: [SDIKeyRoute] = [], connectors: [SDIConnectorInfo] = [], profiles: [SDIProfileState] = []) {
         self.displayName = displayName
         self.connectorCount = connectorCount
         self.supportsExternalKeying = supportsExternalKeying
         self.isSimulated = isSimulated
+        self.keyRoutes = keyRoutes
+        self.connectors = connectors
+        self.profiles = profiles
     }
 
-    /// A four-connector card with fill and key, modelled on a DeckLink Duo 2. Simulated only.
-    public static let simulatedDuo2 = SDIDeviceInfo(displayName: "Simulated SDI card (4 connectors)", connectorCount: 4, supportsExternalKeying: true, isSimulated: true)
+    /// The reported route for the pair that starts at `firstConnector`, or nil when the device reports none.
+    public func keyRoute(firstConnector: Int) -> SDIKeyRoute? { keyRoutes.first { $0.firstConnector == firstConnector } }
+
+    public func profileState(forPair firstConnector: Int) -> SDIProfileState? { profiles.first { $0.firstConnector == firstConnector } }
+
+    /// A four-connector card with fill and key, modelled on a DeckLink Duo 2. Simulated only. It reports the route it
+    /// implements: fill on the first connector of each pair, key on the next.
+    public static let simulatedDuo2 = simulated(reversedKeyRoutes: false)
+
+    /// The same card with the fill on the second connector of each pair and the key on the first, so the planner, the
+    /// interface and the hardware test can be exercised against the order the manual's table suggests (KI-053).
+    public static let simulatedDuo2WithReversedKeyRoute = simulated(reversedKeyRoutes: true)
+
+    private static func simulated(reversedKeyRoutes reversed: Bool) -> SDIDeviceInfo {
+        let routes = [1, 3].map {
+            SDIKeyRoute(firstConnector: $0, fillConnector: reversed ? $0 + 1 : $0, keyConnector: reversed ? $0 : $0 + 1, source: .simulator)
+        }
+        let connectors = (1...4).map { c -> SDIConnectorInfo in
+            let route = routes.first { $0.fillConnector == c || $0.keyConnector == c }
+            return SDIConnectorInfo(connector: c, canOutput: true, canInput: true, keyRole: route.map { $0.fillConnector == c ? .fill : .key })
+        }
+        return SDIDeviceInfo(displayName: "Simulated SDI card (4 connectors)", connectorCount: 4, supportsExternalKeying: true, isSimulated: true,
+                             keyRoutes: routes, connectors: connectors)
+    }
 }
 
 public protocol SDIDevice: Sendable {

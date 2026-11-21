@@ -189,6 +189,7 @@ public final class HardwareTestRunner: Sendable {
     public func run() async -> HardwareTestRunResult {
         let now = environment.now
         let log = HardwareTestLog(now: now, onLine: { [onEvent] in onEvent(.log($0)) })
+        provider.rescan?()          // the run is off the main thread, so a real scan may take its time here
         let all = provider.devices()
         let device = all.first { $0.id == configuration.deviceID && $0.isConnected() } ?? (configuration.deviceID == nil ? all.first { $0.isConnected() } : nil)
         let writer = bundle?.writer

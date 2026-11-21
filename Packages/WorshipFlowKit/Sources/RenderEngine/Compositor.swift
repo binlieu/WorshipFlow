@@ -534,7 +534,9 @@ public final class Compositor {
         }
     }
 
-    private func now() -> Double { ProcessInfo.processInfo.systemUptime }
+    /// The clock the image re-check interval is measured on. A test seam (KI-060): tests move it by hand instead of waiting.
+    var uptime: @Sendable () -> Double = { ProcessInfo.processInfo.systemUptime }
+    private func now() -> Double { uptime() }
 
     /// The cached texture for `path`, loading or reloading it when needed. Nil while unavailable or not decoded yet.
     ///

@@ -19,11 +19,15 @@ public struct HardwareTestDevice: Sendable {
     public var isConnected: @Sendable () -> Bool
     public var openOutput: @Sendable (Int) throws -> any SDIOutputPort
     public var openInput: @Sendable (Int) throws -> any SDIInputPort
+    /// Switches the connector pair that starts at the given connector to a profile that can send fill and key (KI-054).
+    /// Nil when the provider cannot. The kit only calls it after the tester said yes.
+    public var activateKeyingProfile: (@Sendable (Int) async throws -> Void)?
 
     public init(id: String, info: SDIDeviceInfo, supportedModes: [SDIVideoMode] = SDIVideoMode.allKnown, profile: String? = nil,
                 isConnected: @escaping @Sendable () -> Bool,
                 openOutput: @escaping @Sendable (Int) throws -> any SDIOutputPort,
-                openInput: @escaping @Sendable (Int) throws -> any SDIInputPort) {
+                openInput: @escaping @Sendable (Int) throws -> any SDIInputPort,
+                activateKeyingProfile: (@Sendable (Int) async throws -> Void)? = nil) {
         self.id = id
         self.info = info
         self.supportedModes = supportedModes
@@ -31,6 +35,14 @@ public struct HardwareTestDevice: Sendable {
         self.isConnected = isConnected
         self.openOutput = openOutput
         self.openInput = openInput
+        self.activateKeyingProfile = activateKeyingProfile
+    }
+
+    /// A card as a provider hands it out (HW-004): the simulated card or a DeckLink card.
+    public init(_ device: SDIProvidedDevice) {
+        self.init(id: device.id, info: device.info, supportedModes: device.supportedModes, profile: device.profileDescription,
+                  isConnected: device.isConnected, openOutput: device.openOutput, openInput: device.openInput,
+                  activateKeyingProfile: device.activateKeyingProfile)
     }
 
     public init<D: SDIDevice>(id: String, device: D, supportedModes: [SDIVideoMode] = SDIVideoMode.allKnown, profile: String? = nil) {
@@ -46,11 +58,24 @@ public struct HardwareTestProvider: Sendable {
     public var isSimulated: Bool
     public var devices: @Sendable () -> [HardwareTestDevice]
     public var driver: @Sendable () -> HardwareDriverStatus
+    /// Looks for cards again; may take a moment, so it is called off the main thread. Nil when there is nothing to scan.
+    public var rescan: (@Sendable () -> Void)?
 
-    public init(isSimulated: Bool, devices: @escaping @Sendable () -> [HardwareTestDevice], driver: @escaping @Sendable () -> HardwareDriverStatus) {
+    public init(isSimulated: Bool, devices: @escaping @Sendable () -> [HardwareTestDevice], driver: @escaping @Sendable () -> HardwareDriverStatus,
+                rescan: (@Sendable () -> Void)? = nil) {
         self.isSimulated = isSimulated
         self.devices = devices
         self.driver = driver
+        self.rescan = rescan
+    }
+
+    /// The kit's view of an `SDIDeviceProviding` provider (HW-004): the real DeckLink provider in the app, or the
+    /// simulated card. It is marked simulated when the provider says it is not hardware at all.
+    public init(provider: any SDIDeviceProviding) {
+        self.init(isSimulated: provider.environmentStatus().state == .simulated,
+                  devices: { provider.currentDevices().map { HardwareTestDevice($0) } },
+                  driver: { HardwareDriverStatus(provider.environmentStatus()) },
+                  rescan: { provider.rescan() })
     }
 }
 
@@ -117,7 +142,7 @@ public final class SimulatedHardwareTestClock: HardwareTestClock, @unchecked Sen
 // MARK: asking the tester
 
 public enum HardwarePromptKind: String, Codable, Sendable {
-    case connectLoopbackCable, connectKeyCables, unplugDevice, replugDevice, humanBars, humanKeyEdges, photo
+    case connectLoopbackCable, connectKeyCables, changeProfile, unplugDevice, replugDevice, humanBars, humanKeyEdges, photo
 }
 
 public struct HardwarePrompt: Equatable, Sendable {
@@ -163,7 +188,8 @@ public struct AutomaticInteraction: HardwareTestInteraction {
         switch prompt.kind {
         case .connectLoopbackCable, .connectKeyCables: return .proceed
         case .photo: return .skip
-        case .unplugDevice, .replugDevice, .humanBars, .humanKeyEdges: return .unavailable
+        // Nobody is there to say yes, so a card's profile is never changed in a run with no person at the keyboard.
+        case .changeProfile, .unplugDevice, .replugDevice, .humanBars, .humanKeyEdges: return .unavailable
         }
     }
 }
@@ -175,7 +201,7 @@ public struct SimulatedInteraction: HardwareTestInteraction {
     public init(device: SimulatedSDIDevice) { self.device = device }
     public func ask(_ prompt: HardwarePrompt) async -> HardwareAnswer {
         switch prompt.kind {
-        case .connectLoopbackCable, .connectKeyCables: return .proceed
+        case .connectLoopbackCable, .connectKeyCables, .changeProfile: return .proceed
         case .unplugDevice: device.simulateUnplug(); return .proceed
         case .replugDevice: device.simulateReplug(); return .proceed
         case .photo: return .skip

@@ -3,6 +3,19 @@
 import Foundation
 import Domain
 
+/// Which connector of a keyable pair carries the fill and which the key, as the device reports it (KI-053).
+public struct SDIKeyRouteSummary: Equatable, Sendable {
+    public var firstConnector: Int
+    public var fillConnector: Int
+    public var keyConnector: Int
+
+    public init(firstConnector: Int, fillConnector: Int, keyConnector: Int) {
+        self.firstConnector = firstConnector
+        self.fillConnector = fillConnector
+        self.keyConnector = keyConnector
+    }
+}
+
 /// What the interface needs to know about one SDI card, in Domain terms (OperatorCore cannot import the SDI engine).
 public struct SDIDeviceSummary: Equatable, Sendable, Identifiable {
     public var id: String
@@ -13,9 +26,12 @@ public struct SDIDeviceSummary: Equatable, Sendable, Identifiable {
     public var supportedModes: [VideoModeDescription]
     /// False while the card is unplugged: it is still listed, so screens that use it say why they are not running.
     public var isConnected: Bool
+    /// The fill and key route of each keyable pair, as the device reports it. Empty when it reports none.
+    public var keyRoutes: [SDIKeyRouteSummary]
 
     public init(id: String, name: String, connectorCount: Int, supportsKeying: Bool, isSimulated: Bool,
-                supportedModes: [VideoModeDescription], isConnected: Bool = true) {
+                supportedModes: [VideoModeDescription], isConnected: Bool = true, keyRoutes: [SDIKeyRouteSummary] = []) {
+        self.keyRoutes = keyRoutes
         self.isConnected = isConnected
         self.id = id
         self.name = name
@@ -24,6 +40,9 @@ public struct SDIDeviceSummary: Equatable, Sendable, Identifiable {
         self.isSimulated = isSimulated
         self.supportedModes = supportedModes
     }
+
+    /// The reported route of the pair that starts at `firstConnector`, if the device reported one.
+    public func keyRoute(firstConnector: Int) -> SDIKeyRouteSummary? { keyRoutes.first { $0.firstConnector == firstConnector } }
 
     /// The name with "Simulated" in it for anything that is not real hardware, so a simulator is never mistaken for a card.
     public var label: String { isSimulated && !name.localizedCaseInsensitiveContains("simulated") ? "\(name) (Simulated)" : name }
@@ -41,13 +60,24 @@ public enum ScreenEditing {
             guard let device = devices.first(where: { $0.id == deviceID }) else {
                 return "SDI card \(deviceID) (not connected), connector \(connector)"
             }
-            if keying { return "\(device.label), connectors \(connector) and \(connector + 1) (fill and key)" }
+            if keying {
+                if let route = device.keyRoute(firstConnector: connector) {
+                    return "\(device.label), connectors \(connector) and \(connector + 1) (fill and key: fill on \(route.fillConnector), key on \(route.keyConnector))"
+                }
+                return "\(device.label), connectors \(connector) and \(connector + 1) (fill and key)"
+            }
             return "\(device.label), connector \(connector)"
         }
     }
 
-    /// Shown next to the keying toggle.
+    /// Shown next to the keying toggle, when nothing is known about the card's route.
     public static func keyingCaption(connector: Int) -> String { "Uses connectors \(connector) and \(connector + 1)" }
+
+    /// Shown next to the keying toggle: with the card's reported route, which connector carries the fill and which the key.
+    public static func keyingCaption(connector: Int, device: SDIDeviceSummary?) -> String {
+        guard let route = device?.keyRoute(firstConnector: connector) else { return keyingCaption(connector: connector) }
+        return "Uses connectors \(connector) and \(connector + 1): fill on \(route.fillConnector), key on \(route.keyConnector)"
+    }
 
     // MARK: SDI choices
 

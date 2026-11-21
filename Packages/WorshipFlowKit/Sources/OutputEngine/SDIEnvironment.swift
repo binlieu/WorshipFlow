@@ -1,6 +1,6 @@
-// HW-002: how the coordinator reaches SDI cards, without knowing which kind. The app injects this: it returns the
-// simulated card when the "Show simulated SDI device" developer setting is on and nothing otherwise, because there is
-// no real provider yet (no vendor SDK has been used or downloaded).
+// HW-002: how the coordinator reaches SDI cards, without knowing which kind. The app injects this: since HW-004 it is
+// built from an `SDIDeviceProviding` provider (the DeckLink provider always, plus the simulated card while the developer
+// setting is on).
 import Foundation
 import Domain
 import SDIEngine
@@ -25,6 +25,12 @@ public struct SDIDeviceHandle: Sendable {
     public init<D: SDIDevice>(id: String, device: D, supportedModes: [SDIVideoMode] = SDIVideoMode.allKnown) {
         self.init(id: id, info: device.info, supportedModes: supportedModes,
                   isConnected: { device.isConnected }, openOutput: { try device.openOutput(connector: $0) })
+    }
+
+    /// A card as a provider hands it out (the simulated card, or a DeckLink card).
+    public init(_ device: SDIProvidedDevice) {
+        self.init(id: device.id, info: device.info, supportedModes: device.supportedModes,
+                  isConnected: device.isConnected, openOutput: device.openOutput)
     }
 
     public var isConnected: Bool { connected() }

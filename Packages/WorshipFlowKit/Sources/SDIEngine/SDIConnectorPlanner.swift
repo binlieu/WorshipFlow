@@ -18,11 +18,18 @@ public struct SDIOutputRequest: Equatable, Sendable {
 }
 
 public struct SDIAssignment: Equatable, Sendable {
+    /// The connector the port opens on: the output itself, or the first connector of a fill-and-key pair.
     public var connector: Int
+    /// For a keyed output: the physical connector that carries the key. It is the pair's second connector unless the
+    /// device reports its route the other way round (KI-053).
     public var keyConnector: Int?
-    public init(connector: Int, keyConnector: Int?) {
+    /// The physical connector that carries the fill (for a keyed output) or the picture (for a plain one).
+    public var fillConnector: Int
+
+    public init(connector: Int, keyConnector: Int?, fillConnector: Int? = nil) {
         self.connector = connector
         self.keyConnector = keyConnector
+        self.fillConnector = fillConnector ?? connector
     }
 }
 
@@ -81,8 +88,11 @@ public struct SDIConnectorPlan: Equatable, Sendable {
 }
 
 public enum SDIConnectorPlanner {
-    /// Earlier requests win. Pairs are (1, 2) and (3, 4); fill goes on the first of a pair, key on the second.
-    public static func plan(requests: [SDIOutputRequest], connectorCount: Int, supportsExternalKeying: Bool) -> SDIConnectorPlan {
+    /// Earlier requests win. Pairs are (1, 2) and (3, 4). A keyed output goes where the device says: with a reported
+    /// `SDIKeyRoute` for the pair, fill and key are planned on the connectors it names (KI-053); with none, fill goes on
+    /// the first of the pair and key on the second, as before.
+    public static func plan(requests: [SDIOutputRequest], connectorCount: Int, supportsExternalKeying: Bool,
+                            keyRoutes: [SDIKeyRoute] = []) -> SDIConnectorPlan {
         var assignments: [UUID: SDIAssignment] = [:]
         var faults: [UUID: SDIPlanFault] = [:]
         var roles: [Int: SDIConnectorRole] = [:]
@@ -106,9 +116,14 @@ public enum SDIConnectorPlanner {
                 if let other = owner[partner] { faults[id] = .pairedConnectorInUse(by: other); continue }
                 owner[c] = id
                 owner[partner] = id
-                roles[c] = .fill(id)
-                roles[partner] = .key(id)
-                assignments[id] = SDIAssignment(connector: c, keyConnector: partner)
+                var fill = c, key = partner
+                if let route = keyRoutes.first(where: { $0.firstConnector == c }), Set([route.fillConnector, route.keyConnector]) == Set([c, partner]) {
+                    fill = route.fillConnector
+                    key = route.keyConnector
+                }
+                roles[fill] = .fill(id)
+                roles[key] = .key(id)
+                assignments[id] = SDIAssignment(connector: c, keyConnector: key, fillConnector: fill)
             } else {
                 if let other = owner[c] { faults[id] = .connectorInUse(by: other); continue }
                 owner[c] = id

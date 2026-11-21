@@ -8,6 +8,7 @@ import MediaEngine
 import OutputEngine
 import RenderEngine
 import SDIEngine
+import DeckLinkSDI
 import Persistence
 import OperatorCore
 
@@ -35,6 +36,10 @@ final class AppModel {
     private(set) var screensOn = false
     /// SDI cards the coordinator can see now (HW-002), and what each connector of each carries.
     private(set) var sdiDevices: [SDIDeviceSummary] = []
+    /// The state of the SDI driver and cards (HW-004): shown as one calm line in the Screens panel when there is no driver or no card.
+    private(set) var sdiEnvironment: SDIEnvironmentStatus?
+    /// What happened the last time the app was asked to change a card's profile for fill and key (KI-054).
+    private(set) var sdiProfileNotice: String?
     private(set) var connectorRows: [String: [ConnectorRow]] = [:]
     private(set) var videoURL: URL?
     private(set) var messages: [String] = []
@@ -71,10 +76,12 @@ final class AppModel {
     @ObservationIgnored private let sceneBox: SceneBox
     @ObservationIgnored private var scopedURLs: [UUID: URL] = [:]   // security-scoped access held while the prop exists
     @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
-    /// The simulated SDI card and its real-time clock (HW-002). There is no real provider yet, so this is the only card, and
-    /// only while the "Show simulated SDI device" developer setting is on.
+    /// The simulated SDI card and its real-time clock (HW-002). It is offered beside the real DeckLink provider only while
+    /// the "Show simulated SDI device" developer setting is on.
     @ObservationIgnored private let simulatedCard = SimulatedSDIDevice()
     @ObservationIgnored private var simulatedClock: SimulatedClockDriver?
+    @ObservationIgnored private var sdiMonitor: Task<Void, Never>?
+    @ObservationIgnored private var changingProfiles = false
     static let simulatedCardID = "simulated-sdi-duo2"
     @ObservationIgnored private var video: LoopingVideoSource?
     /// Opens and closes the players for the media layers; every output reads frames from it (MEDIA-001).
@@ -113,6 +120,7 @@ final class AppModel {
         refreshDisplayChoices()
         updateClock(force: true)
         if soak == nil && !HardwareTestLaunchMode.isHeadless { openLibrary() }   // a headless hardware test opens no library
+        if soak == nil && !HardwareTestLaunchMode.isHeadless { startSDIMonitoring() }
     }
 
     // MARK: Library (OUT-004)
@@ -848,10 +856,66 @@ final class AppModel {
     // MARK: Screens
 
     func startScreens() {
+        let pending = keyingProfileChanges()
+        guard pending.isEmpty else {
+            guard !changingProfiles else { return }
+            changingProfiles = true
+            Task { [weak self] in
+                await self?.changeProfilesThenStart(pending)
+            }
+            return
+        }
+        openScreensNow()
+    }
+
+    private func openScreensNow() {
         startVideoIfNeeded()
         coordinator.start()
         screensOn = true
         updateReadouts()
+    }
+
+    // MARK: Keying profiles (HW-004 / KI-054)
+
+    /// Cards that a keyed screen is sent to and whose current profile cannot key. Nothing is changed here.
+    private func keyingProfileChanges() -> [(device: SDIProvidedDevice, firstConnector: Int)] {
+        let devices = sdiProvider().currentDevices()
+        var found: [(device: SDIProvidedDevice, firstConnector: Int)] = []
+        for profile in profiles where profile.isEnabled {
+            for destination in [profile.destination] + profile.mirrors {
+                guard case .sdi(let id, let connector, true, _) = destination, let device = devices.first(where: { $0.id == id }),
+                      !found.contains(where: { $0.device.id == id && $0.firstConnector == connector }) else { continue }
+                if case .askOperator = SDIKeyingProfile.decision(for: device.info, firstConnector: connector) {
+                    found.append((device, connector))
+                }
+            }
+        }
+        return found
+    }
+
+    private func changeProfilesThenStart(_ pending: [(device: SDIProvidedDevice, firstConnector: Int)]) async {
+        var notices: [String] = []
+        for item in pending {
+            let outcome = await SDIKeyingProfile.ensure(device: item.device, firstConnector: item.firstConnector) { change in
+                await MainActor.run { Self.confirmProfileChange(change) }
+            }
+            notices.append(outcome.message)
+            log(outcome.message)
+        }
+        sdiProfileNotice = notices.joined(separator: " ")
+        changingProfiles = false
+        sdiDevicesChanged()
+        openScreensNow()      // a screen whose card could not key says so itself; the others open as usual
+    }
+
+    /// The operator decides: changing a card's profile can interrupt outputs on its other connectors.
+    private static func confirmProfileChange(_ change: SDIProfileChange) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Change the SDI card's profile?"
+        alert.informativeText = change.question
+        alert.addButton(withTitle: "Change the profile")
+        alert.addButton(withTitle: "Leave it as it is")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     func stopScreens() {
@@ -907,9 +971,39 @@ final class AppModel {
 
     // MARK: SDI (HW-002)
 
+    /// The real DeckLink provider always, and the simulated card beside it while the developer setting is on (HW-004).
+    private func sdiProvider() -> CompositeSDIProvider {
+        var providers: [any SDIDeviceProviding] = [AppSDI.deckLink]
+        if settings?.showSimulatedSDIDevice == true { providers.append(SimulatedSDIProvider(device: simulatedCard, id: Self.simulatedCardID)) }
+        return CompositeSDIProvider(providers)
+    }
+
     private func sdiHandles() -> [SDIDeviceHandle] {
-        guard settings?.showSimulatedSDIDevice == true else { return [] }
-        return [SDIDeviceHandle(id: Self.simulatedCardID, device: simulatedCard)]
+        sdiProvider().currentDevices().map { SDIDeviceHandle($0) }
+    }
+
+    /// Looks for cards once off the main thread, then follows arrivals and removals. With no driver the stream ends at once.
+    private func startSDIMonitoring() {
+        guard sdiMonitor == nil else { return }
+        refreshSDIEnvironment()
+        sdiMonitor = Task { [weak self] in
+            await Task.detached { AppSDI.deckLink.rescan() }.value
+            self?.sdiDevicesChanged()
+            for await _ in AppSDI.deckLink.events() { self?.sdiDevicesChanged() }
+        }
+    }
+
+    /// The "Rescan" button: looks again for the driver's cards, off the main thread.
+    func rescanSDI() {
+        Task { [weak self] in
+            await Task.detached { AppSDI.deckLink.rescan() }.value
+            self?.sdiDevicesChanged()
+        }
+    }
+
+    private func refreshSDIEnvironment() {
+        let status = sdiProvider().environmentStatus()
+        if status != sdiEnvironment { sdiEnvironment = status }
     }
 
     /// One clock per simulated card: every connector ticks at the rate of the first output's mode.
@@ -931,6 +1025,7 @@ final class AppModel {
     }
 
     private func sdiDevicesChanged() {
+        refreshSDIEnvironment()
         coordinator.devicesChanged()
         updateReadouts()
     }
@@ -967,7 +1062,8 @@ final class AppModel {
         let summaries = coordinator.sdiDevices().map { d in
             SDIDeviceSummary(id: d.id, name: d.info.displayName, connectorCount: d.info.connectorCount,
                              supportsKeying: d.info.supportsExternalKeying, isSimulated: d.info.isSimulated,
-                             supportedModes: d.supportedModes.map { VideoModeDescription($0) }, isConnected: d.isConnected)
+                             supportedModes: d.supportedModes.map { VideoModeDescription($0) }, isConnected: d.isConnected,
+                             keyRoutes: d.info.keyRoutes.map { SDIKeyRouteSummary(firstConnector: $0.firstConnector, fillConnector: $0.fillConnector, keyConnector: $0.keyConnector) })
         }
         if summaries != sdiDevices { sdiDevices = summaries }
         let rows = coordinator.connectorMaps().mapValues { ConnectorMapPresenter.rows(map: $0, profiles: profiles) }

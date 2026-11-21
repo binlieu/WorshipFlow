@@ -1,6 +1,6 @@
-// HWTEST-001: what the Hardware Test window and the headless run need from the app: the machine's displays, the
-// state of the Blackmagic driver, and the card provider. The real provider is not connected yet: the real card bridge is
-// built separately (HW-003) and the coordinator wires it in here. Until then the window can find no real card and says so.
+// HWTEST-001 / HW-004: what the Hardware Test window and the headless run need from the app: the machine's displays and
+// the card provider. Since HW-004 the provider is the real DeckLink bridge (`AppSDI.deckLink`); on this development Mac,
+// which has no card and no Desktop Video driver, it reports "driver not installed". Nothing here is Hardware Verified.
 import AppKit
 import CoreGraphics
 import OutputEngine
@@ -14,10 +14,6 @@ enum HardwareTestLaunchMode {
 }
 
 enum AppHardwareTest {
-    /// False until the real DeckLink provider is wired into `realProvider()`. While false, the window tells the tester that
-    /// this build cannot reach a card, so a report never suggests that a plugged-in card was looked for and not found.
-    static let realProviderIsConnected = false
-
     static func environment() -> HardwareEnvironmentSource {
         let info = Bundle.main.infoDictionary
         return .system(appVersion: info?["CFBundleShortVersionString"] as? String ?? "unknown",
@@ -47,26 +43,8 @@ enum AppHardwareTest {
         }
     }
 
+    /// The real DeckLink provider, as the kit sees it (HW-004). With no driver it reports no devices and says why.
     static func realProvider() -> HardwareTestProvider {
-        HardwareTestProvider(isSimulated: false, devices: { [] }, driver: { driverStatus() })
-    }
-
-    /// A best-effort look for Blackmagic Desktop Video's files. The real provider will report the driver's own version.
-    static func driverStatus() -> HardwareDriverStatus {
-        let paths = ["/Applications/Blackmagic Desktop Video", "/Library/Application Support/Blackmagic Design/Desktop Video",
-                     "/Library/Frameworks/DeckLinkAPI.framework"]
-        let found = paths.first { FileManager.default.fileExists(atPath: $0) }
-        guard realProviderIsConnected else {
-            return HardwareDriverStatus(
-                isInstalled: found != nil,
-                message: "This build of WORSHIPFLOW cannot talk to a card yet, so it cannot find one even if one is plugged in. "
-                    + (found != nil ? "Blackmagic Desktop Video files were found on this Mac." : "Blackmagic Desktop Video was not found on this Mac either."))
-        }
-        guard found != nil else {
-            return HardwareDriverStatus(
-                isInstalled: false,
-                message: "Blackmagic Desktop Video does not appear to be installed (its files were not found). Install it from Blackmagic's support site, restart the Mac, then open this window again.")
-        }
-        return HardwareDriverStatus(isInstalled: true, message: "Blackmagic Desktop Video is installed, but no DeckLink card was found. Check the Thunderbolt cable and that the enclosure is switched on, then press Check again.")
+        HardwareTestProvider(provider: AppSDI.deckLink)
     }
 }

@@ -160,16 +160,44 @@ extension HardwareTestSteps {
         return "unclear"
     }
 
+    private static func routeSource(_ source: SDIKeyRoute.Source) -> String {
+        switch source {
+        case .manualTable: return "the vendor manual's table, read by the bridge (the SDK has no attribute that says it): not a measurement"
+        case .simulator: return "the simulated card's own implementation"
+        case .assumed: return "the app's convention, assumed because nothing better is known for this model"
+        }
+    }
+
     static func fillKeyLoopback(_ ctx: HardwareTestContext) async throws -> HardwareStepOutput {
         guard let device = ctx.device else { return HardwareStepOutput(outcome: .skipped, summary: "No device was found, so this step could not run.") }
         let outC = ctx.configuration.outputConnector
         let inA = ctx.configuration.loopbackInputConnector, inB = ctx.configuration.keyInputConnector
-        let criteria = "Cables as stated: SDI \(outC) to SDI \(inA), SDI \(outC + 1) to SDI \(inB). Pass needs a signal on both inputs; the fill on SDI \(outC) and the key on SDI \(outC + 1) (UNV-03); the key within 16 levels of the alpha sent at the centre of each box and the surround, with a mean error of at most 4 and fewer than 0.5% of pixels over 16 levels (tolerance stated here, not hidden); the fill premultiplied when configured premultiplied and straight when configured straight (the 50% box reads about 128 or about 255, within 24); and the alpha ramp followed within 24 levels. Both alpha modes are tried."
+        let reported = device.info.keyRoute(firstConnector: outC)
+        let manual = HardwareTestManual.keyRoute(modelName: device.info.displayName, firstConnector: outC)
+        let criteria = "Cables as stated: SDI \(outC) to SDI \(inA), SDI \(outC + 1) to SDI \(inB). Pass needs a signal on both inputs; the fill and key on the connectors the device reports (UNV-03; with no reported route, the fill on SDI \(outC) and the key on SDI \(outC + 1)), measured, and compared with the device's report and the manual's table; the key within 16 levels of the alpha sent at the centre of each box and the surround, with a mean error of at most 4 and fewer than 0.5% of pixels over 16 levels (tolerance stated here, not hidden); the fill premultiplied when configured premultiplied and straight when configured straight (the 50% box reads about 128 or about 255, within 24); and the alpha ramp followed within 24 levels. Both alpha modes are tried."
         let answer = await ctx.ask(HardwarePrompt(
             kind: .connectKeyCables, title: "Connect two cables",
             message: "Connect two BNC cables: one from SDI \(outC) to SDI \(inA), and one from SDI \(outC + 1) to SDI \(inB). Then press Continue. If you only have one cable, press Skip.",
             primaryLabel: "Continue", canSkip: true))
         if answer == .skip { return HardwareStepOutput(outcome: .skipped, summary: "Skipped by the tester: fewer than two cables.", passCriteria: criteria) }
+
+        // KI-054: a card whose current profile cannot key is switched only after the tester says yes.
+        var profileEvents: [String] = []
+        let switching = await SDIKeyingProfile.ensure(info: device.info, activate: device.activateKeyingProfile, firstConnector: outC) { change in
+            let a = await ctx.ask(HardwarePrompt(kind: .changeProfile, title: "Change the card's profile?", message: change.question,
+                                                 primaryLabel: "Change the profile", canSkip: true))
+            return a == .proceed || a == .yes
+        }
+        switch switching {
+        case .notNeeded: break
+        case .switched(let change):
+            profileEvents.append("The card's profile was changed from \"\(change.fromName ?? "unknown")\" to \"\(change.toName)\" so connectors \(outC) and \(outC + 1) can send fill and key.")
+            ctx.log.add(profileEvents[0])
+        case .declined(let change):
+            return HardwareStepOutput(outcome: .skipped, summary: "Fill and key needs the card's profile changed to \"\(change.toName)\", and the profile was not changed, so this step was skipped.", passCriteria: criteria)
+        case .failed(_, let reason):
+            return HardwareStepOutput(outcome: .failed, summary: "The card's profile could not be changed for fill and key: \(reason)", passCriteria: criteria)
+        }
 
         let w = mode.width, h = mode.height
         let window = TestPattern.alphaWindow(width: w, height: h)
@@ -195,21 +223,42 @@ extension HardwareTestSteps {
                       [m("Signal on SDI \(inA)", yesNo(locked.fill)), m("Signal on SDI \(inB)", yesNo(locked.key))])
         }
         let roleOnFirst = role(of: first.fillInput.lastFrame), roleOnSecond = role(of: first.keyInput.lastFrame)
+        func describeRoute(fill: Int, key: Int) -> String { "fill on SDI \(fill), key on SDI \(key)" }
+        let measured: (fill: Int, key: Int)? = roleOnFirst == "fill" && roleOnSecond == "key" ? (outC, outC + 1)
+            : (roleOnFirst == "key" && roleOnSecond == "fill" ? (outC + 1, outC) : nil)
         var ms: [HardwareMeasurement] = [
             m("SDI \(outC) carries", roleOnFirst), m("SDI \(outC + 1) carries", roleOnSecond),
+            m("Route reported by the device", reported.map { describeRoute(fill: $0.fillConnector, key: $0.keyConnector) } ?? "none reported"),
+            m("Source of the reported route", reported.map { routeSource($0.source) } ?? "not applicable"),
+            m("Route in the manual's table", manual.map { describeRoute(fill: $0.fill, key: $0.key) } ?? "no table for this model (the manual's table covers the DeckLink Duo 2 only)"),
+            m("Route measured", measured.map { describeRoute(fill: $0.fill, key: $0.key) } ?? "could not be determined"),
             m("Signal on SDI \(inA)", "yes"), m("Signal on SDI \(inB)", "yes"),
             m("Detected mode", first.fillInput.detectedMode?.name ?? "unknown"),
         ]
         var problems: [String] = []
-        let asAssumed = roleOnFirst == "fill" && roleOnSecond == "key"
-        let finding: String
-        if asAssumed {
-            finding = "UNV-03: SDI \(outC) carries the fill and SDI \(outC + 1) carries the key, as the app assumes (measured with the cables as the guide says)."
-        } else if roleOnFirst == "key" && roleOnSecond == "fill" {
-            finding = "UNV-03: SDI \(outC) carries the key and SDI \(outC + 1) carries the fill: the reverse of what the app assumes."
-            problems.append("fill and key are reversed (SDI \(outC) carried the key, SDI \(outC + 1) the fill)")
+        // What the app plans from: the device's report, or with none, fill on the first connector (the old convention).
+        let expected = reported.map { (fill: $0.fillConnector, key: $0.keyConnector) } ?? (fill: outC, key: outC + 1)
+        var findings: [String] = []
+        if let measured {
+            findings.append(measured.fill == outC
+                ? "UNV-03: SDI \(outC) carries the fill and SDI \(outC + 1) carries the key (measured, with the cables as the guide says)."
+                : "UNV-03: SDI \(outC) carries the key and SDI \(outC + 1) carries the fill (measured, with the cables as the guide says).")
+            func agreement(_ what: String, _ other: (fill: Int, key: Int)) -> String {
+                other.fill == measured.fill ? "agrees with \(what) (\(describeRoute(fill: other.fill, key: other.key)))"
+                                            : "disagrees with \(what) (\(describeRoute(fill: other.fill, key: other.key)))"
+            }
+            var sentence = "Measured \(describeRoute(fill: measured.fill, key: measured.key)): the hardware "
+            if let reported { sentence += agreement("the device's report", (reported.fillConnector, reported.keyConnector)) }
+            else { sentence += "has no device report to compare with, because the device reports no route, so it is compared with the app's convention: " + agreement("it", (outC, outC + 1)) }
+            sentence += "; "
+            if let manual { sentence += agreement("the manual's table", manual) } else { sentence += "the manual has no table for this model" }
+            sentence += ". The app's old assumption (fill on the first connector) " + (measured.fill == outC ? "holds for this device." : "is wrong for this device: the planner now follows the route the device reports.")
+            findings.append(sentence)
+            if measured.fill != expected.fill {
+                problems.append("fill and key are reversed compared with \(reported == nil ? "the app's convention" : "what the device reports") (SDI \(measured.fill == outC ? outC : outC + 1) carried the fill, but the expected fill connector is SDI \(expected.fill))")
+            }
         } else {
-            finding = "UNV-03: could not be determined: SDI \(outC) read as \(roleOnFirst) and SDI \(outC + 1) as \(roleOnSecond)."
+            findings.append("UNV-03: could not be determined: SDI \(outC) read as \(roleOnFirst) and SDI \(outC + 1) as \(roleOnSecond).")
             problems.append("could not tell which connector carries the fill and which the key")
         }
         if first.fillInput.detectedMode != mode { problems.append("the inputs detected \(first.fillInput.detectedMode?.name ?? "no mode") instead of \(mode.name)") }
@@ -276,10 +325,10 @@ extension HardwareTestSteps {
 
         let ok = problems.isEmpty
         let summary = ok
-            ? "Fill came out on SDI \(outC) and key on SDI \(outC + 1). The key matched the alpha and the fill behaved as configured in both alpha modes."
+            ? "Fill came out on SDI \(measured?.fill ?? outC) and key on SDI \(measured?.key ?? outC + 1), as expected. The key matched the alpha and the fill behaved as configured in both alpha modes."
             : "Problems with fill and key: " + problems.joined(separator: "; ") + "."
-        return HardwareStepOutput(outcome: ok ? .passed : .failed, summary: ok ? summary : (problems.contains { $0.contains("reversed") } ? summary : summary),
-                                  passCriteria: criteria, measurements: ms, findings: [finding])
+        return HardwareStepOutput(outcome: ok ? .passed : .failed, summary: summary, passCriteria: criteria, measurements: ms, findings: findings,
+                                  events: profileEvents)
     }
 
     // MARK: 8. unplug and replug

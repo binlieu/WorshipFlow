@@ -4,7 +4,7 @@ Updated: 2026-11-20
 
 ## Summary
 
-Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 is under way: SYS-001 and OUT-002 are unit tested. 842 package tests pass. The workspace has been seen running (screenshot in `AI/reports/OUT-004-workspace.png`); keyboard control has not. Offscreen benchmark: four 1080p compositions per frame take about 0.64 ms mean on this Mac (no video layer, debug build). No video hardware is owned, so nothing is Hardware Verified.
+Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 is under way: SYS-001 and OUT-002 are unit tested. 1381 package tests pass. The workspace has been seen running (screenshot in `AI/reports/OUT-004-workspace.png`); keyboard control has not. Offscreen benchmark: four 1080p compositions per frame take about 0.64 ms mean on this Mac (no video layer, debug build). No video hardware is owned, so nothing is Hardware Verified.
 
 ## Verification by slice
 
@@ -16,6 +16,7 @@ Phase 0 (render spike) is implemented and unit tested; its timing exit criterion
 | OUT-003/SLIDE-002 themes, Looks, props, image layers | Yes | Yes | n/a | Not Verified | Not Verified |
 | OUT-004 operator workspace (with LIB-001, LIB-002, LIB-003, SLIDE-005) | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
 | APP-001 integration pass (settings in SQLite, focus, section orders, theme editor) | Yes | Yes (logic) | n/a | Not Verified | Not Verified |
+| HW-004 real bridge wired into the app and the test kit | Yes | Yes | Yes (simulated; driver-absent state run for real) | **Not Verified** | Not Verified |
 | HWTEST-001 hardware test kit and log bundle | Yes | Yes | Yes (simulated card, with injected faults) | Not Verified | Not Verified |
 | LIB-004 scripture engine rules (Phase 4) | Yes (rules only) | Yes (109 tests) | n/a | n/a | Not Verified |
 | CUE-001 cue engine rules (Phase 3) | Yes (rules only) | Yes (191 tests) | n/a | n/a | Not Verified |

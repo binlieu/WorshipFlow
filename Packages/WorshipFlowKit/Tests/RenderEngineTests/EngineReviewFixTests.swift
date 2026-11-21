@@ -41,16 +41,6 @@ private func read(_ t: MTLTexture, x: Int, y: Int) -> (r: UInt8, g: UInt8, b: UI
 
 private let encodingMarker = "wf.fixa.encoding"
 
-/// Polls `condition` (which may drive frames) every 10 ms until it holds or the timeout passes.
-private func settle(timeout: Double = 4, _ condition: () throws -> Bool) async throws -> Bool {
-    let end = Date().addingTimeInterval(timeout)
-    while Date() < end {
-        if try condition() { return true }
-        try await Task.sleep(for: .milliseconds(10))
-    }
-    return try condition()
-}
-
 /// Encodes one frame in live (background-loading) mode and waits for the GPU.
 @discardableResult
 private func liveFrame(_ compositor: Compositor, _ scene: SceneDescription, into target: MTLTexture) throws -> (r: UInt8, g: UInt8, b: UInt8, a: UInt8) {
@@ -134,60 +124,88 @@ private func liveFrame(_ compositor: Compositor, _ scene: SceneDescription, into
 
 @Suite(.serialized) struct ImageReloadOffTheRenderThreadTests {
     /// A frame in steady state, long after the image loaded, must not ask the file system anything on the render thread.
-    @Test func renderThreadNeverStatsTheFile() async throws {
+    ///
+    /// KI-060: this used to run frames for 2.6 s of wall-clock time and expect red to appear within that window, which
+    /// a loaded machine can starve (the first load runs on a low-priority background thread). Nothing here depends on
+    /// wall-clock time now: the first load is done up front, the compositor's clock is injected and moved by hand past
+    /// three re-check intervals, and the test waits for each background re-check to be reported instead of sleeping.
+    @Test(.timeLimit(.minutes(1))) func renderThreadNeverStatsTheFile() async throws {
         let url = tempPNG()
         defer { try? FileManager.default.removeItem(at: url) }
         try writePNG(to: url, r: 1, g: 0, b: 0)
         let compositor = try Compositor()
+        let uptime = ManualUptime()
+        compositor.uptime = { uptime.now }
         let target = try texture(compositor.device)
         let scene = imageScene(url.path)
+        #expect(compositor.prepare(scene: scene).isEmpty)           // the first load, done here, so the frames below are steady state
+
         let log = ThreadLog()
         ImageDecoder.statProbe = { path in if path == url.path { log.note(Thread.current.threadDictionary[encodingMarker] != nil) } }
-        defer { ImageDecoder.statProbe = nil }
-
-        let deadline = Date().addingTimeInterval(2.6)            // longer than two recheck intervals
-        var drewRed = false
-        while Date() < deadline {
-            let p = try liveFrame(compositor, scene, into: target)
-            if p.r > 240 { drewRed = true }
-            try await Task.sleep(for: .milliseconds(20))
+        ImageDecoder.backgroundLoadFinishedProbe = { path in if path == url.path { log.noteFinished() } }
+        defer {
+            ImageDecoder.statProbe = nil
+            ImageDecoder.backgroundLoadFinishedProbe = nil
         }
-        #expect(drewRed)
+
+        #expect(try liveFrame(compositor, scene, into: target).r > 240)      // red is on screen from the first frame
+        for round in 1...3 {
+            uptime.advance(by: 1.1)                                          // past one re-check interval
+            try liveFrame(compositor, scene, into: target)                   // asks the background loader to re-check
+            await log.waitForFinished(round)
+            #expect(try liveFrame(compositor, scene, into: target).r > 240)  // takes the answer in; still red, no file system call here
+        }
         #expect(log.callsOnRenderThread == 0)
+        #expect(log.callsOffRenderThread == 3, "each of the three re-checks happened, on a thread that is not the render thread")
     }
 
-    @Test func changedFileIsStillReloadedInTheBackground() async throws {
+    /// KI-060: like the test above, nothing waits on wall-clock time. The first load is done up front, the clock is moved
+    /// by hand past a re-check interval, and the test waits for the background load to report that it finished.
+    @Test(.timeLimit(.minutes(1))) func changedFileIsStillReloadedInTheBackground() async throws {
         let url = tempPNG()
         defer { try? FileManager.default.removeItem(at: url) }
         try writePNG(to: url, r: 1, g: 0, b: 0)
         let compositor = try Compositor()
+        let uptime = ManualUptime()
+        compositor.uptime = { uptime.now }
         let target = try texture(compositor.device)
         let scene = imageScene(url.path)
-        _ = try await settle { try liveFrame(compositor, scene, into: target).r > 240 }
+        #expect(compositor.prepare(scene: scene).isEmpty)
+        #expect(try liveFrame(compositor, scene, into: target).r > 240)
+        let log = ThreadLog()
+        ImageDecoder.backgroundLoadFinishedProbe = { path in if path == url.path { log.noteFinished() } }
+        defer { ImageDecoder.backgroundLoadFinishedProbe = nil }
+
         try writePNG(to: url, r: 0, g: 0, b: 1)
         try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(120)], ofItemAtPath: url.path)
-        let blue = try await settle(timeout: 5) { try liveFrame(compositor, scene, into: target).b > 240 }
-        #expect(blue)
+        uptime.advance(by: 1.1)
+        try liveFrame(compositor, scene, into: target)                   // the re-check is asked for here and done in the background
+        await log.waitForFinished(1)
+        #expect(try liveFrame(compositor, scene, into: target).b > 240)   // the new picture is taken in
     }
 
-    @Test func failedReloadKeepsThePreviousTextureAndReportsTheProblem() async throws {
+    @Test(.timeLimit(.minutes(1))) func failedReloadKeepsThePreviousTextureAndReportsTheProblem() async throws {
         let url = tempPNG()
         defer { try? FileManager.default.removeItem(at: url) }
         try writePNG(to: url, r: 1, g: 0, b: 0)
         let compositor = try Compositor()
+        let uptime = ManualUptime()
+        compositor.uptime = { uptime.now }
         let target = try texture(compositor.device)
         let scene = imageScene(url.path)
-        _ = try await settle { try liveFrame(compositor, scene, into: target).r > 240 }
+        #expect(compositor.prepare(scene: scene).isEmpty)
         #expect(try liveFrame(compositor, scene, into: target).r > 240)
+        let log = ThreadLog()
+        ImageDecoder.backgroundLoadFinishedProbe = { path in if path == url.path { log.noteFinished() } }
+        defer { ImageDecoder.backgroundLoadFinishedProbe = nil }
 
         try Data("this is not an image".utf8).write(to: url)       // a momentary read failure: same path, unreadable content
         try FileManager.default.setAttributes([.modificationDate: Date().addingTimeInterval(120)], ofItemAtPath: url.path)
-        let reported = try await settle(timeout: 5) {
-            _ = try liveFrame(compositor, scene, into: target)
-            return compositor.unavailableImagePaths.contains(url.path)
-        }
-        #expect(reported)
+        uptime.advance(by: 1.1)
+        try liveFrame(compositor, scene, into: target)
+        await log.waitForFinished(1)
         #expect(try liveFrame(compositor, scene, into: target).r > 240)     // the old picture is still on screen
+        #expect(compositor.unavailableImagePaths.contains(url.path))        // and the problem is reported
     }
 }
 
@@ -202,7 +220,7 @@ private func liveFrame(_ compositor: Compositor, _ scene: SceneDescription, into
         let first = try Compositor()
         let t1 = try texture(first.device)
         let scene = imageScene(url.path)
-        _ = try await settle { try liveFrame(first, scene, into: t1).g > 240 }
+        #expect(first.prepare(scene: scene).isEmpty)               // KI-060: the first screen's load is done up front, not raced against a timeout
         #expect(try liveFrame(first, scene, into: t1).g > 240)
 
         let second = try Compositor(device: first.device)
@@ -273,10 +291,41 @@ private func liveFrame(_ compositor: Compositor, _ scene: SceneDescription, into
     }
 }
 
-/// Records, from any thread, whether each call came from the thread under test.
+/// Records, from any thread, whether each call came from the thread under test, and lets a test wait for background
+/// loads to finish without sleeping.
 private final class ThreadLog: @unchecked Sendable {
     private let lock = NSLock()
     private var on = 0
-    func note(_ same: Bool) { lock.lock(); if same { on += 1 }; lock.unlock() }
+    private var off = 0
+    private var finishedCount = 0
+    private var waiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+    func note(_ same: Bool) { lock.lock(); if same { on += 1 } else { off += 1 }; lock.unlock() }
     var callsOnRenderThread: Int { lock.lock(); defer { lock.unlock() }; return on }
+    var callsOffRenderThread: Int { lock.lock(); defer { lock.unlock() }; return off }
+
+    func noteFinished() {
+        lock.lock()
+        finishedCount += 1
+        let ready = waiters.filter { $0.count <= finishedCount }
+        waiters.removeAll { $0.count <= finishedCount }
+        lock.unlock()
+        for w in ready { w.continuation.resume() }
+    }
+
+    func waitForFinished(_ count: Int) async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            lock.lock()
+            if finishedCount >= count { lock.unlock(); c.resume(); return }
+            waiters.append((count, c))
+            lock.unlock()
+        }
+    }
+}
+
+/// The compositor's clock, moved only by the test.
+private final class ManualUptime: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 1000.0
+    var now: Double { lock.lock(); defer { lock.unlock() }; return value }
+    func advance(by seconds: Double) { lock.lock(); value += seconds; lock.unlock() }
 }

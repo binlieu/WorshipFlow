@@ -102,8 +102,10 @@ enum TestMedia {
         return (Int(row[(w / 2) * 4 + 2]), Int(row[(w / 2) * 4 + 1]), Int(row[(w / 2) * 4]))
     }
 
-    /// Polls until `condition` holds or `seconds` pass.
-    static func wait(upTo seconds: Double = 8, _ condition: () -> Bool) async -> Bool {
+    /// Polls until `condition` holds or `seconds` pass. Every caller waits for something AVFoundation reports in its own
+    /// time. The limit is a guard against a hang, not a performance threshold (KI-060: 8 s was shorter than a loaded Mac
+    /// sometimes takes to report a failed item), so a passing test returns as soon as the thing happens.
+    static func wait(upTo seconds: Double = 60, _ condition: () -> Bool) async -> Bool {
         let deadline = Date().addingTimeInterval(seconds)
         while Date() < deadline {
             if condition() { return true }

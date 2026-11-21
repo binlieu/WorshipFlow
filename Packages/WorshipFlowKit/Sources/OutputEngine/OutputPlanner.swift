@@ -35,10 +35,14 @@ public struct SDIDeviceStatus: Equatable, Sendable {
 public struct PlannedSDIOutput: Equatable, Sendable {
     public var deviceID: String
     public var connector: Int
-    /// Set for a keyed output: the connector that carries the key.
+    /// Set for a keyed output: the connector that carries the key (the pair's second connector unless the device reports
+    /// its route the other way round, KI-053). `connector` stays the one the port is opened on.
     public var keyConnector: Int?
     public var fillAlphaMode: AlphaMode
     public var mode: SDIVideoMode
+    /// The connector that carries the fill (or the picture, for a plain output). Equals `connector` unless the device's
+    /// reported route puts the fill on the pair's second connector.
+    public var fillConnector: Int
 
     public var keying: SDIKeying { keyConnector == nil ? .none : .external(fillAlphaMode: fillAlphaMode) }
 }
@@ -183,14 +187,16 @@ public enum OutputPlanner {
         for (deviceID, list) in requests {
             guard let device = devices[deviceID] else { continue }
             let connectorPlan = SDIConnectorPlanner.plan(requests: list, connectorCount: device.info.connectorCount,
-                                                         supportsExternalKeying: device.info.supportsExternalKeying)
+                                                         supportsExternalKeying: device.info.supportsExternalKeying,
+                                                         keyRoutes: device.info.keyRoutes)
             plans[deviceID] = connectorPlan
             for request in list {
                 guard let info = requested[request.screenID] else { continue }
                 if let assignment = connectorPlan.assignments[request.screenID] {
                     result.assignments[info.entry.slot] = .sdi(PlannedSDIOutput(deviceID: deviceID, connector: assignment.connector,
                                                                                  keyConnector: assignment.keyConnector,
-                                                                                 fillAlphaMode: info.alpha, mode: info.mode))
+                                                                                 fillAlphaMode: info.alpha, mode: info.mode,
+                                                                                 fillConnector: assignment.fillConnector))
                 } else if let fault = connectorPlan.faults[request.screenID] {
                     result.faults[info.entry.slot] = .sdiConnector(fault)
                 }

@@ -81,16 +81,23 @@ struct HardwareTestView: View {
     }
 
     private var cardStatus: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if controller.hasRealDevice {
-                notice("Card found: " + controller.realDevices.map(\.info.displayName).joined(separator: ", "), systemImage: "checkmark.seal.fill", tint: .green)
-            } else {
-                notice("No DeckLink card was found. " + controller.driverMessage, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+        let card = controller.cardState
+        return VStack(alignment: .leading, spacing: 8) {
+            switch card.state {
+            case .cardFound:
+                notice(card.text, systemImage: "checkmark.seal.fill", tint: .green)
+            case .driverNotInstalled:
+                notice(card.text, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+            case .noCardFound:
+                notice(card.text, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+            }
+            if card.state != .cardFound {
                 Text("You can still press \"Create a report anyway\": a report that says no card was found is useful too. Or run the simulated card to see how the test works.")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
-            Button("Check again") { controller.refresh() }.controlSize(.small)
+            Button("Rescan") { Task { await controller.rescan() } }.controlSize(.small).accessibilityIdentifier("hwtest.rescan")
         }
+        .task { await controller.rescan() }
     }
 
     private func notice(_ text: String, systemImage: String, tint: Color) -> some View {
@@ -175,6 +182,10 @@ struct HardwareTestView: View {
         VStack(alignment: .leading, spacing: 14) {
             if controller.runWasSimulated {
                 notice("This was a demonstration with the simulated card. Its report is marked SIMULATED and says nothing about a real card.", systemImage: "testtube.2", tint: .purple)
+            }
+            if let verdict = controller.verdictLine, !controller.runWasSimulated {
+                notice(verdict, systemImage: verdict.hasPrefix("REAL DEVICE TESTED") ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
+                       tint: verdict.hasPrefix("REAL DEVICE TESTED") ? .green : .orange)
             }
             Text("The test is finished.").font(.title2.bold())
             if let problem = controller.errorMessage { notice(problem, systemImage: "xmark.octagon.fill", tint: .red) }
