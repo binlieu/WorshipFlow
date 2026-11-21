@@ -33,3 +33,6 @@
 | KI-029 | Stage layout editor: dragging and resizing on the canvas, the layout picker popup, typing in fields and the colour picker have not been exercised in the running app (the helpers they call are unit tested). | Open. Part of the hands-on pass with KI-026. |
 | KI-030 | A timer started mid-second can show up to one second behind on stage, because the stage picture refreshes on whole seconds. | Open. Minor. |
 | KI-031 | Deleting a timer leaves its element in stage layouts, drawing nothing until re-pointed. | Accepted. |
+| KI-032 | MEDIA-002 is engine only: the app does not yet pass the media registry to outputs, and nothing has been seen on a real output. Foreground audio, volume and device choice are unverified or unbuilt. Only small synthetic H.264 files were tried. | Open. MEDIA-001 interface slice wires and exercises it. |
+| KI-033 | Decision: a foreground clip shows only on screens whose Look shows the slide layer, and an audio file chosen as a visual layer is ignored. | Accepted. |
+| KI-034 | The media engine tests wait up to eight seconds for decoded frames and could fail on a heavily loaded Mac. | Watch. |

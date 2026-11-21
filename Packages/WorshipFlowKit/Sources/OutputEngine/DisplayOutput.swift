@@ -7,9 +7,9 @@ public final class DisplayOutput: MetalOutput {
     public let displayID: CGDirectDisplayID
 
     public init(screen: NSScreen, name: String? = nil, sceneProvider: @escaping SceneProvider,
-                videoSource: (any VideoSourceFactory)? = nil) {
+                videoSource: (any VideoSourceFactory)? = nil, mediaSource: (any MediaFrameSource)? = nil) {
         self.displayID = Self.displayID(of: screen)
-        super.init(name: name ?? "Display \(screen.localizedName)", sceneProvider: sceneProvider, videoSource: videoSource)
+        super.init(name: name ?? "Display \(screen.localizedName)", sceneProvider: sceneProvider, videoSource: videoSource, mediaSource: mediaSource)
     }
 
     public static func displayID(of screen: NSScreen) -> CGDirectDisplayID {

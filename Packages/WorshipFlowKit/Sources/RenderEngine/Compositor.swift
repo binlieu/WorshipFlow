@@ -26,6 +26,8 @@ public final class Compositor {
     private var pipelines: [MTLPixelFormat: MTLRenderPipelineState] = [:]
     private let sampler: MTLSamplerState
     private let rasterizer = TextRasterizer()
+    /// One opaque black pixel, stretched behind a foreground clip to letterbox it (MEDIA-03).
+    private let blackTexture: MTLTexture
 
     private struct TextKey: Hashable {
         let text: String
@@ -132,6 +134,13 @@ public final class Compositor {
         sd.tAddressMode = .clampToEdge
         guard let sampler = device.makeSamplerState(descriptor: sd) else { throw RenderError.resourceCreation("sampler") }
         self.sampler = sampler
+        let bd = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: 1, height: 1, mipmapped: false)
+        bd.usage = .shaderRead
+        bd.storageMode = .shared
+        guard let black = device.makeTexture(descriptor: bd) else { throw RenderError.resourceCreation("black texture") }
+        var opaqueBlack: [UInt8] = [0, 0, 0, 255]
+        black.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &opaqueBlack, bytesPerRow: 4)
+        self.blackTexture = black
         _ = try pipeline(for: .bgra8Unorm)   // fail early if the shaders do not link
     }
 
@@ -167,7 +176,9 @@ public final class Compositor {
     // MARK: Offscreen rendering
 
     /// Renders to a new offscreen BGRA texture and reads it back. Used by tests and snapshots, not the live path.
-    public func renderImage(scene: SceneDescription, width: Int, height: Int) throws -> RenderedFrame {
+    /// `video`, `backgroundMedia` and `foregroundMedia` are passed to `encode` as they are (tests use solid-colour textures).
+    public func renderImage(scene: SceneDescription, width: Int, height: Int, video: MTLTexture? = nil,
+                            backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil) throws -> RenderedFrame {
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
         td.usage = [.renderTarget, .shaderRead]
@@ -175,7 +186,8 @@ public final class Compositor {
         guard let texture = device.makeTexture(descriptor: td), let cb = queue.makeCommandBuffer() else {
             throw RenderError.resourceCreation("offscreen texture")
         }
-        try encode(scene: scene, into: texture, video: nil, commandBuffer: cb, imageLoading: .synchronous)
+        try encode(scene: scene, into: texture, video: video, commandBuffer: cb, imageLoading: .synchronous,
+                   backgroundMedia: backgroundMedia, foregroundMedia: foregroundMedia)
         cb.commit()
         cb.waitUntilCompleted()
         if let error = cb.error { throw RenderError.pipeline("\(error)") }
@@ -192,9 +204,17 @@ public final class Compositor {
 
     /// Encodes the scene into `texture` on the caller's command buffer. The caller commits it.
     /// `video`, when supplied and `scene.showsVideo` is true, is drawn aspect-fill over the background colour.
-    /// Draw order: background colour, video, background image, text, overlay images.
+    ///
+    /// Media (MEDIA-002). `backgroundMedia` is drawn aspect-fill and `foregroundMedia` aspect-fit over black, each only
+    /// when the scene names that media (`scene.backgroundMedia`, `scene.foregroundMedia`); a still and a video frame are
+    /// both just textures. When the scene names a background media, the shared `video` is not drawn, so a frame that is
+    /// not ready yet shows the background colour rather than the theme's loop.
+    ///
+    /// Draw order: background colour, background media (or the shared video), background image, foreground media,
+    /// text, overlay images.
     public func encode(scene: SceneDescription, into texture: MTLTexture, video: MTLTexture? = nil,
-                       commandBuffer: MTLCommandBuffer, imageLoading: ImageLoading = .background) throws {
+                       commandBuffer: MTLCommandBuffer, imageLoading: ImageLoading = .background,
+                       backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil) throws {
         let width = texture.width, height = texture.height
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         let pipeline = try pipeline(for: texture.pixelFormat)
@@ -248,27 +268,35 @@ public final class Compositor {
         var fullOpacity: Float = 1
         enc.setFragmentBytes(&fullOpacity, length: MemoryLayout<Float>.stride, index: 0)
 
-        if scene.showsVideo, let video, video.width > 0, video.height > 0 {
-            // Aspect-fill: crop the source so it covers the whole target.
-            let srcAspect = Double(video.width) / Double(video.height)
-            let dstAspect = Double(width) / Double(height)
-            var uvOrigin = SIMD2<Float>(0, 0), uvSize = SIMD2<Float>(1, 1)
-            if srcAspect > dstAspect {
-                let w = Float(dstAspect / srcAspect)
-                uvSize.x = w
-                uvOrigin.x = (1 - w) / 2
-            } else {
-                let h = Float(srcAspect / dstAspect)
-                uvSize.y = h
-                uvOrigin.y = (1 - h) / 2
-            }
-            var q = QuadUniforms(origin: .zero, size: target, target: target, uvOrigin: uvOrigin, uvSize: uvSize)
+        // The shared video yields to a media background chosen in the scene.
+        let backdrop: MTLTexture? = scene.backgroundMedia != nil ? backgroundMedia : (scene.showsVideo ? video : nil)
+        if let backdrop, backdrop.width > 0, backdrop.height > 0 {
+            let uv = Self.fillUV(sourceWidth: Double(backdrop.width), sourceHeight: Double(backdrop.height),
+                                 width: Double(width), height: Double(height))
+            var q = QuadUniforms(origin: .zero, size: target, target: target, uvOrigin: uv.origin, uvSize: uv.size)
             enc.setVertexBytes(&q, length: MemoryLayout<QuadUniforms>.stride, index: 0)
-            enc.setFragmentTexture(video, index: 0)
+            enc.setFragmentTexture(backdrop, index: 0)
             enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         }
 
         if let d = backgroundImage { draw(d, with: enc, target: target) }
+
+        if scene.foregroundMedia != nil, let fg = foregroundMedia, fg.width > 0, fg.height > 0 {
+            // Black first, so the bars around a clip are black whatever is underneath (and opaque on a keyed output).
+            var full = QuadUniforms(origin: .zero, size: target, target: target, uvOrigin: .zero, uvSize: SIMD2<Float>(1, 1))
+            enc.setVertexBytes(&full, length: MemoryLayout<QuadUniforms>.stride, index: 0)
+            enc.setFragmentTexture(blackTexture, index: 0)
+            enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+            // Aspect-fit, centred, on whole pixels.
+            let scale = min(Double(width) / Double(fg.width), Double(height) / Double(fg.height))
+            let w = max(1, (Double(fg.width) * scale).rounded()), h = max(1, (Double(fg.height) * scale).rounded())
+            let x = ((Double(width) - w) / 2).rounded(), y = ((Double(height) - h) / 2).rounded()
+            var q = QuadUniforms(origin: SIMD2<Float>(Float(x), Float(y)), size: SIMD2<Float>(Float(w), Float(h)),
+                                 target: target, uvOrigin: .zero, uvSize: SIMD2<Float>(1, 1))
+            enc.setVertexBytes(&q, length: MemoryLayout<QuadUniforms>.stride, index: 0)
+            enc.setFragmentTexture(fg, index: 0)
+            enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        }
 
         for p in placed {
             let left = max(0, p.clip.x), top = max(0, p.clip.y)
@@ -288,6 +316,22 @@ public final class Compositor {
             for d in overlays { draw(d, with: enc, target: target) }
         }
         enc.endEncoding()
+    }
+
+    /// Texture coordinates that crop a source of the given size to cover a destination of the given size.
+    static func fillUV(sourceWidth: Double, sourceHeight: Double, width: Double, height: Double) -> (origin: SIMD2<Float>, size: SIMD2<Float>) {
+        let srcAspect = sourceWidth / sourceHeight, dstAspect = width / height
+        var origin = SIMD2<Float>(0, 0), size = SIMD2<Float>(1, 1)
+        if srcAspect > dstAspect {
+            let w = Float(dstAspect / srcAspect)
+            size.x = w
+            origin.x = (1 - w) / 2
+        } else {
+            let h = Float(srcAspect / dstAspect)
+            size.y = h
+            origin.y = (1 - h) / 2
+        }
+        return (origin, size)
     }
 
     // MARK: Images

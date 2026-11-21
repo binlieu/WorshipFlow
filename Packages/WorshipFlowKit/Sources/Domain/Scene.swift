@@ -97,6 +97,23 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
     }
 }
 
+/// Which media layer a frame belongs to.
+public enum MediaLayerSlot: String, Sendable, Equatable, Codable, Hashable, CaseIterable {
+    case background, foreground
+}
+
+/// A media-bin item a scene asks its output to draw (MEDIA-002). The output resolves the id to a frame.
+public enum SceneMedia: Sendable, Equatable, Codable, Hashable {
+    case video(UUID)
+    case image(UUID)
+
+    public var assetID: UUID {
+        switch self {
+        case .video(let id), .image(let id): return id
+        }
+    }
+}
+
 public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
     public var backgroundColor: ColorRGBA
     /// When true and a video frame is supplied, it is drawn aspect-fill over the background colour.
@@ -106,14 +123,21 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
     public var backgroundImage: ImageLayer?
     /// Drawn after the text (OUT-003).
     public var overlayImages: [ImageLayer]
+    /// Media chosen as the background, drawn aspect-fill after the background colour (MEDIA-02).
+    public var backgroundMedia: SceneMedia?
+    /// Media playing over the slide, drawn aspect-fit over black before the text (MEDIA-03).
+    public var foregroundMedia: SceneMedia?
 
     public init(backgroundColor: ColorRGBA, showsVideo: Bool = false, textLayers: [TextLayer],
-                backgroundImage: ImageLayer? = nil, overlayImages: [ImageLayer] = []) {
+                backgroundImage: ImageLayer? = nil, overlayImages: [ImageLayer] = [],
+                backgroundMedia: SceneMedia? = nil, foregroundMedia: SceneMedia? = nil) {
         self.backgroundColor = backgroundColor
         self.showsVideo = showsVideo
         self.textLayers = textLayers
         self.backgroundImage = backgroundImage
         self.overlayImages = overlayImages
+        self.backgroundMedia = backgroundMedia
+        self.foregroundMedia = foregroundMedia
     }
 }
 

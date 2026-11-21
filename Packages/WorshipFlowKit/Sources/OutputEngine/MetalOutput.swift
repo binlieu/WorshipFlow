@@ -43,6 +43,7 @@ open class MetalOutput: OutputTarget {
 
     private let sceneProvider: SceneProvider
     private let videoSource: (any VideoSourceFactory)?
+    private let mediaSource: (any MediaFrameSource)?
     private var window: NSWindow?
     private var view: MetalLayerView?
     private var renderer: OutputRenderer?
@@ -51,10 +52,12 @@ open class MetalOutput: OutputTarget {
     private var linkTarget: DisplayLinkTarget?
     private var observers: [NSObjectProtocol] = []
 
-    init(name: String, sceneProvider: @escaping SceneProvider, videoSource: (any VideoSourceFactory)?) {
+    init(name: String, sceneProvider: @escaping SceneProvider, videoSource: (any VideoSourceFactory)?,
+         mediaSource: (any MediaFrameSource)? = nil) {
         self.name = name
         self.sceneProvider = sceneProvider
         self.videoSource = videoSource
+        self.mediaSource = mediaSource
     }
 
     public var statistics: FrameStatistics { renderer?.statistics ?? FrameStatistics(targetInterval: 1.0 / 60.0) }
@@ -97,7 +100,7 @@ open class MetalOutput: OutputTarget {
         refreshRate = hz > 0 ? hz : 60
 
         let renderer = OutputRenderer(layer: layer, sceneProvider: sceneProvider, videoSource: videoSource,
-                                      targetInterval: 1.0 / refreshRate)
+                                      targetInterval: 1.0 / refreshRate, mediaSource: mediaSource)
         do {
             try renderer.prepare()
         } catch {

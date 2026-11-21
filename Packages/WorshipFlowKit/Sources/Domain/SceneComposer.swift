@@ -46,21 +46,22 @@ public enum SceneComposer {
                              styles: SceneStyles = .standard) -> SceneDescription {
         switch role {
         case .audience:
-            return themed(state, theme: Theme.makeFullScreen(styles: styles), look: .standard, props: [], isBroadcast: false)
+            return themed(state, theme: Theme.makeFullScreen(styles: styles), look: .standard, props: [], media: nil, isBroadcast: false)
         case .stage:
             return stage(state, styles, clockText)
         case .broadcast:
-            return themed(state, theme: Theme.makeLowerThird(styles: styles), look: .standard, props: [], isBroadcast: true)
+            return themed(state, theme: Theme.makeLowerThird(styles: styles), look: .standard, props: [], media: nil, isBroadcast: true)
         }
     }
 
     /// Composes one screen. The stage layout ignores the theme, Look and props. Props are not drawn while stopped.
+    /// `media` (MEDIA-002) adds the chosen background and foreground media. The stage never shows media.
     public static func scene(for role: ScreenRole, state: ShowState, theme: Theme, look: ScreenLook, props: [Prop],
-                             clockText: String? = nil) -> SceneDescription {
+                             media: MediaLayers? = nil, clockText: String? = nil) -> SceneDescription {
         switch role {
         case .stage: return stage(state, .standard, clockText)
-        case .audience: return themed(state, theme: theme, look: look, props: props, isBroadcast: false)
-        case .broadcast: return themed(state, theme: theme, look: look, props: props, isBroadcast: true)
+        case .audience: return themed(state, theme: theme, look: look, props: props, media: media, isBroadcast: false)
+        case .broadcast: return themed(state, theme: theme, look: look, props: props, media: media, isBroadcast: true)
         }
     }
 
@@ -74,7 +75,8 @@ public enum SceneComposer {
                   verticalAlignment: block.verticalAlignment)
     }
 
-    private static func themed(_ state: ShowState, theme: Theme, look: ScreenLook, props: [Prop], isBroadcast: Bool) -> SceneDescription {
+    private static func themed(_ state: ShowState, theme: Theme, look: ScreenLook, props: [Prop], media: MediaLayers?,
+                                isBroadcast: Bool) -> SceneDescription {
         // A stopped show is empty: black (audience) or transparent (broadcast), no video, no text, no props.
         guard !state.isStopped else {
             return SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
@@ -85,6 +87,11 @@ public enum SceneComposer {
             case .media:
                 scene.backgroundColor = Theme.mediaFallbackColor
                 scene.showsVideo = true
+                // A chosen background replaces the theme's shared loop; a still must not leave the loop showing.
+                if let chosen = media?.background?.selection.sceneMedia {
+                    scene.backgroundMedia = chosen
+                    if case .image = chosen { scene.showsVideo = false }
+                }
             case .color(let c):
                 scene.backgroundColor = c
             case .image(let path):
@@ -94,7 +101,10 @@ public enum SceneComposer {
                 scene.backgroundColor = .clear
             }
         }
-        if look.visibleLayers.contains(.slide), let slide = state.liveSlide {
+        // A foreground clip replaces the slide text, so it follows the slide layer of the Look. Props stay on top.
+        let foreground = look.visibleLayers.contains(.slide) ? media?.foreground?.selection.sceneMedia : nil
+        scene.foregroundMedia = foreground
+        if foreground == nil, look.visibleLayers.contains(.slide), let slide = state.liveSlide {
             if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary)) }
             if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block)) }
         }

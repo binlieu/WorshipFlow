@@ -6,11 +6,13 @@ import Domain
 public final class WindowOutput: MetalOutput {
     private let cascadeIndex: Int
 
+    /// `mediaSource` supplies the frames of chosen background and foreground media (MEDIA-002).
     /// `cascadeIndex` offsets the window so several output windows do not open on top of each other.
     public init(name: String = "Output window", sceneProvider: @escaping SceneProvider,
-                videoSource: (any VideoSourceFactory)? = nil, cascadeIndex: Int = 0) {
+                videoSource: (any VideoSourceFactory)? = nil, cascadeIndex: Int = 0,
+                mediaSource: (any MediaFrameSource)? = nil) {
         self.cascadeIndex = cascadeIndex
-        super.init(name: name, sceneProvider: sceneProvider, videoSource: videoSource)
+        super.init(name: name, sceneProvider: sceneProvider, videoSource: videoSource, mediaSource: mediaSource)
     }
 
     override func makeWindow() -> NSWindow {

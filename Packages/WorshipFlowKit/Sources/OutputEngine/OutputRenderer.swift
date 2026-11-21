@@ -12,6 +12,7 @@ final class OutputRenderer: @unchecked Sendable {
     private let layer: CAMetalLayer
     private let sceneProvider: SceneProvider
     private let videoSource: (any VideoSourceFactory)?
+    private let mediaSource: (any MediaFrameSource)?
     private let lock = NSLock()
     private var stats: FrameStatistics
     private var running = false
@@ -23,11 +24,14 @@ final class OutputRenderer: @unchecked Sendable {
     private var compositor: Compositor?
     private var textureProvider: (any VideoTextureProvider)?
     private var recent: [VideoTexture] = []
+    private var mediaResolver: MediaFrameResolver?
 
-    init(layer: CAMetalLayer, sceneProvider: @escaping SceneProvider, videoSource: (any VideoSourceFactory)?, targetInterval: Double) {
+    init(layer: CAMetalLayer, sceneProvider: @escaping SceneProvider, videoSource: (any VideoSourceFactory)?, targetInterval: Double,
+         mediaSource: (any MediaFrameSource)? = nil) {
         self.layer = layer
         self.sceneProvider = sceneProvider
         self.videoSource = videoSource
+        self.mediaSource = mediaSource
         self.stats = FrameStatistics(targetInterval: targetInterval)
     }
 
@@ -40,6 +44,7 @@ final class OutputRenderer: @unchecked Sendable {
         layer.isOpaque = true
         layer.displaySyncEnabled = true
         if let videoSource { textureProvider = try videoSource.makeTextureProvider(device: compositor.device) }
+        if let mediaSource { mediaResolver = try MediaFrameResolver(source: mediaSource, device: compositor.device) }
         self.compositor = compositor
         lock.lock(); running = true; lock.unlock()
     }
@@ -79,7 +84,11 @@ final class OutputRenderer: @unchecked Sendable {
         var submitted = false
         autoreleasepool {
             guard let drawable = layer.nextDrawable(), let cb = compositor.makeCommandBuffer() else { return }
-            let scene = sceneProvider()
+            var scene = sceneProvider()
+            // Without a registry there is no way to draw chosen media: leave the scene as it was before media layers
+            // existed (the theme's shared video, if any).
+            if mediaResolver == nil { scene.backgroundMedia = nil; scene.foregroundMedia = nil }
+            let media = mediaResolver?.resolve(scene) ?? MediaFrameTextures()
             var video: MTLTexture?
             if scene.showsVideo, let frame = textureProvider?.currentTexture() {
                 video = frame.texture
@@ -87,7 +96,8 @@ final class OutputRenderer: @unchecked Sendable {
                 if recent.count > 4 { recent.removeFirst(recent.count - 4) }   // keep CVMetalTextures alive while in flight
             }
             do {
-                try compositor.encode(scene: scene, into: drawable.texture, video: video, commandBuffer: cb)
+                try compositor.encode(scene: scene, into: drawable.texture, video: video, commandBuffer: cb,
+                                      backgroundMedia: media.background?.texture, foregroundMedia: media.foreground?.texture)
             } catch {
                 fail("\(error)")
                 return
@@ -98,7 +108,8 @@ final class OutputRenderer: @unchecked Sendable {
             }
             cb.present(drawable)
             let sem = inFlight
-            cb.addCompletedHandler { _ in sem.signal() }
+            let held = media.hold          // the frames' textures must outlive the GPU work that reads them
+            cb.addCompletedHandler { _ in withExtendedLifetime(held) { _ = sem.signal() } }
             cb.commit()
             submitted = true
         }
