@@ -1,0 +1,67 @@
+book_order	abbreviation	name_vi	name_en	testament	total_chapters
+1	sa	Sáng-thế Ký	Genesis	OT	50
+2	xu	Xuất Ê-díp-tô Ký	Exodus	OT	40
+3	le	Lê-vi Ký	Leviticus	OT	27
+4	dan	Dân-số Ký	Numbers	OT	36
+5	phu	Phục-truyền Luật-lệ Ký	Deuteronomy	OT	34
+6	gios	Giô-suê	Joshua	OT	24
+7	cac	Các Quan Xét	Judges	OT	21
+8	ru	Ru-tơ	Ruth	OT	4
+9	1sa	I Sa-mu-ên	1 Samuel	OT	31
+10	2sa	II Sa-mu-ên	2 Samuel	OT	24
+11	1vua	I Các Vua	1 Kings	OT	22
+12	2vua	II Các Vua	2 Kings	OT	25
+13	1su	I Sử-ký	1 Chronicles	OT	29
+14	2su	II Sử-ký	2 Chronicles	OT	36
+15	exo	E-xơ-ra	Ezra	OT	10
+16	ne	Nê-hê-mi	Nehemiah	OT	13
+17	et	Ê-xơ-tê	Esther	OT	10
+18	giop	Gióp	Job	OT	42
+19	thi	Thi-thiên	Psalms	OT	150
+20	ch	Châm-ngôn	Proverbs	OT	31
+21	tr	Truyền-đạo	Ecclesiastes	OT	12
+22	nha	Nhã-ca	Song of Solomon	OT	8
+23	es	Ê-sai	Isaiah	OT	66
+24	gie	Giê-rê-mi	Jeremiah	OT	52
+25	ca	Ca-thương	Lamentations	OT	5
+26	exe	Ê-xê-chi-ên	Ezekiel	OT	48
+27	da	Đa-ni-ên	Daniel	OT	12
+28	os	Ô-sê	Hosea	OT	14
+29	gio	Giô-ên	Joel	OT	3
+30	am	A-mốt	Amos	OT	9
+31	ap	Áp-đia	Obadiah	OT	1
+32	gion	Giô-na	Jonah	OT	4
+33	mi	Mi-chê	Micah	OT	7
+34	na	Na-hum	Nahum	OT	3
+35	ha	Ha-ba-cúc	Habakkuk	OT	3
+36	so	Sô-phô-ni	Zephaniah	OT	3
+37	ag	A-ghê	Haggai	OT	2
+38	xa	Xa-cha-ri	Zechariah	OT	14
+39	ma	Ma-la-chi	Malachi	OT	4
+40	mat	Ma-thi-ơ	Matthew	NT	28
+41	mac	Mác	Mark	NT	16
+42	lu	Lu-ca	Luke	NT	24
+43	gi	Giăng	John	NT	21
+44	cong	Công-vụ các Sứ-đồ	Acts	NT	28
+45	ro	Rô-ma	Romans	NT	16
+46	1co	I Cô-rinh-tô	1 Corinthians	NT	16
+47	2co	II Cô-rinh-tô	2 Corinthians	NT	13
+48	ga	Ga-la-ti	Galatians	NT	6
+49	eph	Ê-phê-sô	Ephesians	NT	6
+50	phi	Phi-líp	Philippians	NT	4
+51	co	Cô-lô-se	Colossians	NT	4
+52	1te	I Tê-sa-lô-ni-ca	1 Thessalonians	NT	5
+53	2te	II Tê-sa-lô-ni-ca	2 Thessalonians	NT	3
+54	1ti	I Ti-mô-thê	1 Timothy	NT	6
+55	2ti	II Ti-mô-thê	2 Timothy	NT	4
+56	tit	Tít	Titus	NT	3
+57	phil	Phi-lê-môn	Philemon	NT	1
+58	he	Hê-bơ-rơ	Hebrews	NT	13
+59	gia	Gia-cơ	James	NT	5
+60	1phi	I Phi-e-rơ	1 Peter	NT	5
+61	2phi	II Phi-e-rơ	2 Peter	NT	3
+62	1gi	I Giăng	1 John	NT	5
+63	2gi	II Giăng	2 John	NT	1
+64	3gi	III Giăng	3 John	NT	1
+65	giu	Giu-đe	Jude	NT	1
+66	kh	Khải-huyền	Revelation	NT	22
