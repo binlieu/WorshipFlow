@@ -15,7 +15,7 @@ final class CueRemoteTarget: RemoteControlTarget {
 
     func runMacro(id: UUID) async throws {
         guard await model.hasMacro(id) else { throw RemoteTargetError.unknownMacro }
-        await model.run(.runMacro(id), from: .remote)
+        if let problem = await model.run(.runMacro(id), from: .remote) { throw RemoteTargetError.rejected(problem) }
     }
 
     func snapshot() async -> RemoteState { await model.remoteSnapshot() }

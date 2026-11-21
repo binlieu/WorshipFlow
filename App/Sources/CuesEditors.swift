@@ -162,6 +162,16 @@ struct ScheduleEditor: View {
                 .font(.system(size: 13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if cue.schedule.events.isEmpty { CueNote(text: "No scheduled events.") }
             ForEach(cue.schedule.events) { event in row(event) }
+            if !cue.missedEvents.isEmpty {
+                HStack {
+                    Text("Not run").font(.system(size: 15, weight: .semibold))
+                    Spacer()
+                    Button("Dismiss all") { cue.dismissMissedEvents() }.buttonStyle(HeaderButtonStyle())
+                }
+                ForEach(cue.missedEvents) { missed in
+                    Text(missed.text).font(.system(size: 13)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .alert("Delete \u{201C}\(deleting?.name ?? "")\u{201D}?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Delete", role: .destructive) { if let e = deleting { Task { @MainActor in await cue.deleteEvent(e.id) } } }

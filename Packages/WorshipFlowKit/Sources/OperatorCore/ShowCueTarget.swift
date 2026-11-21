@@ -28,6 +28,8 @@ public final class ShowCueTarget: CueTarget {
         return deferred
     }
 
+    public func blackoutWillTurnOn() -> Bool { !transport.isBlackedOut }
+
     public func beginBatch() {}
     public func endBatch() {}
 

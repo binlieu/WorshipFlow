@@ -11,9 +11,16 @@ extension CueModel {
         workspace.onSlideWentLive = { [weak self] event in self?.slideWentLive(event) }
         workspace.onContentReplaced = { [weak self] in
             guard let self else { return }
-            Task { @MainActor in await self.reload() }
+            let previous = self.reloadTail
+            self.reloadTail = Task { @MainActor in
+                await previous?.value
+                await self.reload()
+            }
         }
     }
+
+    /// Waits for the reload that a re-flow started, so a test (or a caller) needs no timed wait.
+    public func reloadSettled() async { await reloadTail?.value }
 
     /// Stores the actions for a slide (an empty list removes them). A transport command, or a macro that contains one, is
     /// refused with the engine's own words; nothing is written then. Sets `lastError` and throws.

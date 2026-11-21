@@ -1074,6 +1074,8 @@ final class AppModel {
     func shutdown() {
         cueTimer?.invalidate()
         cueTimer = nil
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }     // FIX-E
+        wakeObserver = nil
         cue?.shutdown()
         audioTicker?.invalidate()
         audioTicker = nil

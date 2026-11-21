@@ -5,13 +5,26 @@ import Synchronization
 import Persistence
 import RemoteControl
 
+/// FIX-E: where the paired devices are written. The library; a test puts another behind it to make a write fail.
+public protocol RemoteTokenPersistence: Sendable {
+    func remoteTokens() async throws -> [RemoteTokenRecord]
+    func saveRemoteToken(_ record: RemoteTokenRecord) async throws
+    func deleteRemoteToken(id: UUID) async throws
+    func deleteAllRemoteTokens() async throws
+    func touchRemoteToken(id: UUID, at date: Date) async throws
+}
+
+extension LibraryStore: RemoteTokenPersistence {}
+
 public final class LibraryTokenStore: TokenStore, Sendable {
     private enum Op: Sendable {
         case save(RemoteTokenRecord)
         case delete(UUID)
         case deleteAll
         case touch(UUID, Date)
-        case barrier(CheckedContinuation<Void, Never>)
+        case barrier(CheckedContinuation<String?, Never>)
+
+        var isTouch: Bool { if case .touch = self { true } else { false } }
     }
 
     /// Writing `lastUsed` for every request would be a disk write per tap; the disk keeps it to once per this many seconds.
@@ -23,7 +36,10 @@ public final class LibraryTokenStore: TokenStore, Sendable {
     private final class Problem: Sendable { let text = Mutex<String?>(nil) }
     private let problem: Problem
 
-    private init(library: LibraryStore, records: [StoredToken]) {
+    /// A failed write is tried again this many times in all, `retryDelay` apart, before it is reported.
+    static let attempts = 3
+
+    private init(library: any RemoteTokenPersistence, records: [StoredToken], retryDelay: Duration) {
         cache = Mutex(Dictionary(records.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }))
         let (stream, continuation) = AsyncStream<Op>.makeStream(bufferingPolicy: .unbounded)
         ops = continuation
@@ -31,16 +47,25 @@ public final class LibraryTokenStore: TokenStore, Sendable {
         self.problem = problem
         worker = Task {
             for await op in stream {
-                do {
-                    switch op {
-                    case .save(let r): try await library.saveRemoteToken(r)
-                    case .delete(let id): try await library.deleteRemoteToken(id: id)
-                    case .deleteAll: try await library.deleteAllRemoteTokens()
-                    case .touch(let id, let at): try await library.touchRemoteToken(id: id, at: at)
-                    case .barrier(let c): c.resume()
-                    }
-                } catch {
-                    problem.text.withLock { $0 = "Paired devices could not be saved: \(error.localizedDescription)" }
+                if case .barrier(let c) = op { c.resume(returning: problem.text.withLock { let t = $0; $0 = nil; return t }); continue }
+                var lastError: Error?
+                for attempt in 0..<Self.attempts {
+                    if attempt > 0 { try? await Task.sleep(for: retryDelay) }
+                    do {
+                        switch op {
+                        case .save(let r): try await library.saveRemoteToken(r)
+                        case .delete(let id): try await library.deleteRemoteToken(id: id)
+                        case .deleteAll: try await library.deleteAllRemoteTokens()
+                        case .touch(let id, let at): try await library.touchRemoteToken(id: id, at: at)
+                        case .barrier: break
+                        }
+                        lastError = nil
+                        break
+                    } catch { lastError = error }
+                }
+                // A `lastUsed` that is not written is no loss; a pairing or a revoke that is not written is.
+                if let lastError, !op.isTouch {
+                    problem.text.withLock { $0 = "Paired devices could not be saved: \(lastError.localizedDescription)" }
                 }
             }
         }
@@ -48,19 +73,21 @@ public final class LibraryTokenStore: TokenStore, Sendable {
 
     deinit { ops.finish() }
 
-    public static func load(from library: LibraryStore) async throws -> LibraryTokenStore {
+    public static func load(from library: any RemoteTokenPersistence, retryDelay: Duration = .milliseconds(250)) async throws -> LibraryTokenStore {
         let records = try await library.remoteTokens().map {
             StoredToken(id: $0.id, label: $0.label, salt: $0.salt, hash: $0.hash, createdAt: $0.createdAt, lastUsed: $0.lastUsed)
         }
-        return LibraryTokenStore(library: library, records: records)
+        return LibraryTokenStore(library: library, records: records, retryDelay: retryDelay)
     }
 
-    /// Waits until every change made so far has been written.
-    public func flush() async {
-        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in ops.yield(.barrier(c)) }
+    /// Waits until every change made so far has been written (a failed write is tried again first). Returns the problem, in
+    /// words for the operator, when a pairing or a revoke could not be written since the last flush; nil when all is saved.
+    @discardableResult
+    public func flush() async -> String? {
+        await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in ops.yield(.barrier(c)) }
     }
 
-    /// The newest write failure, for the operator to read.
+    /// The newest write failure not yet returned by `flush()`.
     public var writeProblem: String? { problem.text.withLock { $0 } }
 
     // MARK: TokenStore

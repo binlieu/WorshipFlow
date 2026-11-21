@@ -36,6 +36,12 @@ public protocol CueTarget: AnyObject {
     func beginBatch()
     func perform(_ action: CueAction) throws
     func endBatch()
+    /// FIX-E: true when a Blackout toggle would now switch Blackout ON (it then cancels waiting steps, like Blackout on).
+    func blackoutWillTurnOn() -> Bool
+}
+
+public extension CueTarget {
+    func blackoutWillTurnOn() -> Bool { false }
 }
 
 /// An error whose text is shown to the operator as is.
@@ -74,6 +80,10 @@ public struct CueReport: Sendable, Equatable {
 public final class CueExecutor {
     public var macros: MacroLibrary
 
+    /// FIX-E: when true, a delivered Clear, Clear all or Blackout on also drops the other runs' waited stages, as Stop always
+    /// does. Off by default (the engine's own rule, pinned by its tests); the app turns it on.
+    public var cancelsWaitingStepsOnClear = false
+
     private let target: any CueTarget
     private let clock: any CueClock
 
@@ -104,7 +114,25 @@ public final class CueExecutor {
     public var nextDueTime: TimeInterval? { pending.map(\.due).min() }
 
     /// Cancels every waited stage. The app calls this when the show stops by other means than a stop action.
-    public func stop() { pending.removeAll() }
+    public func stop() { cancelWaiting() }
+
+    /// FIX-E: how many waited steps were dropped since the last `takeCancelledStepCount()`. The app reads it to say so.
+    public private(set) var cancelledStepCount = 0
+
+    public func takeCancelledStepCount() -> Int {
+        defer { cancelledStepCount = 0 }
+        return cancelledStepCount
+    }
+
+    /// Drops every waited stage (except those of the run `runID`, which is the run that is doing the cancelling) and
+    /// returns how many steps that was. Stop, Clear, Clear all and Blackout on do this, from any source.
+    @discardableResult
+    public func cancelWaiting(except runID: Int? = nil) -> Int {
+        let dropped = pending.filter { $0.runID != runID }.reduce(0) { $0 + $1.actions.count }
+        pending.removeAll { $0.runID != runID }
+        cancelledStepCount += dropped
+        return dropped
+    }
 
     /// Runs a list. The first stage is delivered before this returns, unless another batch is running: then the run is
     /// queued and delivered right after that batch, in arrival order.
@@ -176,9 +204,7 @@ public final class CueExecutor {
     }
 
     private func deliver(_ actions: [CueAction], runID: Int, into report: inout CueReport) {
-        if actions.contains(where: { $0 == .transport(.stop) }) {
-            pending.removeAll { $0.runID != runID }
-        }
+        if cancelsWaitingSteps(actions) { cancelWaiting(except: runID) }
         target.beginBatch()
         for a in actions {
             do { try target.perform(a) }
@@ -190,6 +216,17 @@ public final class CueExecutor {
         target.endBatch()
         report.batchesDelivered += 1
         report.actionsDelivered += actions.count
+    }
+
+    private func cancelsWaitingSteps(_ actions: [CueAction]) -> Bool {
+        actions.contains { action in
+            switch action {
+            case .transport(.stop): return true
+            case .transport(.clear), .transport(.clearAll), .transport(.blackout(.on)): return cancelsWaitingStepsOnClear
+            case .transport(.blackout(.toggle)): return cancelsWaitingStepsOnClear && target.blackoutWillTurnOn()
+            default: return false
+            }
+        }
     }
 
     // MARK: Planning

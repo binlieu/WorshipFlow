@@ -108,7 +108,7 @@ import CueStore
                                                       secondaryText: nil, maxLines: 2)
         #expect(ok)
         await r.cue.settled()
-        try await Task.sleep(for: .milliseconds(200))
+        await r.cue.reloadSettled()
         let moved = try #require(r.workspace.slides.first { $0.content.primary == kept })
         #expect(r.cue.slideActions.actions(for: moved.id) == [.selectLook(r.look)])
     }

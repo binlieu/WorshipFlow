@@ -9,6 +9,7 @@ import CueEngine
 import CueStore
 import Persistence
 import MIDIIO
+import Network
 import RemoteControl
 
 @MainActor
@@ -53,10 +54,25 @@ public final class CueModel {
     @ObservationIgnored public var midiPortsFactory: (() throws -> any MIDIPorts)?
     @ObservationIgnored var midiPorts: (any MIDIPorts)?
     @ObservationIgnored var midiRouter: MIDIRouter?
-    @ObservationIgnored var remoteServer: RemoteServer?
+    @ObservationIgnored var remoteServer: (any RemoteServing)?
     @ObservationIgnored var remoteTokens: LibraryTokenStore?
     @ObservationIgnored var remoteTarget: CueRemoteTarget?
     @ObservationIgnored var lastRemoteState: RemoteState?
+    /// FIX-E: start, stop and port change run one after the other through this chain; the last request wins.
+    @ObservationIgnored var remoteChain: Task<Void, Never>?
+    /// FIX-E: the addresses shown for a phone, worked out when the server starts and when the network changes, not every second.
+    @ObservationIgnored var remoteAddressCache: [String] = []
+    @ObservationIgnored var pathMonitor: NWPathMonitor?
+    /// FIX-E: where paired devices are written. The library by default; a test puts another behind it.
+    @ObservationIgnored var tokenPersistence: (any RemoteTokenPersistence)?
+    @ObservationIgnored var remoteServerFactory: (any RemoteControlTarget, any TokenStore, RemoteServerConfiguration) -> any RemoteServing = {
+        RemoteServer(target: $0, tokens: $1, configuration: $2)
+    }
+    @ObservationIgnored var watchesNetwork = true
+    @ObservationIgnored var tokenRetryDelay: Duration = .milliseconds(250)
+    @ObservationIgnored var reloadTail: Task<Void, Never>?
+    /// FIX-E: scheduled events that were not run (missed, or due while the Hardware Test ran), until the operator dismisses them.
+    public internal(set) var missedEvents: [MissedEvent] = []
     /// A run may keep to the loopback interface and ask for a free port: the app's launch arguments set these.
     @ObservationIgnored public var remoteLoopbackOnly = false
     @ObservationIgnored public var remotePortOverride: UInt16?
@@ -92,6 +108,7 @@ public final class CueModel {
                                    midiOut: { midiOut() ?? late?() })
         self.target = target
         self.executor = CueExecutor(target: target, clock: clock)
+        executor.cancelsWaitingStepsOnClear = true         // FIX-E
         late = { [weak self] in self?.midiRouter }
     }
 
@@ -123,6 +140,7 @@ public final class CueModel {
 
     /// Queues a command. It returns at once; the command runs after every earlier one has finished.
     public func submit(_ command: OperatorCommand, from source: CommandSource) {
+        if let why = refusal(for: source) { append(ActivityLine(time: wallClock(), source: source, text: why, isProblem: true)); return }
         enqueue(Job(command: command, source: source, done: nil), atFront: false)
     }
 
@@ -130,8 +148,23 @@ public final class CueModel {
     /// command ran into, in words for the operator, or nil.
     @discardableResult
     public func run(_ command: OperatorCommand, from source: CommandSource) async -> String? {
-        await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
+        if let why = refusal(for: source) {
+            append(ActivityLine(time: wallClock(), source: source, text: why, isProblem: true))
+            return why
+        }
+        return await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
             enqueue(Job(command: command, source: source, done: c), atFront: false)
+        }
+    }
+
+    /// FIX-E: while the Hardware Test runs, commands from MIDI, the remote server and the schedule are refused (the test needs the
+    /// show to stand still); operator buttons and keys are not. The reason is shown in the activity list and sent to a phone.
+    func refusal(for source: CommandSource) -> String? {
+        guard hardwareTestIsRunning() else { return nil }
+        switch source {
+        case .midi, .remote, .schedule:
+            return "The Hardware Test is running, so a command from \(source.label) was refused. Use the buttons or keys, or wait until the test ends."
+        default: return nil
         }
     }
 
@@ -168,6 +201,8 @@ public final class CueModel {
             let job = queue.removeFirst()
             jobProblems = []
             await execute(job)
+            let cancelled = executor.takeCancelledStepCount()
+            if cancelled > 0 { log(job.source, "cancelled: \(cancelled) waiting step\(cancelled == 1 ? "" : "s")") }
             job.done?.resume(returning: jobProblems.first)
         }
         draining = false
@@ -210,6 +245,12 @@ public final class CueModel {
             case .stop:
                 try target.perform(.transport(t))
                 executor.stop()
+            case .clear, .clearAll, .blackout(.on):
+                executor.cancelWaiting()                // FIX-E: they drop the waited steps of every running macro, like Stop
+                try target.perform(.transport(t))
+            case .blackout(.toggle):
+                if !ports.transport.isBlackedOut { executor.cancelWaiting() }
+                try target.perform(.transport(t))
             default: try target.perform(.transport(t))
             }
             log(source, t.summary)
@@ -260,7 +301,7 @@ public final class CueModel {
         if notices.count > 20 { notices.removeFirst(notices.count - 20) }
     }
 
-    private func append(_ line: ActivityLine) {
+    func append(_ line: ActivityLine) {
         activity.append(line)
         if activity.count > Self.activityLimit { activity.removeFirst(activity.count - Self.activityLimit) }
     }

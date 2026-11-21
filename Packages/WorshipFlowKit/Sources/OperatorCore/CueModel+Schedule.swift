@@ -5,6 +5,12 @@ import Foundation
 import CueEngine
 import CueStore
 
+/// FIX-E: an event that was not run, for the list in the schedule view.
+public struct MissedEvent: Identifiable, Sendable, Equatable {
+    public var id = UUID()
+    public var text: String
+}
+
 public struct NextScheduledEvent: Sendable, Equatable {
     public var name: String
     public var date: Date
@@ -22,17 +28,29 @@ extension CueModel {
         let blocked = hardwareTestIsRunning()
         for item in due.fire {
             if blocked {
-                note("\u{201C}\(item.event.name)\u{201D} was due, but the Hardware Test is running, so it was not run.")
+                let text = "\u{201C}\(item.event.name)\u{201D} was due, but the Hardware Test was running, so it was not run."
+                note(text)
+                addMissed(text)
             } else {
                 submit(.runActions(item.actions, .schedule), from: .schedule)
                 log(.schedule, "event \(item.event.name)")
             }
         }
-        for skipped in due.skipped { note(skipped.message) }
+        for skipped in due.skipped {
+            note(skipped.message)
+            addMissed(skipped.message)
+        }
         let changed = schedule.state.lastHandled != before
         let stale = scheduleSavedAt.map { now.timeIntervalSince($0) >= Self.stateSaveInterval } ?? true
         if changed || !due.skipped.isEmpty || stale { saveScheduleState(at: now) }
     }
+
+    private func addMissed(_ text: String) {
+        missedEvents.append(MissedEvent(text: text))
+        if missedEvents.count > 50 { missedEvents.removeFirst(missedEvents.count - 50) }
+    }
+
+    public func dismissMissedEvents() { missedEvents.removeAll() }
 
     /// The Mac woke up: look now instead of waiting for the next second, so what was missed in sleep is reported at once.
     public func wakeFromSleep() { pollSchedule() }
