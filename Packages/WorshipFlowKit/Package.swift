@@ -15,6 +15,8 @@ let package = Package(
         .library(name: "DeckLinkSDI", targets: ["DeckLinkSDI"]),
         .library(name: "CueEngine", targets: ["CueEngine"]),
         .library(name: "ScriptureEngine", targets: ["ScriptureEngine"]),
+        .library(name: "ScriptureStore", targets: ["ScriptureStore"]),
+        .executable(name: "wf-bible-import", targets: ["BibleImportTool"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -54,6 +56,10 @@ let package = Package(
         // LIB-004: scripture references, verse splitting into slides, translation file format. Pure Swift.
         .target(name: "ScriptureEngine", dependencies: ["Domain"]),
         .testTarget(name: "ScriptureEngineTests", dependencies: ["ScriptureEngine", "Domain"]),
+        // LIB-004b: translations stored in the church library, and the command-line importer (ADR-0008).
+        .target(name: "ScriptureStore", dependencies: ["ScriptureEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
+        .testTarget(name: "ScriptureStoreTests", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
+        .executableTarget(name: "BibleImportTool", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         .target(name: "OperatorCore", dependencies: ["Domain", "Persistence"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence"]),
