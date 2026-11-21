@@ -192,6 +192,14 @@ public final class DeckLinkOutputPort: SDIOutputPort {
         device.release(connector: connector, port: ObjectIdentifier(self))
     }
 
+    /// What the card's SDK asks to be scheduled before playback starts, from the device information the bridge read.
+    /// 0 when the connector cannot be resolved or the device does not say.
+    public var minimumPrerollFrames: Int {
+        guard let target = try? device.resolveOutput(connector: connector, keyed: false) else { return 0 }
+        let minimum = target.device.info.minimumPrerollFrames
+        return minimum > 0 ? DeckLinkMapping.prerollFrames(deviceMinimum: minimum) : 0
+    }
+
     public var bufferedFrameCount: Int {
         Int(state.withLock { $0.bridge }?.bufferedFrameCount ?? 0)
     }

@@ -50,7 +50,7 @@ let package = Package(
                 cxxSettings: [.headerSearchPath("sdk")],
                 linkerSettings: [.linkedFramework("CoreFoundation"), .linkedFramework("Foundation"), .linkedFramework("CoreVideo")]),
         .target(name: "DeckLinkSDI", dependencies: ["DeckLinkC", "SDIEngine", "Domain"]),
-        .testTarget(name: "DeckLinkSDITests", dependencies: ["DeckLinkSDI", "SDIEngine"]),
+        .testTarget(name: "DeckLinkSDITests", dependencies: ["DeckLinkSDI", "DeckLinkC", "SDIEngine"]),
         // CUE-001: show-control rules (actions, macros, schedule, playback markers, MIDI mapping). Pure Swift.
         .target(name: "CueEngine", dependencies: ["Domain"]),
         .testTarget(name: "CueEngineTests", dependencies: ["CueEngine", "Domain"]),

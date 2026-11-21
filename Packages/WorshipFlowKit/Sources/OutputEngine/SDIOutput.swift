@@ -49,7 +49,7 @@ final class SDIFrameRenderer: @unchecked Sendable {
         self.sceneProvider = sceneProvider
         self.videoSource = videoSource
         self.mediaSource = mediaSource
-        self.ring = Array(repeating: [UInt8](repeating: 0, count: width * height * 4), count: max(2, ringSize))
+        self.ring = (0..<max(2, ringSize)).map { _ in [UInt8](repeating: 0, count: width * height * 4) }
     }
 
     var renderTiming: SDIRenderTiming { lock.withLock { timing } }
@@ -127,6 +127,16 @@ final class SDIFrameRenderer: @unchecked Sendable {
     }
 }
 
+/// FIX-C S9: how the card's completion callback gets its next frame from the render thread.
+public enum SDIRenderPacing: Sendable, Equatable {
+    /// Real operation: the render thread works ahead into a small bounded queue and the callback only takes a finished
+    /// frame, repeating the last one (and counting it) when none is ready. The callback never waits.
+    case free
+    /// Manual clock (tests): the callback asks the render thread for exactly one frame and waits for it, so each
+    /// completion shows the scene as it is at that moment. Selected automatically for a simulated card with no clock.
+    case lockstep
+}
+
 @MainActor
 public final class SDIOutput: OutputTarget {
     public static let opaqueKeyWarning = "Nothing will key: background is opaque. Give this screen a theme with a transparent background, such as the lower third."
@@ -152,6 +162,8 @@ public final class SDIOutput: OutputTarget {
     private let clock: (any SDIOutputClock)?
     private let renderer: SDIFrameRenderer
     private let session: SDIOutputSession
+    private let ahead: SDIRenderAhead
+    private let prefill: Int
     private let queue = DispatchQueue(label: "WorshipFlow.sdi.start", qos: .userInteractive)
     private var clockRunning = false
     private var lostDevice = false
@@ -162,18 +174,29 @@ public final class SDIOutput: OutputTarget {
     public init(name: String, port: any SDIOutputPort, mode: SDIVideoMode, keying: SDIKeying, isSimulated: Bool,
                 sceneProvider: @escaping SceneProvider, videoSource: (any VideoSourceFactory)? = nil,
                 mediaSource: (any MediaFrameSource)? = nil, clock: (any SDIOutputClock)? = nil,
-                prerollFrames: Int = 3, maxBufferedFrames: Int = 5) {
+                prerollFrames: Int = 3, maxBufferedFrames: Int = 5, renderPacing: SDIRenderPacing? = nil) {
         self.name = name
         self.port = port
         self.mode = mode
         self.keying = keying
         self.isSimulated = isSimulated
         self.clock = clock
-        let renderer = SDIFrameRenderer(width: mode.width, height: mode.height, ringSize: max(prerollFrames, maxBufferedFrames) + 5,
+        // FIX-C S9: the queue holds the preroll (at least 3) frames; the ring covers those, the card's buffer, the session's
+        // last frame and the one being drawn, so steady state allocates nothing.
+        // FIX-C S11: the preroll is the larger of the caller's (3 by default) and the device's own minimum, and the card's
+        // buffer cap stays above it.
+        let prerollFrames = max(prerollFrames, port.minimumPrerollFrames)
+        let maxBufferedFrames = max(maxBufferedFrames, prerollFrames + 2)
+        let depth = max(3, prerollFrames)
+        let pacing = renderPacing ?? ((isSimulated && clock == nil) ? .lockstep : .free)
+        let renderer = SDIFrameRenderer(width: mode.width, height: mode.height, ringSize: max(prerollFrames, maxBufferedFrames) + 5 + depth,
                                         sceneProvider: sceneProvider, videoSource: videoSource, mediaSource: mediaSource)
         self.renderer = renderer
+        let ahead = SDIRenderAhead(depth: depth, pacing: pacing, frameInterval: 1.0 / mode.framesPerSecond) { renderer.frame() }
+        self.ahead = ahead
+        self.prefill = min(depth, max(1, prerollFrames))
         self.session = SDIOutputSession(port: port, mode: mode, keying: keying, prerollFrames: prerollFrames,
-                                        maxBufferedFrames: maxBufferedFrames) { _ in renderer.frame() }
+                                        maxBufferedFrames: maxBufferedFrames) { _ in ahead.next() }
     }
 
     // MARK: Readout
@@ -223,14 +246,16 @@ public final class SDIOutput: OutputTarget {
         }
         lostDevice = false
         status = .running
-        let session = session, clock = clock
+        let session = session, clock = clock, ahead = ahead, prefill = prefill
         queue.async { [weak self] in
+            ahead.start(prefill: prefill, timeout: 1)
             do {
                 try session.start()
                 clock?.start()
                 Task { @MainActor in self?.clockStarted() }
             } catch {
                 // `onStop` has already reported the failure.
+                ahead.stop()
             }
         }
     }
@@ -259,6 +284,8 @@ public final class SDIOutput: OutputTarget {
         status = .stopped(reason: reason)
         session.onStop = nil
         session.stop()
+        queue.sync { }              // a start still under way on the queue finishes first
+        ahead.stop()
         port.close()
         if clockRunning { clock?.stop(); clockRunning = false }
     }

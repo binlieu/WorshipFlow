@@ -16,6 +16,8 @@
 
 #include "DeckLinkAPI.h"
 #include "DeckLinkAPIVersion.h"
+#include "DeckLinkBridgeFakes.h"
+#import "DeckLinkBridgeTesting.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -442,6 +444,7 @@ struct OutputState {
     int64_t frameDuration = 0;
     int64_t timeScale = 0;
     uint8_t keyerLevel = 255;
+    int64_t minimumPrerollFrames = -1;   // the device's BMDDeckLinkMinimumPrerollFrames, -1 when it did not say
     std::vector<PoolEntry> pool;
     uint64_t nextSequence = 1;
     uint64_t scheduled = 0, completed = 0, late = 0, dropped = 0, flushed = 0, unknown = 0;
@@ -568,40 +571,124 @@ bool WithFrameBytes(IDeckLinkVideoFrame* frame, Body&& body) {
     return ok;
 }
 
-void RunFormatChange(const std::shared_ptr<InputState>& st, BMDDisplayMode newMode, BMDPixelFormat newFormat) {
+/// Stops and releases an input: streams, video input, callback, converter. Every step runs whatever the earlier ones
+/// returned, because this is the way out of a failure. Safe to repeat, and after a device removal (FIX-C S12: the
+/// callback is removed, and the cycle input state -> callback -> input state broken, whether or not the input was running).
+void TearDownInput(const std::shared_ptr<InputState>& st) {
     ComPtr<IDeckLinkInput> input;
-    BMDVideoInputFlags flags;
+    bool wasRunning = false;
+    bool hadCallback = false;
     {
         std::lock_guard<std::mutex> lock(st->mutex);
-        if (!st->running || st->closed || !st->input) return;
+        wasRunning = st->running;
+        st->running = false;
+        hadCallback = static_cast<bool>(st->callback);
+        input = st->input;
+    }
+    if (input) {
+        // The SDK waits for in-flight callbacks inside these calls, and those take the state lock: it is not held here.
+        if (wasRunning) {
+            input->StopStreams();
+            input->DisableVideoInput();
+        }
+        if (hadCallback) input->SetCallback(nullptr);
+    }
+    std::lock_guard<std::mutex> lock(st->mutex);
+    st->callback.reset();
+    st->conversion.reset();
+}
+
+struct FormatChangeResult {
+    bool ok = true;
+    /// False when the input was stopped by its owner meanwhile: neither the new mode nor a failure is reported.
+    bool report = true;
+    NSError* error = nil;
+};
+
+NSError* StepError(const char* step, HRESULT hr) {
+    return MakeError(CodeForHRESULT(hr),
+                     [NSString stringWithFormat:@"The card would not %s after the input format changed (SDK result 0x%08X). Capture has stopped.", step, (uint32_t)hr],
+                     true, hr);
+}
+
+/// The pixel format to capture a detected signal in, or false with a reason. An RGB 4:4:4 signal is captured as BGRA
+/// directly when the card says it can; otherwise (and for every YCbCr signal) as 8-bit YCbCr, converted to BGRA by the
+/// SDK's converter, which must exist.
+bool ChooseCaptureFormat(IDeckLinkInput* input, BMDDisplayMode mode, bool rgb444, bool haveConverter, BMDPixelFormat* out, NSString** why) {
+    BMDPixelFormat candidates[2];
+    int n = 0;
+    if (rgb444) candidates[n++] = bmdFormat8BitBGRA;
+    candidates[n++] = bmdFormat8BitYUV;
+    for (int i = 0; i < n; i++) {
+        bool supported = false;
+        BMDDisplayMode actual = bmdModeUnknown;
+        const HRESULT hr = input->DoesSupportVideoMode(bmdVideoConnectionUnspecified, mode, candidates[i], bmdNoVideoInputConversion,
+                                                       bmdSupportedVideoModeDefault, &actual, &supported);
+        if (hr != S_OK || !supported || (actual != bmdModeUnknown && actual != mode)) continue;
+        if (candidates[i] != bmdFormat8BitBGRA && !haveConverter) {
+            *why = [NSString stringWithFormat:@"The card detected video mode %@ but it can only be captured as YCbCr and the SDK's converter to BGRA is not available. Capture has stopped.", FourCC(mode)];
+            return false;
+        }
+        *out = candidates[i];
+        return true;
+    }
+    *why = [NSString stringWithFormat:@"The card detected video mode %@ but cannot capture it in a format the app can use. Capture has stopped.", FourCC(mode)];
+    return false;
+}
+
+/// Restarts capture for a detected format change. Documented sequence: pause, re-enable, flush, start. Every result is
+/// checked (FIX-C S10); on the first failure the input is torn down and the failure is returned, and the caller must not
+/// report the new mode.
+FormatChangeResult RunFormatChange(const std::shared_ptr<InputState>& st, BMDDisplayMode newMode, bool rgb444) {
+    FormatChangeResult result;
+    ComPtr<IDeckLinkInput> input;
+    BMDVideoInputFlags flags;
+    bool haveConverter;
+    {
+        std::lock_guard<std::mutex> lock(st->mutex);
+        if (!st->running || st->closed || !st->input) { result.report = false; return result; }
         input = st->input;
         flags = st->flags;
+        haveConverter = static_cast<bool>(st->conversion);
     }
-    // The SDK may wait for in-flight frame callbacks inside these calls, and those take the state lock, so the lock must
-    // not be held here. Documented restart sequence for a detected change: pause, re-enable, flush, start.
-    input->PauseStreams();
-    const bool enabled = input->EnableVideoInput(newMode, newFormat, flags) == S_OK;
-    input->FlushStreams();
-    input->StartStreams();
+    BMDPixelFormat newFormat = bmdFormat8BitYUV;
+    NSString* why = nil;
+    if (!ChooseCaptureFormat(input.get(), newMode, rgb444, haveConverter, &newFormat, &why)) {
+        result.ok = false;
+        result.error = MakeError(DLBErrorNotSupported, why);
+    } else {
+        // The SDK may wait for in-flight frame callbacks inside these calls, and those take the state lock, so the lock must not be held here.
+        HRESULT hr = input->PauseStreams();
+        if (hr != S_OK) { result.ok = false; result.error = StepError("pause the input", hr); }
+        if (result.ok) { hr = input->EnableVideoInput(newMode, newFormat, flags); if (hr != S_OK) { result.ok = false; result.error = StepError("enable the new video mode", hr); } }
+        if (result.ok) { hr = input->FlushStreams(); if (hr != S_OK) { result.ok = false; result.error = StepError("flush the input", hr); } }
+        if (result.ok) { hr = input->StartStreams(); if (hr != S_OK) { result.ok = false; result.error = StepError("restart capture", hr); } }
+    }
     bool stoppedMeanwhile;
     {
         std::lock_guard<std::mutex> lock(st->mutex);
         stoppedMeanwhile = !st->running || st->closed;
-        if (enabled && !stoppedMeanwhile) {
+        if (result.ok && !stoppedMeanwhile) {
             st->mode = newMode;
             st->pixelFormat = newFormat;
         }
     }
     if (stoppedMeanwhile) {
-        // stop() ran while the restart was under way; undo what the restart switched back on.
+        // stop() ran while the restart was under way; undo what the restart switched back on. Nothing is reported.
         input->StopStreams();
         input->DisableVideoInput();
+        result.report = false;
+        return result;
     }
+    if (!result.ok) TearDownInput(st);      // a clean stopped state: not running, callback removed
+    return result;
 }
+
+std::atomic<NSInteger> gLiveInputCallbacks{0};
 
 class InputCallback final : public IDeckLinkInputCallback {
 public:
-    explicit InputCallback(std::shared_ptr<InputState> state) : state_(std::move(state)) {}
+    explicit InputCallback(std::shared_ptr<InputState> state) : state_(std::move(state)) { gLiveInputCallbacks++; }
 
     HRESULT QueryInterface(REFIID iid, LPVOID* ppv) override {
         if (!ppv) return E_POINTER;
@@ -632,7 +719,7 @@ public:
             newMode->GetFrameRate(&duration, &scale);
             const BMDFieldDominance field = newMode->GetFieldDominance();
             const bool interlaced = field == bmdLowerFieldFirst || field == bmdUpperFieldFirst;
-            const BMDPixelFormat format = (flags & bmdDetectedVideoInputRGB444) ? bmdFormat8BitBGRA : bmdFormat8BitYUV;
+            const bool rgb444 = (flags & bmdDetectedVideoInputRGB444) != 0;
             (void)events;
 
             DLBInputFormatHandler handler;
@@ -647,11 +734,24 @@ public:
             // The restart is done off the SDK's callback thread; frames that arrive meanwhile are dropped by the SDK.
             std::shared_ptr<InputState> st = state_;
             dispatch_async(queue, ^{
+                FormatChangeResult outcome;
                 try {
-                    RunFormatChange(st, mode, format);
+                    outcome = RunFormatChange(st, mode, rgb444);
                 } catch (...) {
+                    outcome.ok = false;
+                    outcome.error = MakeError(DLBErrorSDKFailure, @"Unexpected failure while restarting capture after a format change.");
                 }
-                if (handler) handler(mode, width, height, duration, scale, interlaced);
+                if (!outcome.report) return;
+                if (outcome.ok) {
+                    if (handler) handler(mode, width, height, duration, scale, interlaced);
+                } else {
+                    DLBFailureHandler failure;
+                    {
+                        std::lock_guard<std::mutex> lock(st->mutex);
+                        failure = st->failureHandler;
+                    }
+                    if (failure) failure(outcome.error);
+                }
             });
         } catch (...) {
         }
@@ -667,7 +767,7 @@ public:
     }
 
 private:
-    ~InputCallback() override = default;
+    ~InputCallback() override { gLiveInputCallbacks--; }
 
     void handleFrame(IDeckLinkVideoInputFrame* frame) {
         if (!frame) return;
@@ -724,6 +824,7 @@ private:
 
 @interface DLBOutput ()
 - (instancetype)initWithOutput:(ComPtr<IDeckLinkOutput>)output keyer:(ComPtr<IDeckLinkKeyer>)keyer;
+- (void)setMinimumPrerollFrames:(int64_t)frames;
 - (void)deviceWasRemoved;
 @end
 
@@ -757,6 +858,9 @@ private:
 }
 
 - (void)dealloc { [self close]; }
+
+- (int64_t)minimumPrerollFrames { std::lock_guard<std::mutex> lock(_state->mutex); return _state->minimumPrerollFrames; }
+- (void)setMinimumPrerollFrames:(int64_t)frames { std::lock_guard<std::mutex> lock(_state->mutex); _state->minimumPrerollFrames = frames; }
 
 - (DLBFrameCompletionHandler)completionHandler {
     std::lock_guard<std::mutex> lock(_state->mutex);
@@ -867,7 +971,13 @@ private:
                 return FailHR(error, hr, @"The card would not turn on the external keyer.");
             }
             keyerOn = true;
-            keyer->SetLevel(keyerLevel);
+            // FIX-C S11: a level the card refused is a keyer that is not doing what was asked; keying is not enabled.
+            hr = keyer->SetLevel(keyerLevel);
+            if (hr != S_OK) {
+                keyer->Disable();
+                out->DisableVideoOutput();
+                return FailHR(error, hr, @"The card would not set the keyer level.");
+            }
         }
         ComPtr<IDeckLinkVideoOutputCallback> callback = ComPtr<IDeckLinkVideoOutputCallback>::adopt(new OutputCallback(_state));
         hr = out->SetScheduledFrameCompletionCallback(callback.get());
@@ -1105,6 +1215,7 @@ private:
         d[@"frameDuration"] = @(_state->frameDuration);
         d[@"timeScale"] = @(_state->timeScale);
         d[@"poolFrames"] = @(_state->pool.size());
+        d[@"minimumPrerollFrames"] = @(_state->minimumPrerollFrames);
         d[@"framesScheduled"] = @(_state->scheduled);
         d[@"framesCompleted"] = @(_state->completed);
         d[@"framesLate"] = @(_state->late);
@@ -1194,7 +1305,7 @@ DLB_HANDLER_PROPERTY(DLBFailureHandler, failureHandler, setFailureHandler, failu
                                                             bmdNoVideoInputConversion, bmdSupportedVideoModeDefault, &actual, &supported);
         if (support != S_OK || !supported) return Fail(error, DLBErrorNotSupported, @"The card cannot capture this video mode on this connector.");
 
-        ComPtr<IDeckLinkVideoConversion> conversion = ComPtr<IDeckLinkVideoConversion>::adopt(CreateVideoConversionInstance());
+        ComPtr<IDeckLinkVideoConversion> conversion = ComPtr<IDeckLinkVideoConversion>::adopt(DLBConversionFactory());
         ComPtr<IDeckLinkInputCallback> callback = ComPtr<IDeckLinkInputCallback>::adopt(new InputCallback(_state));
 
         // Sequence from manual 2.4.6: callback, enable with detection, start streams.
@@ -1231,26 +1342,13 @@ DLB_HANDLER_PROPERTY(DLBFailureHandler, failureHandler, setFailureHandler, failu
 
 - (void)stop {
     try {
-        ComPtr<IDeckLinkInput> input;
-        {
-            std::lock_guard<std::mutex> lock(_state->mutex);
-            if (!_state->running) return;
-            _state->running = false;
-            input = _state->input;
-        }
-        // Take the state lock only briefly above: StopStreams waits for callbacks that themselves take it.
-        input->StopStreams();
-        input->DisableVideoInput();
-        input->SetCallback(nullptr);
-        std::lock_guard<std::mutex> lock(_state->mutex);
-        _state->callback.reset();
-        _state->conversion.reset();
+        TearDownInput(_state);
     } catch (...) {
     }
 }
 
 - (void)close {
-    [self stop];
+    [self stop];         // always: after a removal the input is no longer "running", but its callback is still installed
     std::lock_guard<std::mutex> lock(_state->mutex);
     if (_state->closed) return;
     _state->closed = true;
@@ -1258,6 +1356,8 @@ DLB_HANDLER_PROPERTY(DLBFailureHandler, failureHandler, setFailureHandler, failu
     _state->signalHandler = nil;
     _state->formatHandler = nil;
     _state->failureHandler = nil;
+    _state->callback.reset();
+    _state->conversion.reset();
     _state->input.reset();
 }
 
@@ -1303,6 +1403,8 @@ struct ProfileState {
     uint32_t lastActivated = 0;
     DLBProfileChangeHandler onActivated;
     void (^refresh)(void) = nil;
+    /// FIX-C S13: where the work that follows an activation runs, never on the SDK's callback thread.
+    dispatch_queue_t queue = dispatch_queue_create("com.worshipflow.decklink.profile", DISPATCH_QUEUE_SERIAL);
 };
 
 class ProfileCallback final : public IDeckLinkProfileCallback {
@@ -1339,16 +1441,27 @@ public:
             }
             void (^refresh)(void) = nil;
             DLBProfileChangeHandler handler;
+            dispatch_queue_t queue = nullptr;
             {
                 std::lock_guard<std::mutex> lock(state_->mutex);
                 state_->lastActivated = id;
                 state_->activations++;
                 refresh = state_->refresh;
                 handler = state_->onActivated;
+                queue = state_->queue;
             }
             state_->changed.notify_all();
-            if (refresh) refresh();
-            if (handler) handler();
+            // Record the event here and stop: re-reading the device (which enumerates its profiles) happens afterwards, on
+            // a queue, and the owner's handler runs after that, so it sees the refreshed information.
+            if (refresh || handler) {
+                dispatch_async(queue, ^{
+                    try {
+                        if (refresh) refresh();
+                        if (handler) handler();
+                    } catch (...) {
+                    }
+                });
+            }
         } catch (...) {
         }
         return S_OK;
@@ -1494,6 +1607,7 @@ private:
         if (!out) { Fail(error, DLBErrorNotSupported, @"This connector cannot play video in the card's current profile."); return nil; }
         ComPtr<IDeckLinkKeyer> keyer = _deckLink.as<IDeckLinkKeyer>(IID_IDeckLinkKeyer);
         DLBOutput* output = [[DLBOutput alloc] initWithOutput:out keyer:keyer];
+        [output setMinimumPrerollFrames:self.info.minimumPrerollFrames];
         [_lock lock];
         [_outputs addObject:output];
         [_lock unlock];
@@ -1735,5 +1849,36 @@ private:
         @"devices": devices,
     };
 }
+
+@end
+
+// MARK: - Test seam (FIX-C)
+
+@implementation DLBTesting
+
++ (DLBInput*)inputWithFake:(DLBFakeInput*)fake {
+    return [[DLBInput alloc] initWithInput:ComPtr<IDeckLinkInput>::retain(static_cast<IDeckLinkInput*>(fake.rawInterface)) supportsDetection:YES];
+}
+
++ (DLBOutput*)outputWithFake:(DLBFakeOutput*)fake minimumPrerollFrames:(int64_t)preroll {
+    DLBOutput* output = [[DLBOutput alloc] initWithOutput:ComPtr<IDeckLinkOutput>::retain(static_cast<IDeckLinkOutput*>(fake.rawOutput))
+                                                    keyer:ComPtr<IDeckLinkKeyer>::retain(static_cast<IDeckLinkKeyer*>(fake.rawKeyer))];
+    [output setMinimumPrerollFrames:preroll];
+    return output;
+}
+
++ (DLBDevice*)deviceWithFake:(DLBFakeDevice*)fake {
+    DLBDevice* device = [[DLBDevice alloc] initWithDeckLink:static_cast<IDeckLink*>(fake.rawInterface)];
+    [device ensureProfileCallback];
+    return device;
+}
+
++ (void)removeInput:(DLBInput*)input { [input deviceWasRemoved]; }
+
++ (void)setConverterAvailable:(BOOL)available {
+    DLBConversionFactory = available ? &DLBNewFakeConversion : &CreateVideoConversionInstance;
+}
+
++ (NSInteger)liveInputCallbackCount { return gLiveInputCallbacks.load(); }
 
 @end

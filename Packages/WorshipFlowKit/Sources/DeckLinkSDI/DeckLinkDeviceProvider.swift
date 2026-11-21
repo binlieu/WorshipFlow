@@ -21,6 +21,9 @@ public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
         var discovery: DLBDiscovery?
         var onEvent: (@Sendable (DeckLinkDeviceEvent) -> Void)?
         var subscribers: [UUID: AsyncStream<SDIDeviceEvent>.Continuation] = [:]
+        /// FIX-C S16: cards whose last sub-device left. If the same card comes back (a profile change takes every
+        /// sub-device away for a moment) the same object returns, with the layout it had, instead of a blank new one.
+        var departed: [DeckLinkIdentifier: DeckLinkDevice] = [:]
     }
 
     private let state = Mutex(State())
@@ -87,6 +90,11 @@ public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
 
     public func rescan() { refresh() }
 
+    /// The known cards without scanning, as `DeckLinkDevice`s. For tests.
+    func devicesForTesting() -> [DeckLinkDevice] {
+        state.withLock { $0.cards.values.sorted { $0.identifier.description < $1.identifier.description } }
+    }
+
     /// Arrivals, removals and changes. Starts hot-plug monitoring the first time; with no driver the stream ends at once.
     public func events() -> AsyncStream<SDIDeviceEvent> {
         let (stream, continuation) = AsyncStream<SDIDeviceEvent>.makeStream()
@@ -129,7 +137,20 @@ public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
         return .named(info.displayName)
     }
 
-    private func arrived(_ device: DLBDevice) {
+    /// The card object for a first member: the one that left earlier under this identifier if there is one, else a new one.
+    private static func card(for id: DeckLinkIdentifier, member device: DLBDevice, in s: inout State) -> DeckLinkDevice {
+        let card: DeckLinkDevice
+        if let earlier = s.departed.removeValue(forKey: id) {
+            earlier.addMember(device)
+            card = earlier
+        } else {
+            card = DeckLinkDevice(identifier: id, members: [device])
+        }
+        s.cards[id] = card
+        return card
+    }
+
+    func arrived(_ device: DLBDevice) {
         let event = state.withLock { s -> DeckLinkDeviceEvent? in
             let info = device.info
             let id = Self.cardIdentifier(info)
@@ -139,21 +160,20 @@ public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
                 card.addMember(device)
                 return .changed(card)
             }
-            let card = DeckLinkDevice(identifier: id, members: [device])
-            s.cards[id] = card
+            let card = Self.card(for: id, member: device, in: &s)
             return .arrived(card)
         }
         emit(event)
     }
 
-    private func removed(_ device: DLBDevice) {
+    func removed(_ device: DLBDevice) {
         let key = Self.memberKey(device.info)
         let outcome = state.withLock { Self.remove(key: key, from: &$0) }
         outcome.gone.forEach { $0.markRemoved() }   // outside the lock: open ports report their failure from here
         emit(outcome.event)
     }
 
-    private func reconcile(found: [DLBDevice]) {
+    func reconcile(found: [DLBDevice]) {
         let foundKeys = Set(found.map { Self.memberKey($0.info) })
         var events: [DeckLinkDeviceEvent] = []
         // Departures first, so a card that went away and came back is reported as removed then arrived.
@@ -173,8 +193,7 @@ public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
                     card.addMember(device)
                     return .changed(card)
                 }
-                let card = DeckLinkDevice(identifier: id, members: [device])
-                s.cards[id] = card
+                let card = Self.card(for: id, member: device, in: &s)
                 return .arrived(card)
             }
             if let event { events.append(event) }
@@ -191,6 +210,7 @@ public final class DeckLinkDeviceProvider: SDIDeviceProviding, Sendable {
             guard !outcome.removed.isEmpty else { continue }
             if outcome.remaining == 0 {
                 s.cards[id] = nil
+                s.departed[id] = card
                 return (.removed(card), outcome.removed)
             }
             return (.changed(card), outcome.removed)

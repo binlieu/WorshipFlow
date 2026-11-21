@@ -53,6 +53,12 @@ public final class DeckLinkDevice: SDIDevice {
         var inputs: [Int: ObjectIdentifier] = [:]
         /// The second connector of a fill-and-key pair, claimed by the port on the first.
         var keyClaims: [Int: Int] = [:]
+        /// FIX-C S16: what the card looked like the last time it had members, held while a profile change leaves it with
+        /// none (or fewer), so the layout and the key route do not flip to the "unknown model" assumptions meanwhile.
+        var lastModelName = ""
+        var lastPairProfiles: [UInt32?] = [nil, nil]
+        var lastSubDeviceCount = 0
+        var lastInfo: SDIDeviceInfo?
     }
 
     let state = Mutex(State())
@@ -67,6 +73,8 @@ public final class DeckLinkDevice: SDIDevice {
 
     public var info: SDIDeviceInfo {
         let members = currentMembers()
+        // No members at all: the card is between profiles (or gone). Report what it looked like, not a guess.
+        if members.isEmpty, let held = state.withLock({ $0.lastInfo }) { return held }
         let name = members.first?.info.modelName ?? "DeckLink"
         // The card can key if any of its profiles can; whether the current profile can is checked when a port is enabled.
         let keying = members.contains { $0.info.supportsExternalKeying || $0.info.profiles.contains { $0.supportsExternalKeying } }
@@ -86,9 +94,11 @@ public final class DeckLinkDevice: SDIDevice {
                 first += 2
             }
         }
-        return SDIDeviceInfo(displayName: name, connectorCount: count, supportsExternalKeying: keying, isSimulated: false,
-                             keyRoutes: DeckLinkDeviceReport.keyRoutes(layout: layout, connectorCount: count),
-                             connectors: DeckLinkDeviceReport.connectors(layout: layout), profiles: profiles)
+        let result = SDIDeviceInfo(displayName: name, connectorCount: count, supportsExternalKeying: keying, isSimulated: false,
+                                   keyRoutes: DeckLinkDeviceReport.keyRoutes(layout: layout, connectorCount: count),
+                                   connectors: DeckLinkDeviceReport.connectors(layout: layout), profiles: profiles)
+        if !members.isEmpty { state.withLock { $0.lastInfo = result } }
+        return result
     }
 
     static func profileInfos(_ i: DLBDeviceInfo) -> [DeckLinkProfileInfo] {
@@ -126,13 +136,26 @@ public final class DeckLinkDevice: SDIDevice {
     /// The connector layout under the cards' current profiles.
     public var layout: DeckLinkConnectorLayout {
         let members = currentMembers()
-        var pairProfiles: [UInt32?] = [nil, nil]
+        var fresh: [Int: UInt32] = [:]
         for member in members {
             let i = member.info
             let index = Int(i.subDeviceIndex)
-            if (0...1).contains(index), i.hasActiveProfile { pairProfiles[index] = i.activeProfileID }
+            if (0...1).contains(index), i.hasActiveProfile { fresh[index] = i.activeProfileID }
         }
-        return DeckLinkConnectorLayout.make(modelName: members.first?.info.modelName ?? "", pairProfiles: pairProfiles, subDeviceCount: members.count)
+        let freshModel = members.first?.info.modelName
+        return state.withLock { s in
+            // Members that are present say what is true now; a pair with no member keeps what was last known (FIX-C S16).
+            var pairProfiles = s.lastPairProfiles
+            for (index, id) in fresh { pairProfiles[index] = id }
+            let model = freshModel ?? s.lastModelName
+            let count = members.isEmpty ? s.lastSubDeviceCount : members.count
+            if !members.isEmpty {
+                s.lastModelName = model
+                s.lastPairProfiles = pairProfiles
+                s.lastSubDeviceCount = count
+            }
+            return DeckLinkConnectorLayout.make(modelName: model, pairProfiles: pairProfiles, subDeviceCount: count)
+        }
     }
 
     public var subDevices: [DeckLinkSubDeviceInfo] {

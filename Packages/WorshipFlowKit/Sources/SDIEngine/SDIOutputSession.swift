@@ -42,6 +42,9 @@ public final class SDIOutputSession: @unchecked Sendable {
     private var repeated = 0
     private var lastFrame: SDIFrame?
     private var stopHandler: (@Sendable (SDIStopReason) -> Void)?
+    /// FIX-C S8: where a failure found inside a port callback finishes tearing the port down. Never the callback's own
+    /// thread: a real SDK may wait for callbacks to return inside StopScheduledPlayback / DisableVideoOutput.
+    private let teardownQueue = DispatchQueue(label: "WorshipFlow.sdi.session.teardown", qos: .userInteractive)
 
     public init(port: any SDIOutputPort, mode: SDIVideoMode, keying: SDIKeying = .none,
                 prerollFrames: Int = 3, maxBufferedFrames: Int = 5, frameProvider: @escaping SDIFrameProvider) {
@@ -88,8 +91,13 @@ public final class SDIOutputSession: @unchecked Sendable {
         if let error = perform(actions) { throw error }
     }
 
-    /// Stops playback and releases the handlers. Safe to call at any time, more than once.
-    public func stop() { finish(reason: .requested) }
+    /// Stops playback and releases the handlers. Safe to call at any time, more than once. Call it from the owner's own
+    /// thread, never from a port callback. If a failure already stopped the session, this returns only once the port
+    /// has been torn down, so the owner may close it next.
+    public func stop() {
+        finish(reason: .requested, inline: true)
+        teardownQueue.sync {}
+    }
 
     private func handle(_ completion: SDIFrameCompletion) {
         let buffered = port.bufferedFrameCount     // read before taking our lock: the port has its own
@@ -134,11 +142,13 @@ public final class SDIOutputSession: @unchecked Sendable {
         }
     }
 
+    /// A failure is usually found inside a port callback (a completion that cannot schedule, a device removal), so the
+    /// session is marked stopped at once and the port is stopped and disabled on `teardownQueue`.
     private func fail(_ error: Error) {
-        finish(reason: .failed(error as? SDIError ?? .portClosed))
+        finish(reason: .failed(error as? SDIError ?? .portClosed), inline: false)
     }
 
-    private func finish(reason: SDIStopReason) {
+    private func finish(reason: SDIStopReason, inline: Bool) {
         let outcome: (wasRunning: Bool, changed: Bool, handler: (@Sendable (SDIStopReason) -> Void)?) = lock.withLock {
             let running = currentState == .running
             let changed = running || currentState == .idle
@@ -149,8 +159,16 @@ public final class SDIOutputSession: @unchecked Sendable {
         if outcome.wasRunning {
             port.onFrameCompleted = nil
             port.onFailure = nil
-            port.stopPlayback()
-            port.disable()
+            if inline {
+                port.stopPlayback()
+                port.disable()
+            } else {
+                let port = port
+                teardownQueue.async {
+                    port.stopPlayback()
+                    port.disable()
+                }
+            }
         }
         outcome.handler?(reason)
     }

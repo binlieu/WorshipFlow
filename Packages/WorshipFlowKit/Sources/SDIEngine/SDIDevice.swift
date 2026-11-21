@@ -142,7 +142,14 @@ public protocol SDIOutputPort: AnyObject, Sendable {
     func stopPlayback()
     func close()
     var bufferedFrameCount: Int { get }
+    /// The fewest frames the device wants scheduled before playback starts (the SDK's minimum preroll), or 0 when it does
+    /// not say. The output prerolls at least this many (FIX-C S11). Defaults to 0, so existing ports keep compiling.
+    var minimumPrerollFrames: Int { get }
     var onFrameCompleted: (@Sendable (SDIFrameCompletion) -> Void)? { get set }
     /// Called when the device fails underneath the port, for example when it is unplugged.
     var onFailure: (@Sendable (SDIError) -> Void)? { get set }
+}
+
+extension SDIOutputPort {
+    public var minimumPrerollFrames: Int { 0 }
 }

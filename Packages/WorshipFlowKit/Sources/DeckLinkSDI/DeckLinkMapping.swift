@@ -4,6 +4,16 @@ import Foundation
 import SDIEngine
 
 enum DeckLinkMapping {
+    /// The most frames ever prerolled, whatever a device claims: the bridge's pool holds 16 and every one is a full HD buffer.
+    static let maxPrerollFrames = 10
+
+    /// The scheduler's preroll for a device whose SDK minimum is `deviceMinimum` (-1 or 0: it did not say): at least 3,
+    /// at least what the device asks for, at most `maxPrerollFrames`.
+    static func prerollFrames(deviceMinimum: Int64) -> Int {
+        let wanted = deviceMinimum > Int64(maxPrerollFrames) ? maxPrerollFrames : Int(max(0, deviceMinimum))
+        return max(3, wanted)
+    }
+
     /// The SDK's four completion results map one to one. A value the bridge did not recognise counts as dropped: it
     /// must never be mistaken for a frame that reached the screen.
     static func completionResult(_ result: DLBCompletionResult) -> SDICompletionResult {

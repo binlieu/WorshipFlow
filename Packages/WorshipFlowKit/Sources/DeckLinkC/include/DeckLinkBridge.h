@@ -193,6 +193,8 @@ NS_SWIFT_SENDABLE
 @property (nonatomic, readonly) BOOL isEnabled;
 @property (nonatomic, readonly) BOOL isPlaying;
 @property (nonatomic, readonly) BOOL isClosed;
+/// The device's BMDDeckLinkMinimumPrerollFrames as read when the output was opened, or -1 if the device did not report it.
+@property (nonatomic, readonly) int64_t minimumPrerollFrames;
 /// Frames scheduled but not yet completed, according to the SDK; 0 when not enabled.
 @property (nonatomic, readonly) uint32_t bufferedFrameCount;
 /// Set before `enable`. Called once per scheduled frame.

@@ -245,6 +245,11 @@ public final class OutputCoordinator {
                     if let fault = plan.faults[slot] {
                         faults[slot] = fault.operatorMessage
                         if fault.resumesWhenItReturns { resumeOnReturn.insert(slot) }
+                    } else if let now = plan.assignments[slot] {
+                        // FIX-C S16: the plan now puts this output somewhere else (for example the card reports fill and
+                        // key the other way round). Never stop it silently, and never move it without the operator: say what
+                        // changed. It does not resume by itself; restarting it uses the new assignment.
+                        faults[slot] = Self.assignmentChangedMessage(was: r.destination, now: now)
                     }
                 }
             } else if let planned = plan.assignments[slot] {
@@ -259,6 +264,25 @@ public final class OutputCoordinator {
             }
         }
         finishChange()
+    }
+
+    /// What the operator reads when a running output's destination changed under it.
+    static func assignmentChangedMessage(was: PlannedDestination, now: PlannedDestination) -> String {
+        "The destination of this screen changed while it was running: it was \(describe(was)); the settings now put it on \(describe(now)). "
+            + "It was stopped so it does not send a picture to the wrong place. Restart this screen to use the new destination."
+    }
+
+    private static func describe(_ destination: PlannedDestination) -> String {
+        switch destination {
+        case .display(let id): return "display \(id)"
+        case .window: return "a window"
+        case .sdi(let o):
+            if o.keyConnector != nil {
+                let key = o.keyConnector.map(String.init) ?? "?"
+                return "SDI fill on connector \(o.fillConnector) and key on connector \(key) of card \(o.deviceID), \(o.mode.name)"
+            }
+            return "SDI connector \(o.connector) of card \(o.deviceID), \(o.mode.name)"
+        }
     }
 
     /// Call when an SDI card appeared, disappeared or came back. Same rules as for displays.
