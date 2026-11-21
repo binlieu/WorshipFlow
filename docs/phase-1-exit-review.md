@@ -43,7 +43,7 @@ Levels: **T** unit tested · **S** seen working in the running app (operator win
 | LIVE-06 | Operator workspace | Yes | Yes | — | OUT-004 | Not checked at exactly 1920 × 1080 full screen |
 | LIVE-07 | Live editing | Yes | Yes | — | OUT-002, OUT-004 | Edit isolation seen for words and for objects |
 
-Totals: 26 of 26 unit tested. 14 seen working, 9 partly, 3 not seen. 0 hands-on.
+Totals: 26 of 26 unit tested. 14 seen working, 8 partly, 4 not seen. 0 hands-on.
 
 ## Non-functional requirements
 
