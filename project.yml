@@ -1,0 +1,44 @@
+name: WORSHIPFLOW
+options:
+  bundleIdPrefix: org.worshipflow
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+packages:
+  WorshipFlowKit:
+    path: Packages/WorshipFlowKit
+targets:
+  WORSHIPFLOW:
+    type: application
+    platform: macOS
+    sources:
+      - App/Sources
+    dependencies:
+      - package: WorshipFlowKit
+        product: Domain
+      - package: WorshipFlowKit
+        product: RenderEngine
+      - package: WorshipFlowKit
+        product: MediaEngine
+      - package: WorshipFlowKit
+        product: OutputEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.worshipflow.app
+        PRODUCT_NAME: WORSHIPFLOW
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.video
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        ENABLE_HARDENED_RUNTIME: YES
+schemes:
+  WORSHIPFLOW:
+    build:
+      targets:
+        WORSHIPFLOW: all
+    run:
+      config: Debug

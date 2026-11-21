@@ -1,0 +1,10 @@
+.DS_Store
+build/
+DerivedData/
+.build/
+.swiftpm/
+xcuserdata/
+*.xcuserstate
+TestMedia/*
+!TestMedia/.gitkeep
+AI/reports/soak-*.log
