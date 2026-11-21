@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- HW-003: the app loads Blackmagic's DeckLinkAPI.framework from /Library/Frameworks at run time.
+	     Under the hardened runtime, library validation would refuse a framework signed by another team
+	     (and the app has no team at all while it is ad-hoc signed), which would look like "driver not installed". -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+</dict>
+</plist>
