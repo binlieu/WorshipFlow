@@ -26,3 +26,14 @@ Test-first where there is logic: the version line's format and its fallback; the
 - Docs: `docs/17-change-log.md`, `docs/16-known-issues.md`, `docs/hands-on-checklist.md`, `docs/hardware-test-guide.md` (where the version appears in the report).
 - Finish with `./scripts/check.sh`; report its exit status and test count truthfully. Leave no wait timers or background work running.
 - Report to `AI/reports/UI-004-report.md`.
+
+## Added 2026-11-21: the name is written "WorshipFlow"
+
+The owner asked: "can you rename the WORSHIPFLOW to WorshipFlow?" Do this as the first item of this task, on its own, and run the check before going on.
+
+- **What the operator and a tester see becomes "WorshipFlow":** the app bundle (`WorshipFlow.app`), the name in the menu bar, Dock and About window, window titles, every label, message, notice and help text in the app, the Hardware Test window and its report (`summary.txt`, the zip and folder names: `WorshipFlow-hardware-test.zip`, `-unfinished`), the remote control page, the default MIDI port names, the package script's output names (`dist/WorshipFlow-hardware-test-<date>-<commit>.zip`) and its tester guide, and the prose in `README.md`, `docs/hardware-test-guide.md` and `docs/hands-on-checklist.md`.
+- **What must not change, because data or tooling depends on it:** the bundle identifier `org.worshipflow.app`; the library's location `~/Library/Application Support/WORSHIPFLOW/` (an existing library must open after the rename with no move; add a test that the library path is unchanged); preference keys and any stored identifier; the Xcode project and scheme names (`WORSHIPFLOW.xcodeproj`, scheme `WORSHIPFLOW`), the DerivedData folder names the scripts use, `scripts/check.sh` commands, the package name `WorshipFlowKit`; `docs/UI`, `docs/adr`, `AI/` history and older change-log entries.
+- A report written by an older build must still be recognised: wherever the app looks for an unfinished hardware-test folder or reads its own files by name, accept both spellings.
+- The file system is case-insensitive: `WORSHIPFLOW.app` and `WorshipFlow.app` are the same name to Finder. The package script must produce the new spelling in a fresh folder; say in the report how the coordinator should replace the installed copy so its name changes on disk.
+- Tests that assert the old spelling in user-visible text are the one exception to "do not edit existing tests": change only the expected string, list each one in the report.
+- Record the decision and the list of things left unchanged in `docs/16-known-issues.md` or the change log.
