@@ -22,6 +22,8 @@ let package = Package(
         .target(name: "OutputEngine", dependencies: ["Domain", "RenderEngine"]),
         .target(name: "Persistence", dependencies: ["Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence", "Domain"]),
+        // Themes, Looks and props. Separate from DomainTests so slices built in parallel do not block each other.
+        .testTarget(name: "CompositionTests", dependencies: ["Domain"]),
         .testTarget(name: "DomainTests", dependencies: ["Domain"]),
         .testTarget(name: "RenderEngineTests", dependencies: ["RenderEngine", "Domain"]),
         .testTarget(name: "OutputEngineTests", dependencies: ["OutputEngine"]),
