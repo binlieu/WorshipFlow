@@ -38,9 +38,16 @@ public final class WorkspaceModel {
     public internal(set) var slides: [Slide] = []
     public internal(set) var groups: [SlideGroup] = []
     public internal(set) var arrangements: [Arrangement] = []
+    /// How many slides each section of the open song has, whatever order the open item plays it in.
+    public internal(set) var groupSlideCounts: [UUID: Int] = [:]
     public internal(set) var searchResults: [SearchHit] = []
     public internal(set) var show = ShowState()
     public internal(set) var lastError: String?
+    /// The theme each known presentation uses (PRES-06); absent means the role default. Filled as presentations load.
+    public internal(set) var presentationThemes: [UUID: UUID] = [:]
+
+    /// Called on the main actor after the theme of a presentation changes, so the app can publish scenes again.
+    @ObservationIgnored public var onAppearanceChange: (@MainActor () -> Void)?
 
     /// Called on the main actor after every change to `show`, so the app can publish scenes to the outputs.
     @ObservationIgnored public var onShowChange: (@MainActor (ShowState) -> Void)?

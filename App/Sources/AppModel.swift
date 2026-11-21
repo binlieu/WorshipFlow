@@ -28,17 +28,16 @@ final class AppModel {
     static let operatorWindowTitle = "WORSHIPFLOW"
 
     private(set) var show = ShowState()
-    private(set) var profiles: [ScreenProfile] = []
     private(set) var readouts: [ScreenReadout] = []
     private(set) var displayChoices: [DisplayChoice] = []
     private(set) var screensOn = false
     private(set) var videoURL: URL?
     private(set) var messages: [String] = []
-    /// Themes the operator can choose per screen. Only the built-in ones until a theme editor exists.
-    let themes: [Theme] = Theme.builtIn
-    private(set) var looks: [Look] = [Look(id: UUID(), name: "Standard")]
-    private(set) var selectedLookID = UUID()
-    private(set) var props: [Prop] = []
+    /// Screen profiles, Looks, props and custom themes, stored in the library (APP-001). Nil in a soak run, or when
+    /// the library file could not be opened.
+    private(set) var settings: SettingsModel?
+    /// The one screen a soak run drives; a soak never reads or writes settings.
+    @ObservationIgnored private var soakProfiles: [ScreenProfile] = []
     /// Image files that are missing or unreadable: from the files checked here and from what the outputs reported.
     private(set) var unavailableImages: [String] = []
     /// The operator workspace (OUT-004). Nil in a soak run, or when the library file could not be opened.
@@ -52,9 +51,6 @@ final class AppModel {
     let ui = WorkspaceUIState()
 
     @ObservationIgnored private let sceneBox: SceneBox
-    @ObservationIgnored private let store = ScreenProfileStore.standard
-    @ObservationIgnored private let lookStore = LookStore.standard
-    @ObservationIgnored private var propBookmarks: [UUID: Data] = [:]
     @ObservationIgnored private var scopedURLs: [UUID: URL] = [:]   // security-scoped access held while the prop exists
     @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
     @ObservationIgnored private var video: LoopingVideoSource?
@@ -68,11 +64,8 @@ final class AppModel {
 
     private init() {
         sceneBox = SceneBox(PublishedScenes(state: ShowState(), clockText: nil))
-        selectedLookID = looks[0].id
-        soak = SoakConfig.parse(CommandLine.arguments)   // known before profiles load, so a soak never writes settings
+        soak = SoakConfig.parse(CommandLine.arguments)   // known first, so a soak never opens a library or writes settings
         refreshDisplayChoices()
-        loadProfiles()
-        loadLooks()
         updateClock(force: true)
         if soak == nil { openLibrary() }
     }
@@ -95,7 +88,15 @@ final class AppModel {
             let store = try LibraryStore.open(at: url)
             let model = WorkspaceModel(store: store)
             model.onShowChange = { [weak self] state in self?.showChanged(state) }
+            model.onAppearanceChange = { [weak self] in self?.lookChanged() }
             workspace = model
+            let settings = SettingsModel(store: store, legacy: LegacySettingsFiles(libraryURL: url), defaultProfiles: { [weak self] in
+                ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
+                                       operatorDisplay: self?.operatorDisplayID())
+            })
+            settings.onProfilesChange = { [weak self] in self?.profilesChanged() }
+            settings.onAppearanceChange = { [weak self] in self?.lookChanged() }
+            self.settings = settings
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
             libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
@@ -106,6 +107,11 @@ final class AppModel {
     func startWorkspace() {
         guard let workspace, !workspaceLoaded else { return }
         Task { @MainActor in
+            await settings?.load()
+            await resolvePropBookmarks()
+            coordinator.setProfiles(profiles)
+            publish()
+            updateReadouts()
             await workspace.load()
             workspaceLoaded = true
         }
@@ -141,7 +147,8 @@ final class AppModel {
         let profile = profiles.first { $0.role == .audience && $0.isEnabled }
             ?? profiles.first { $0.role == .audience }
             ?? ScreenProfile(name: "Audience", role: .audience, destination: .window)
-        return PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props)
+        return PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props,
+                               presentationThemeID: workspace?.openThemeID)
             .scene(forScreen: profile.id)
     }
 
@@ -187,17 +194,31 @@ final class AppModel {
     func installSystemHooks() {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return event }
-            // Only real windows (operator or output window), never menus, panels or sheets; never while typing.
-            guard let window = event.window, window.canBecomeMain, !(window.firstResponder is NSText) else { return event }
+            // Only real windows (operator or output window), never menus or panels.
+            guard let window = event.window, window.canBecomeMain else { return event }
+            let responder = window.firstResponder
+            let textInput = responder is NSText || responder is NSTextField
+            let inSearch = textInput && Self.isInsideSearchField(responder)
+            let held = !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
+            let key = KeyboardKey(keyCode: event.keyCode)
             let handled: Bool = MainActor.assumeIsolated {
                 guard let self else { return false }
-                switch event.keyCode {
-                case 36, 76: self.goLive(); return true     // return, keypad enter
-                case 124, 49: self.next(); return true      // right arrow, space
-                case 123: self.previous(); return true      // left arrow
-                case 53: self.clear(); return true          // escape
-                default: return false
+                let sheetOpen = self.ui.anySheetOpen || window.attachedSheet != nil
+                switch KeyRouting.decision(for: key, textInputFocused: textInput, searchFieldFocused: inSearch,
+                                           sheetOpen: sheetOpen, commandModifierDown: held) {
+                case .transport(let command):
+                    switch command {
+                    case .goLive: self.goLive()
+                    case .next: self.next()
+                    case .previous: self.previous()
+                    case .clear: self.clear()
+                    }
+                    return true
+                case .leaveSearch:
+                    self.ui.leaveSearch += 1      // the workspace view clears the search and puts focus on the slide grid
+                    return true
+                case .passThrough:
+                    return false
                 }
             }
             return handled ? nil : event
@@ -211,6 +232,16 @@ final class AppModel {
                 self?.updateReadouts()
             }
         }
+    }
+
+    /// True when the text being edited belongs to a search field (the field editor is a subview of the field).
+    private static func isInsideSearchField(_ responder: NSResponder?) -> Bool {
+        var view = responder as? NSView
+        while let current = view {
+            if current is NSSearchField { return true }
+            view = current.superview
+        }
+        return false
     }
 
     private func displaySnapshot() -> DisplaySnapshot {
@@ -247,33 +278,28 @@ final class AppModel {
         }
     }
 
-    // MARK: Profiles
+    // MARK: Settings (APP-001)
 
-    private func loadProfiles() {
-        switch store.load() {
-        case .loaded(let loaded):
-            profiles = loaded
-        case .missing:
-            profiles = ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
-                                              operatorDisplay: operatorDisplayID())
-            persistProfiles()
-        case .unreadable(let why):
-            log("Screen settings could not be read, using defaults. The file is left as it is until you change a screen. (\(why))")
-            profiles = ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
-                                              operatorDisplay: operatorDisplayID())
-        }
-        coordinator.setProfiles(profiles)
-    }
-
-    private func persistProfiles() {
-        guard soak == nil else { return }
-        do { try store.save(profiles) } catch { log("Screen settings could not be saved: \(error.localizedDescription)") }
-    }
+    var profiles: [ScreenProfile] { settings?.profiles ?? soakProfiles }
+    var looks: [Look] { settings?.looks ?? [] }
+    var selectedLookID: UUID? { settings?.selectedLookID }
+    var props: [Prop] { settings?.props ?? [] }
+    /// Built-in themes and the operator's own: what the per-screen picker and the editor offer.
+    var themes: [Theme] { settings?.themes ?? Theme.builtIn }
+    /// A message from the settings store (a failed save), for the error bar.
+    var settingsError: String? { settings?.lastError }
+    func dismissSettingsError() { settings?.dismissError() }
 
     func updateProfile(_ profile: ScreenProfile) {
-        guard let i = profiles.firstIndex(where: { $0.id == profile.id }), profiles[i] != profile else { return }
-        profiles[i] = profile
-        persistProfiles()
+        if let settings {
+            settings.updateProfile(profile)
+        } else if let i = soakProfiles.firstIndex(where: { $0.id == profile.id }), soakProfiles[i] != profile {
+            soakProfiles[i] = profile
+            profilesChanged()
+        }
+    }
+
+    private func profilesChanged() {
         publish()   // a role change composes a different scene
         coordinator.setProfiles(profiles)
         updateReadouts()
@@ -291,58 +317,48 @@ final class AppModel {
         updateReadouts()
     }
 
+    // MARK: Themes (APP-001)
+
+    var customThemes: [Theme] { settings?.customThemes ?? [] }
+
+    @discardableResult
+    func createTheme(name: String) -> Theme? { settings?.createTheme(name: name) }
+    @discardableResult
+    func duplicateTheme(_ id: UUID) -> Theme? { settings?.duplicateTheme(id) }
+    func renameTheme(_ id: UUID, to name: String) { settings?.renameTheme(id, to: name) }
+    func updateTheme(_ id: UUID, _ change: (inout Theme) -> Void) { settings?.updateTheme(id, change) }
+
+    /// Deletes a custom theme, then tells the workspace so presentations that used it show "default".
+    func deleteTheme(_ id: UUID) {
+        guard let settings else { return }
+        Task { @MainActor in
+            await settings.deleteTheme(id)
+            await workspace?.themesChanged()
+        }
+    }
+
+    /// The theme of the open presentation (nil: role default). Waits for a new theme to reach the library first.
+    func setPresentationTheme(_ themeID: UUID?, forPresentation id: UUID) {
+        guard let workspace else { return }
+        Task { @MainActor in
+            await settings?.flush()
+            await workspace.setTheme(themeID, forPresentation: id)
+        }
+    }
+
     // MARK: Looks and props (OUT-003)
 
-    var currentLook: Look? { looks.first { $0.id == selectedLookID } }
+    var currentLook: Look? { settings?.currentLook }
 
-    func screenLook(for screenID: UUID) -> ScreenLook { currentLook?.screenLook(for: screenID) ?? .standard }
+    func screenLook(for screenID: UUID) -> ScreenLook { settings?.screenLook(for: screenID) ?? .standard }
 
-    func selectLook(_ id: UUID) {
-        guard id != selectedLookID, looks.contains(where: { $0.id == id }) else { return }
-        selectedLookID = id
-        lookChanged()
-    }
-
-    /// Creates a Look that starts as a copy of the current one and selects it.
-    func addLook() {
-        var look = currentLook ?? Look(id: UUID(), name: "Look")
-        look.id = UUID()
-        look.name = "Look \(looks.count + 1)"
-        looks.append(look)
-        selectedLookID = look.id
-        lookChanged()
-    }
-
-    func renameLook(_ id: UUID, to name: String) {
-        guard let i = looks.firstIndex(where: { $0.id == id }), looks[i].name != name else { return }
-        looks[i].name = name
-        persistLooks()
-    }
-
-    /// The last Look cannot be deleted: a screen always has one.
-    func deleteLook(_ id: UUID) {
-        guard looks.count > 1, let i = looks.firstIndex(where: { $0.id == id }) else { return }
-        looks.remove(at: i)
-        if selectedLookID == id { selectedLookID = looks[min(i, looks.count - 1)].id }
-        lookChanged()
-    }
-
-    func setTheme(_ themeID: UUID?, forScreen screenID: UUID) {
-        editScreenLook(screenID) { $0.themeID = themeID }
-    }
-
+    func selectLook(_ id: UUID) { settings?.selectLook(id) }
+    func addLook() { settings?.addLook() }
+    func renameLook(_ id: UUID, to name: String) { settings?.renameLook(id, to: name) }
+    func deleteLook(_ id: UUID) { settings?.deleteLook(id) }
+    func setTheme(_ themeID: UUID?, forScreen screenID: UUID) { settings?.setTheme(themeID, forScreen: screenID) }
     func setLayer(_ layer: LayerKind, visible: Bool, forScreen screenID: UUID) {
-        editScreenLook(screenID) { if visible { $0.visibleLayers.insert(layer) } else { $0.visibleLayers.remove(layer) } }
-    }
-
-    private func editScreenLook(_ screenID: UUID, _ change: (inout ScreenLook) -> Void) {
-        guard let i = looks.firstIndex(where: { $0.id == selectedLookID }) else { return }
-        var screenLook = looks[i].screenLook(for: screenID)
-        let before = screenLook
-        change(&screenLook)
-        guard screenLook != before else { return }
-        looks[i].screens[screenID] = screenLook
-        lookChanged()
+        settings?.setLayer(layer, visible: visible, forScreen: screenID)
     }
 
     func chooseProp() {
@@ -358,74 +374,46 @@ final class AppModel {
     }
 
     func addProp(_ url: URL) {
+        guard let settings else { return }
         let id = UUID()
         _ = url.startAccessingSecurityScopedResource()   // an open-panel URL is already accessible; keep access for the prop's lifetime
         scopedURLs[id] = url
+        var bookmark: Data?
         do {
-            propBookmarks[id] = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+            bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
         } catch {
             log("Could not remember access to \(url.lastPathComponent) across launches: \(error.localizedDescription)")
         }
-        props.append(Prop(id: id, name: url.deletingPathExtension().lastPathComponent, imagePath: url.path,
-                          frame: NormalizedRect(x: 0.86, y: 0.04, width: 0.1, height: 0.1), opacity: 1, isOn: true))
-        lookChanged()
+        settings.addProp(Prop(id: id, name: url.deletingPathExtension().lastPathComponent, imagePath: url.path,
+                              frame: NormalizedRect(x: 0.86, y: 0.04, width: 0.1, height: 0.1), opacity: 1, isOn: true),
+                         bookmark: bookmark)
     }
 
-    func setProp(_ id: UUID, isOn: Bool) {
-        guard let i = props.firstIndex(where: { $0.id == id }), props[i].isOn != isOn else { return }
-        props[i].isOn = isOn
-        lookChanged()
-    }
+    func setProp(_ id: UUID, isOn: Bool) { settings?.setProp(id, isOn: isOn) }
 
     func removeProp(_ id: UUID) {
-        guard let i = props.firstIndex(where: { $0.id == id }) else { return }
-        props.remove(at: i)
-        propBookmarks[id] = nil
         scopedURLs.removeValue(forKey: id)?.stopAccessingSecurityScopedResource()
-        lookChanged()
+        settings?.removeProp(id)
     }
 
-    /// One publish and one save per operator change.
+    /// One publish per operator change. Writing to the library is the settings model's job.
     private func lookChanged() {
         publish()
-        persistLooks()
         updateReadouts()
     }
 
-    private func persistLooks() {
-        guard soak == nil else { return }
-        let library = LookLibrary(looks: looks, selectedLookID: selectedLookID,
-                                  props: props.map { StoredProp(prop: $0, bookmark: propBookmarks[$0.id]) })
-        do { try lookStore.save(library) } catch { log("Looks could not be saved: \(error.localizedDescription)") }
-    }
-
-    private func loadLooks() {
-        switch lookStore.load() {
-        case .missing:
-            break
-        case .unreadable(let why):
-            log("Looks could not be read, using defaults. The file is left as it is until you change a Look or prop. (\(why))")
-        case .loaded(let library):
-            if !library.looks.isEmpty {
-                looks = library.looks
-                selectedLookID = looks.contains { $0.id == library.selectedLookID } ? (library.selectedLookID ?? looks[0].id) : looks[0].id
-            }
-            props = library.props.map { stored in
-                var prop = stored.prop
-                if let data = stored.bookmark {
-                    var stale = false
-                    if let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale) {
-                        _ = url.startAccessingSecurityScopedResource()
-                        scopedURLs[prop.id] = url
-                        prop.imagePath = url.path   // follows the file if it was moved or renamed
-                        propBookmarks[prop.id] = stale
-                            ? ((try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)) ?? data)
-                            : data
-                    } else {
-                        propBookmarks[prop.id] = data
-                    }
-                }
-                return prop
+    /// Reopens the image files of stored props through their bookmarks, so access survives a relaunch.
+    private func resolvePropBookmarks() async {
+        guard let settings else { return }
+        for prop in settings.props {
+            guard let data = await settings.bookmark(forProp: prop.id) else { continue }
+            var stale = false
+            guard let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale) else { continue }
+            _ = url.startAccessingSecurityScopedResource()
+            scopedURLs[prop.id] = url
+            if url.path != prop.imagePath || stale {     // follows the file if it was moved or renamed
+                let fresh = stale ? (try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)) : nil
+                settings.updatePropLocation(prop.id, path: url.path, bookmark: fresh)
             }
         }
     }
@@ -496,7 +484,7 @@ final class AppModel {
     private func publish() {
         sceneRevision &+= 1
         sceneBox.publish(PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
-                                         look: currentLook, props: props))
+                                         look: currentLook, props: props, presentationThemeID: workspace?.liveThemeID))
     }
 
     private func updateClock(force: Bool) {
@@ -572,7 +560,7 @@ final class AppModel {
         }
         let audience = ScreenProfile(name: "Audience", role: .audience, destination: destination)
         soakProfileID = audience.id
-        profiles = [audience]
+        soakProfiles = [audience]
         coordinator.setProfiles(profiles)
         send(.load(SoakDeck.deck))
         send(.trigger(index: 0))

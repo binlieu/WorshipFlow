@@ -128,6 +128,13 @@ struct LibrarySidebar: View {
                     }
                     .tag(item.id)
                     .contextMenu {
+                        Button("Section order…") {
+                            Task {
+                                await workspace.openPlaylistItem(item.id)
+                                app.ui.showSectionOrders = true
+                            }
+                        }
+                        Divider()
                         Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
                     }
                 }

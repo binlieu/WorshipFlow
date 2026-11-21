@@ -62,10 +62,13 @@ struct WorkspaceView: View {
     @Bindable var workspace: WorkspaceModel
     @State private var query = ""
     @FocusState private var searchFocused: Bool
+    @FocusState private var gridFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            if let error = workspace.lastError { ErrorBar(message: error) { workspace.dismissError() } }
+            if let error = workspace.lastError ?? app.settingsError {
+                ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
+            }
             NavigationSplitView {
                 LibrarySidebar(app: app, workspace: workspace)
                     .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 380)
@@ -73,6 +76,9 @@ struct WorkspaceView: View {
                 HSplitView {
                     CentrePane(app: app, workspace: workspace, query: query, clearQuery: { query = "" })
                         .frame(minWidth: 460)
+                        .focusable()
+                        .focused($gridFocused)
+                        .focusEffectDisabled()
                     RightColumn(app: app)
                         .frame(minWidth: 340, idealWidth: 380, maxWidth: 520)
                 }
@@ -84,8 +90,23 @@ struct WorkspaceView: View {
         }
         .onChange(of: query) { _, new in Task { await workspace.search(new) } }
         .onChange(of: app.ui.focusSearch) { _, _ in searchFocused = true }
+        // Keyboard focus belongs on the slide grid: at launch, after a sheet closes, and when Escape leaves the search.
+        .onAppear { focusGridSoon() }
+        .onChange(of: app.workspaceLoaded) { _, _ in focusGridSoon() }
+        .onChange(of: app.ui.focusGrid) { _, _ in focusGridSoon() }
+        .onChange(of: app.ui.anySheetOpen) { was, now in if was && !now { focusGridSoon() } }
+        .onChange(of: app.ui.leaveSearch) { _, _ in
+            query = ""
+            focusGridSoon()
+        }
         .sheet(isPresented: Binding(get: { app.ui.showImport }, set: { app.ui.showImport = $0 })) {
             ImportSheet(app: app, workspace: workspace, existingID: app.ui.importExistingID)
+        }
+        .sheet(isPresented: Binding(get: { app.ui.showSectionOrders }, set: { app.ui.showSectionOrders = $0 })) {
+            SectionOrderSheet(app: app, workspace: workspace)
+        }
+        .sheet(isPresented: Binding(get: { app.ui.showThemeEditor }, set: { app.ui.showThemeEditor = $0 })) {
+            ThemeEditorSheet(app: app, workspace: workspace)
         }
         .toolbar {
             ToolbarItemGroup {
@@ -93,7 +114,26 @@ struct WorkspaceView: View {
                     .help("New presentation (Command-N)")
                 Button { app.openImport(existing: nil) } label: { Label("Import lyrics", systemImage: "text.badge.plus") }
                     .help("Import lyrics (Command-I)")
+                Button { app.ui.showSectionOrders = true } label: { Label("Section orders", systemImage: "list.number") }
+                    .help("Section orders of the open song")
+                    .disabled(workspace.openPresentationID == nil)
+                Button { app.ui.showThemeEditor = true } label: { Label("Themes", systemImage: "paintpalette") }
+                    .help("Create and edit themes")
             }
+        }
+    }
+}
+
+extension WorkspaceView {
+    /// Puts keyboard focus on the slide grid (KI-021). Done a moment later so it wins over the search field's
+    /// default focus at launch and over a closing sheet.
+    private func focusGridSoon() {
+        searchFocused = false
+        gridFocused = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(150))
+            searchFocused = false
+            gridFocused = true
         }
     }
 }

@@ -73,28 +73,39 @@ struct PresentationHeader: View {
     private var presentation: Presentation? { workspace.presentations.first { $0.id == workspace.openPresentationID } }
 
     var body: some View {
-        HStack(spacing: 10) {
-            TextField("Title", text: $title)
-                .textFieldStyle(.roundedBorder).font(.title3.bold()).frame(maxWidth: 360)
-                .focused($titleFocused)
-                .onSubmit { commitTitle() }
-                .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
-            if let itemID = workspace.selectedPlaylistItemID, !workspace.arrangements.isEmpty,
-               let item = workspace.playlistItems.first(where: { $0.id == itemID }) {
-                Picker("Section order", selection: Binding(get: { item.arrangementID },
-                                                           set: { id in Task { await workspace.setArrangement(id, forPlaylistItem: itemID) } })) {
-                    Text("Natural order").tag(UUID?.none)
-                    ForEach(workspace.arrangements) { Text($0.name).tag(UUID?.some($0.id)) }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                TextField("Title", text: $title)
+                    .textFieldStyle(.roundedBorder).font(.title3.bold()).frame(maxWidth: 360)
+                    .focused($titleFocused)
+                    .onSubmit { commitTitle() }
+                    .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
+                Spacer()
+                Button { Task { await workspace.addSlide(SlideContent(primary: "")) } } label: { Label("Add slide", systemImage: "plus.rectangle") }
+                Button { if let id = workspace.openPresentationID { app.openImport(existing: id) } } label: {
+                    Label("Re-flow lyrics…", systemImage: "text.alignleft")
+                }
+                Button {
+                    if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
+                } label: { Label("Add to playlist", systemImage: "text.badge.plus") }
+            }
+            HStack(spacing: 10) {
+                Picker("Theme", selection: Binding(get: { workspace.openThemeID },
+                                                   set: { id in if let open = workspace.openPresentationID { app.setPresentationTheme(id, forPresentation: open) } })) {
+                    Text("Default").tag(UUID?.none)
+                    ForEach(app.themes) { Text($0.name).tag(UUID?.some($0.id)) }
                 }.frame(maxWidth: 260)
+                    .help("The look of this song on the audience screen")
+                if let itemID = workspace.selectedPlaylistItemID,
+                   let item = workspace.playlistItems.first(where: { $0.id == itemID }) {
+                    Picker("Section order", selection: Binding(get: { item.arrangementID },
+                                                               set: { id in Task { await workspace.setArrangement(id, forPlaylistItem: itemID) } })) {
+                        Text("Natural order").tag(UUID?.none)
+                        ForEach(workspace.arrangements) { Text($0.name).tag(UUID?.some($0.id)) }
+                    }.frame(maxWidth: 260)
+                }
+                Spacer()
             }
-            Spacer()
-            Button { Task { await workspace.addSlide(SlideContent(primary: "")) } } label: { Label("Add slide", systemImage: "plus.rectangle") }
-            Button { if let id = workspace.openPresentationID { app.openImport(existing: id) } } label: {
-                Label("Re-flow lyrics…", systemImage: "text.alignleft")
-            }
-            Button {
-                if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
-            } label: { Label("Add to playlist", systemImage: "text.badge.plus") }
         }
         .padding(10)
         .onAppear { title = presentation?.title ?? "" }

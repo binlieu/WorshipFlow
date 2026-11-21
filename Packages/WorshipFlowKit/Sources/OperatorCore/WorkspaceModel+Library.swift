@@ -14,6 +14,7 @@ extension WorkspaceModel {
         guard let id = selectedLibraryID else { presentations = []; return }
         if let list = await attempt("read the presentations", { try await self.store.presentations(in: id) }) {
             presentations = list
+            learnThemes(of: list)
         }
     }
 
@@ -96,6 +97,7 @@ extension WorkspaceModel {
         slides = []
         groups = []
         arrangements = []
+        groupSlideCounts = [:]
         pendingDrafts = [:]
         apply(.load(ShowDeck(presentationID: UUID(), slides: [])))
     }
@@ -112,6 +114,7 @@ extension WorkspaceModel {
         var slides: [Slide]
         var groups: [SlideGroup]
         var arrangements: [Arrangement]
+        var groupSlideCounts: [UUID: Int]
     }
 
     func loadContent(of presentationID: UUID, itemID: UUID?) async -> LoadedContent? {
@@ -120,9 +123,13 @@ extension WorkspaceModel {
             if let itemID { slides = try await self.store.slides(forPlaylistItem: itemID) } else {
                 slides = try await self.store.slides(of: presentationID)
             }
-            return LoadedContent(slides: slides,
-                                 groups: try await self.store.groups(of: presentationID),
-                                 arrangements: try await self.store.arrangements(of: presentationID))
+            let natural = try await self.store.slides(of: presentationID)
+            let content = LoadedContent(slides: slides,
+                                        groups: try await self.store.groups(of: presentationID),
+                                        arrangements: try await self.store.arrangements(of: presentationID),
+                                        groupSlideCounts: SectionOrderEditing.slideCounts(of: natural))
+            await self.learnTheme(ofPresentation: presentationID)
+            return content
         }
     }
 
@@ -131,6 +138,7 @@ extension WorkspaceModel {
         slides = content.slides
         groups = content.groups
         arrangements = content.arrangements
+        groupSlideCounts = content.groupSlideCounts
         loadPreview()
         placeChanged()
     }
@@ -142,6 +150,7 @@ extension WorkspaceModel {
         slides = loaded.slides
         groups = loaded.groups
         arrangements = loaded.arrangements
+        groupSlideCounts = loaded.groupSlideCounts
         let keep = min(show.selectedIndex, max(slides.count - 1, 0))
         apply(.restore(deck: previewDeck(), selectedIndex: keep))
         placeChanged()

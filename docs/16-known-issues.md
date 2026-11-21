@@ -22,8 +22,11 @@
 | KI-018 | Not verified for OUT-003: the Look, theme and prop controls in the interface, bookmark restore after relaunch, wide-gamut, 16-bit and very large images. | Open. Part of the interface pass (KI-011). |
 | KI-019 | Re-flowing a presentation discards the speaker notes of the slides it replaces. | Open. Fix when the reflow editor UI is built: carry notes by matching slide text. |
 | KI-020 | Two separate blocks with the same section name (for example two "Chorus" blocks with different words) share one group after reflow. | Open. Decide in the reflow editor slice; likely number repeated names. |
-| KI-021 | At launch the toolbar search field takes keyboard focus, so Space, arrows and Return go to it until the operator clicks elsewhere. | Open. Fix in APP-001. |
+| KI-021 | At launch the toolbar search field takes keyboard focus, so Space, arrows and Return go to it until the operator clicks elsewhere. | Fixed in APP-001 in code (grid takes focus at launch and after sheets; pure key rule tested). Key presses in the running app not exercised (see APP-001 report). |
 | KI-022 | Live previews show the background colour, not the moving video. | Open. |
-| KI-023 | No interface yet for creating a section order (arrangement) or a custom theme. | Open. APP-001. |
+| KI-023 | No interface yet for creating a section order (arrangement) or a custom theme. | Done in APP-001: section order editor and theme editor, exercised in the running app through accessibility controls. |
 | KI-024 | Slides cannot be added, moved or deleted while a playlist item plays a custom section order; the app explains why. | Accepted. |
-| KI-025 | The app still stores screen profiles, Looks and props as JSON; the SQLite tables from SYS-002 are unused. | Open. APP-001. |
+| KI-025 | The app still stores screen profiles, Looks and props as JSON; the SQLite tables from SYS-002 are unused. | Fixed in APP-001: settings live in SQLite; old JSON files imported once and left in place. |
+| KI-026 | Keyboard control (Return, Space, arrows, Escape, Command-F) and launch focus are implemented with a tested routing rule but have never been pressed in the running app: background automation cannot send keys to it. | Open. Needs a person at the keyboard, or a UI test run when the Mac is free. |
+| KI-027 | Editing a custom theme that is in use changes the live audience screen immediately. | Accepted (matches PRES-06); revisit if operators want a staged edit. |
+| KI-028 | In the theme editor the "Background video" segment label is clipped. | Open. Cosmetic. |

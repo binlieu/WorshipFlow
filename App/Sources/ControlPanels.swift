@@ -158,15 +158,15 @@ struct LookPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Look").font(.headline)
             HStack {
-                Picker("Look", selection: Binding(get: { model.selectedLookID }, set: { model.selectLook($0) })) {
+                Picker("Look", selection: Binding(get: { model.selectedLookID ?? UUID() }, set: { model.selectLook($0) })) {
                     ForEach(model.looks) { Text($0.name).tag($0.id) }
                 }.frame(maxWidth: 260)
                 Button("New") { model.addLook() }.help("Copy the current Look into a new one")
-                Button("Delete") { model.deleteLook(model.selectedLookID) }
+                Button("Delete") { if let id = model.selectedLookID { model.deleteLook(id) } }
                     .disabled(model.looks.count < 2).help("Delete the selected Look")
             }
             TextField("Rename Look", text: Binding(get: { model.currentLook?.name ?? "" },
-                                                    set: { model.renameLook(model.selectedLookID, to: $0) }))
+                                                    set: { if let id = model.selectedLookID { model.renameLook(id, to: $0) } }))
                 .textFieldStyle(.roundedBorder).frame(maxWidth: 260)
             Text("A Look sets the theme and visible layers of each screen below. Switching Look changes every screen at once.")
                 .font(.caption).foregroundStyle(.secondary)
