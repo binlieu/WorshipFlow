@@ -1,5 +1,6 @@
-// OUT-001: operator state and output lifecycle. All outputs render off the main thread; this model only
-// starts and stops them and reads their statistics.
+// OUT-002: operator state. The show lives in `ShowState`, scenes come from `SceneComposer`, and outputs are run
+// by `OutputCoordinator`. This model sends commands and reads status; it never renders. Render threads read an
+// immutable `PublishedScenes` snapshot, never this object.
 import AppKit
 import Observation
 import Domain
@@ -8,47 +9,76 @@ import OutputEngine
 
 enum LiveMode: Equatable { case stopped, live, cleared }
 
-struct OutputReadout: Identifiable, Equatable {
-    var id: String { name }
+struct DisplayChoice: Identifiable, Equatable {
+    var id: UInt32
     var name: String
-    var status: String
-    var presented: Int
-    var dropped: Int
-    var late: Int
-    var maxIntervalMs: Double
-    var refreshHz: Double
 }
 
 @MainActor
 @Observable
 final class AppModel {
     static let shared = AppModel()
+    static let operatorWindowTitle = "WORSHIPFLOW"
 
-    let slides = SampleSlides.all
-    var selectedIndex = 0
-    private(set) var mode: LiveMode = .stopped
-    private(set) var screens: [NSScreen] = NSScreen.screens
-    var selectedScreenIndex = 0
-    var showSecondWindow = false {
-        didSet { if oldValue != showSecondWindow { syncSecondWindow() } }
-    }
+    private(set) var show = ShowState()
+    private(set) var profiles: [ScreenProfile] = []
+    private(set) var readouts: [ScreenReadout] = []
+    private(set) var displayChoices: [DisplayChoice] = []
+    private(set) var screensOn = false
     private(set) var videoURL: URL?
-    private(set) var readouts: [OutputReadout] = []
     private(set) var messages: [String] = []
 
-    @ObservationIgnored private let box = LiveBox()
+    @ObservationIgnored private let sceneBox: SceneBox
+    @ObservationIgnored private let store = ScreenProfileStore.standard
+    @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
     @ObservationIgnored private var video: LoopingVideoSource?
-    @ObservationIgnored private var audienceOutput: (any OutputTarget)?
-    @ObservationIgnored private var stageOutput: (any OutputTarget)?
-    @ObservationIgnored private var readoutTimer: Timer?
+    @ObservationIgnored private var clockText = ""
+    @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var keyMonitor: Any?
     @ObservationIgnored private var screenObserver: NSObjectProtocol?
     @ObservationIgnored private var soakTask: Task<Void, Never>?
     @ObservationIgnored private(set) var soak: SoakConfig?
+    @ObservationIgnored private var soakProfileID: UUID?
 
     private init() {
-        selectedScreenIndex = defaultScreenIndex()
+        var state = ShowState()
+        state.apply(.load(SampleSlides.deck))
+        show = state
+        sceneBox = SceneBox(PublishedScenes(state: state, clockText: nil))
+        soak = SoakConfig.parse(CommandLine.arguments)   // known before profiles load, so a soak never writes settings
+        refreshDisplayChoices()
+        loadProfiles()
+        updateClock(force: true)
     }
+
+    private func makeCoordinator() -> OutputCoordinator {
+        let c = OutputCoordinator(
+            displays: { [weak self] in self?.displaySnapshot() ?? DisplaySnapshot(available: [], operatorDisplay: nil) },
+            makeTarget: { [weak self] profile, destination in
+                guard let self else { throw OutputSetupError.modelGone }
+                return try self.makeTarget(profile, destination)
+            },
+            sleepGuard: SleepGuard())
+        c.onChange = { [weak self] in self?.updateReadouts() }
+        return c
+    }
+
+    private enum OutputSetupError: Error, LocalizedError {
+        case modelGone, displayGone
+        var errorDescription: String? {
+            switch self {
+            case .modelGone: "The app is shutting down."
+            case .displayGone: "The display is no longer connected."
+            }
+        }
+    }
+
+    // MARK: Derived state for the UI
+
+    var slides: [SlideContent] { show.previewDeck?.slides ?? [] }
+    var selectedIndex: Int { show.selectedIndex }
+    var liveIndex: Int? { show.liveIndex }
+    var mode: LiveMode { show.isStopped ? .stopped : (show.isCleared ? .cleared : .live) }
 
     // MARK: Setup
 
@@ -56,11 +86,14 @@ final class AppModel {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return event }
+            // Only real windows (operator or output window), never menus, panels or sheets; never while typing.
+            guard let window = event.window, window.canBecomeMain, !(window.firstResponder is NSText) else { return event }
             let handled: Bool = MainActor.assumeIsolated {
                 guard let self else { return false }
                 switch event.keyCode {
+                case 36, 76: self.goLive(); return true     // return, keypad enter
                 case 124, 49: self.next(); return true      // right arrow, space
-                case 123: self.previous(); return true     // left arrow
+                case 123: self.previous(); return true      // left arrow
                 case 53: self.clear(); return true          // escape
                 default: return false
                 }
@@ -68,35 +101,91 @@ final class AppModel {
             return handled ? nil : event
         }
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshScreens() }
+            MainActor.assumeIsolated { self?.displaysChanged() }
         }
-        readoutTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateReadouts() }
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.updateClock(force: false)
+                self?.updateReadouts()
+            }
         }
     }
 
-    private func defaultScreenIndex() -> Int {
-        // Prefer a display that is not the one carrying the operator window.
-        let all = NSScreen.screens
-        if all.count > 1, let main = NSScreen.main, let idx = all.firstIndex(where: { $0 != main }) { return idx }
-        return 0
+    private func displaySnapshot() -> DisplaySnapshot {
+        DisplaySnapshot(available: NSScreen.screens.map(DisplayOutput.displayID(of:)),
+                        operatorDisplay: soak == nil ? operatorDisplayID() : nil)
     }
 
-    func refreshScreens() {
-        screens = NSScreen.screens
-        if selectedScreenIndex >= screens.count { selectedScreenIndex = defaultScreenIndex() }
+    private func operatorDisplayID() -> UInt32? {
+        let window = NSApplication.shared.windows.first { $0.title == Self.operatorWindowTitle && $0.isVisible }
+        guard let screen = window?.screen ?? NSScreen.screens.first else { return nil }
+        return DisplayOutput.displayID(of: screen)
     }
 
-    var screenNames: [String] {
-        screens.enumerated().map { i, s in
+    private func refreshDisplayChoices() {
+        let operatorID = operatorDisplayID()
+        displayChoices = NSScreen.screens.map { s in
+            let id = DisplayOutput.displayID(of: s)
             let f = s.frame
-            return "\(i): \(s.localizedName) (\(Int(f.width))x\(Int(f.height)) @ \(s.maximumFramesPerSecond) Hz)"
+            let suffix = id == operatorID ? ", operator display" : ""
+            return DisplayChoice(id: id, name: "\(s.localizedName) (\(Int(f.width))x\(Int(f.height))\(suffix))")
         }
     }
 
-    var chosenScreenIsOperatorScreen: Bool {
-        guard screens.indices.contains(selectedScreenIndex) else { return false }
-        return screens[selectedScreenIndex] == NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain })?.screen
+    private func displaysChanged() {
+        refreshDisplayChoices()
+        coordinator.displaysChanged()
+        updateReadouts()
+    }
+
+    func destinationName(_ destination: OutputDestination) -> String {
+        switch destination {
+        case .window: return "Window"
+        case .display(let id): return displayChoices.first { $0.id == id }?.name ?? "Display \(id) (not connected)"
+        }
+    }
+
+    // MARK: Profiles
+
+    private func loadProfiles() {
+        switch store.load() {
+        case .loaded(let loaded):
+            profiles = loaded
+        case .missing:
+            profiles = ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
+                                              operatorDisplay: operatorDisplayID())
+            persistProfiles()
+        case .unreadable(let why):
+            log("Screen settings could not be read, using defaults. The file is left as it is until you change a screen. (\(why))")
+            profiles = ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
+                                              operatorDisplay: operatorDisplayID())
+        }
+        coordinator.setProfiles(profiles)
+    }
+
+    private func persistProfiles() {
+        guard soak == nil else { return }
+        do { try store.save(profiles) } catch { log("Screen settings could not be saved: \(error.localizedDescription)") }
+    }
+
+    func updateProfile(_ profile: ScreenProfile) {
+        guard let i = profiles.firstIndex(where: { $0.id == profile.id }), profiles[i] != profile else { return }
+        profiles[i] = profile
+        persistProfiles()
+        coordinator.setProfiles(profiles)
+        updateReadouts()
+    }
+
+    func restartScreen(_ id: UUID) {
+        startVideoIfNeeded()
+        coordinator.restart(id)
+        screensOn = coordinator.isActive
+        updateReadouts()
+    }
+
+    func stopScreen(_ id: UUID) {
+        coordinator.stop(id)
+        updateReadouts()
     }
 
     // MARK: Video
@@ -107,135 +196,102 @@ final class AppModel {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.message = "Choose a background video to loop"
-        if panel.runModal() == .OK, let url = panel.url { setVideo(url) }
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            MainActor.assumeIsolated { self?.setVideo(url) }
+        }
     }
 
     func setVideo(_ url: URL?) {
         video?.stop()
         video = nil
         videoURL = nil
-        guard let url else { return }
-        do {
-            let source = try LoopingVideoSource(url: url)
-            video = source
-            videoURL = url
-            if mode != .stopped { source.start() }
-            // Running outputs captured the previous source; restart them so they pick up the new one.
-            if mode != .stopped { restartOutputs() }
-        } catch {
-            log("Could not open video: \(error)")
+        if let url {
+            do {
+                video = try LoopingVideoSource(url: url)
+                videoURL = url
+            } catch {
+                log("Could not open video: \(error.localizedDescription)")
+            }
+        }
+        if screensOn {
+            video?.start()
+            // Running audience outputs captured the previous source; restart them so they pick up the new one.
+            for r in coordinator.readouts() where r.role == .audience && (r.state == .running || r.state == .hidden) {
+                coordinator.restart(r.id)
+            }
+            updateReadouts()
         }
     }
 
-    // MARK: Live control
+    private func startVideoIfNeeded() { if video != nil { video?.start() } }
 
-    func goLive() {
-        guard mode == .stopped else { return }
-        publish(cleared: false)
-        video?.start()
-        mode = .live
-        startOutputs(displayScreen: screens.indices.contains(selectedScreenIndex) ? screens[selectedScreenIndex] : nil)
+    // MARK: Show control
+
+    func send(_ command: ShowCommand) {
+        let wasStopped = show.isStopped
+        show.apply(command)
+        publish()
+        if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
 
-    func stopLive() {
-        audienceOutput?.stop(); audienceOutput = nil
-        stageOutput?.stop(); stageOutput = nil
+    func goLive() { send(.trigger(index: show.selectedIndex)) }
+    func next() { send(.next) }
+    func previous() { send(.previous) }
+    func clear() { send(.clear) }
+    func stopShow() { send(.stop) }
+    func select(_ index: Int) { send(.select(index: index)) }
+
+    private func publish() {
+        sceneBox.publish(PublishedScenes(state: show, clockText: clockText))
+    }
+
+    private func updateClock(force: Bool) {
+        let text = Date.now.formatted(date: .omitted, time: .shortened)
+        guard force || text != clockText else { return }
+        clockText = text
+        publish()
+    }
+
+    // MARK: Screens
+
+    func startScreens() {
+        startVideoIfNeeded()
+        coordinator.start()
+        screensOn = true
+        updateReadouts()
+    }
+
+    func stopScreens() {
+        coordinator.stop()
         video?.stop()
-        mode = .stopped
+        screensOn = false
         updateReadouts()
     }
 
-    func clear() {
-        guard mode != .stopped else { return }
-        mode = .cleared
-        box.update { $0.cleared = true }
-    }
+    func shutdown() { stopScreens() }
 
-    func next() { move(to: selectedIndex + 1) }
-    func previous() { move(to: selectedIndex - 1) }
-
-    func select(_ index: Int) { move(to: index) }
-
-    private func move(to index: Int) {
-        guard slides.indices.contains(index) else { return }
-        selectedIndex = index
-        if mode != .stopped { mode = .live; publish(cleared: false) }
-    }
-
-    private func publish(cleared: Bool) {
-        let current = slides[selectedIndex]
-        let next = slides.indices.contains(selectedIndex + 1) ? slides[selectedIndex + 1] : nil
-        box.update { $0.current = current; $0.next = next; $0.cleared = cleared }
-    }
-
-    // MARK: Outputs
-
-    private func startOutputs(displayScreen: NSScreen?, forceWindow: Bool = false) {
-        let box = self.box
-        let source: (any VideoSourceFactory)? = video
-        let audienceScene: SceneProvider = { SceneBuilder.audience(box.read()) }
-
-        let useDisplay = !forceWindow && displayScreen != nil && (screens.count > 1 || soak != nil)
-        let audience: any OutputTarget
-        if useDisplay, let screen = displayScreen {
-            audience = DisplayOutput(screen: screen, name: "Audience display", sceneProvider: audienceScene, videoSource: source)
-        } else {
-            if !forceWindow { log("Single display (or none chosen): audience output runs in a window.") }
-            audience = WindowOutput(name: "Audience window", sceneProvider: audienceScene, videoSource: source)
-        }
-        attach(audience)
-        audienceOutput = audience
-        syncSecondWindow()
-    }
-
-    private func restartOutputs() {
-        let screen = screens.indices.contains(selectedScreenIndex) ? screens[selectedScreenIndex] : nil
-        let wasCleared = mode == .cleared
-        audienceOutput?.stop(); audienceOutput = nil
-        stageOutput?.stop(); stageOutput = nil
-        video?.start()
-        startOutputs(displayScreen: screen)
-        if wasCleared { box.update { $0.cleared = true } }
-    }
-
-    private func syncSecondWindow() {
-        guard mode != .stopped else { return }
-        if showSecondWindow, stageOutput == nil {
-            let box = self.box
-            let stage = WindowOutput(name: "Stage window", sceneProvider: { SceneBuilder.stage(box.read()) })
-            attach(stage)
-            stageOutput = stage
-        } else if !showSecondWindow, let stage = stageOutput {
-            stage.stop()
-            stageOutput = nil
+    private func makeTarget(_ profile: ScreenProfile, _ destination: OutputDestination) throws -> any OutputTarget {
+        let box = sceneBox
+        let role = profile.role
+        let provider: SceneProvider = { box.read().scene(for: role) }
+        let source: (any VideoSourceFactory)? = role == .audience ? video : nil
+        switch destination {
+        case .display(let id):
+            guard let screen = NSScreen.screens.first(where: { DisplayOutput.displayID(of: $0) == id }) else {
+                throw OutputSetupError.displayGone
+            }
+            return DisplayOutput(screen: screen, name: profile.name, sceneProvider: provider, videoSource: source)
+        case .window:
+            let index = profiles.filter { $0.destination == .window }.firstIndex { $0.id == profile.id } ?? 0
+            return WindowOutput(name: profile.name, sceneProvider: provider, videoSource: source, cascadeIndex: index)
         }
     }
 
-    private func attach(_ output: any OutputTarget) {
-        output.onStatusChange = { [weak self, weak output] status in
-            guard let self, let output else { return }
-            guard case .stopped(let reason) = status else { return }
-            if let reason { self.log("\(output.name): \(reason)") }
-            self.outputStopped(output)
-        }
-        do {
-            try output.start()
-        } catch {
-            log("\(output.name) failed to start: \(error)")
-        }
-    }
-
-    private func outputStopped(_ output: any OutputTarget) {
-        if let a = audienceOutput, a === output { audienceOutput = nil }
-        if let s = stageOutput, s === output {
-            stageOutput = nil
-            if showSecondWindow { showSecondWindow = false }
-        }
-        if audienceOutput == nil && stageOutput == nil && mode != .stopped {
-            video?.stop()
-            mode = .stopped
-        }
-        updateReadouts()
+    func updateReadouts() {
+        let r = coordinator.readouts()
+        if r != readouts { readouts = r }
+        if screensOn != coordinator.isActive { screensOn = coordinator.isActive }
     }
 
     private func log(_ message: String) {
@@ -244,64 +300,56 @@ final class AppModel {
         FileHandle.standardError.write(Data("[WORSHIPFLOW] \(message)\n".utf8))
     }
 
-    private func readout(_ o: any OutputTarget) -> OutputReadout {
-        let s = o.statistics
-        let status: String
-        switch o.status {
-        case .idle: status = "idle"
-        case .running: status = "running"
-        case .stopped(let r): status = r == nil ? "stopped" : "stopped: \(r ?? "")"
-        }
-        return OutputReadout(name: o.name, status: status, presented: s.presentedFrames, dropped: s.droppedFrames,
-                             late: s.lateFrames, maxIntervalMs: s.maxInterval * 1000, refreshHz: o.refreshRate)
-    }
-
-    func updateReadouts() {
-        var r: [OutputReadout] = []
-        if let a = audienceOutput { r.append(readout(a)) }
-        if let s = stageOutput { r.append(readout(s)) }
-        if r != readouts { readouts = r }
-    }
-
     // MARK: Soak
 
     func startSoakIfRequested() {
-        guard soak == nil, let config = SoakConfig.parse(CommandLine.arguments) else { return }
-        soak = config
+        // `soak` was parsed in init: profiles are not persisted and the operator display is not protected in a soak.
+        guard soakTask == nil, let config = soak else { return }
         if let path = config.videoPath { setVideo(URL(fileURLWithPath: path)) }
-        refreshScreens()
-        selectedIndex = 0
-        var screen: NSScreen?
+        var destination = OutputDestination.window
         if let i = config.screenIndex {
-            guard screens.indices.contains(i) else {
-                FileHandle.standardError.write(Data("--screen \(i) is out of range (\(screens.count) screens)\n".utf8))
+            guard NSScreen.screens.indices.contains(i) else {
+                FileHandle.standardError.write(Data("--screen \(i) is out of range (\(NSScreen.screens.count) screens)\n".utf8))
                 exit(2)
             }
-            screen = screens[i]
+            destination = .display(DisplayOutput.displayID(of: NSScreen.screens[i]))
         }
-        publish(cleared: false)
-        video?.start()
-        mode = .live
+        let audience = ScreenProfile(name: "Audience", role: .audience, destination: destination)
+        soakProfileID = audience.id
+        profiles = [audience]
+        coordinator.setProfiles(profiles)
+        send(.trigger(index: 0))
+        if !screensOn { startScreens() }
         let started = Date()
-        startOutputs(displayScreen: screen, forceWindow: screen == nil)
-        soakTask = Task { @MainActor [weak self] in await self?.runSoak(config, screen: screen, started: started) }
+        soakTask = Task { @MainActor [weak self] in await self?.runSoak(config, destination: destination, started: started) }
     }
 
-    private func runSoak(_ config: SoakConfig, screen: NSScreen?, started: Date) async {
+    private func soakReadout() -> ScreenReadout? {
+        coordinator.readouts().first { $0.id == soakProfileID }
+    }
+
+    private func runSoak(_ config: SoakConfig, destination: OutputDestination, started: Date) async {
         var memory: [UInt64] = []
         if let m = MemoryProbe.residentBytes() { memory.append(m) }
         var lastSlideAt = 0.0, lastSampleAt = 0.0
-        var advances = 0
+        var advances = 0, samples = 0, hiddenSamples = 0
         var failure: String?
-        let refreshAtStart = (audienceOutput?.refreshRate ?? 0)
+        let refreshAtStart = soakReadout()?.refreshRate ?? 0
         while true {
             try? await Task.sleep(for: .milliseconds(250))
             let t = Date().timeIntervalSince(started)
-            if audienceOutput == nil { failure = "audience output stopped before the soak finished"; break }
+            let r = soakReadout()
+            samples += 1
+            switch r?.state {
+            case .running?: break
+            case .hidden?: hiddenSamples += 1
+            default: failure = "audience output stopped before the soak finished: \(describe(r?.state))"
+            }
+            if failure != nil { break }
             if t - lastSlideAt >= 5 {
                 lastSlideAt = t
                 advances += 1
-                move(to: (selectedIndex + 1) % slides.count)
+                send(.trigger(index: (show.selectedIndex + 1) % max(1, slides.count)))
             }
             if t - lastSampleAt >= 10 {
                 lastSampleAt = t
@@ -312,16 +360,15 @@ final class AppModel {
         }
         let duration = Date().timeIntervalSince(started)
         if let m = MemoryProbe.residentBytes() { memory.append(m) }
-        let finals = [audienceOutput, stageOutput].compactMap { $0 }.map { readout($0) }
-        let errors = [audienceOutput, stageOutput].compactMap { $0?.lastRenderError }
+        let final = soakReadout()
+        let errors = [final?.renderError].compactMap { $0 }
         let videoFrames = video?.deliveredFrameCount ?? 0
         let videoDiag = video?.diagnostics ?? "none"
-        let diag = [audienceOutput, stageOutput].compactMap { $0 }.map { "\($0.name): \($0.diagnostics)" }
-        stopLive()
+        let diag = soakProfileID.flatMap { coordinator.diagnostics(for: $0) } ?? "none"
+        stopScreens()
 
         let modeText: String
-        if let screen {
-            let id = DisplayOutput.displayID(of: screen)
+        if case .display(let id) = destination, let screen = NSScreen.screens.first(where: { DisplayOutput.displayID(of: $0) == id }) {
             if let dm = CGDisplayCopyDisplayMode(id) {
                 modeText = "display output, \(screen.localizedName), \(dm.pixelWidth)x\(dm.pixelHeight) @ \(String(format: "%.2f", dm.refreshRate)) Hz (NSScreen max \(screen.maximumFramesPerSecond) Hz)"
             } else {
@@ -331,32 +378,34 @@ final class AppModel {
             modeText = "window output, \(String(format: "%.0f", refreshAtStart)) Hz display"
         }
         var lines: [String] = []
-        lines.append("WORSHIPFLOW OUT-001 soak report")
+        lines.append("WORSHIPFLOW OUT-002 soak report")
         lines.append("duration: \(String(format: "%.1f", duration)) s (requested \(config.seconds) s)")
         lines.append("display mode: \(modeText)")
         lines.append("slide advances: \(advances)")
         lines.append("video: \(config.videoPath ?? "none"), distinct frames delivered: \(videoFrames)")
-        if let f = finals.first {
-            lines.append("presented: \(f.presented)")
-            lines.append("dropped: \(f.dropped)")
-            lines.append("late: \(f.late)")
-            lines.append(String(format: "max interval: %.2f ms (target %.2f ms)", f.maxIntervalMs, f.refreshHz > 0 ? 1000 / f.refreshHz : 0))
-        } else {
-            lines.append("presented: 0\ndropped: 0\nlate: 0\nmax interval: 0 ms")
-        }
-        for f in finals.dropFirst() {
-            lines.append("\(f.name): presented \(f.presented), dropped \(f.dropped), late \(f.late), max interval \(String(format: "%.2f", f.maxIntervalMs)) ms")
-        }
+        lines.append("presented: \(final?.presented ?? 0)")
+        lines.append("dropped: \(final?.dropped ?? 0)")
+        lines.append("late: \(final?.late ?? 0)")
+        lines.append(String(format: "max interval: %.2f ms (target %.2f ms)", final?.maxIntervalMs ?? 0,
+                            (final?.refreshRate ?? 0) > 0 ? 1000 / (final?.refreshRate ?? 1) : 0))
+        lines.append("visibility: hidden (occluded) in \(hiddenSamples) of \(samples) samples")
         if let lo = memory.min(), let hi = memory.max() {
             lines.append("memory resident min: \(String(format: "%.1f", Double(lo) / 1_048_576)) MB, max: \(String(format: "%.1f", Double(hi) / 1_048_576)) MB (\(memory.count) samples)")
         } else {
             lines.append("memory: unavailable")
         }
         lines.append("video player: \(videoDiag)")
-        lines.append("diagnostics: \(diag.isEmpty ? "none" : diag.joined(separator: "; "))")
+        lines.append("diagnostics: \(diag)")
         lines.append("render errors: \(errors.isEmpty ? "none" : errors.joined(separator: "; "))")
-        if failure == nil, (finals.first?.presented ?? 0) == 0 {
-            failure = "no frames were presented (the output window may be occluded, for example behind a full-screen app on that display)"
+        var exitCode: Int32 = failure == nil ? 0 : 1
+        if failure == nil, (final?.presented ?? 0) == 0 {
+            if hiddenSamples > 0 {
+                failure = "hidden: the output window was covered (for example by a full-screen app on that display), so no frames were presented and nothing was measured"
+                exitCode = 4
+            } else {
+                failure = "no frames were presented"
+                exitCode = 1
+            }
         }
         lines.append("status: \(failure ?? "completed")")
         let text = lines.joined(separator: "\n") + "\n"
@@ -370,12 +419,20 @@ final class AppModel {
             FileHandle.standardError.write(Data("could not write report to \(path): \(error)\n".utf8))
             exit(3)
         }
-        exit(failure == nil ? 0 : 1)
+        exit(exitCode)
+    }
+
+    private func describe(_ state: ScreenState?) -> String {
+        switch state {
+        case .stopped?, nil: "stopped"
+        case .running?: "running"
+        case .hidden?: "hidden"
+        case .faulted(let m)?: m
+        }
     }
 
     private func defaultReportPath() -> String {
         let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-        let dir = FileManager.default.currentDirectoryPath + "/AI/reports"
-        return dir + "/soak-\(stamp).log"
+        return FileManager.default.currentDirectoryPath + "/AI/reports/soak-\(stamp).log"
     }
 }

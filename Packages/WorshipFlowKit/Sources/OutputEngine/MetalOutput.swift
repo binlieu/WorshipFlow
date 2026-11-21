@@ -58,6 +58,10 @@ open class MetalOutput: OutputTarget {
     }
 
     public var statistics: FrameStatistics { renderer?.statistics ?? FrameStatistics(targetInterval: 1.0 / 60.0) }
+    public var isOccluded: Bool {
+        guard status == .running, let w = window else { return false }
+        return !w.occlusionState.contains(.visible)
+    }
     public var lastRenderError: String? { renderer?.lastError }
     public var diagnostics: String {
         let c = renderer?.counters ?? (ticks: 0, submitted: 0)

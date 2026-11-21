@@ -1,4 +1,6 @@
 // OUT-001: sample bilingual slides (English primary, Vietnamese secondary). Original short lines; Amazing Grace is public domain.
+// Libraries arrive with a later slice; until then the app shows this deck.
+import Foundation
 import Domain
 
 enum SampleSlides {
@@ -10,4 +12,6 @@ enum SampleSlides {
         SlideContent(primary: "Praise the Lord, all you nations", secondary: "Hãy ngợi khen Chúa, hỡi muôn dân"),
         SlideContent(primary: "Stacked marks: Ễ Ậ Ở Ỗ Ẵ ỷ ự", secondary: "Nguyện xin Chúa ban phước, ễ ậ ở ỗ ẵ"),
     ]
+
+    static let deck = ShowDeck(presentationID: UUID(), slides: all)
 }

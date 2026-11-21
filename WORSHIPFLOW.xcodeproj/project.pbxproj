@@ -8,25 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		08082D4A09636B4A3A868426 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 7392E34C444186C64745A079 /* Domain */; };
-		098F31BCEFD74A1E4C079740 /* SceneBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75B02CDAF3FF07272739CCF /* SceneBuilder.swift */; };
 		1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */; };
 		4A21A2BDC0855B80DC8874D9 /* MediaEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0A1491D9F0D3D5753C2F3408 /* MediaEngine */; };
 		4EE6208509993801D9FEEFD6 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166181C03E3555D4CD67FBC /* AppModel.swift */; };
 		54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74BA46590DEC0370D1EB32F /* VideoSupport.swift */; };
 		576E09591E49C59544BE4CAF /* RenderEngine in Frameworks */ = {isa = PBXBuildFile; productRef = E1928B54159EDD76AFACDC58 /* RenderEngine */; };
+		631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904015CE5BD7D12564A3BED /* LiveScenes.swift */; };
 		71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 2C12DD02A64F9ED92363C486 /* OutputEngine */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
+		A8EA18B58686F4DEC40B84C4 /* ScreenProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9477906F48DEBA0F0B261C /* ScreenProfileStore.swift */; };
 		ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1320EF2993E56B2BB360523 /* SoakConfig.swift */; };
 		B1DE4E0E8E953446819E80D1 /* SampleSlides.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6778E98EF8343328265BA70 /* SampleSlides.swift */; };
 		EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB63AA09191D65308E97C971 /* ContentView.swift */; };
+		EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 38C4944754161B6B1C9FE40D /* Persistence */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WORSHIPFLOW.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
+		9F9477906F48DEBA0F0B261C /* ScreenProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenProfileStore.swift; sourceTree = "<group>"; };
 		A5A678A91491B09E5E7F46D5 /* WorshipFlowKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WorshipFlowKit; path = Packages/WorshipFlowKit; sourceTree = SOURCE_ROOT; };
-		B75B02CDAF3FF07272739CCF /* SceneBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneBuilder.swift; sourceTree = "<group>"; };
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D74BA46590DEC0370D1EB32F /* VideoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSupport.swift; sourceTree = "<group>"; };
 		E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorshipFlowApp.swift; sourceTree = "<group>"; };
@@ -43,6 +46,7 @@
 				576E09591E49C59544BE4CAF /* RenderEngine in Frameworks */,
 				4A21A2BDC0855B80DC8874D9 /* MediaEngine in Frameworks */,
 				71EFFD08203B44AB07E70393 /* OutputEngine in Frameworks */,
+				EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,9 +66,10 @@
 			children = (
 				7166181C03E3555D4CD67FBC /* AppModel.swift */,
 				BB63AA09191D65308E97C971 /* ContentView.swift */,
+				7904015CE5BD7D12564A3BED /* LiveScenes.swift */,
 				4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */,
 				E6778E98EF8343328265BA70 /* SampleSlides.swift */,
-				B75B02CDAF3FF07272739CCF /* SceneBuilder.swift */,
+				9F9477906F48DEBA0F0B261C /* ScreenProfileStore.swift */,
 				F1320EF2993E56B2BB360523 /* SoakConfig.swift */,
 				D74BA46590DEC0370D1EB32F /* VideoSupport.swift */,
 				E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */,
@@ -117,6 +122,7 @@
 				E1928B54159EDD76AFACDC58 /* RenderEngine */,
 				0A1491D9F0D3D5753C2F3408 /* MediaEngine */,
 				2C12DD02A64F9ED92363C486 /* OutputEngine */,
+				38C4944754161B6B1C9FE40D /* Persistence */,
 			);
 			productName = WORSHIPFLOW;
 			productReference = 1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */;
@@ -165,9 +171,10 @@
 			files = (
 				4EE6208509993801D9FEEFD6 /* AppModel.swift in Sources */,
 				EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */,
+				631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */,
 				1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */,
 				B1DE4E0E8E953446819E80D1 /* SampleSlides.swift in Sources */,
-				098F31BCEFD74A1E4C079740 /* SceneBuilder.swift in Sources */,
+				A8EA18B58686F4DEC40B84C4 /* ScreenProfileStore.swift in Sources */,
 				ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */,
 				54036979D3F9DB6D5FBF55D1 /* VideoSupport.swift in Sources */,
 				876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */,
@@ -382,6 +389,10 @@
 		2C12DD02A64F9ED92363C486 /* OutputEngine */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = OutputEngine;
+		};
+		38C4944754161B6B1C9FE40D /* Persistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Persistence;
 		};
 		7392E34C444186C64745A079 /* Domain */ = {
 			isa = XCSwiftPackageProductDependency;

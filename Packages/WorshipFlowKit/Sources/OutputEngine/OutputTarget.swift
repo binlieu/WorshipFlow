@@ -44,8 +44,15 @@ public protocol OutputTarget: AnyObject {
     var lastRenderError: String? { get }
     /// Display-link ticks and GPU submissions, for diagnosing an output that presents nothing.
     var diagnostics: String { get }
+    /// True while the output's window is running but covered, minimised or on an inactive Space, so no frames
+    /// are presented (KI-008). Reported as "hidden", not as a stall.
+    var isOccluded: Bool { get }
     /// Called on the main actor whenever the status changes (including when the window is closed or the display disappears).
     var onStatusChange: (@MainActor (OutputStatus) -> Void)? { get set }
     func start() throws
     func stop()
+}
+
+extension OutputTarget {
+    public var isOccluded: Bool { false }
 }

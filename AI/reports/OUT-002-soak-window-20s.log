@@ -1,0 +1,15 @@
+WORSHIPFLOW OUT-002 soak report
+duration: 20.1 s (requested 20.0 s)
+display mode: window output, 100 Hz display
+slide advances: 3
+video: /Volumes/Storage/chilt/worshipflow/TestMedia/loop-1080p5994.mov, distinct frames delivered: 1180
+presented: 1984
+dropped: 3
+late: 2
+max interval: 30.00 ms (target 10.00 ms)
+visibility: hidden (occluded) in 0 of 78 samples
+memory resident min: 107.5 MB, max: 114.6 MB (3 samples)
+video player: rate 1.0, control 2, item status 1, time 19.68, looper 1, error none
+diagnostics: ticks 2013, submitted 2012, window 480,381 960x572 visible true occluded false screen DELL S2725HS (1) level 0, drawable 960x540
+render errors: none
+status: completed

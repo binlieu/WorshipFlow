@@ -18,9 +18,9 @@ Implementation IDs are three-digit (ADR-0002). "Catalogue" lists the `docs/MASTE
 | LIB-001 | Libraries and presentations: create, rename, delete, move | PRES-02 | SYS-001 | Sonnet | Repository plus UI | Todo |
 | LIB-002 | Service playlists and keyboard stepping | PRES-03 | LIB-001 | Sonnet | Feature work | Todo |
 | LIB-003 | Quick search, diacritic-insensitive | PRES-08 | LIB-001 | Sonnet | SQLite full-text search | Todo |
-| SLIDE-003 | Song sections and arrangements | PRES-04 | SLIDE-001 | Sonnet | Domain rules, test-first | Todo |
-| SLIDE-004 | Reflow editor | PRES-05 | SLIDE-001 | Sonnet | Feature work | Todo |
-| OUT-002 | Screens with roles, single-display mapping, preview and live and clear and stop semantics | SCRN-01, SCRN-02, SCRN-03, SCRN-04, NFR-03–05, NFR-08, NFR-10 | OUT-001 | Sonnet + review pass | Screen routing and failover are risky logic | Todo |
+| SLIDE-003 | Song sections and arrangements | PRES-04 | SLIDE-001 | Sonnet | Domain rules, test-first | In progress |
+| SLIDE-004 | Reflow editor | PRES-05 | SYS-001 | Sonnet | Pure rules, test-first | In progress (with SLIDE-003) |
+| OUT-002 | Screens with roles, single-display mapping, preview and live and clear and stop semantics | SCRN-01, SCRN-02, SCRN-03, SCRN-04, NFR-03–05, NFR-08, NFR-10 | OUT-001 | Sonnet + review pass | Screen routing and failover are risky logic | Unit Tested, Simulated |
 | OUT-003 | Looks, alternate themes per screen, props layer | SCRN-08, SCRN-09, MEDIA-08 | OUT-002, SLIDE-002 | Sonnet | Feature work | Todo |
 | MEDIA-001 | Media bin with thumbnails, security-scoped bookmarks | MEDIA-01 | SYS-001 | Sonnet | Feature work | Todo |
 | MEDIA-002 | Motion backgrounds and foreground video with transport | MEDIA-02, MEDIA-03 | MEDIA-001, OUT-002 | Sonnet + review pass | Media timing | Todo |
