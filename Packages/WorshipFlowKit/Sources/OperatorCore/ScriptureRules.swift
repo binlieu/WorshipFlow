@@ -35,6 +35,17 @@ public enum ScriptureSlideLimits {
     }
 }
 
+/// FIX-F item 6: how long one passage may be. A longer one is not built: it would be hundreds of thumbnails and a slow screen.
+public enum ScripturePassageLimit {
+    public static let mostSlides = 300
+
+    /// Plain words for a passage that would make too many slides; nil when it is within the limit.
+    public static func refusal(slides: Int, title: String) -> String? {
+        guard slides > mostSlides else { return nil }
+        return "“\(title)” would make \(slides) slides, more than the \(mostSlides) one passage may have. Narrow the reference (fewer chapters or verses), then press Return again."
+    }
+}
+
 /// A book offered while the operator types a reference.
 public struct ScriptureSuggestion: Equatable, Sendable, Identifiable {
     public var book: BookID

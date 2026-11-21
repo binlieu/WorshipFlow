@@ -116,8 +116,10 @@ extension WorkspaceModel {
 
     /// Opens a presentation in natural slide order, into preview only.
     public func openPresentation(_ id: UUID) async {
+        let token = beginPreviewRequest()
         await flushDrafts()
-        guard let loaded = await loadContent(of: id, itemID: nil) else { return }
+        guard isCurrentPreviewRequest(token) else { return }
+        guard let loaded = await loadContent(of: id, itemID: nil), isCurrentPreviewRequest(token) else { return }
         selectedPlaylistItemID = nil
         openPlaylistItemID = nil
         install(loaded, presentationID: id)

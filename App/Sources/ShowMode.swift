@@ -37,7 +37,7 @@ struct ShowCentre: View {
     var body: some View {
         GeometryReader { geo in
             VStack(spacing: 0) {
-                if app.ui.scriptureOpen, let scripture = app.scripture {
+                if app.ui.scriptureOpen || workspace.centreShowsScripture, let scripture = app.scripture {
                     ScriptureView(app: app, workspace: workspace, scripture: scripture)      // LIB-004c
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {

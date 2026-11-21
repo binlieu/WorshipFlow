@@ -159,30 +159,50 @@ extension WorkspaceModel {
         stepping = true
         defer { stepping = false }
         // UI-002: headers are skipped; a countdown starts instead of opening slides.
-        guard let j = PlaylistStepping.target(kinds: playlistKinds, from: here, direction: direction) else { return false }
-        let item = playlistItems[j]
-        if case .countdown = item.kind {
-            guard epoch == transportEpoch else { return false }
-            goLiveOnCountdown(item)
-            return true
-        }
-        if case .scripture(let spec) = item.kind {
+        guard var j = PlaylistStepping.target(kinds: playlistKinds, from: here, direction: direction) else { return false }
+        let what = direction > 0 ? "Next" : "Previous"
+        // FIX-F item 8: a passage whose translation is missing stops the step the first time; a second step onto it in the same stay
+        // skips it (and any further such passage) and says so.
+        let firstTarget = playlistItems[j].id
+        let skipping = blockedStep == BlockedStep(epoch: transportEpoch, from: current, target: firstTarget, direction: direction)
+        var skipped: [String] = []
+        while case .scripture(let spec) = playlistItems[j].kind {
+            _ = beginPreviewRequest()               // the step is the newest request: an older one still reading must not land after it
             // LIB-004c: a passage item is read from the Bible library; a missing translation stops the step with a message.
             let resolution = await scripture?.resolve(spec) ?? .failed("Scripture is not available in this session.")
             guard epoch == transportEpoch else { return false }
-            let what = direction > 0 ? "Next" : "Previous"
             switch resolution {
             case .ready(let passage):
-                openScripturePassage(passage, itemID: item.id)
+                blockedStep = nil
+                openScripturePassage(passage, itemID: playlistItems[j].id)
                 liveCountdown = nil
                 apply(.trigger(index: direction > 0 ? 0 : passage.contents.count - 1))
                 recordLiveSource()
                 placeChanged()
+                if !skipped.isEmpty { lastError = Self.skipNote(what, skipped) }
                 return true
             case .notInstalled(let text), .failed(let text):
-                lastError = "\(what) stopped: \(text)"
+                if skipping {
+                    skipped.append("“\(spec.label)”")
+                    guard let next = PlaylistStepping.target(kinds: playlistKinds, from: j, direction: direction) else {
+                        lastError = "\(what) skipped \(skipped.joined(separator: ", ")), but there is nothing playable after it. \(text)"
+                        return false
+                    }
+                    j = next
+                    continue
+                }
+                blockedStep = BlockedStep(epoch: transportEpoch, from: current, target: playlistItems[j].id, direction: direction)
+                lastError = "\(what) stopped: \(text) Press \(what) again to skip it."
                 return false
             }
+        }
+        let item = playlistItems[j]
+        if case .countdown = item.kind {
+            guard epoch == transportEpoch else { return false }
+            blockedStep = nil
+            goLiveOnCountdown(item)
+            if !skipped.isEmpty { lastError = Self.skipNote(what, skipped) }
+            return true
         }
         let count = (try? await store.slides(forPlaylistItem: item.id))?.count ?? 0
         guard epoch == transportEpoch else { return false }
@@ -197,6 +217,11 @@ extension WorkspaceModel {
         apply(.trigger(index: direction > 0 ? 0 : slides.count - 1))
         recordLiveSource()
         placeChanged()
+        if !skipped.isEmpty { lastError = Self.skipNote(what, skipped) }
         return true
+    }
+
+    static func skipNote(_ what: String, _ skipped: [String]) -> String {
+        "\(what) skipped \(skipped.joined(separator: ", ")): its translation is not installed."
     }
 }

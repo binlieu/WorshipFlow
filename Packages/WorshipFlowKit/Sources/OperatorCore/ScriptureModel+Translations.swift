@@ -11,11 +11,29 @@ extension ScriptureModel {
         onImportState?(state)
     }
 
+    /// The largest translation file that is read. A real Bible in this format is a few megabytes; more than this is not one.
+    public static let largestImportBytes = 64 * 1024 * 1024
+
+    /// FIX-F item 7: false while an import is running or waiting for the answer to "replace?". The Import button is disabled then,
+    /// and a second import started by any other road is ignored.
+    public var canStartImport: Bool {
+        switch importState {
+        case .running, .needsReplace: return false
+        case .idle, .finished, .failed: return true
+        }
+    }
+
     /// Reads a translation file from disk and adds it to the library. A code that is already there is not touched until
     /// `confirmReplace()`. The file is read and checked off the main actor.
     public func importTranslation(from url: URL) async {
+        guard canStartImport else { return }
         let name = url.lastPathComponent
         setImportState(.running(done: 0, total: 0))
+        if let size = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber, size.intValue > Self.largestImportBytes {
+            let megabytes = (size.intValue + 1_048_575) / 1_048_576
+            setImportState(.failed("“\(name)” is \(megabytes) MB. The largest translation file WorshipFlow will import is \(Self.largestImportBytes / 1_048_576) MB, so it was not read. A Bible translation file is much smaller: check that it is the right file."))
+            return
+        }
         let file: TranslationFile
         do {
             file = try await Task.detached(priority: .userInitiated) { () throws -> TranslationFile in
@@ -48,6 +66,7 @@ extension ScriptureModel {
             let verb = result.replaced ? "Replaced" : "Imported"
             setImportState(.finished("\(verb) “\(result.translation.name)”: \(result.report.verseCount) verses.\(tail)"))
             await refreshAfterLibraryChange()
+            if result.replaced { await reshow(after: result.translation.code) }
         } catch ScriptureStoreError.alreadyExists(let code) {
             pendingImport = file
             setImportState(.needsReplace(code: code, name: file.metadata.name))
@@ -93,6 +112,7 @@ extension ScriptureModel {
         if !installed(secondaryCode) || secondaryCode == primaryCode { secondaryCode = nil }
         await saveChoices()
         await refreshAfterLibraryChange()
+        await reshow(after: ask.code)
     }
 
     private func refreshAfterLibraryChange() async {

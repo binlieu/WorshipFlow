@@ -73,7 +73,7 @@ struct ScriptureView: View {
                     ForEach(ScriptureScreen.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize().accessibilityLabel("Scripture screen")
-                Button { app.ui.scriptureOpen = false; app.ui.focusGrid += 1 } label: { Image(systemName: "xmark") }
+                Button { app.ui.scriptureOpen = false; workspace.closeScripture(); app.ui.focusGrid += 1 } label: { Image(systemName: "xmark") }
                     .buttonStyle(HeaderButtonStyle()).help("Close Scripture and go back to the songs")
                     .accessibilityLabel("Close Scripture")
             }
@@ -225,7 +225,7 @@ struct ScriptureEmptyState: View {
             Text("No Bible translation is installed").font(.title3)
             Text(ScriptureModel.emptyHint).font(.caption).foregroundStyle(Tok.muted).multilineTextAlignment(.center).frame(maxWidth: 480)
             HStack {
-                Button("Import…") { chooseTranslationFile(scripture) }.buttonStyle(HeaderButtonStyle())
+                Button("Import…") { chooseTranslationFile(scripture) }.buttonStyle(HeaderButtonStyle()).disabled(!scripture.canStartImport)
                 Button("Translations") { showTranslations() }.buttonStyle(HeaderButtonStyle())
             }
             ScriptureImportStatus(scripture: scripture)

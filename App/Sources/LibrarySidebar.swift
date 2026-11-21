@@ -175,7 +175,7 @@ struct LibrarySidebar: View {
 
     /// LIB-004c: the Bible (Command-J). Under the libraries because it is a place to get slides from, like them.
     private var scriptureRow: some View {
-        let selected = app.ui.scriptureOpen
+        let selected = app.ui.scriptureOpen || workspace.centreShowsScripture
         return Button { app.openScripture() } label: {
             HStack(spacing: 8) {
                 Image(systemName: "book.closed").frame(width: 16).foregroundStyle(selected ? Tok.text : Tok.muted)
@@ -194,7 +194,7 @@ struct LibrarySidebar: View {
     }
 
     private func libraryRow(_ library: Library) -> some View {
-        let selected = library.id == workspace.selectedLibraryID && !app.ui.scriptureOpen
+        let selected = library.id == workspace.selectedLibraryID && !(app.ui.scriptureOpen || workspace.centreShowsScripture)
         return Button { app.ui.scriptureOpen = false; Task { await workspace.selectLibrary(library.id) } } label: {
             HStack(spacing: 8) {
                 Image(systemName: "music.note.list").frame(width: 16).foregroundStyle(selected ? Tok.text : Tok.muted)

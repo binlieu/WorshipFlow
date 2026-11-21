@@ -167,3 +167,10 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Choose a second translation: both languages show on each slide; a verse missing in one shows the other alone. Check the stage and livestream screens show current and next, and the lower third.
 - [ ] Add to playlist, quit, reopen: the item is there and opens. Remove its translation: the item stays, says "not installed", and Next into it stops with a message.
 - [ ] Save as presentation: it opens and can be edited. Search a Vietnamese word without accents: the verse is found and opens.
+- [ ] (FIX-F) Step from the last slide of a song into a scripture playlist item with Next, then with a MIDI pad or the phone: the centre shows the passage, not "no presentation". Quit while a passage item is selected and reopen: the centre shows it.
+- [ ] (FIX-F) Open a passage from the playlist, change the second translation, press Go Live, then Next past its last slide: the show goes on to the next playlist item. Type something new in the reference field without pressing Return and change a translation: the passage on screen does not change and your typing stays.
+- [ ] (FIX-F) With a passage shown, remove its translation: the passage turns into the "not installed" message and Add to playlist does not add it; what is live does not change. Replace a translation with a changed file: the shown passage takes the new words.
+- [ ] (FIX-F) Type `Psalm 119; Psalm 78; Psalm 89; Psalm 105` with one verse per slide: you are told how many slides it would be and asked to narrow it. Press Import twice quickly (or while the replace question is open): the second is ignored and the button is dimmed.
+- [ ] (FIX-F) With a playlist item whose translation is removed between two songs: Next stops with a message; Next again skips it and says so. Do something else (Go Live on another slide) and Next again: it stops again.
+- [ ] (FIX-F, KI-094) Open the same scripture item under two different audience themes or verses-per-slide settings: the slide count can differ. That is expected.
+- [ ] (FIX-F) The X of the Scripture view closes the passage too: Preview goes empty, live is untouched.

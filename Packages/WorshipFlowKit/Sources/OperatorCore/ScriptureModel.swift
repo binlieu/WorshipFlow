@@ -11,7 +11,7 @@ import ScriptureStore
 
 /// A passage ready to show: the engine's slides, the slides as the screens get them, and the reference it was made from.
 public struct ScripturePassage: Equatable, Sendable, Identifiable {
-    public let id: UUID
+    public internal(set) var id: UUID
     /// "John 3:16–18 (KJV)".
     public var title: String
     public var slides: [ScriptureSlide]
@@ -88,10 +88,22 @@ public final class ScriptureModel {
     @ObservationIgnored let stateStore: LibraryStore?
     @ObservationIgnored weak var workspace: WorkspaceModel?
     @ObservationIgnored var pendingImport: TranslationFile?
+    /// Awaited before each read of the library for a passage. Nil in the app; tests hold and release a read through it.
+    @ObservationIgnored var readGate: (@MainActor () async -> Void)?
     @ObservationIgnored var searchToken = 0
     @ObservationIgnored var showToken = 0
 
     static let choicesKey = "scripture.choices"
+
+    /// FIX-F item 4: every request that puts a passage, a playlist item or a song into preview takes a number from one counter (the
+    /// workspace's), and checks after each await that it is still the newest. Without a workspace the model counts alone.
+    func beginRequest() -> Int {
+        if let workspace { return workspace.beginPreviewRequest() }
+        showToken += 1
+        return showToken
+    }
+
+    func isCurrent(_ token: Int) -> Bool { workspace?.isCurrentPreviewRequest(token) ?? (token == showToken) }
 
     public init(store: ScriptureStore, stateStore: LibraryStore? = nil) {
         self.store = store
@@ -185,10 +197,80 @@ public final class ScriptureModel {
         try? await stateStore.setState(text, for: Self.choicesKey)
     }
 
-    /// Shows the passage again after a choice changed, when one is shown.
+    /// Shows the passage again after a choice changed, when one is shown. It is made again from the shown passage's own ranges (never
+    /// from the text in the field, which may be an edit that was not submitted), keeps its identity and its playlist item, and
+    /// leaves the field alone.
     private func refresh() async {
-        guard passage != nil else { return }
-        await show(referenceText)
+        guard let shown = passage, let primary = primaryCode else { return }
+        let token = beginRequest()
+        let itemID = workspace?.openScripture?.itemID
+        let options = ScriptureSlideLimits.options(theme: themeProvider(), bilingual: secondaryCode != nil, versesPerSlide: versesPerSlide)
+        let found: ScriptureLookup
+        await readGate?()
+        do { found = try await library.lookup(ranges: Self.ranges(of: shown.spec), primary: primary, secondary: secondaryCode, options: options) } catch {
+            guard isCurrent(token) else { return }
+            fail(Self.message(for: error))
+            return
+        }
+        guard isCurrent(token) else { return }
+        guard let presentation = found.presentation, !presentation.slides.isEmpty else {
+            let said = found.presentation?.report.messages.joined(separator: " ") ?? ""
+            fail(said.isEmpty ? "No verses were found for that reference." : said)
+            return
+        }
+        if let text = ScripturePassageLimit.refusal(slides: presentation.slides.count, title: presentation.title) { fail(text); return }
+        var made = Self.passage(from: found, presentation: presentation)
+        made.id = shown.id
+        problem = nil
+        passage = made
+        workspace?.openScripturePassage(made, itemID: itemID, adopt: false)
+    }
+
+    /// FIX-F item 3: the library changed under the shown passage (`code` was removed or replaced). The passage is read again from the
+    /// library by its own ranges and codes. A primary translation that is gone gives the plain "not installed" state (the missing code is
+    /// never kept for Add to playlist); a second one that is gone is dropped with a notice. Only the preview changes, never live.
+    func reshow(after code: String) async {
+        guard let shown = passage else { return }
+        let uses = shown.spec.translationCodes.contains { $0.caseInsensitiveCompare(code) == .orderedSame }
+        guard uses else { return }
+        let token = beginRequest()
+        let itemID = workspace?.openScripture?.itemID
+        var spec = shown.spec
+        var notice: String?
+        if let second = spec.secondaryCode, !installed(second) {
+            spec.secondaryCode = nil
+            notice = "The second translation “\(second)” is no longer installed, so the passage is shown without it."
+        }
+        guard installed(spec.primaryCode) else {
+            let text = Self.notInstalledText(spec.primaryCode, spec, keptItem: itemID != nil)
+            if let itemID, let item = workspace?.playlistItems.first(where: { $0.id == itemID }) {
+                workspace?.openScriptureProblem(text, item: item, title: spec.label)
+            } else {
+                fail(text)
+            }
+            return
+        }
+        let options = ScriptureSlideLimits.options(theme: themeProvider(), bilingual: spec.secondaryCode != nil, versesPerSlide: versesPerSlide)
+        let found: ScriptureLookup
+        await readGate?()
+        do { found = try await library.lookup(ranges: Self.ranges(of: spec), primary: spec.primaryCode, secondary: spec.secondaryCode, options: options) } catch {
+            guard isCurrent(token) else { return }
+            fail(Self.message(for: error))
+            return
+        }
+        guard isCurrent(token) else { return }
+        guard let presentation = found.presentation, !presentation.slides.isEmpty else {
+            let said = found.presentation?.report.messages.joined(separator: " ") ?? ""
+            fail(said.isEmpty ? "No verses were found for that reference." : said)
+            return
+        }
+        if let text = ScripturePassageLimit.refusal(slides: presentation.slides.count, title: presentation.title) { fail(text); return }
+        var made = Self.passage(from: found, presentation: presentation)
+        made.id = shown.id
+        if let notice { made.messages.append(notice) }
+        problem = nil
+        passage = made
+        workspace?.openScripturePassage(made, itemID: itemID, adopt: false)
     }
 
     func reloadTranslations() async {
@@ -212,8 +294,7 @@ public final class ScriptureModel {
     public func show(_ text: String) async {
         referenceText = text
         choiceMessage = nil
-        showToken += 1
-        let token = showToken
+        let token = beginRequest()
         guard let primary = primaryCode else {
             fail(isEmpty ? "No translation is installed. Import a translation first (Translations, then Import)." : emptyMessage)
             return
@@ -224,12 +305,13 @@ public final class ScriptureModel {
         }
         let options = ScriptureSlideLimits.options(theme: themeProvider(), bilingual: secondaryCode != nil, versesPerSlide: versesPerSlide)
         let found: ScriptureLookup
+        await readGate?()
         do { found = try await library.lookup(text, primary: primary, secondary: secondaryCode, options: options) } catch {
-            guard token == showToken else { return }
+            guard isCurrent(token) else { return }
             fail(Self.message(for: error))
             return
         }
-        guard token == showToken else { return }       // a newer Return came in while this one was reading
+        guard isCurrent(token) else { return }       // a newer Return came in while this one was reading
         if !found.outcome.problems.isEmpty {
             fail(found.outcome.problems.map(\.message).joined(separator: " "))
             return
@@ -239,6 +321,7 @@ public final class ScriptureModel {
             fail(said.isEmpty ? "No verses were found for that reference." : said)
             return
         }
+        if let text = ScripturePassageLimit.refusal(slides: presentation.slides.count, title: presentation.title) { fail(text); return }
         let made = Self.passage(from: found, presentation: presentation)
         problem = nil
         passage = made
@@ -279,6 +362,7 @@ public final class ScriptureModel {
 
     /// Reads the passage a playlist item keeps, from the library as it is now. A translation that is gone gives `.notInstalled`.
     public func resolve(_ spec: ScriptureItemSpec) async -> ScriptureResolution {
+        await readGate?()
         for code in spec.translationCodes {
             do { _ = try await store.translation(code: code) } catch ScriptureStoreError.notFound {
                 return .notInstalled(Self.notInstalledText(code, spec))
@@ -291,6 +375,7 @@ public final class ScriptureModel {
                 let said = found.presentation?.report.messages.joined(separator: " ") ?? ""
                 return .failed(said.isEmpty ? "“\(spec.label)” has no verses in the library." : said)
             }
+            if let text = ScripturePassageLimit.refusal(slides: presentation.slides.count, title: presentation.title) { return .failed(text) }
             var made = Self.passage(from: found, presentation: presentation)
             made.spec = spec                    // the item keeps its own label and codes
             made.title = spec.label
@@ -300,8 +385,9 @@ public final class ScriptureModel {
         } catch { return .failed(Self.message(for: error)) }
     }
 
-    static func notInstalledText(_ code: String, _ spec: ScriptureItemSpec) -> String {
-        "The translation “\(code)” is not installed on this Mac, so “\(spec.label)” cannot be shown. Import it again (Scripture, Translations) or remove the item."
+    static func notInstalledText(_ code: String, _ spec: ScriptureItemSpec, keptItem: Bool = true) -> String {
+        let end = keptItem ? "remove the item" : "choose another translation and show the passage again"
+        return "The translation “\(code)” is not installed on this Mac, so “\(spec.label)” cannot be shown. Import it again (Scripture, Translations) or \(end)."
     }
 
     /// For a playlist row: a plain warning when a translation the item needs is not installed; nil when all is well (and before

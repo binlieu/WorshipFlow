@@ -108,6 +108,18 @@ public final class WorkspaceModel {
     @ObservationIgnored private let clock: any SaveClock
     @ObservationIgnored var searchToken = 0
     @ObservationIgnored var stepping = false
+    /// FIX-F item 4: the number of the newest request to put something into preview (a typed passage, a playlist item, a song).
+    @ObservationIgnored var previewRequest = 0
+
+    /// FIX-F item 8: the last Next or Previous that stopped at a passage whose translation is missing. A second one for the same item,
+    /// from the same live item, in the same stay (no other transport command in between) skips the item.
+    struct BlockedStep: Equatable {
+        var epoch: Int
+        var from: UUID
+        var target: UUID
+        var direction: Int
+    }
+    @ObservationIgnored var blockedStep: BlockedStep?
     /// R13: the live presentation's theme as it was when the show was last triggered (see `shownThemeID`).
     @ObservationIgnored var capturedLiveThemeID: UUID?
     /// R1: transport commands (Go Live, Next, Previous) run one at a time, in the order they arrived.
@@ -226,6 +238,10 @@ public final class WorkspaceModel {
         let wasStopped = show.isStopped
         let before = show
         show.apply(command)
+        switch command {
+        case .select, .load, .restore: break
+        default: if show != before { blockedStep = nil }     // a move of the live show ends the "stay" a stopped Next belongs to
+        }
         defer {
             if let event = SlideLiveEvent.detect(command: command, before: before, after: show) { onSlideWentLive?(event) }
         }

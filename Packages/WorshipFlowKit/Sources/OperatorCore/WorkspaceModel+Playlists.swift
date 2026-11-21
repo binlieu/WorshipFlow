@@ -85,12 +85,14 @@ extension WorkspaceModel {
         guard let item = playlistItems.first(where: { $0.id == id }) else { return }
         switch item.kind {
         case .header: return                                  // a header is a label: it cannot be selected
-        case .countdown: selectedPlaylistItemID = id; placeChanged(); return    // selected for Go Live, not started
+        case .countdown: _ = beginPreviewRequest(); selectedPlaylistItemID = id; placeChanged(); return    // selected for Go Live, not started
         case .scripture(let spec): await openScriptureItem(item, spec: spec); return        // LIB-004c
         case .presentation: break
         }
+        let token = beginPreviewRequest()
         await flushDrafts()
-        guard let loaded = await loadContent(of: item.presentationID, itemID: id) else { return }
+        guard isCurrentPreviewRequest(token) else { return }
+        guard let loaded = await loadContent(of: item.presentationID, itemID: id), isCurrentPreviewRequest(token) else { return }
         selectedPlaylistItemID = id
         openPlaylistItemID = id
         install(loaded, presentationID: item.presentationID)

@@ -23,3 +23,14 @@ Code: `OperatorCore` (`ScriptureModel`, `ScriptureModel+Search`, `ScriptureModel
 - Editing a passage is done after "Save as presentation". Quick edit and the Edit mode do nothing for a passage.
 - A reference that is partly bad shows nothing (a plain problem) rather than half a passage.
 - The chosen translations and verses per slide are saved in the library's state table (`scripture.choices`).
+
+## FIX-F changes (review of 2026-11-21)
+
+- **Centre pane.** `WorkspaceModel.centreShowsScripture` is true whenever a passage (typed, from a playlist item, stepped into, restored) is open; the Show centre shows the Scripture view when that is true or when the operator asked for it. The view's close button also closes the open passage.
+- **Refresh.** A change of translation or verses per slide makes the shown passage again from its own ranges (not from the field text), with the same identity and playlist item, and does not touch the field.
+- **Library changes.** After Remove or a replacing Import the shown passage is read again by its own codes: a missing primary gives the "not installed" state and the code is never kept for Add to playlist; a missing second translation is dropped with a notice. Live is never changed.
+- **Requests.** One counter on the workspace numbers every request that puts a passage, a playlist item or a song into Preview, and each checks it after every await; the newest wins.
+- **Size.** More than 300 slides is refused: the operator is told the count and asked to narrow the reference.
+- **Import.** `canStartImport` is false while an import runs or the replace question is open; a second import is ignored and the buttons are disabled. A file over 64 MB is refused before it is read.
+- **Missing translation and Next.** The first Next or Previous onto such an item stops with the message; a second one onto it, from the same live item, in the same stay (no other live change), skips it (and any further such item) and says so. The keyboard, MIDI, remote and the buttons all end in `WorkspaceModel.next()`/`previous()`.
+- **Reference text.** Stored ranges written with the KJV table and read back by the primary translation's table: whole chapters and partial ranges are unchanged on both built-in tables. Across tables a verse the other table lacks is refused in plain words, never changed silently. Known issues KI-093 to KI-095.

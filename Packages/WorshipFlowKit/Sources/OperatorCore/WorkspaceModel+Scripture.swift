@@ -19,10 +19,24 @@ public struct OpenScripture: Equatable, Sendable {
 }
 
 extension WorkspaceModel {
+    /// FIX-F item 1: true whenever a passage is open in the workspace (typed, opened from a playlist item, stepped into by Next, MIDI
+    /// or the remote, or restored at launch), so the centre pane shows it however it was opened. The view also shows the Scripture
+    /// view while the operator has asked for it and no passage is open yet (an empty reference field).
+    public var centreShowsScripture: Bool { openScripture != nil }
+
+    /// A new request to change what preview shows. Anything older that is still waiting must not land after it.
+    func beginPreviewRequest() -> Int {
+        previewRequest &+= 1
+        return previewRequest
+    }
+
+    func isCurrentPreviewRequest(_ token: Int) -> Bool { token == previewRequest }
+
     /// Puts a passage into preview. It never touches what is live. Nothing is written to the library.
-    public func openScripturePassage(_ passage: ScripturePassage, itemID: UUID? = nil) {
+    /// `adopt: false` (a refresh of the shown passage) leaves the reference field alone: the operator may have typed more there.
+    public func openScripturePassage(_ passage: ScripturePassage, itemID: UUID? = nil, adopt: Bool = true) {
         installScripture(OpenScripture(deckID: itemID ?? passage.id, title: passage.title, itemID: itemID, contents: passage.contents, problem: nil))
-        if itemID != nil { scripture?.adopt(passage) }       // a typed passage is already the model's own
+        if itemID != nil, adopt { scripture?.adopt(passage) }       // a typed passage is already the model's own
     }
 
     /// A playlist item whose passage cannot be shown: selected, with the reason in the centre pane and an empty preview.
@@ -46,6 +60,7 @@ extension WorkspaceModel {
 
     /// The reference field went empty or could not be read: the passage leaves preview (live is not touched).
     public func closeScripture() {
+        _ = beginPreviewRequest()                // a passage still being read must not come back after this
         guard openScripture != nil else { return }
         openScripture = nil
         openPlaylistItemID = nil
@@ -55,13 +70,17 @@ extension WorkspaceModel {
     }
 
     func openScriptureItem(_ item: PlaylistItem, spec: ScriptureItemSpec) async {
+        let token = beginPreviewRequest()
         selectedPlaylistItemID = item.id
         guard let scripture else {
             lastError = "Could not open the passage: Scripture is not available in this session."
             return
         }
         await flushDrafts()
-        switch await scripture.resolve(spec) {
+        guard isCurrentPreviewRequest(token) else { return }
+        let resolution = await scripture.resolve(spec)
+        guard isCurrentPreviewRequest(token) else { return }          // a newer request came in while this one was reading
+        switch resolution {
         case .ready(let passage): openScripturePassage(passage, itemID: item.id)
         case .notInstalled(let text): openScriptureProblem(text, item: item, title: spec.label)
         case .failed(let text):

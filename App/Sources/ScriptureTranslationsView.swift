@@ -27,7 +27,7 @@ struct ScriptureTranslationsView: View {
                 Text("Installed translations").font(.system(size: 15, weight: .semibold))
                 Spacer()
                 Button { chooseTranslationFile(scripture) } label: { Label("Import…", systemImage: "square.and.arrow.down") }
-                    .buttonStyle(HeaderButtonStyle())
+                    .buttonStyle(HeaderButtonStyle()).disabled(!scripture.canStartImport)
                     .help("Add a translation file. It is kept in your library; nothing is sent anywhere.")
             }
             ScriptureImportStatus(scripture: scripture)
