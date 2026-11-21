@@ -4,13 +4,14 @@ Updated: 2026-11-20
 
 ## Summary
 
-Phase 0 (render spike) is in progress. No feature is complete. No video hardware is owned, so nothing is Hardware Verified.
+Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 has started with SYS-001. No video hardware is owned, so nothing is Hardware Verified.
 
 ## Verification by slice
 
 | Slice | Implemented | Unit Tested | Simulated | Hardware Verified | Live-Service Verified |
 |---|---|---|---|---|---|
-| OUT-001 render spike | In progress | Not Verified | n/a | Not Verified | Not Verified |
+| OUT-001 render spike | Yes | Yes (21 tests) | n/a | Not Verified | Not Verified |
+| SYS-001 SQLite store | In progress | Not Verified | n/a | n/a | Not Verified |
 
 Every other slice in `AI/TASK-BREAKDOWN.md` is Todo.
 
