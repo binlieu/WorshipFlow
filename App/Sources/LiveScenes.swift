@@ -1,25 +1,27 @@
-// OUT-002: the single snapshot every output reads. One publish updates all outputs on the same frame (NFR-04).
+// OUT-002 / OUT-003: the single snapshot every output reads. One publish updates all outputs on the same frame (NFR-04).
 import Foundation
 import Domain
 
-/// Immutable: the three composed scenes for one show state.
+/// Immutable: one composed scene per screen profile for one show state, Look and prop list.
 struct PublishedScenes: Sendable, Equatable {
-    var audience: SceneDescription
-    var stage: SceneDescription
-    var broadcast: SceneDescription
+    private var scenes: [UUID: SceneDescription]
 
-    init(state: ShowState, clockText: String?) {
-        audience = SceneComposer.scene(for: .audience, state: state, clockText: clockText)
-        stage = SceneComposer.scene(for: .stage, state: state, clockText: clockText)
-        broadcast = SceneComposer.scene(for: .broadcast, state: state, clockText: clockText)
+    init(state: ShowState, clockText: String?, profiles: [ScreenProfile] = [], themes: [Theme] = Theme.builtIn,
+         look: Look? = nil, props: [Prop] = []) {
+        var composed: [UUID: SceneDescription] = [:]
+        for profile in profiles {
+            let screenLook = look?.screenLook(for: profile.id) ?? .standard
+            let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
+                                            presentationThemeID: nil, themes: themes)
+            composed[profile.id] = SceneComposer.scene(for: profile.role, state: state, theme: theme, look: screenLook,
+                                                       props: props, clockText: clockText)
+        }
+        scenes = composed
     }
 
-    func scene(for role: ScreenRole) -> SceneDescription {
-        switch role {
-        case .audience: audience
-        case .stage: stage
-        case .broadcast: broadcast
-        }
+    /// A screen that is not in the snapshot (for example one added a moment ago) shows black until the next publish.
+    func scene(forScreen id: UUID) -> SceneDescription {
+        scenes[id] ?? SceneDescription(backgroundColor: .black, showsVideo: false, textLayers: [])
     }
 }
 

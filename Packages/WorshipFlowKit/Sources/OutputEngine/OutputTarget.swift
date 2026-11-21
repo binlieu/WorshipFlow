@@ -42,6 +42,8 @@ public protocol OutputTarget: AnyObject {
     var refreshRate: Double { get }
     var statistics: FrameStatistics { get }
     var lastRenderError: String? { get }
+    /// Image files the output could not draw (missing or unreadable), sorted. For the operator window (OUT-003).
+    var unavailableImagePaths: [String] { get }
     /// Display-link ticks and GPU submissions, for diagnosing an output that presents nothing.
     var diagnostics: String { get }
     /// True while the output's window is running but covered, minimised or on an inactive Space, so no frames
@@ -55,4 +57,5 @@ public protocol OutputTarget: AnyObject {
 
 extension OutputTarget {
     public var isOccluded: Bool { false }
+    public var unavailableImagePaths: [String] { [] }
 }

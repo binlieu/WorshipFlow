@@ -43,6 +43,37 @@ public final class Compositor {
     /// Number of Core Text rasterisations performed (for tests and diagnostics).
     public private(set) var rasterizationCount = 0
 
+    // Image cache (OUT-003). Keyed by path; an entry is reloaded when the file's modification date changes.
+    private struct ImageEntry {
+        var texture: MTLTexture?        // nil: the file could not be read
+        var modified: Date?
+        var checkedAt: Double
+        var lastUsed: Int
+        var bytes: Int
+    }
+    private var images: [String: ImageEntry] = [:]
+    private let loadCenter = ImageLoadCenter()
+    private var frameCounter = 0
+    private var imageBytes = 0
+    /// At most this many images are kept; the least recently used are dropped first.
+    static let imageCacheLimit = 64
+    static let imageCacheByteLimit = 256 * 1024 * 1024
+    private static let modificationRecheckInterval = 1.0
+    /// Images currently held in the cache (for tests and diagnostics).
+    var cachedImageCount: Int { images.count }
+    /// Number of image files decoded so far (for tests and diagnostics).
+    public var imageDecodeCount: Int { loadCenter.decodeCount }
+    /// Image files that were missing or could not be decoded the last time they were tried. Safe to read from any thread.
+    public var unavailableImagePaths: Set<String> { loadCenter.unavailablePaths }
+
+    /// Where image decoding happens when an image is not cached yet.
+    public enum ImageLoading: Sendable {
+        /// Decode on the calling thread. Offscreen rendering and tests.
+        case synchronous
+        /// Decode on a background queue and skip the image until it is ready. The live render thread never waits for a decode.
+        case background
+    }
+
     static let shaderSource = """
     #include <metal_stdlib>
     using namespace metal;
@@ -68,9 +99,11 @@ public final class Compositor {
         return o;
     }
 
-    // Both text (premultiplied) and video (opaque) textures are composited with premultiplied "over".
-    fragment float4 quad_fragment(VOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler s [[sampler(0)]]) {
-        return tex.sample(s, in.uv);
+    // Text, images (premultiplied) and video (opaque) are composited with premultiplied "over".
+    // `opacity` scales all four premultiplied components, so the result stays premultiplied.
+    fragment float4 quad_fragment(VOut in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler s [[sampler(0)]],
+                                  constant float &opacity [[buffer(0)]]) {
+        return tex.sample(s, in.uv) * opacity;
     }
     """
 
@@ -142,7 +175,7 @@ public final class Compositor {
         guard let texture = device.makeTexture(descriptor: td), let cb = queue.makeCommandBuffer() else {
             throw RenderError.resourceCreation("offscreen texture")
         }
-        try encode(scene: scene, into: texture, video: nil, commandBuffer: cb)
+        try encode(scene: scene, into: texture, video: nil, commandBuffer: cb, imageLoading: .synchronous)
         cb.commit()
         cb.waitUntilCompleted()
         if let error = cb.error { throw RenderError.pipeline("\(error)") }
@@ -159,8 +192,9 @@ public final class Compositor {
 
     /// Encodes the scene into `texture` on the caller's command buffer. The caller commits it.
     /// `video`, when supplied and `scene.showsVideo` is true, is drawn aspect-fill over the background colour.
+    /// Draw order: background colour, video, background image, text, overlay images.
     public func encode(scene: SceneDescription, into texture: MTLTexture, video: MTLTexture? = nil,
-                       commandBuffer: MTLCommandBuffer) throws {
+                       commandBuffer: MTLCommandBuffer, imageLoading: ImageLoading = .background) throws {
         let width = texture.width, height = texture.height
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         let pipeline = try pipeline(for: texture.pixelFormat)
@@ -191,6 +225,13 @@ public final class Compositor {
             placed.append(Placed(cached: cached, x: x, y: y, clip: frame))
         }
 
+        // Resolve image textures too, before the pass starts.
+        frameCounter += 1
+        drainFinishedImages()
+        let backgroundImage = scene.backgroundImage.flatMap { imageDraw($0, width: width, height: height, loading: imageLoading) }
+        let overlays = scene.overlayImages.compactMap { imageDraw($0, width: width, height: height, loading: imageLoading) }
+        evictImagesIfNeeded()
+
         let bg = scene.backgroundColor
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = texture
@@ -204,6 +245,8 @@ public final class Compositor {
         enc.setRenderPipelineState(pipeline)
         enc.setFragmentSamplerState(sampler, index: 0)
         let target = SIMD2<Float>(Float(width), Float(height))
+        var fullOpacity: Float = 1
+        enc.setFragmentBytes(&fullOpacity, length: MemoryLayout<Float>.stride, index: 0)
 
         if scene.showsVideo, let video, video.width > 0, video.height > 0 {
             // Aspect-fill: crop the source so it covers the whole target.
@@ -225,6 +268,8 @@ public final class Compositor {
             enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         }
 
+        if let d = backgroundImage { draw(d, with: enc, target: target) }
+
         for p in placed {
             let left = max(0, p.clip.x), top = max(0, p.clip.y)
             let right = min(width, p.clip.x + p.clip.width), bottom = min(height, p.clip.y + p.clip.height)
@@ -237,7 +282,127 @@ public final class Compositor {
             enc.setFragmentTexture(p.cached.texture, index: 0)
             enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         }
+
+        if !overlays.isEmpty {
+            enc.setScissorRect(MTLScissorRect(x: 0, y: 0, width: width, height: height))   // text drawing left a clip set
+            for d in overlays { draw(d, with: enc, target: target) }
+        }
         enc.endEncoding()
+    }
+
+    // MARK: Images
+
+    private struct ImageDraw {
+        let texture: MTLTexture
+        let origin: SIMD2<Float>
+        let size: SIMD2<Float>
+        let uvOrigin: SIMD2<Float>
+        let uvSize: SIMD2<Float>
+        let opacity: Float
+    }
+
+    private func draw(_ d: ImageDraw, with enc: MTLRenderCommandEncoder, target: SIMD2<Float>) {
+        var q = QuadUniforms(origin: d.origin, size: d.size, target: target, uvOrigin: d.uvOrigin, uvSize: d.uvSize)
+        var opacity = d.opacity
+        enc.setVertexBytes(&q, length: MemoryLayout<QuadUniforms>.stride, index: 0)
+        enc.setFragmentBytes(&opacity, length: MemoryLayout<Float>.stride, index: 0)
+        enc.setFragmentTexture(d.texture, index: 0)
+        enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+    }
+
+    /// Placement of an image layer, or nil when it has nothing to draw (no texture yet, empty frame, zero opacity).
+    private func imageDraw(_ layer: ImageLayer, width: Int, height: Int, loading: ImageLoading) -> ImageDraw? {
+        guard let texture = imageTexture(layer.path, loading: loading), texture.width > 0, texture.height > 0 else { return nil }
+        let opacity = Float(min(1, max(0, layer.opacity)))
+        let frame = layer.frame.pixelRect(width: width, height: height)
+        guard opacity > 0, frame.width > 0, frame.height > 0 else { return nil }
+        let iw = Double(texture.width), ih = Double(texture.height)
+        let fw = Double(frame.width), fh = Double(frame.height)
+        switch layer.contentMode {
+        case .fit:
+            let scale = min(fw / iw, fh / ih)
+            let w = max(1, (iw * scale).rounded()), h = max(1, (ih * scale).rounded())
+            let x = Double(frame.x) + ((fw - w) / 2).rounded(), y = Double(frame.y) + ((fh - h) / 2).rounded()
+            return ImageDraw(texture: texture, origin: SIMD2(Float(x), Float(y)), size: SIMD2(Float(w), Float(h)),
+                             uvOrigin: .zero, uvSize: SIMD2(1, 1), opacity: opacity)
+        case .fill:
+            // Cover the frame: crop the source to the frame's aspect ratio.
+            let srcAspect = iw / ih, dstAspect = fw / fh
+            var uvOrigin = SIMD2<Float>(0, 0), uvSize = SIMD2<Float>(1, 1)
+            if srcAspect > dstAspect {
+                let w = Float(dstAspect / srcAspect)
+                uvSize.x = w
+                uvOrigin.x = (1 - w) / 2
+            } else {
+                let h = Float(srcAspect / dstAspect)
+                uvSize.y = h
+                uvOrigin.y = (1 - h) / 2
+            }
+            return ImageDraw(texture: texture, origin: SIMD2(Float(frame.x), Float(frame.y)), size: SIMD2(Float(fw), Float(fh)),
+                             uvOrigin: uvOrigin, uvSize: uvSize, opacity: opacity)
+        }
+    }
+
+    private func now() -> Double { ProcessInfo.processInfo.systemUptime }
+
+    /// The cached texture for `path`, loading or reloading it when needed. Nil while unavailable or not decoded yet.
+    private func imageTexture(_ path: String, loading: ImageLoading) -> MTLTexture? {
+        let t = now()
+        var needsLoad = false
+        if var entry = images[path] {
+            entry.lastUsed = frameCounter
+            if t - entry.checkedAt >= Self.modificationRecheckInterval {
+                entry.checkedAt = t
+                if ImageDecoder.modificationDate(of: path) != entry.modified { needsLoad = true }
+            }
+            images[path] = entry
+        } else {
+            needsLoad = true
+        }
+        if needsLoad {
+            switch loading {
+            case .synchronous: install(loadCenter.decodeNow(path))
+            case .background: loadCenter.requestInBackground(path)
+            }
+        }
+        return images[path]?.texture
+    }
+
+    private func drainFinishedImages() {
+        for outcome in loadCenter.takeFinished() { install(outcome) }
+    }
+
+    private func install(_ outcome: ImageLoadOutcome) {
+        if let old = images[outcome.path] { imageBytes -= old.bytes }
+        var texture: MTLTexture?
+        var bytes = 0
+        if let image = outcome.image {
+            let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: image.width, height: image.height, mipmapped: false)
+            td.usage = .shaderRead
+            td.storageMode = .shared
+            if let tex = device.makeTexture(descriptor: td) {
+                image.pixels.withUnsafeBytes { raw in
+                    if let base = raw.baseAddress {
+                        tex.replace(region: MTLRegionMake2D(0, 0, image.width, image.height), mipmapLevel: 0,
+                                    withBytes: base, bytesPerRow: image.width * 4)
+                    }
+                }
+                texture = tex
+                bytes = image.width * image.height * 4
+            }
+        }
+        images[outcome.path] = ImageEntry(texture: texture, modified: outcome.modified, checkedAt: now(),
+                                          lastUsed: frameCounter, bytes: bytes)
+        imageBytes += bytes
+    }
+
+    /// Keeps the cache bounded. Images used by the frame being encoded are never dropped.
+    private func evictImagesIfNeeded() {
+        while images.count > Self.imageCacheLimit || imageBytes > Self.imageCacheByteLimit {
+            guard let victim = images.filter({ $0.value.lastUsed != frameCounter }).min(by: { $0.value.lastUsed < $1.value.lastUsed }) else { return }
+            imageBytes -= victim.value.bytes
+            images[victim.key] = nil
+        }
     }
 
     // MARK: Text cache

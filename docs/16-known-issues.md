@@ -17,3 +17,6 @@
 | KI-013 | Decision: Stop empties every screen and leaves outputs open; "Close screens" stops the outputs. | Accepted. |
 | KI-014 | Dragging the operator window onto a display where a full-screen output is running is not detected. | Open. |
 | KI-015 | Whether display ids stay the same across an unplug and replug is unchecked; auto-resume depends on it. | Open. Needs a physical test. |
+| KI-016 | Themes, Looks and props are stored as JSON files, not SQLite, and presentations have no theme field yet. | Open. Follow-up slice SYS-002. |
+| KI-017 | A newly added prop image appears a few frames late in the live path because decoding is off the render thread. Each screen decodes its own copy. | Accepted for now. |
+| KI-018 | Not verified for OUT-003: the Look, theme and prop controls in the interface, bookmark restore after relaunch, wide-gamut, 16-bit and very large images. | Open. Part of the interface pass (KI-011). |

@@ -27,9 +27,19 @@ final class AppModel {
     private(set) var screensOn = false
     private(set) var videoURL: URL?
     private(set) var messages: [String] = []
+    /// Themes the operator can choose per screen. Only the built-in ones until a theme editor exists.
+    let themes: [Theme] = Theme.builtIn
+    private(set) var looks: [Look] = [Look(id: UUID(), name: "Standard")]
+    private(set) var selectedLookID = UUID()
+    private(set) var props: [Prop] = []
+    /// Image files that are missing or unreadable: from the files checked here and from what the outputs reported.
+    private(set) var unavailableImages: [String] = []
 
     @ObservationIgnored private let sceneBox: SceneBox
     @ObservationIgnored private let store = ScreenProfileStore.standard
+    @ObservationIgnored private let lookStore = LookStore.standard
+    @ObservationIgnored private var propBookmarks: [UUID: Data] = [:]
+    @ObservationIgnored private var scopedURLs: [UUID: URL] = [:]   // security-scoped access held while the prop exists
     @ObservationIgnored private lazy var coordinator: OutputCoordinator = makeCoordinator()
     @ObservationIgnored private var video: LoopingVideoSource?
     @ObservationIgnored private var clockText = ""
@@ -45,9 +55,11 @@ final class AppModel {
         state.apply(.load(SampleSlides.deck))
         show = state
         sceneBox = SceneBox(PublishedScenes(state: state, clockText: nil))
+        selectedLookID = looks[0].id
         soak = SoakConfig.parse(CommandLine.arguments)   // known before profiles load, so a soak never writes settings
         refreshDisplayChoices()
         loadProfiles()
+        loadLooks()
         updateClock(force: true)
     }
 
@@ -172,6 +184,7 @@ final class AppModel {
         guard let i = profiles.firstIndex(where: { $0.id == profile.id }), profiles[i] != profile else { return }
         profiles[i] = profile
         persistProfiles()
+        publish()   // a role change composes a different scene
         coordinator.setProfiles(profiles)
         updateReadouts()
     }
@@ -186,6 +199,154 @@ final class AppModel {
     func stopScreen(_ id: UUID) {
         coordinator.stop(id)
         updateReadouts()
+    }
+
+    // MARK: Looks and props (OUT-003)
+
+    var currentLook: Look? { looks.first { $0.id == selectedLookID } }
+
+    func screenLook(for screenID: UUID) -> ScreenLook { currentLook?.screenLook(for: screenID) ?? .standard }
+
+    func selectLook(_ id: UUID) {
+        guard id != selectedLookID, looks.contains(where: { $0.id == id }) else { return }
+        selectedLookID = id
+        lookChanged()
+    }
+
+    /// Creates a Look that starts as a copy of the current one and selects it.
+    func addLook() {
+        var look = currentLook ?? Look(id: UUID(), name: "Look")
+        look.id = UUID()
+        look.name = "Look \(looks.count + 1)"
+        looks.append(look)
+        selectedLookID = look.id
+        lookChanged()
+    }
+
+    func renameLook(_ id: UUID, to name: String) {
+        guard let i = looks.firstIndex(where: { $0.id == id }), looks[i].name != name else { return }
+        looks[i].name = name
+        persistLooks()
+    }
+
+    /// The last Look cannot be deleted: a screen always has one.
+    func deleteLook(_ id: UUID) {
+        guard looks.count > 1, let i = looks.firstIndex(where: { $0.id == id }) else { return }
+        looks.remove(at: i)
+        if selectedLookID == id { selectedLookID = looks[min(i, looks.count - 1)].id }
+        lookChanged()
+    }
+
+    func setTheme(_ themeID: UUID?, forScreen screenID: UUID) {
+        editScreenLook(screenID) { $0.themeID = themeID }
+    }
+
+    func setLayer(_ layer: LayerKind, visible: Bool, forScreen screenID: UUID) {
+        editScreenLook(screenID) { if visible { $0.visibleLayers.insert(layer) } else { $0.visibleLayers.remove(layer) } }
+    }
+
+    private func editScreenLook(_ screenID: UUID, _ change: (inout ScreenLook) -> Void) {
+        guard let i = looks.firstIndex(where: { $0.id == selectedLookID }) else { return }
+        var screenLook = looks[i].screenLook(for: screenID)
+        let before = screenLook
+        change(&screenLook)
+        guard screenLook != before else { return }
+        looks[i].screens[screenID] = screenLook
+        lookChanged()
+    }
+
+    func chooseProp() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Choose an image for the prop (for example a logo)"
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            MainActor.assumeIsolated { self?.addProp(url) }
+        }
+    }
+
+    func addProp(_ url: URL) {
+        let id = UUID()
+        _ = url.startAccessingSecurityScopedResource()   // an open-panel URL is already accessible; keep access for the prop's lifetime
+        scopedURLs[id] = url
+        do {
+            propBookmarks[id] = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+        } catch {
+            log("Could not remember access to \(url.lastPathComponent) across launches: \(error.localizedDescription)")
+        }
+        props.append(Prop(id: id, name: url.deletingPathExtension().lastPathComponent, imagePath: url.path,
+                          frame: NormalizedRect(x: 0.86, y: 0.04, width: 0.1, height: 0.1), opacity: 1, isOn: true))
+        lookChanged()
+    }
+
+    func setProp(_ id: UUID, isOn: Bool) {
+        guard let i = props.firstIndex(where: { $0.id == id }), props[i].isOn != isOn else { return }
+        props[i].isOn = isOn
+        lookChanged()
+    }
+
+    func removeProp(_ id: UUID) {
+        guard let i = props.firstIndex(where: { $0.id == id }) else { return }
+        props.remove(at: i)
+        propBookmarks[id] = nil
+        scopedURLs.removeValue(forKey: id)?.stopAccessingSecurityScopedResource()
+        lookChanged()
+    }
+
+    /// One publish and one save per operator change.
+    private func lookChanged() {
+        publish()
+        persistLooks()
+        updateReadouts()
+    }
+
+    private func persistLooks() {
+        guard soak == nil else { return }
+        let library = LookLibrary(looks: looks, selectedLookID: selectedLookID,
+                                  props: props.map { StoredProp(prop: $0, bookmark: propBookmarks[$0.id]) })
+        do { try lookStore.save(library) } catch { log("Looks could not be saved: \(error.localizedDescription)") }
+    }
+
+    private func loadLooks() {
+        switch lookStore.load() {
+        case .missing:
+            break
+        case .unreadable(let why):
+            log("Looks could not be read, using defaults. The file is left as it is until you change a Look or prop. (\(why))")
+        case .loaded(let library):
+            if !library.looks.isEmpty {
+                looks = library.looks
+                selectedLookID = looks.contains { $0.id == library.selectedLookID } ? (library.selectedLookID ?? looks[0].id) : looks[0].id
+            }
+            props = library.props.map { stored in
+                var prop = stored.prop
+                if let data = stored.bookmark {
+                    var stale = false
+                    if let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale) {
+                        _ = url.startAccessingSecurityScopedResource()
+                        scopedURLs[prop.id] = url
+                        prop.imagePath = url.path   // follows the file if it was moved or renamed
+                        propBookmarks[prop.id] = stale
+                            ? ((try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)) ?? data)
+                            : data
+                    } else {
+                        propBookmarks[prop.id] = data
+                    }
+                }
+                return prop
+            }
+        }
+    }
+
+    /// Files the live scenes need that cannot be read now, plus what the outputs reported. Sorted, no duplicates.
+    private func imageProblems(reported: [String]) -> [String] {
+        var paths = Set(reported)
+        var needed = Set(props.filter(\.isOn).map(\.imagePath))
+        for theme in themes { if case .image(let path) = theme.background { needed.insert(path) } }
+        for path in needed where !FileManager.default.isReadableFile(atPath: path) { paths.insert(path) }
+        return paths.sorted()
     }
 
     // MARK: Video
@@ -217,7 +378,7 @@ final class AppModel {
         if screensOn {
             video?.start()
             // Running audience outputs captured the previous source; restart them so they pick up the new one.
-            for r in coordinator.readouts() where r.role == .audience && (r.state == .running || r.state == .hidden) {
+            for r in coordinator.readouts() where r.role != .stage && (r.state == .running || r.state == .hidden) {
                 coordinator.restart(r.id)
             }
             updateReadouts()
@@ -243,7 +404,8 @@ final class AppModel {
     func select(_ index: Int) { send(.select(index: index)) }
 
     private func publish() {
-        sceneBox.publish(PublishedScenes(state: show, clockText: clockText))
+        sceneBox.publish(PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
+                                         look: currentLook, props: props))
     }
 
     private func updateClock(force: Bool) {
@@ -274,8 +436,9 @@ final class AppModel {
     private func makeTarget(_ profile: ScreenProfile, _ destination: OutputDestination) throws -> any OutputTarget {
         let box = sceneBox
         let role = profile.role
-        let provider: SceneProvider = { box.read().scene(for: role) }
-        let source: (any VideoSourceFactory)? = role == .audience ? video : nil
+        let screenID = profile.id
+        let provider: SceneProvider = { box.read().scene(forScreen: screenID) }
+        let source: (any VideoSourceFactory)? = role != .stage ? video : nil
         switch destination {
         case .display(let id):
             guard let screen = NSScreen.screens.first(where: { DisplayOutput.displayID(of: $0) == id }) else {
@@ -291,6 +454,8 @@ final class AppModel {
     func updateReadouts() {
         let r = coordinator.readouts()
         if r != readouts { readouts = r }
+        let problems = imageProblems(reported: r.flatMap(\.unavailableImagePaths))
+        if problems != unavailableImages { unavailableImages = problems }
         if screensOn != coordinator.isActive { screensOn = coordinator.isActive }
     }
 

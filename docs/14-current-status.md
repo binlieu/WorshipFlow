@@ -4,7 +4,7 @@ Updated: 2026-11-20
 
 ## Summary
 
-Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 is under way: SYS-001 and OUT-002 are unit tested. 110 package tests pass. Offscreen benchmark: four 1080p compositions per frame take about 0.64 ms mean on this Mac (no video layer, debug build). No video hardware is owned, so nothing is Hardware Verified.
+Phase 0 (render spike) is implemented and unit tested; its timing exit criterion is not yet measured (KI-007). Phase 1 is under way: SYS-001 and OUT-002 are unit tested. 180 package tests pass. Offscreen benchmark: four 1080p compositions per frame take about 0.64 ms mean on this Mac (no video layer, debug build). No video hardware is owned, so nothing is Hardware Verified.
 
 ## Verification by slice
 
@@ -13,6 +13,7 @@ Phase 0 (render spike) is implemented and unit tested; its timing exit criterion
 | OUT-001 render spike | Yes | Yes (21 tests) | n/a | Not Verified | Not Verified |
 | SYS-001 SQLite store | Yes | Yes | n/a | n/a | Not Verified |
 | OUT-002 screens and live control | Yes | Yes | Yes (fake outputs and displays) | Not Verified | Not Verified |
+| OUT-003/SLIDE-002 themes, Looks, props, image layers | Yes | Yes | n/a | Not Verified | Not Verified |
 | SLIDE-003/004 sections, arrangements, reflow | In progress | Not Verified | n/a | n/a | Not Verified |
 
 Every other slice in `AI/TASK-BREAKDOWN.md` is Todo.

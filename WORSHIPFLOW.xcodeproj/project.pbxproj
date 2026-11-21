@@ -19,12 +19,14 @@
 		A8EA18B58686F4DEC40B84C4 /* ScreenProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9477906F48DEBA0F0B261C /* ScreenProfileStore.swift */; };
 		ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1320EF2993E56B2BB360523 /* SoakConfig.swift */; };
 		B1DE4E0E8E953446819E80D1 /* SampleSlides.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6778E98EF8343328265BA70 /* SampleSlides.swift */; };
+		E30A703417B7AECFEB78E2ED /* LookStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25ED358F9E14673C5DB93A8F /* LookStore.swift */; };
 		EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB63AA09191D65308E97C971 /* ContentView.swift */; };
 		EE6471F88758DC2DD15FEEB0 /* Persistence in Frameworks */ = {isa = PBXBuildFile; productRef = 38C4944754161B6B1C9FE40D /* Persistence */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		1E8023590969661D4F6F26D1 /* WORSHIPFLOW.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WORSHIPFLOW.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		25ED358F9E14673C5DB93A8F /* LookStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LookStore.swift; sourceTree = "<group>"; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 				7166181C03E3555D4CD67FBC /* AppModel.swift */,
 				BB63AA09191D65308E97C971 /* ContentView.swift */,
 				7904015CE5BD7D12564A3BED /* LiveScenes.swift */,
+				25ED358F9E14673C5DB93A8F /* LookStore.swift */,
 				4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */,
 				E6778E98EF8343328265BA70 /* SampleSlides.swift */,
 				9F9477906F48DEBA0F0B261C /* ScreenProfileStore.swift */,
@@ -172,6 +175,7 @@
 				4EE6208509993801D9FEEFD6 /* AppModel.swift in Sources */,
 				EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */,
 				631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */,
+				E30A703417B7AECFEB78E2ED /* LookStore.swift in Sources */,
 				1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */,
 				B1DE4E0E8E953446819E80D1 /* SampleSlides.swift in Sources */,
 				A8EA18B58686F4DEC40B84C4 /* ScreenProfileStore.swift in Sources */,

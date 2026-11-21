@@ -52,6 +52,9 @@ final class OutputRenderer: @unchecked Sendable {
     /// (display-link ticks received, frames submitted to the GPU) for diagnostics.
     var counters: (ticks: Int, submitted: Int) { lock.lock(); defer { lock.unlock() }; return (ticks, submittedFrames) }
     var lastError: String? { lock.lock(); defer { lock.unlock() }; return errorText }
+    /// Image files the compositor could not read (OUT-003). `compositor` is assigned once in `prepare()`, before
+    /// the output runs; the set itself is lock-guarded inside the compositor.
+    var unavailableImagePaths: Set<String> { compositor?.unavailableImagePaths ?? [] }
 
     func setTargetInterval(_ interval: Double) {
         lock.lock(); stats.targetInterval = interval; lock.unlock()

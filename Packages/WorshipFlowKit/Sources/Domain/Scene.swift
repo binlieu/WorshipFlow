@@ -102,11 +102,18 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
     /// When true and a video frame is supplied, it is drawn aspect-fill over the background colour.
     public var showsVideo: Bool
     public var textLayers: [TextLayer]
+    /// Drawn after the video and before the text (OUT-003).
+    public var backgroundImage: ImageLayer?
+    /// Drawn after the text (OUT-003).
+    public var overlayImages: [ImageLayer]
 
-    public init(backgroundColor: ColorRGBA, showsVideo: Bool = false, textLayers: [TextLayer]) {
+    public init(backgroundColor: ColorRGBA, showsVideo: Bool = false, textLayers: [TextLayer],
+                backgroundImage: ImageLayer? = nil, overlayImages: [ImageLayer] = []) {
         self.backgroundColor = backgroundColor
         self.showsVideo = showsVideo
         self.textLayers = textLayers
+        self.backgroundImage = backgroundImage
+        self.overlayImages = overlayImages
     }
 }
 

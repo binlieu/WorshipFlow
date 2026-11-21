@@ -35,6 +35,8 @@ public struct ScreenReadout: Sendable, Equatable, Identifiable {
     public var late: Int
     public var maxIntervalMs: Double
     public var renderError: String?
+    /// Image files this screen could not draw (OUT-003).
+    public var unavailableImagePaths: [String] = []
 }
 
 @MainActor
@@ -192,6 +194,7 @@ public final class OutputCoordinator {
                 readout.late = s.lateFrames
                 readout.maxIntervalMs = s.maxInterval * 1000
                 readout.renderError = r.target.lastRenderError
+                readout.unavailableImagePaths = r.target.unavailableImagePaths
             } else if let message = faults[id] {
                 readout.state = .faulted(message)
             }

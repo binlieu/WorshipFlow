@@ -1,7 +1,7 @@
-// OUT-002: one live state, a different composition per screen role. Foundation only.
+// OUT-002 / OUT-003: one live state, a different composition per screen. Foundation only.
 import Foundation
 
-/// Default look of each role. Kept in one place so themes can replace it later (SLIDE-002).
+/// Default look of each role and the single source of the built-in themes (`Theme.fullScreen`, `Theme.lowerThird`).
 public struct SceneStyles: Sendable, Equatable {
     public var fontName = "Helvetica Neue"
 
@@ -41,12 +41,26 @@ public struct SceneStyles: Sendable, Equatable {
 }
 
 public enum SceneComposer {
+    /// The earlier entry point: the role's default theme from `styles`, the standard Look, no props.
     public static func scene(for role: ScreenRole, state: ShowState, clockText: String? = nil,
                              styles: SceneStyles = .standard) -> SceneDescription {
         switch role {
-        case .audience: return audience(state, styles)
-        case .stage: return stage(state, styles, clockText)
-        case .broadcast: return broadcast(state, styles)
+        case .audience:
+            return themed(state, theme: Theme.makeFullScreen(styles: styles), look: .standard, props: [], isBroadcast: false)
+        case .stage:
+            return stage(state, styles, clockText)
+        case .broadcast:
+            return themed(state, theme: Theme.makeLowerThird(styles: styles), look: .standard, props: [], isBroadcast: true)
+        }
+    }
+
+    /// Composes one screen. The stage layout ignores the theme, Look and props. Props are not drawn while stopped.
+    public static func scene(for role: ScreenRole, state: ShowState, theme: Theme, look: ScreenLook, props: [Prop],
+                             clockText: String? = nil) -> SceneDescription {
+        switch role {
+        case .stage: return stage(state, .standard, clockText)
+        case .audience: return themed(state, theme: theme, look: look, props: props, isBroadcast: false)
+        case .broadcast: return themed(state, theme: theme, look: look, props: props, isBroadcast: true)
         }
     }
 
@@ -55,21 +69,39 @@ public enum SceneComposer {
         return text
     }
 
-    private static func audience(_ state: ShowState, _ s: SceneStyles) -> SceneDescription {
-        // A stopped show is plain black with no background video; a cleared one keeps its background.
-        guard !state.isStopped else { return SceneDescription(backgroundColor: .black, showsVideo: false, textLayers: []) }
-        var layers: [TextLayer] = []
-        if let slide = state.liveSlide {
-            if let p = visible(slide.primary) {
-                layers.append(TextLayer(text: p, style: s.audiencePrimary, frame: s.audiencePrimaryFrame,
-                                        alignment: .center, verticalAlignment: .bottom))
-            }
-            if let t = visible(slide.secondary) {
-                layers.append(TextLayer(text: t, style: s.audienceSecondary, frame: s.audienceSecondaryFrame,
-                                        alignment: .center, verticalAlignment: .top))
+    private static func layer(_ text: String, _ block: TextBlock) -> TextLayer {
+        TextLayer(text: text, style: block.style, frame: block.frame, alignment: block.alignment,
+                  verticalAlignment: block.verticalAlignment)
+    }
+
+    private static func themed(_ state: ShowState, theme: Theme, look: ScreenLook, props: [Prop], isBroadcast: Bool) -> SceneDescription {
+        // A stopped show is empty: black (audience) or transparent (broadcast), no video, no text, no props.
+        guard !state.isStopped else {
+            return SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
+        }
+        var scene = SceneDescription(backgroundColor: isBroadcast ? .clear : .black, showsVideo: false, textLayers: [])
+        if look.visibleLayers.contains(.background) {
+            switch theme.background {
+            case .media:
+                scene.backgroundColor = Theme.mediaFallbackColor
+                scene.showsVideo = true
+            case .color(let c):
+                scene.backgroundColor = c
+            case .image(let path):
+                scene.backgroundImage = ImageLayer(path: path, frame: .full, opacity: 1, contentMode: .fill)
+                scene.backgroundColor = .black
+            case .transparent:
+                scene.backgroundColor = .clear
             }
         }
-        return SceneDescription(backgroundColor: s.audienceBackground, showsVideo: true, textLayers: layers)
+        if look.visibleLayers.contains(.slide), let slide = state.liveSlide {
+            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary)) }
+            if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block)) }
+        }
+        if look.visibleLayers.contains(.props) {
+            scene.overlayImages = props.filter(\.isOn).map(\.imageLayer)
+        }
+        return scene
     }
 
     private static func stage(_ state: ShowState, _ s: SceneStyles, _ clock: String?) -> SceneDescription {

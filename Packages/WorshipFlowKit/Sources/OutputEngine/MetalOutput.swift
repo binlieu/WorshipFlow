@@ -63,6 +63,7 @@ open class MetalOutput: OutputTarget {
         return !w.occlusionState.contains(.visible)
     }
     public var lastRenderError: String? { renderer?.lastError }
+    public var unavailableImagePaths: [String] { (renderer?.unavailableImagePaths ?? []).sorted() }
     public var diagnostics: String {
         let c = renderer?.counters ?? (ticks: 0, submitted: 0)
         var text = "ticks \(c.ticks), submitted \(c.submitted)"
