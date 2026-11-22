@@ -21,7 +21,8 @@ public struct SDIRenderTiming: Sendable, Equatable {
 
 /// Renders scenes to BGRA frames. Used from one thread at a time: calls are serialised by `lock`, because the first
 /// frames come from the output's own queue and later ones from the card's callback thread.
-/// `@unchecked Sendable`: every stored property after init is touched only while holding `lock`.
+/// `@unchecked Sendable`: the render state is touched only while holding `lock`; the readout values (what the operator window reads on the
+/// main actor) only while holding `readoutLock`. FIX-T item 6 (M5): `lock` is held across the GPU wait, so a readout never takes it.
 final class SDIFrameRenderer: @unchecked Sendable {
     private let width: Int
     private let height: Int
@@ -39,10 +40,16 @@ final class SDIFrameRenderer: @unchecked Sendable {
     private var recent: [VideoTexture] = []
     private var ring: [[UInt8]]
     private var nextSlot = 0
+    /// FIX-T item 6 (M5): the values the main actor reads, copied here at the end of a frame under a short lock of their own.
+    private let readoutLock = NSLock()
     private var failed: String?
     private var lastSceneOpaque = false
-    private(set) var reallocations = 0
+    private var reallocations = 0
+    /// Render side of `reallocations`: counted under `lock`, copied to the readout at the end of the frame.
+    private var ringReallocations = 0
     private var timing = SDIRenderTiming()
+    private var unavailable: Set<String> = []
+    private var problems: [String] = []
 
     init(width: Int, height: Int, ringSize: Int, sceneProvider: @escaping SceneProvider,
          videoSource: (any VideoSourceFactory)?, mediaSource: (any MediaFrameSource)?) {
@@ -54,13 +61,13 @@ final class SDIFrameRenderer: @unchecked Sendable {
         self.ring = (0..<max(2, ringSize)).map { _ in [UInt8](repeating: 0, count: width * height * 4) }
     }
 
-    var renderTiming: SDIRenderTiming { lock.withLock { timing } }
-    var bufferReallocations: Int { lock.withLock { reallocations } }
-    func resetTiming() { lock.withLock { timing = SDIRenderTiming() } }
-    var lastError: String? { lock.withLock { failed } }
-    var sceneIsOpaque: Bool { lock.withLock { lastSceneOpaque } }
-    var unavailableImagePaths: Set<String> { lock.withLock { compositor?.unavailableImagePaths ?? [] } }
-    var renderProblems: [String] { lock.withLock { compositor?.renderProblems ?? [] } }
+    var renderTiming: SDIRenderTiming { readoutLock.withLock { timing } }
+    var bufferReallocations: Int { readoutLock.withLock { reallocations } }
+    func resetTiming() { readoutLock.withLock { timing = SDIRenderTiming() } }
+    var lastError: String? { readoutLock.withLock { failed } }
+    var sceneIsOpaque: Bool { readoutLock.withLock { lastSceneOpaque } }
+    var unavailableImagePaths: Set<String> { readoutLock.withLock { unavailable } }
+    var renderProblems: [String] { readoutLock.withLock { problems } }
 
     /// The frame for the next slot, or nil when it could not be drawn (the session then repeats the last frame).
     func frame() -> SDIFrame? {
@@ -70,7 +77,8 @@ final class SDIFrameRenderer: @unchecked Sendable {
             try prepareIfNeeded()
             guard let compositor, let texture else { return nil }
             var scene = sceneProvider()
-            lastSceneOpaque = SDIOutput.isOpaque(scene)
+            let opaque = SDIOutput.isOpaque(scene)
+            readoutLock.withLock { lastSceneOpaque = opaque }
             if mediaResolver == nil { scene.backgroundMedia = nil; scene.foregroundMedia = nil }
             let media = mediaResolver?.resolve(scene) ?? MediaFrameTextures()
             var video: MTLTexture?
@@ -90,14 +98,20 @@ final class SDIFrameRenderer: @unchecked Sendable {
             let slot = nextSlot
             nextSlot = (nextSlot + 1) % ring.count
             read(texture, into: slot, copied: copied)
-            failed = nil
             let elapsed = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
-            timing.frames += 1
-            timing.totalMs += elapsed
-            timing.worstMs = max(timing.worstMs, elapsed)
+            let paths = compositor.unavailableImagePaths, issues = compositor.renderProblems, again = ringReallocations
+            readoutLock.withLock {
+                failed = nil
+                timing.frames += 1
+                timing.totalMs += elapsed
+                timing.worstMs = max(timing.worstMs, elapsed)
+                unavailable = paths
+                problems = issues
+                reallocations = again
+            }
             return SDIFrame(width: width, height: height, bgra: ring[slot])
         } catch {
-            failed = "\(error)"
+            readoutLock.withLock { failed = "\(error)" }
             return nil
         }
     }
@@ -129,7 +143,7 @@ final class SDIFrameRenderer: @unchecked Sendable {
             else { texture.getBytes(base, bytesPerRow: w * 4, from: MTLRegionMake2D(0, 0, w, h), mipmapLevel: 0) }
         }
         let after = ring[slot].withUnsafeBufferPointer { $0.baseAddress }
-        if before != after { reallocations += 1 }
+        if before != after { ringReallocations += 1 }
     }
 
     private func prepareIfNeeded() throws {
@@ -260,6 +274,9 @@ public final class SDIOutput: OutputTarget {
     public func start() throws {
         guard status != .running else { return }
         guard port.supports(mode: mode, keying: keying) else {
+            // FIX-T item 6 (M4): the port was opened (and its connector claimed) before this output was made. A start that fails must not leave
+            // it open, or every retry on that connector fails with "unavailable" for a cause that is long gone.
+            port.close()
             if case .external = keying { throw SDIError.keyingUnavailable(connector: port.connector) }
             throw SDIError.unsupportedMode(mode.name)
         }
@@ -286,7 +303,16 @@ public final class SDIOutput: OutputTarget {
         if status == .running { clockRunning = clock != nil } else { clock?.stop() }
     }
 
-    public func stop() { finish(reason: nil) }
+    /// Stops the output and returns when its port is closed. The teardown runs on this output's own queue, after any start already queued
+    /// there, so a stop never overtakes the start it follows (FIX-T item 6, M6).
+    public func stop() { finish(reason: nil, wait: true) }
+
+    /// FIX-T item 6 (M6): the same, without waiting: the main actor is not held for the teardown (up to about a second per output). A new
+    /// output on the same connector waits with `waitUntilStopped()` before it opens the port.
+    public func stopWithoutWaiting() { finish(reason: nil, wait: false) }
+
+    /// Returns when every start and stop queued on this output has finished.
+    public func waitUntilStopped() { queue.sync {} }
 
     /// Tests: returns when the work `start()` queued has finished, so the first frames are scheduled.
     func waitUntilStarted() { queue.sync {} }
@@ -294,21 +320,28 @@ public final class SDIOutput: OutputTarget {
     private func sessionStopped(_ reason: SDIStopReason) {
         guard status == .running else { return }
         switch reason {
-        case .requested: finish(reason: nil)
+        case .requested: finish(reason: nil, wait: false)
         case .failed(let error):
             lostDevice = error == .deviceDisconnected
-            finish(reason: error.description)
+            finish(reason: error.description, wait: false)
         }
     }
 
-    private func finish(reason: String?) {
+    private func finish(reason: String?, wait: Bool) {
         guard status == .running else { return }
         status = .stopped(reason: reason)
         session.onStop = nil
-        session.stop()
-        queue.sync { }              // a start still under way on the queue finishes first
-        ahead.stop()
-        port.close()
-        if clockRunning { clock?.stop(); clockRunning = false }
+        // FIX-T item 6 (M6): the teardown is queued behind any start still under way on the same serial queue, so the order is the order
+        // requested; it used to stop the session first, so a start not yet run could enable the port after the stop.
+        let session = session, ahead = ahead, port = port, clock = clock
+        let stopClock = clockRunning
+        clockRunning = false
+        queue.async {
+            session.stop()
+            ahead.stop()
+            port.close()
+            if stopClock { clock?.stop() }
+        }
+        if wait { queue.sync {} }
     }
 }
