@@ -331,3 +331,11 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Two-minute measuring procedure (the system's drag session cannot be replayed without a hand): open Terminal, run `sample WorshipFlow 20 -file ~/Desktop/drag.txt` (use any scratch folder, not a folder shared with others), and while it runs do three drags, each about 5 seconds: a slide to another place, a bin tile onto a slide, a file from Finder onto the bin. Open the file and look at the main thread: lines under `NSDisplayCycleFlush` and `NSHostingView.layout` are the window redrawing; more than about 10 percent of the 20 seconds busy, or a single stretch of more than 8 ms between the drops, is a hitch worth reporting with the file. Or: Instruments, template Animation Hitches, attach to WorshipFlow, do the same three drags, and read the hitch list (each row longer than 8 ms is one).
 - [ ] Optional, no hand needed: `scripts/measure-drags.sh` builds a debug copy against a throw-away library and prints the replayed numbers.
 
+
+## FIX-N canvases and keys
+
+- [ ] Stage, a custom layout: click a box, then press Space (Next), Return (Go Live), B (blackout: an amber BLACKOUT tag appears in the toolbar, B again removes it) and Escape (CLEARED appears). Drag a box, release, press the same keys. Open and close a sheet (Section orders), press them again. None needs an extra Escape.
+- [ ] Stage: click a box, hold the Right arrow for two seconds and let go: the box moves as you hold, the stage screen changes once, and one Undo takes the whole run back.
+- [ ] Edit: click a text box, press the arrows (1 point, Shift 10 points) and Space, Return, B. Press Tab until a button in the toolbar has focus: the arrows still nudge the box you clicked last, and Space presses the button.
+- [ ] Edit, a lyric box: drag it, press Command-Tab away in the middle of the drag and back, then type a position in the inspector: it saves. "Apply to all slides in this song" asks "Apply this position to N slides?" and one Undo puts every slide back.
+- [ ] Clear background icon: with a picture theme or a theme with a motion background it is lit and its tooltip says "Clear background: theme video" or "picture".

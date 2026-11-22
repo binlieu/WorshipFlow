@@ -19,22 +19,30 @@ struct StageCanvas: View {
     let editable: Bool
     @Binding var selection: UUID?
     @Environment(\.undoManager) private var undoManager
-    @State private var drag: StageCanvasEditing.Drag?
-    @State private var pressed = false
+    /// FIX-N items 6 and 9: the pointer's state is a pure session; the view ends it on the gesture's end and whenever the drag is cut short.
+    @State private var pointerState = StagePointerSession()
     @State private var size = CGSize(width: 820, height: 461.25)
     @State private var keys = StageKeyBox()
+    /// FIX-N item 5: arrow-key nudges move a transient frame and are written once per run.
+    @State private var nudges = StageNudgeSession()
 
-    /// The layout as drawn now: the dragged element at the pointer's frame, everything else as stored.
+    /// The layout as drawn now: the dragged (or nudged) element at its transient frame, everything else as stored.
     private var shown: StageLayout {
-        guard let drag, let i = layout.elements.firstIndex(where: { $0.id == drag.elementID }) else { return layout }
         var copy = layout
-        copy.elements[i].frame = drag.current
+        if let drag = pointerState.drag, let i = copy.elements.firstIndex(where: { $0.id == drag.elementID }) {
+            copy.elements[i].frame = drag.current
+        } else if let id = selection, let frame = nudges.transientFrame(for: id), let i = copy.elements.firstIndex(where: { $0.id == id }) {
+            copy.elements[i].frame = frame
+        }
         return copy
     }
 
+    private var takesArrows: Bool { editable && selection != nil }
+
     var body: some View {
         let layout = shown
-        ScenePreview(scene: stage.sampleScene(for: layout), width: 1280, cached: false, follow: drag != nil)
+        let _ = refreshHandlers()      // every pass leaves the handlers the app calls (and the nudges' write) holding THIS pass's layout, selection and undo manager
+        ScenePreview(scene: stage.sampleScene(for: layout), width: 1280, cached: false, follow: pointerState.drag != nil || nudges.isOpen)
             .background(Color.black)
             .overlay {
                 GeometryReader { geo in
@@ -57,27 +65,56 @@ struct StageCanvas: View {
             }
             .shadow(color: .black.opacity(0.35), radius: 20, y: 12)
             .wfRect("st.cv")
-            .background(StageKeyCatcher(box: keys) { dx, dy, shift in nudge(dx: dx, dy: dy, shift: shift) })
+            .background(StageKeyCatcher(box: keys, takesArrows: takesArrows, onArrow: { dx, dy, shift in nudge(dx: dx, dy: dy, shift: shift) },
+                                        onRelease: { nudges.keyReleased() }))
+            // FIX-N items 5, 6 and 8: a run of nudges and a drag end when the selection or the layout changes, the window resigns key or the view goes.
+            .onChange(of: selection) { _, _ in nudges.flush() }
+            .onChange(of: editable) { _, _ in nudges.flush() }
+            .onChange(of: layout.id) { _, _ in endEverything() }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in endEverything() }
+            .onDisappear {
+                endEverything()
+                AppModel.shared.ui.stageTakesArrows = false
+                AppModel.shared.ui.stageArrow = nil
+                AppModel.shared.ui.stageArrowReleased = nil
+                #if DEBUG
+                StageCanvasDebug.unregister()
+                #endif
+            }
     }
 
     // MARK: Pointer
 
     private func pointer(in canvas: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 0).onChanged { value in
-            if !pressed {
-                pressed = true
-                keys.takeFocus()      // the arrow keys are the canvas's from here on
-                begin(at: value.startLocation, in: canvas)
-            }
-            if drag != nil { drag?.update(dx: Double(value.translation.width / canvas.width), dy: Double(value.translation.height / canvas.height)) }
-        }.onEnded { _ in
-            pressed = false
-            guard let finished = drag else { return }
-            drag = nil
-            if let change = finished.finish() {
-                StageCanvasEditing.commit(stage: stage, layoutID: layout.id, elementID: finished.elementID, from: change.from, to: change.to, undoManager: undoManager)
-            }
+            if pointerState.press() { pressBegan(at: value.startLocation, in: canvas) }
+            pressMoved(dx: Double(value.translation.width), dy: Double(value.translation.height), in: canvas)
+        }.onEnded { _ in pressEnded() }
+    }
+
+    /// The first event of a press: the arrow keys become the canvas's, the press picks a box.
+    private func pressBegan(at point: CGPoint, in canvas: CGSize) {
+        _ = pointerState.press()
+        nudges.flush()
+        keys.takeFocus()      // the arrow keys are the canvas's from here on
+        AppModel.shared.ui.canvasLastClicked = true       // FIX-N item 8
+        begin(at: point, in: canvas)
+    }
+
+    private func pressMoved(dx: Double, dy: Double, in canvas: CGSize) {
+        if pointerState.drag != nil { pointerState.update(dx: dx / Double(canvas.width), dy: dy / Double(canvas.height)) }
+    }
+
+    private func pressEnded() {
+        if let commit = pointerState.finish() {
+            StageCanvasEditing.commit(stage: stage, layoutID: layout.id, elementID: commit.elementID, from: commit.from, to: commit.to, undoManager: undoManager)
         }
+    }
+
+    /// A drag or a run of nudges that was cut short is ended now: once, with what it showed.
+    private func endEverything() {
+        nudges.flush()
+        pressEnded()
     }
 
     private func begin(at point: CGPoint, in canvas: CGSize) {
@@ -86,22 +123,40 @@ struct StageCanvas: View {
         switch hit {
         case .none:
             selection = nil
+            pointerState.begin(nil)
         case .element(let id):
             selection = id
-            if editable, let e = layout.elements.first(where: { $0.id == id }) { drag = .init(elementID: id, mode: .move, start: e.frame) }
+            if editable, let e = layout.elements.first(where: { $0.id == id }) { pointerState.begin(.init(elementID: id, mode: .move, start: e.frame)) } else { pointerState.begin(nil) }
         case .handle(let id, let handle):
-            if let e = layout.elements.first(where: { $0.id == id }) { drag = .init(elementID: id, mode: .resize(handle), start: e.frame) }
+            if let e = layout.elements.first(where: { $0.id == id }) { pointerState.begin(.init(elementID: id, mode: .resize(handle), start: e.frame)) } else { pointerState.begin(nil) }
         }
     }
 
     // MARK: Keys
 
+    /// An arrow key (FIX-N item 5): moves the transient frame; the run is written once, when the key is released or after a quiet period.
     private func nudge(dx: Int, dy: Int, shift: Bool) -> Bool {
         guard editable, let id = selection, let element = layout.elements.first(where: { $0.id == id }) else { return false }
-        let to = StageCanvasEditing.nudged(element.frame, directionX: dx, directionY: dy, points: StageCanvasEditing.nudgeDistance(shift: shift),
-                                           canvasWidth: Double(size.width), canvasHeight: Double(size.height))
-        StageCanvasEditing.commit(stage: stage, layoutID: layout.id, elementID: id, from: element.frame, to: to, undoManager: undoManager)
+        nudges.nudge(elementID: id, stored: element.frame, directionX: dx, directionY: dy, shift: shift, canvasWidth: Double(size.width), canvasHeight: Double(size.height))
         return true
+    }
+
+    /// Called on every pass of `body`. Where a finished run is written (through the one commit, which registers the undo step), and what the app's key
+    /// monitor may call when a button has keyboard focus but this canvas was clicked last (FIX-N item 8). Closures made on an earlier pass would hold that
+    /// pass's layout (a stale frame to nudge from), so every pass makes them again.
+    private func refreshHandlers() {
+        let stage = stage, layoutID = layout.id, undoManager = undoManager
+        nudges.onCommit = { c in
+            StageCanvasEditing.commit(stage: stage, layoutID: layoutID, elementID: c.elementID, from: c.from, to: c.to, undoManager: undoManager)
+        }
+        let ui = AppModel.shared.ui
+        ui.stageTakesArrows = takesArrows
+        ui.stageArrow = { dx, dy, shift in nudge(dx: dx, dy: dy, shift: shift) }
+        ui.stageArrowReleased = { nudges.keyReleased() }
+        #if DEBUG
+        StageCanvasDebug.register(press: { point, size in pressBegan(at: point, in: size) }, move: { dx, dy, size in pressMoved(dx: dx, dy: dy, in: size) },
+                                  release: { pressEnded() })
+        #endif
     }
 }
 
@@ -156,19 +211,27 @@ final class StageKeyBox {
 }
 
 /// An invisible view that takes the arrow keys while it is the first responder (the pointer layer gives it focus on a press). It never takes a
-/// mouse event. While it has focus it reports itself to the key router as a control that keeps the arrows (`.slider`), so the show's own arrow
-/// keys do not also move the slide selection; Escape or another control's focus hands them back.
+/// mouse event. While it has focus it reports itself to the key router as a canvas (`.canvas`, FIX-N item 1): with a box selected the router
+/// hands it the arrow keys, so the show's own arrow keys do not also move the slide selection; every other key (Space, Return, B, Escape...) is
+/// routed as if the slide grid had focus. (It used to report `.slider`, which kept every key but Escape and swallowed the show's keys.)
 final class StageKeyView: NSView {
     var onArrow: ((Int, Int, Bool) -> Bool)?
+    /// FIX-N item 5: an arrow key came up.
+    var onRelease: (() -> Void)?
+    /// True while an editable layout has a box selected: the router gives this view the arrow keys only then.
+    var takesArrows = false
     private let identity = UUID()
     override var acceptsFirstResponder: Bool { true }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
     override func isAccessibilityElement() -> Bool { false }
-    override func becomeFirstResponder() -> Bool { AppModel.shared.ui.controlFocus(id: identity, .slider, true); return true }
-    override func resignFirstResponder() -> Bool { AppModel.shared.ui.controlFocus(id: identity, .slider, false); return true }
+    override func becomeFirstResponder() -> Bool { AppModel.shared.ui.controlFocus(id: identity, .canvas, true); return true }
+    override func resignFirstResponder() -> Bool { AppModel.shared.ui.controlFocus(id: identity, .canvas, false); return true }
     override func viewWillMove(toWindow newWindow: NSWindow?) {
-        if newWindow == nil { AppModel.shared.ui.controlFocus(id: identity, .slider, false) }
+        if newWindow == nil { AppModel.shared.ui.controlFocus(id: identity, .canvas, false) }
         super.viewWillMove(toWindow: newWindow)
+    }
+    override func keyUp(with event: NSEvent) {
+        if [123, 124, 125, 126].contains(event.keyCode) { onRelease?() } else { super.keyUp(with: event) }
     }
     override func keyDown(with event: NSEvent) {
         let direction: (Int, Int)? = switch event.keyCode { case 123: (-1, 0); case 124: (1, 0); case 125: (0, 1); case 126: (0, -1); default: nil }
@@ -179,7 +242,28 @@ final class StageKeyView: NSView {
 
 private struct StageKeyCatcher: NSViewRepresentable {
     let box: StageKeyBox
+    let takesArrows: Bool
     let onArrow: (Int, Int, Bool) -> Bool
+    let onRelease: () -> Void
     func makeNSView(context: Context) -> StageKeyView { let v = StageKeyView(); box.view = v; return v }
-    func updateNSView(_ view: StageKeyView, context: Context) { view.onArrow = onArrow; box.view = view }
+    func updateNSView(_ view: StageKeyView, context: Context) { view.onArrow = onArrow; view.onRelease = onRelease; view.takesArrows = takesArrows; box.view = view }
 }
+
+#if DEBUG
+/// FIX-N (debug builds only): the Stage canvas's press, move and release handlers, for the real-key run in a session whose screen is locked (the app
+/// cannot become active, and the window swallows a synthetic click as the activating click). The hook calls the very functions the gesture calls; the keys
+/// that follow are real events through the app's own key monitor and responder chain.
+@MainActor enum StageCanvasDebug {
+    private static var pressHandler: ((CGPoint, CGSize) -> Void)?
+    private static var moveHandler: ((Double, Double, CGSize) -> Void)?
+    private static var releaseHandler: (() -> Void)?
+    static func register(press: @escaping (CGPoint, CGSize) -> Void, move: @escaping (Double, Double, CGSize) -> Void, release: @escaping () -> Void) {
+        pressHandler = press; moveHandler = move; releaseHandler = release
+    }
+    static func unregister() { pressHandler = nil; moveHandler = nil; releaseHandler = nil }
+    static var isRegistered: Bool { pressHandler != nil }
+    static func press(at point: CGPoint, in size: CGSize) { pressHandler?(point, size) }
+    static func move(dx: Double, dy: Double, in size: CGSize) { moveHandler?(dx, dy, size) }
+    static func release() { releaseHandler?() }
+}
+#endif

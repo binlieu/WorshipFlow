@@ -13,17 +13,21 @@ public struct ClearLiveState: Equatable, Sendable {
     /// What is live on the background layer (a bin choice, else the live slide's own background); nil: nothing of those.
     public var backgroundKind: MediaKind?
     public var backgroundName: String?
+    /// FIX-N item 4: what the theme's own background is (a video or a picture), nil when it is neither. It lights the background icon when
+    /// nothing else is named, because Clear background hides it too.
+    public var themeBackgroundKind: MediaKind?
     public var foregroundKind: MediaKind?
     public var foregroundName: String?
     /// A sound cue is playing (the newest one's name).
     public var musicName: String?
     public var hasMusic: Bool
 
-    public init(hasLiveWords: Bool = false, backgroundKind: MediaKind? = nil, backgroundName: String? = nil, foregroundKind: MediaKind? = nil,
+    public init(hasLiveWords: Bool = false, backgroundKind: MediaKind? = nil, backgroundName: String? = nil, themeBackgroundKind: MediaKind? = nil, foregroundKind: MediaKind? = nil,
                 foregroundName: String? = nil, musicName: String? = nil, hasMusic: Bool? = nil) {
         self.hasLiveWords = hasLiveWords
         self.backgroundKind = backgroundKind
         self.backgroundName = backgroundName
+        self.themeBackgroundKind = themeBackgroundKind
         self.foregroundKind = foregroundKind
         self.foregroundName = foregroundName
         self.musicName = musicName
@@ -52,6 +56,9 @@ public struct ClearIconState: Equatable, Sendable {
         case .lyric:
             return ClearIconState(enabled: live.hasLiveWords, glyph: .words, tooltip: "Clear lyric, esc")
         case .background:
+            if live.backgroundKind == nil, let theme = live.themeBackgroundKind {
+                return ClearIconState(enabled: true, glyph: glyph(theme), tooltip: "Clear background: theme \(word(theme)), ⌃⌥B")
+            }
             return layer("background", "⌃⌥B", live.backgroundKind, live.backgroundName, plain: .backgroundLayer)
         case .foreground:
             return layer("foreground", "⌃⌥F", live.foregroundKind, live.foregroundName, plain: .foregroundLayer)
@@ -59,13 +66,23 @@ public struct ClearIconState: Equatable, Sendable {
             let named = (live.musicName?.isEmpty ?? true) ? "" : ": \(live.musicName!)"
             return ClearIconState(enabled: live.hasMusic, glyph: .music, tooltip: "Clear music\(named), ⌃⌥M")
         case .all:
-            let any = live.hasLiveWords || live.backgroundKind != nil || live.foregroundKind != nil || live.hasMusic
+            let any = live.hasLiveWords || live.backgroundKind != nil || live.themeBackgroundKind != nil || live.foregroundKind != nil || live.hasMusic
             return ClearIconState(enabled: any, glyph: .all, tooltip: "Clear all, ⇧ esc")
         }
     }
 }
 
 public enum ClearIconRule {
+    /// FIX-N item 4: a theme's own background as the icon sees it: the shared loop is a video, a theme picture a picture; a colour, a gradient or
+    /// a transparent background is neither.
+    public static func themeBackgroundKind(_ background: ThemeBackground) -> MediaKind? {
+        switch background {
+        case .media: .video
+        case .image: .image
+        case .color, .transparent, .gradient: nil
+        }
+    }
+
     /// One line for logs: each icon's enabled flag and glyph.
     public static func describe(live: ClearLiveState) -> String {
         ClearIcon.allCases.map { icon in

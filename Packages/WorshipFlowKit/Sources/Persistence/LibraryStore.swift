@@ -16,8 +16,11 @@ public final class LibraryStore: Sendable {
     let mediaPaths: MediaPathMapper?
 
     /// FIX-K: counts the transactions that changed the database, so a test or the debug hook can prove that a drag writes nothing until it is dropped.
+    /// FIX-N item 8: debug builds only. A release build attaches no observer, so no write pays for the count.
     private let commits: CommitCounter
+    #if DEBUG
     public var commitCount: Int { commits.count }
+    #endif
 
     private init(writer: any DatabaseWriter, searchBackend: SearchBackend, mediaPaths: MediaPathMapper?, commits: CommitCounter) {
         self.commits = commits
@@ -81,7 +84,9 @@ public final class LibraryStore: Sendable {
         var config = Configuration()
         config.foreignKeysEnabled = true
         config.prepareDatabase { db in
+            #if DEBUG
             db.add(transactionObserver: counter, extent: .databaseLifetime)
+            #endif
             // ADR-0004 decision 3, set explicitly on every connection.
             try db.execute(sql: "PRAGMA synchronous = NORMAL")
         }
@@ -198,7 +203,8 @@ public final class LibraryStore: Sendable {
     }
 }
 
-/// FIX-K: a transaction observer that only counts commits that changed something.
+#if DEBUG
+/// FIX-K: a transaction observer that only counts commits that changed something. FIX-N item 8: compiled out of release builds.
 final class CommitCounter: TransactionObserver, @unchecked Sendable {
     private let lock = NSLock()
     private var n = 0
@@ -208,3 +214,6 @@ final class CommitCounter: TransactionObserver, @unchecked Sendable {
     func databaseDidCommit(_ db: Database) { lock.lock(); n += 1; lock.unlock() }
     func databaseDidRollback(_ db: Database) {}
 }
+#else
+final class CommitCounter: Sendable {}
+#endif

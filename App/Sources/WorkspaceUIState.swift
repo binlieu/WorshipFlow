@@ -1,6 +1,7 @@
 // OUT-004: small pieces of interface state that menus and views share (which sheet is open, focus requests).
 import Foundation
 import Observation
+import Domain
 import OperatorCore
 
 /// CUE-002b: what the Cues mode's centre shows.
@@ -45,6 +46,14 @@ final class WorkspaceUIState {
     /// FIX-H item 7: the custom control that has keyboard focus, if one does (a toggle, a slider, a tab...). The controls report it; the
     /// key monitor reads it, so Space, Return and the arrows act on the control and not on the show.
     var controlFocusTracker = ControlFocusTracker()
+    /// FIX-N item 7: "Apply to all slides in this song" was chosen for this language; the window asks "Apply this position to N slides?" before it applies.
+    var applyLyricToAll: LyricBox?
+    /// FIX-N item 8: the last mouse press was on a canvas box (Stage or Edit). Reset by every mouse press in the window, set again by the canvas's own.
+    @ObservationIgnored var canvasLastClicked = false
+    /// FIX-N item 8: the Stage canvas has an editable layout with a box selected (the arrows nudge it), and what an arrow or its release does there.
+    @ObservationIgnored var stageTakesArrows = false
+    @ObservationIgnored var stageArrow: ((Int, Int, Bool) -> Bool)?
+    @ObservationIgnored var stageArrowReleased: (() -> Void)?
     /// FIX-I item 1: true while the slide grid's own focusable container has focus (set by the workspace view). The controls under it
     /// inherit that focus in SwiftUI's environment; the tracker ignores them meanwhile.
     var gridHasFocus = false

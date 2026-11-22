@@ -123,6 +123,11 @@ struct SlideCanvas: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 2))
             .wfRect("ed.canvas", radius: 2)
+            // FIX-N item 6: a drag SwiftUI never ended (the window resigned key, the slide or the mode changed, the view went) is ended here, once, so the
+            // inspector's fields keep writing and no box is left "pressed".
+            .onDisappear { editor.endInteraction() }
+            .onChange(of: editor.slide?.id) { _, _ in editor.endInteraction() }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in editor.endInteraction() }
             // `--shadow`: 0 12 40, 50 % black (18 % of the ink in light); the only shadow the design allows beside sheets and popovers.
             .shadow(color: scheme == .light ? Color(red: 0.075, green: 0.157, blue: 0.239).opacity(0.18) : .black.opacity(0.5), radius: 20, y: 12)
             .accessibilityElement(children: .contain)
@@ -184,6 +189,7 @@ private struct ObjectBox: View {
                 .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named(SlideCanvasSpace.name)).onChanged { value in
                     if !pressed {
                         pressed = true
+                        AppModel.shared.ui.canvasLastClicked = true        // FIX-N item 8
                         if editor.selectedObjectID != object.id { editor.select(object.id) }
                     }
                     if dragStart == nil, !editing,
@@ -206,6 +212,7 @@ private struct ObjectBox: View {
                     editor.select(object.id)
                     if isText { beginEditing() }
                 })
+                .onChange(of: editor.interactionEpoch) { _, _ in dragStart = nil; pressed = false }      // FIX-N item 6: an interaction ended elsewhere
             if editing, isText {
                 TextField("Text", text: Binding(get: { text }, set: { editor.setText(object.id, $0) }), axis: .vertical)
                     .textFieldStyle(.plain)
@@ -225,7 +232,7 @@ private struct ObjectBox: View {
         .frame(width: size.width, height: size.height)
         .overlay(alignment: .topLeading) {
             if selected {
-                CanvasHandles(size: size, canvas: canvas, frame: object.frame,
+                CanvasHandles(size: size, canvas: canvas, frame: object.frame, epoch: editor.interactionEpoch,
                               begin: { editor.beginInteraction() }, change: { editor.dragFrame(object.id, to: $0) }, end: { editor.endInteraction() })
             }
         }
@@ -248,6 +255,8 @@ private struct CanvasHandles: View {
     let canvas: CGSize
     /// The stored frame of the box (not the dragged one): a drag is measured from where it was when the pointer went down.
     let frame: NormalizedRect
+    /// FIX-N item 6: changes when an interaction ended somewhere else (an interrupted drag), so a stale `start` is dropped.
+    let epoch: Int
     let begin: () -> Void
     let change: (NormalizedRect) -> Void
     let end: () -> Void
@@ -263,6 +272,7 @@ private struct CanvasHandles: View {
             ForEach(Array(Self.handles.enumerated()), id: \.offset) { index, h in handle(index, h.px, h.py) }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
+        .onChange(of: epoch) { _, _ in start = nil }
     }
 
     private func handle(_ index: Int, _ px: Double, _ py: Double) -> some View {
@@ -275,7 +285,7 @@ private struct CanvasHandles: View {
             .frame(width: hit, height: hit)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .named(SlideCanvasSpace.name)).onChanged { value in
-                if start == nil { start = frame; begin() }
+                if start == nil { start = frame; begin(); AppModel.shared.ui.canvasLastClicked = true }        // FIX-N item 8
                 guard let s = start else { return }
                 change(SlideEditing.resizedFrame(from: s, handleX: px, handleY: py,
                                                  dx: Double(value.translation.width / canvas.width), dy: Double(value.translation.height / canvas.height)))
@@ -310,9 +320,11 @@ private struct LyricBoxView: View {
             .overlay(Rectangle().fill(Tok.blue.opacity(dragStart == nil ? 0 : 0.12)))
             .contentShape(Rectangle())
             .wfRect(selected ? "ed.lyric.\(box.rawValue)" : "ed.lyricbox.\(box.rawValue)")
+            .onChange(of: editor.interactionEpoch) { _, _ in dragStart = nil; pressed = false }      // FIX-N item 6
             .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named(SlideCanvasSpace.name)).onChanged { value in
                 if !pressed {
                     pressed = true
+                    AppModel.shared.ui.canvasLastClicked = true        // FIX-N item 8
                     if editor.selectedLyricBox != box { editor.selectLyric(box) }
                 }
                 if dragStart == nil, SlideEditing.dragHasStarted(dx: value.translation.width, dy: value.translation.height) {
@@ -328,7 +340,7 @@ private struct LyricBoxView: View {
             })
             .overlay(alignment: .topLeading) {
                 if selected {
-                    CanvasHandles(size: size, canvas: canvas, frame: editor.slide?.content.textFrames?[box] ?? frame,
+                    CanvasHandles(size: size, canvas: canvas, frame: editor.slide?.content.textFrames?[box] ?? frame, epoch: editor.interactionEpoch,
                                   begin: { editor.beginInteraction() }, change: { editor.dragLyricFrame(box, to: $0) }, end: { editor.endInteraction() })
                 }
             }
@@ -336,7 +348,7 @@ private struct LyricBoxView: View {
             .offset(x: frame.x * canvas.width, y: frame.y * canvas.height)
             .contextMenu {
                 Button("Reset to theme position") { editor.resetLyricFrame(box) }.disabled(!own)
-                Button("Apply to all slides in this song") { editor.applyLyricFrameToAllSlides(box) }
+                Button("Apply to all slides in this song") { AppModel.shared.ui.applyLyricToAll = box }        // FIX-N item 7: asks first
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Lyric box: \(box.title)")

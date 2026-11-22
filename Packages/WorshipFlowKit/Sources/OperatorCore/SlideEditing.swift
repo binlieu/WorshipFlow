@@ -114,13 +114,7 @@ public enum SlideEditing {
 
     /// A frame on the slide, at least `SlideObject.minimumSize` wide and high. The size is kept first and the position
     /// moved inside it.
-    static func clampedFrame(_ frame: NormalizedRect) -> NormalizedRect {
-        let minimum = SlideObject.minimumSize
-        let w = limit(frame.width, minimum...1, fallback: 0.2)
-        let h = limit(frame.height, minimum...1, fallback: 0.2)
-        return NormalizedRect(x: limit(frame.x, 0...(1 - w), fallback: 0), y: limit(frame.y, 0...(1 - h), fallback: 0),
-                              width: w, height: h)
-    }
+    static func clampedFrame(_ frame: NormalizedRect) -> NormalizedRect { frame.clampedToSlide() }      // FIX-N: one rule, shared with what is read back
 
     private static func limit(_ value: Double, _ range: ClosedRange<Double>, fallback: Double) -> Double {
         guard value.isFinite else { return fallback }

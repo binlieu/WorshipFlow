@@ -140,6 +140,8 @@ final class AppModel {
     /// Republishes the stage scenes every second, and exists only while a stage screen shows a clock or timer.
     @ObservationIgnored private var stageTicker: Timer?
     @ObservationIgnored private var keyMonitor: Any?
+    @ObservationIgnored private var mouseMonitor: Any?      // FIX-N item 8
+    @ObservationIgnored private var keyUpMonitor: Any?      // FIX-N item 5
     @ObservationIgnored private var publicationGate = LivePublicationGate()
     /// R6: reads the file system for image availability, off the main thread.
     @ObservationIgnored private let imageMonitor = ImageAvailabilityMonitor()
@@ -198,6 +200,7 @@ final class AppModel {
                 return self.thumbnailScene(for: SlideContent(primary: content.primary, secondary: content.secondary, textFrames: content.textFrames)).textLayers.map(\.frame)
             }
             editor.lyricThemeFrames = { [weak self] content in self?.lyricThemeFrames(for: content) ?? [:] }
+            editor.lyricThemeRevision = { [weak self] in self?.appearanceRevision ?? 0 }      // FIX-N item 8: composed again only when the theme or the screens change
             slideEditor = editor
             let settings = SettingsModel(store: store, legacy: LegacySettingsFiles(libraryURL: url), defaultProfiles: { [weak self] in
                 ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
@@ -397,15 +400,18 @@ final class AppModel {
     func lyricThemeFrames(for content: SlideContent) -> [LyricBox: NormalizedRect] {
         let scene = thumbnailScene(for: SlideContent(primary: content.primary, secondary: content.secondary))
         guard scene.plate == nil else { return [:] }
+        // FIX-N item 8: the words' layers are found by position, not by comparing their text (a layer's text may be shaped by the composer): props add
+        // their own text layers after the words, so what a slide with no words at all composes is the number to leave out.
+        let propLayers = thumbnailScene(for: SlideContent(primary: "", secondary: nil)).textLayers.count
+        let layers = Array(scene.textLayers.prefix(max(0, scene.textLayers.count - propLayers)))
         var frames: [LyricBox: NormalizedRect] = [:]
         var index = 0
-        if !content.primary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, index < scene.textLayers.count, scene.textLayers[index].text == content.primary {
-            frames[.primary] = scene.textLayers[index].frame
+        if !content.primary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, index < layers.count {
+            frames[.primary] = layers[index].frame
             index += 1
         }
-        if let secondary = content.secondary, !secondary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           index < scene.textLayers.count, scene.textLayers[index].text == secondary {
-            frames[.secondary] = scene.textLayers[index].frame
+        if let secondary = content.secondary, !secondary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, index < layers.count {
+            frames[.secondary] = layers[index].frame
         }
         return frames
     }
@@ -422,6 +428,25 @@ final class AppModel {
         case .down: (columns, rows) = (0, 1)
         }
         return editor.nudgeSelection(columns: columns, rows: rows, big: big)
+    }
+
+    /// FIX-N item 8: a box is selected on the canvas of the mode that is showing: what an arrow key may nudge although a button has keyboard focus.
+    var canvasSelectionForArrows: Bool {
+        guard let mode = workspace?.mode else { return false }
+        return CanvasArrows.hasSelection(mode: mode, editHasSelection: slideEditor?.selectedObjectID != nil || slideEditor?.selectedLyricBox != nil,
+                                         stageTakesArrows: ui.stageTakesArrows)
+    }
+
+    /// FIX-N item 8: an arrow key for the canvas that was clicked last. Edit nudges the selected object or lyric box; Stage hands the nudge to its canvas.
+    @discardableResult
+    func nudgeLastClickedCanvas(_ move: SelectionMove, big: Bool) -> Bool {
+        switch workspace?.mode {
+        case .edit: return nudgeIfEditing(move, big: big)
+        case .stage:
+            let (dx, dy): (Int, Int) = switch move { case .left: (-1, 0); case .right: (1, 0); case .up: (0, -1); case .down: (0, 1) }
+            return ui.stageArrow?(dx, dy, big) ?? false
+        default: return false
+        }
     }
 
     func deleteSelectedObject() -> Bool {
@@ -633,7 +658,9 @@ final class AppModel {
                 // FIX-H item 7: what has focus decides. A control the app drew reports its own focus; an AppKit control is read from the
                 // responder chain. A focused control keeps Space, Return and the arrows.
                 let focus: FocusedElement = textInput ? (inSearch ? .searchField : .textInput) : (self.ui.focusedControl ?? appKitFocus)
-                switch KeyRouting.decision(for: key, focus: focus, section: self.effectiveKeySection, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
+                // FIX-N items 1 and 8: a box is selected on the canvas that has focus, or on the canvas that was clicked last.
+                let canvasHasSelection = (window.firstResponder as? StageKeyView)?.takesArrows ?? self.canvasSelectionForArrows
+                switch KeyRouting.decision(for: key, focus: focus, canvasHasSelection: canvasHasSelection, canvasLastClicked: self.ui.canvasLastClicked, section: self.effectiveKeySection, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
                 case .focusShow:
                     self.ui.controlFocusTracker.clear()
                     window.makeFirstResponder(nil)
@@ -650,6 +677,9 @@ final class AppModel {
                     case .clearAll: self.clearAll(from: .key)
                     case .blackout: self.blackout(from: .key)
                     }
+                    return true
+                case .nudgeCanvas(let move):
+                    _ = self.nudgeLastClickedCanvas(move, big: shift)      // FIX-N item 8: the canvas was clicked last; a button's focus does not take its arrows
                     return true
                 case .moveSelection(let move):
                     if self.nudgeIfEditing(move, big: shift) { return true }       // FIX-K: in Edit with an object or lyric box selected, an arrow nudges it
@@ -668,6 +698,16 @@ final class AppModel {
                 }
             }
             return handled ? nil : event
+        }
+        // FIX-N item 8: every mouse press clears "the canvas was clicked last"; a canvas's own press sets it again (local monitors run before the view's gesture).
+        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            MainActor.assumeIsolated { self?.ui.canvasLastClicked = false }
+            return event
+        }
+        // FIX-N items 5 and 8: an arrow key's release ends the Stage canvas's run of nudges, whichever view has the keyboard.
+        keyUpMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
+            if [123, 124, 125, 126].contains(event.keyCode) { MainActor.assumeIsolated { self?.ui.stageArrowReleased?() } }
+            return event
         }
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.displaysChanged() }
@@ -1620,6 +1660,18 @@ final class AppModel {
             return ScreenLayerInput(role: profile.role, isEnabled: profile.isEnabled, visibleLayers: screenLook.visibleLayers,
                                     backgroundIsMedia: isMedia)
         }
+    }
+
+    /// FIX-N item 4: the kind of the theme background (a video or a picture) of the first enabled audience or broadcast screen whose Look shows the
+    /// background layer, nil when no such screen has one. What the background clear icon says it would clear when nothing else is named.
+    var themeBackgroundKindOnScreen: MediaKind? {
+        for profile in profiles where profile.isEnabled && profile.role != .stage {
+            let screenLook = currentLook?.screenLook(for: profile.id, in: profiles) ?? .standard
+            guard screenLook.visibleLayers.contains(.background) else { continue }
+            let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID, presentationThemeID: workspace?.shownThemeID, themes: themes)
+            if let kind = ClearIconRule.themeBackgroundKind(theme.background) { return kind }
+        }
+        return nil
     }
 
     /// What a click on a media tile does (UI-003). Sound plays as a cue; a picture or video follows the layer choice.

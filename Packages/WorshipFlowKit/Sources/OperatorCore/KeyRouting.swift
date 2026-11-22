@@ -71,6 +71,9 @@ public enum KeyDecision: Sendable, Equatable {
     /// R1: a transport key that is being held down (auto-repeat). Consumed and ignored: only the first press of a key
     /// moves the show, so holding Space or an arrow never runs the deck forward.
     case ignore
+    /// FIX-N item 8: an arrow key nudges the selected canvas box (Stage or Edit) although keyboard focus sits on a button, toggle or checkbox, because the
+    /// canvas was the last thing clicked. Consumed.
+    case nudgeCanvas(SelectionMove)
     /// FIX-H item 7: Escape on a focused control (a toggle, a slider, a button...): put keyboard focus back on the show (the slide grid), so
     /// the transport keys work again. Consumed.
     case focusShow
@@ -89,12 +92,15 @@ public enum FocusedElement: Sendable, Equatable {
     case searchField
     /// A control that is not a text field. Space and Return act on it; arrows act on a slider or a segmented control.
     case toggle, checkbox, segmented, tab, slider, button, popUp
+    /// FIX-N item 1: a canvas that edits boxes (the Stage canvas's key-catching view). It is not a control: it takes only the arrow keys, and only
+    /// while a box is selected; every other key is routed as if the slide grid had focus, so the show's keys always work.
+    case canvas
 
     /// True for the controls, which keep their own keys.
     public var isControl: Bool {
         switch self {
         case .toggle, .checkbox, .segmented, .tab, .slider, .button, .popUp: true
-        case .none, .slideGrid, .textInput, .searchField: false
+        case .none, .slideGrid, .textInput, .searchField, .canvas: false
         }
     }
 
@@ -156,10 +162,18 @@ public enum KeyRouting {
     /// FIX-H item 7: like `decision(for:textInputFocused:...)`, with what actually has focus. A focused control keeps Space, Return and the
     /// arrows (and every other key); only Escape is ours, and it moves focus back to the show. The transport keys drive the show
     /// when nothing, or the slide grid, has focus.
-    public static func decision(for key: KeyboardKey, focus: FocusedElement, section: KeySection = .slideGrid, sheetOpen: Bool,
+    /// `canvasHasSelection` matters only for `.canvas` focus: with a box selected the canvas keeps the arrow keys (with or without Shift, held or
+    /// not: it nudges the box), without one the arrows move the slide selection as they do from the grid.
+    /// `canvasLastClicked` (FIX-N item 8): the last mouse click was on a canvas box. With a box selected, a button, toggle or checkbox that has keyboard
+    /// focus (they have no use for arrows) no longer takes the arrow keys from the box.
+    public static func decision(for key: KeyboardKey, focus: FocusedElement, canvasHasSelection: Bool = false, canvasLastClicked: Bool = false,
+                                section: KeySection = .slideGrid, sheetOpen: Bool,
                                 commandModifierDown: Bool = false, shiftDown: Bool = false, isRepeat: Bool = false) -> KeyDecision {
         guard !sheetOpen, !commandModifierDown else { return .passThrough }
         switch focus {
+        case .canvas:
+            if canvasHasSelection, [.leftArrow, .rightArrow, .upArrow, .downArrow].contains(key) { return .passThrough }
+            return decision(for: key, textInputFocused: false, section: section, sheetOpen: false, commandModifierDown: false, shiftDown: shiftDown, isRepeat: isRepeat)
         case .none, .slideGrid:
             return decision(for: key, textInputFocused: false, section: section, sheetOpen: false, commandModifierDown: false, shiftDown: shiftDown, isRepeat: isRepeat)
         case .textInput:
@@ -167,7 +181,18 @@ public enum KeyRouting {
         case .searchField:
             return decision(for: key, textInputFocused: true, searchFieldFocused: true, sheetOpen: false)
         case .toggle, .checkbox, .segmented, .tab, .slider, .button, .popUp:
+            if canvasHasSelection, canvasLastClicked, [.toggle, .checkbox, .button].contains(focus), let move = arrowMove(key) { return .nudgeCanvas(move) }
             return key == .escape && !isRepeat ? .focusShow : .passThrough
+        }
+    }
+
+    private static func arrowMove(_ key: KeyboardKey) -> SelectionMove? {
+        switch key {
+        case .leftArrow: .left
+        case .rightArrow: .right
+        case .upArrow: .up
+        case .downArrow: .down
+        default: nil
         }
     }
 
@@ -205,5 +230,16 @@ extension KeyRouting {
     public static func transportKeysActive(windowTitle: String?, windowIdentifier: String?, launchedWithHardwareTest: Bool) -> Bool {
         if launchedWithHardwareTest { return false }
         return !isHardwareTestWindow(title: windowTitle, identifier: windowIdentifier) && !isAboutWindow(title: windowTitle, identifier: windowIdentifier)
+    }
+}
+
+/// FIX-N items 1 and 8: whether the mode that is showing has a canvas with a box selected that the arrow keys may nudge. Only Edit and Stage have a canvas.
+public enum CanvasArrows {
+    public static func hasSelection(mode: WorkspaceMode, editHasSelection: Bool, stageTakesArrows: Bool) -> Bool {
+        switch mode {
+        case .edit: editHasSelection
+        case .stage: stageTakesArrows
+        case .show, .media, .cues, .screens: false
+        }
     }
 }

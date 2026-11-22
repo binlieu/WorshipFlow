@@ -69,9 +69,13 @@ private func makeRouter(_ f: FakeMIDIPorts, _ sink: Sink, bindings: [MIDIBinding
         r.filter = MIDICommandFilter(noteStaleAfter: 5, ccRepeatWindow: 0)      // no hold-back: every message runs its command
         r.start(); r.selectSource(1)
         for i in 0..<2000 { f.emit(.controlChange(channel: 1, controller: i % 128, value: i % 100), from: 1) }
-        #expect(await waitUntil(timeout: 30) { sink.messages.count == 2000 })
+        // FIX-N item 10: the wait is a safety net against a hang, not a speed assertion. The router's consumer runs on the main actor, which the other
+        // main-actor tests of the parallel suite (and a loaded machine) can starve for well over 30 s (17 s was measured for this burst, 0.02 s when idle).
+        // What the test asserts is unchanged: all 2000 messages, in order; and now also that nothing was shed.
+        #expect(await waitUntil(timeout: 600) { sink.messages.count == 2000 })
         let expected: [MIDIMessage] = (0..<2000).map { .controlChange(channel: 1, controller: $0 % 128, value: $0 % 100) }
         #expect(sink.messages == expected)
+        #expect(f.statistics.droppedMessages == 0 && r.receivedCount == 2000)
         r.stop()
     }
 

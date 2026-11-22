@@ -129,7 +129,7 @@ public enum SceneComposer {
             let plated = theme.plate != nil
             // FIX-K: the slide's own frames (audience only; a plate stacks its lines itself and uses no frames). Style and alignment stay the theme's.
             var primaryBlock = theme.primary, secondaryBlock = theme.secondary
-            if !isBroadcast, !plated, let own = slide.textFrames {
+            if !isBroadcast, !plated, let own = slide.textFrames?.validated {      // FIX-N item 2: a bad frame in memory is no override either
                 if let f = own.primary { primaryBlock.frame = f }
                 if let f = own.secondary { secondaryBlock?.frame = f }
             }

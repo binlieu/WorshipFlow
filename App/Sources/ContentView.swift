@@ -129,6 +129,7 @@ struct WorkspaceView: View {
             if workspace.mode.showsTransportBar { TransportBar(app: app, workspace: workspace) }
         }
         .background(Tok.bg)
+        .modifier(ApplyLyricToAllAlert(app: app))
         .ignoresSafeArea(.container, edges: .top)          // the bar is the window's top 52 pt: there is no title bar above it
         .navigationTitle(serviceName)           // the window's own title (Window menu, VoiceOver); the bar below draws its own block (UI-005j)
         .navigationSubtitle(serviceSubtitle)
@@ -202,6 +203,12 @@ struct WorkspaceView: View {
                 // Open or close the screens: not in the design's toolbar, so it floats in the free room right of the mode switcher and takes none.
                 .overlay(alignment: .leading) { screensButton.padding(.leading, 12) }
             // FIX-K item 5 (owner: "remove live red on the top right corner. it looks too busy"): no LIVE chip here in any mode.
+            // FIX-N item 3: but a quiet amber word, only while the screens are blacked out or cleared, so B and Escape show that they happened.
+            if let tag = ShowStateTag.text(for: app.show) {
+                Badge(text: tag, style: .warning, rectID: "tb.stateTag")
+                    .help(tag == "BLACKOUT" ? "Blackout is on: the audience screens are black. Press B to lift it." : "The words are cleared on every screen. Go live or press Next to bring them back.")
+                    .accessibilityLabel(tag == "BLACKOUT" ? "Blackout is on" : "Cleared")
+            }
             if let stage = app.stage { ToolbarTimersView(stage: stage) }
             HStack(spacing: 12) {
                 ForEach(app.rolePills) { pill in
@@ -375,5 +382,36 @@ struct UnsavedBar: View {
         .background(Tok.warning.opacity(0.22))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Not saved: \(message)")
+    }
+}
+
+/// FIX-N item 7: "Apply to all slides in this song" asks first: "Apply this position to N slides?". One undo step puts every slide back.
+private struct ApplyLyricToAllAlert: ViewModifier {
+    let app: AppModel
+
+    private var box: LyricBox? { app.ui.applyLyricToAll }
+    private var count: Int { box.flatMap { app.slideEditor?.lyricApplyCount($0) } ?? 0 }
+    private var title: String {
+        guard box != nil else { return "" }
+        return count > 0 ? "Apply this position to \(count) \(count == 1 ? "slide" : "slides")?" : "Nothing to apply"
+    }
+    private var message: String {
+        guard let box else { return "" }
+        let words = box.title.lowercased()
+        return count > 0 ? "The \(words) words of \(count) other \(count == 1 ? "slide" : "slides") move to this position. One undo step puts them back."
+                         : "Every other slide with \(words) words already has this position."
+    }
+
+    func body(content: Content) -> some View {
+        content.alert(title, isPresented: Binding(get: { box != nil }, set: { if !$0 { app.ui.applyLyricToAll = nil } })) {
+            if count > 0, let box {
+                Button("Apply") { app.slideEditor?.applyLyricFrameToAllSlides(box) }
+                Button("Cancel", role: .cancel) {}
+            } else {
+                Button("OK", role: .cancel) {}
+            }
+        } message: {
+            Text(message)
+        }
     }
 }

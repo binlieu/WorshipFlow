@@ -277,9 +277,9 @@ struct EditInspector: View {
                     .help("Give these words back the theme's place on this slide").accessibilityLabel("Reset to theme position")
             }
             EditRow {
-                Button("Apply to all slides in this song") { editor.applyLyricFrameToAllSlides(box) }
+                Button("Apply to all slides in this song") { app.ui.applyLyricToAll = box }      // FIX-N item 7: asks first
                     .buttonStyle(HeaderButtonStyle())
-                    .help("Every slide of this song takes this position for \(box.title.lowercased()) words. One undo step on each slide").accessibilityLabel("Apply to all slides in this song")
+                    .help("Every slide of this song takes this position for \(box.title.lowercased()) words. One undo step").accessibilityLabel("Apply to all slides in this song")
             }
         }
     }

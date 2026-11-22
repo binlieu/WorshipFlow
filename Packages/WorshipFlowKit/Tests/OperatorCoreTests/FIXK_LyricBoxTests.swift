@@ -181,11 +181,12 @@ import Persistence
         r.editor.applyLyricFrameToAllSlides(.primary)
         #expect(r.model.slides.map { $0.content.textFrames?.primary } == [mine, mine, mine])
         #expect(stored(r, 0)?.secondary?.x == 0.3)                        // untouched language kept
-        // Undo works on the selected slide and takes only that slide's share back (slide 3 had no frame of its own).
+        // FIX-N item 7 (replaces "takes only that slide's share back"): the action is one undo step, so undoing it from any slide that took part puts every
+        // slide back (slide 1 had no frame of its own, slide 2 held `mine` already, slide 3 had none).
         r.model.selectSlide(2)
         r.editor.undo()
-        #expect(stored(r, 2)?.primary == nil)
-        #expect(stored(r, 0)?.primary == mine && stored(r, 1)?.primary == mine)
+        #expect(stored(r, 2)?.primary == nil && stored(r, 0)?.primary == nil)
+        #expect(stored(r, 1)?.primary == mine)
     }
 
     @Test func applyToAllWithNoOwnFrameResetsEverySlideToTheTheme() async throws {

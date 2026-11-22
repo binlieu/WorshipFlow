@@ -41,11 +41,13 @@ import OperatorCore
         try? await Task.sleep(for: .milliseconds(250))
     }
 
-    func key(_ code: UInt16, _ chars: String, shift: Bool = false) {
+    func key(_ code: UInt16, _ chars: String, shift: Bool = false, isRepeat: Bool = false, up: Bool = true, down: Bool = true) {
         for type in [NSEvent.EventType.keyDown, .keyUp] {
+            if type == .keyDown, !down { continue }
+            if type == .keyUp, !up { continue }
             guard let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: shift ? [.shift] : [], timestamp: ProcessInfo.processInfo.systemUptime,
                                                windowNumber: window.windowNumber, context: nil, characters: chars, charactersIgnoringModifiers: chars,
-                                               isARepeat: false, keyCode: code) else { continue }
+                                               isARepeat: isRepeat, keyCode: code) else { continue }
             NSApp.sendEvent(event)
         }
     }

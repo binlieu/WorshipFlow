@@ -20,6 +20,8 @@ public final class SlideEditorModel {
         var background: MediaSelection?
         /// FIX-K: the slide's own text frames at that moment.
         var textFrames: SlideTextFrames?
+        /// FIX-N item 7: steps that belong to one action on several slides ("Apply to all slides") share a group; one undo restores them all.
+        var group: UUID?
     }
 
     private struct History {
@@ -34,6 +36,24 @@ public final class SlideEditorModel {
     @ObservationIgnored private var histories: [UUID: History] = [:]
     @ObservationIgnored private var historyPresentation: UUID?
     @ObservationIgnored private var interactionBase: (slideID: UUID, snapshot: Snapshot)?
+    /// FIX-N item 6: true while `endInteraction` writes, so its own writes do not close the interaction they belong to.
+    @ObservationIgnored private var closingInteraction = false
+    /// FIX-N item 6: counts the interactions that ended; the canvas's boxes reset their pressed state when it changes (a drag that SwiftUI cancelled
+    /// never called their `onEnded`).
+    public private(set) var interactionEpoch = 0
+    /// FIX-N item 8: a run of nudges ends after this long without one (an injected clock, so a test needs no wait).
+    @ObservationIgnored public var nudgeQuietPeriod: TimeInterval = 1.0
+    @ObservationIgnored public var nudgeClock: () -> Date = { Date() }
+    @ObservationIgnored private var lastNudgeAt: Date?
+    /// FIX-N item 8: the theme frames of the selected slide's lyric boxes, composed once per content and theme revision, not on every read.
+    @ObservationIgnored private var lyricCache: (key: LyricCacheKey, frames: [LyricBox: NormalizedRect])?
+    private struct LyricCacheKey: Equatable { var slideID: UUID; var primary: String; var secondary: String?; var revision: Int }
+    /// FIX-N item 8: changes when the theme or the screens change, so the cached theme frames are composed again. The app supplies it.
+    @ObservationIgnored public var lyricThemeRevision: @MainActor () -> Int = { 0 }
+    #if DEBUG
+    /// FIX-N item 8 (debug only, compiled out of release): how many times the theme frames were composed, for the cache test.
+    @ObservationIgnored public private(set) var debugLyricComposeCount = 0
+    #endif
 
     /// UI-004: where a dragged or resized object is while the pointer is down. Nothing else is touched until the pointer is released:
     /// not the presentation, the preview, the live output or the save queue. `objects` and `selectedObject` show these frames, so
@@ -102,6 +122,8 @@ public final class SlideEditorModel {
     // MARK: Selection
 
     public func select(_ id: UUID?) {
+        endInteraction()                      // FIX-N item 6: a stray open drag is over by the time something is selected
+        histories[slide?.id ?? UUID()]?.lastKey = nil      // FIX-N item 8: a new selection ends a run of nudges
         guard let slide else { return }
         lyricSelection = nil
         if let id, slide.content.objects.contains(where: { $0.id == id }) {
@@ -117,10 +139,22 @@ public final class SlideEditorModel {
     public var lyricBoxes: [LyricBox: NormalizedRect] {
         guard let slide else { return [:] }
         var boxes: [LyricBox: NormalizedRect] = [:]
-        for (box, themeFrame) in lyricThemeFrames(slide.content) {
+        for (box, themeFrame) in cachedLyricThemeFrames(for: slide) {
             boxes[box] = lyricDragFrames[box] ?? slide.content.textFrames?[box] ?? themeFrame
         }
         return boxes
+    }
+
+    /// FIX-N item 8: the theme's frames for the slide's words, from the cache while its text and the theme revision are unchanged.
+    private func cachedLyricThemeFrames(for slide: Slide) -> [LyricBox: NormalizedRect] {
+        let key = LyricCacheKey(slideID: slide.id, primary: slide.content.primary, secondary: slide.content.secondary, revision: lyricThemeRevision())
+        if let cache = lyricCache, cache.key == key { return cache.frames }
+        let frames = lyricThemeFrames(slide.content)
+        lyricCache = (key, frames)
+        #if DEBUG
+        debugLyricComposeCount += 1
+        #endif
+        return frames
     }
 
     public func lyricFrame(_ box: LyricBox) -> NormalizedRect? { lyricBoxes[box] }
@@ -135,8 +169,10 @@ public final class SlideEditorModel {
 
     /// Selects a lyric box (and deselects any object). A language with no words has no box: nothing is selected.
     public func selectLyric(_ box: LyricBox?) {
+        endInteraction()
+        histories[slide?.id ?? UUID()]?.lastKey = nil
         selection = nil
-        guard let slide, let box, lyricThemeFrames(slide.content)[box] != nil else { lyricSelection = nil; return }
+        guard let slide, let box, cachedLyricThemeFrames(for: slide)[box] != nil else { lyricSelection = nil; return }
         lyricSelection = (slide.id, box)
     }
 
@@ -181,6 +217,9 @@ public final class SlideEditorModel {
 
     public func endInteraction() {
         guard let base = interactionBase else { return }
+        closingInteraction = true
+        interactionEpoch &+= 1
+        defer { closingInteraction = false }
         // UI-004: the one write of the drag. It goes through `mutate` while the interaction is still open, so it records no step of its
         // own; the step is recorded below, from the snapshot taken when the pointer went down.
         let dragged = dragFrames
@@ -251,9 +290,10 @@ public final class SlideEditorModel {
         editLyricFrame(box, frame)
     }
 
-    private func editLyricFrame(_ box: LyricBox, _ new: NormalizedRect) {
+    private func editLyricFrame(_ box: LyricBox, _ new: NormalizedRect, typed: Bool = false) {
         resetHistoryIfPresentationChanged()
-        guard let slide, let themeFrame = lyricThemeFrames(slide.content)[box] else { return }
+        if typed { endInteraction() }         // FIX-N item 6: a typed position always writes, whatever drag was left open
+        guard let slide, let themeFrame = cachedLyricThemeFrames(for: slide)[box] else { return }
         let target = SlideEditing.clampedFrame(new)
         let stored = slide.content.textFrames?[box] ?? themeFrame
         if interactionBase?.slideID == slide.id {
@@ -268,7 +308,7 @@ public final class SlideEditorModel {
 
     /// Sets a lyric box's frame from typed values (fractions of the slide), kept on the slide.
     public func setLyricFrame(_ box: LyricBox, x: Double, y: Double, width: Double, height: Double) {
-        editLyricFrame(box, NormalizedRect(x: x, y: y, width: width, height: height))
+        editLyricFrame(box, NormalizedRect(x: x, y: y, width: width, height: height), typed: true)
     }
 
     /// "Reset to theme position": this slide's frame for one language is dropped. One undo step.
@@ -285,10 +325,27 @@ public final class SlideEditorModel {
         resetHistoryIfPresentationChanged()
         guard let source = slide else { return }
         let frame = source.content.textFrames?[box]
-        for target in workspace.slides {
+        let group = UUID()            // FIX-N item 7: one undo step for every slide the action changed
+        for target in lyricApplyTargets(box, frame: frame, source: source.id) {
             var frames = target.content.textFrames ?? SlideTextFrames()
             frames[box] = frame
-            writeTextFrames(target, frames.isEmpty ? nil : frames, key: nil)
+            writeTextFrames(target, frames.isEmpty ? nil : frames, key: nil, group: group)
+        }
+    }
+
+    /// FIX-N item 7: how many slides "Apply to all slides in this song" would change: those other than the selected one that have words in this language
+    /// and do not already hold that position. The app asks "Apply this position to N slides?" with this number before it applies.
+    public func lyricApplyCount(_ box: LyricBox) -> Int {
+        guard let source = slide else { return 0 }
+        return lyricApplyTargets(box, frame: source.content.textFrames?[box], source: source.id).count
+    }
+
+    private func lyricApplyTargets(_ box: LyricBox, frame: NormalizedRect?, source: UUID) -> [Slide] {
+        workspace.slides.filter { target in
+            guard target.id != source else { return false }
+            let words = box == .primary ? target.content.primary : (target.content.secondary ?? "")
+            guard !words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }      // a slide with no words in that language is skipped
+            return target.content.textFrames?[box] != frame
         }
     }
 
@@ -300,6 +357,10 @@ public final class SlideEditorModel {
     public func nudgeSelection(columns: Int, rows: Int, big: Bool) -> Bool {
         let step = big ? 10.0 : 1.0
         let dx = Double(columns) * step / SlideEditing.referenceWidth, dy = Double(rows) * step / SlideEditing.referenceHeight
+        // FIX-N item 8: a run of nudges is one undo step only while the arrows keep coming; after a quiet period the next nudge is a new step.
+        let now = nudgeClock()
+        if let last = lastNudgeAt, now.timeIntervalSince(last) >= nudgeQuietPeriod, let id = slide?.id { histories[id]?.lastKey = nil }
+        lastNudgeAt = now
         if let id = selectedObjectID {
             edit(id, key: "nudge") { $0.move(dx: dx, dy: dy) }
             return true
@@ -519,18 +580,56 @@ public final class SlideEditorModel {
 
     public func undo() {
         guard let slide, var h = histories[slide.id], let previous = h.undo.popLast() else { return }
-        h.redo.append(snapshot(of: slide))
+        var now = snapshot(of: slide)
+        now.group = previous.group
+        h.redo.append(now)
         h.lastKey = nil
         histories[slide.id] = h
         restore(previous, on: slide)
+        // FIX-N item 7: the other slides of a grouped action ("Apply to all slides") go back with it, in the same step.
+        if let group = previous.group { stepGroup(group, undoing: true, except: slide.id) }
     }
 
     public func redo() {
         guard let slide, var h = histories[slide.id], let next = h.redo.popLast() else { return }
-        h.undo.append(snapshot(of: slide))
+        var now = snapshot(of: slide)
+        now.group = next.group
+        h.undo.append(now)
         h.lastKey = nil
         histories[slide.id] = h
         restore(next, on: slide)
+        if let group = next.group { stepGroup(group, undoing: false, except: slide.id) }
+    }
+
+    /// Undoes (or redoes) the step of `group` that sits on top of every other slide's history.
+    private func stepGroup(_ group: UUID, undoing: Bool, except skip: UUID) {
+        for other in workspace.slides where other.id != skip {
+            guard var h = histories[other.id] else { continue }
+            if undoing {
+                guard h.undo.last?.group == group, let previous = h.undo.popLast() else { continue }
+                var now = snapshot(of: other); now.group = group
+                h.redo.append(now)
+                h.lastKey = nil
+                histories[other.id] = h
+                restoreContent(previous, on: other)
+            } else {
+                guard h.redo.last?.group == group, let next = h.redo.popLast() else { continue }
+                var now = snapshot(of: other); now.group = group
+                h.undo.append(now)
+                h.lastKey = nil
+                histories[other.id] = h
+                restoreContent(next, on: other)
+            }
+        }
+    }
+
+    /// Puts a snapshot's objects, background and frames back on a slide that is not the selected one (no selection change).
+    private func restoreContent(_ snapshot: Snapshot, on slide: Slide) {
+        var content = slide.content
+        content.objects = snapshot.objects
+        content.background = snapshot.background
+        content.textFrames = snapshot.textFrames
+        workspace.editSlide(id: slide.id, content: content)
     }
 
     private func restore(_ snapshot: Snapshot, on slide: Slide) {
@@ -550,9 +649,14 @@ public final class SlideEditorModel {
 
     /// Applies `change` to a copy of the slide's objects; if anything differs, records one undo step (unless this
     /// continues a run of the same kind of edit, or a drag is open) and hands the new content to the workspace.
-    private func mutate(_ slide: Slide, key: String?, selecting: UUID?, clearSelection: Bool = false,
+    private func mutate(_ given: Slide, key: String?, selecting: UUID?, clearSelection: Bool = false,
                         _ change: (inout [SlideObject]) -> Void) {
         resetHistoryIfPresentationChanged()
+        var slide = given
+        if !closingInteraction, interactionBase != nil {      // FIX-N item 6: a write that is not the drag's own ends a stray drag first
+            endInteraction()
+            slide = workspace.slides.first { $0.id == given.id } ?? given
+        }
         var objects = slide.content.objects
         change(&objects)
         guard objects != slide.content.objects else { return }
@@ -582,10 +686,16 @@ public final class SlideEditorModel {
 
     /// FIX-K: writes the slide's own text frames through the one edit path. Records one undo step, unless this continues a run of the same kind of edit
     /// or a drag is open (`endInteraction` records that step). Nothing is written when the frames are unchanged.
-    private func writeTextFrames(_ slide: Slide, _ frames: SlideTextFrames?, key: String?) {
+    private func writeTextFrames(_ given: Slide, _ frames: SlideTextFrames?, key: String?, group: UUID? = nil) {
+        var slide = given
+        if !closingInteraction, interactionBase != nil {
+            endInteraction()
+            slide = workspace.slides.first { $0.id == given.id } ?? given
+        }
         let new = (frames?.isEmpty ?? true) ? nil : frames
         guard new != slide.content.textFrames else { return }
-        let before = snapshot(of: slide)
+        var before = snapshot(of: slide)
+        before.group = group
         if interactionBase?.slideID == slide.id {
             // inside a drag: endInteraction records the single step
         } else if let key, histories[slide.id]?.lastKey == key, !(histories[slide.id]?.undo.isEmpty ?? true) {

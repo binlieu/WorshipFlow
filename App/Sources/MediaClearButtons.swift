@@ -32,9 +32,11 @@ struct MediaClearButtons: View {
         var background = media?.layers.background?.selection
         if background == nil, show?.isStopped == false, show?.isBackgroundCleared == false { background = show?.liveSlideAtPlace?.background }
         let foreground = media?.layers.foreground?.selection
+        // FIX-N item 4: the theme's own video or picture on a screen that shows the background layer, while the show is live and the background is not cleared.
+        let themeKind = show?.isStopped == false && show?.isBackgroundCleared == false && show?.isBlackedOut == false ? app.themeBackgroundKindOnScreen : nil
         let cue = app.audio?.activeCues.last
         return ClearLiveState(hasLiveWords: show?.liveSlide != nil && show?.isCleared == false && show?.isBlackedOut == false,
-                              backgroundKind: background?.kind, backgroundName: name(background?.assetID),
+                              backgroundKind: background?.kind, backgroundName: name(background?.assetID), themeBackgroundKind: themeKind,
                               foregroundKind: foreground?.kind, foregroundName: name(foreground?.assetID),
                               musicName: cue.flatMap { name($0.assetID) }, hasMusic: !(app.audio?.activeCues.isEmpty ?? true))
     }
