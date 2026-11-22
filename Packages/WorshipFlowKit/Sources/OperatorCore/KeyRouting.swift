@@ -216,16 +216,18 @@ public enum KeyRouting {
 // test. The decision is pure; the app's key monitor passes the window it was given and the launch mode.
 extension KeyRouting {
     /// True for the Hardware Test window, by its title or by the identifier SwiftUI gives a window made with `id: "hardware-test"`.
+    /// FIX-T item 7 (L10): a window that has an identifier is told by it alone. The title is the playlist's name in the operator window, so a
+    /// playlist called "Hardware Test" must not switch the transport keys off; the title is only read for a window with no identifier.
     public static func isHardwareTestWindow(title: String?, identifier: String?) -> Bool {
+        if let identifier, !identifier.isEmpty { return identifier.lowercased().contains("hardware-test") }
         if let title, title.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare("Hardware Test") == .orderedSame { return true }
-        if let identifier, identifier.lowercased().contains("hardware-test") { return true }
         return false
     }
 
     /// UI-004: true for the About window (title "About WorshipFlow", or the identifier of the window made with `id: "about"`).
     public static func isAboutWindow(title: String?, identifier: String?) -> Bool {
+        if let identifier, !identifier.isEmpty { return identifier.lowercased().hasPrefix("about") }       // FIX-T item 7 (L10): as above
         if let title, title.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare("About WorshipFlow") == .orderedSame { return true }
-        if let identifier, identifier.lowercased().hasPrefix("about") { return true }
         return false
     }
 

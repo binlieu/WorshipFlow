@@ -392,7 +392,7 @@ public final class HotFolderModel {
     }
 
     private func publish() {
-        onAssetsChange?(Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0.items) }))
+        onAssetsChange?(Dictionary(folders.map { ($0.id, $0.items) }, uniquingKeysWith: { first, _ in first }))
     }
 
     private func startWatching(_ folder: HotFolder) {
