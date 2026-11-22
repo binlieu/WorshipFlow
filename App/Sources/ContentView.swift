@@ -44,11 +44,39 @@ struct LibraryProblemView: View {
             Text("WorshipFlow looked for the library here:")
             Text(problem.path).font(.wfMono(13)).textSelection(.enabled)
             Text(problem.message).foregroundStyle(.secondary).textSelection(.enabled)
-            Text("The file has not been changed or deleted. Check that the disk is connected and the folder is writable, or move the file aside and restart to begin a new library. Restore a backup copy over it to get your songs back.")
-                .fixedSize(horizontal: false, vertical: true)
+            if problem.fromNewerBuild {
+                // FIX-H item 14: nothing was written. The two ways out are to quit (and use the newer WorshipFlow) or to use another library.
+                Text("Nothing was written to the library, so it is still exactly as the newer WorshipFlow left it.")
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Button("Quit WorshipFlow") { NSApplication.shared.terminate(nil) }.buttonStyle(HeaderButtonStyle(kind: .primary))
+                    Button("Open a different library…") { Self.openDifferentLibrary() }.buttonStyle(HeaderButtonStyle())
+                }
+            } else {
+                Text("The file has not been changed or deleted. Check that the disk is connected and the folder is writable, or move the file aside and restart to begin a new library. Restore a backup copy over it to get your songs back.")
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(32)
         .frame(maxWidth: 720, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+extension LibraryProblemView {
+    /// Asks for another library file, then starts WorshipFlow again on it (a library is opened once per launch) and quits this copy.
+    @MainActor static func openDifferentLibrary() {
+        let panel = NSOpenPanel()
+        panel.message = "Choose the library file to open instead"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.arguments = ["--library", url.path]
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration) { _, _ in
+            DispatchQueue.main.async { NSApplication.shared.terminate(nil) }
+        }
     }
 }
 
@@ -224,7 +252,7 @@ struct WorkspaceView: View {
             case .blackout: ThumbTag(text: "BLACKOUT", kind: .warning)
             case .stopped: EmptyView()
             }
-            Text(workspace.show.liveSlide.map(LiveSummary.line(for:)) ?? "").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: 220, alignment: .leading)
+            Text(workspace.liveChipLine ?? "").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: 220, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("On the screens: \(workspace.livePositionLine ?? "")")

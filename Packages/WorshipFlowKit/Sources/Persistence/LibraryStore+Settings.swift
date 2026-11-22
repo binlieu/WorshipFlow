@@ -177,8 +177,9 @@ extension LibraryStore {
                 FROM prop ORDER BY createdAt, rowid
                 """).map { row in
                 guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("prop id") }
-                // A damaged value reads as the old behaviour (every role, a picture), never as a prop that vanishes.
-                let targets = (row["targets"] as String?).flatMap { try? SettingsJSON.decode(Set<ScreenRole>.self, from: $0) } ?? Set(ScreenRole.allCases)
+                // A damaged value reads as the documented default (audience and broadcast, FIX-H item 9: never the stage) and a picture,
+                // never as a prop that vanishes.
+                let targets = (row["targets"] as String?).flatMap { try? SettingsJSON.decode(Set<ScreenRole>.self, from: $0) } ?? Prop.defaultTargets
                 let kind = (row["kind"] as String?).flatMap(PropKind.init(rawValue:)) ?? .image
                 let text = (row["text"] as String?).flatMap { try? SettingsJSON.decode(TextPropSpec.self, from: $0) }
                 return Prop(id: id, name: row["name"], imagePath: store.runtimePath(row["imagePath"]),

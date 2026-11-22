@@ -23,6 +23,8 @@ enum LiveMode: Equatable { case stopped, live, cleared, blackout }
 struct LibraryProblem: Equatable {
     var path: String
     var message: String
+    /// FIX-H item 14: the library was last opened by a newer WorshipFlow. Nothing was written; the screen offers Quit or another library.
+    var fromNewerBuild = false
 }
 
 struct DisplayChoice: Identifiable, Equatable {
@@ -245,12 +247,18 @@ final class AppModel {
             // UI-005b: the playlist's media-file items and announcements loops play through the bin's own models.
             let player = MediaItemPlayer(media: media, audio: audio, preview: { [weak self] id in self?.selectBinItem(id) })
             mediaItemPlayer = player
-            model.onMediaItem = { [weak player] command in player?.handle(command) }
+            model.mediaItemHandler = { [weak player] command in player?.handle(command) ?? .ok }
+            model.mediaItemPreflight = { [weak player] kind in player?.runner.preflight(kind) }
+            player.runner.onLoopEnded = { [weak model] in model?.mediaItemEnded() }      // FIX-H item 11: the playlist stops showing it live
             makeCue(library: store, workspace: model, settings: settings, stage: stage, media: media)
             makeScripture(library: store, workspace: model)
         } catch {
             // The file is never deleted or replaced: the volunteer can keep it, move it or restore a backup.
-            libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
+            if let newer = error as? LibraryFromNewerBuildError {
+                libraryProblem = LibraryProblem(path: url.path, message: newer.message(thisBuild: "\(BuildInfo.current.version), build \(BuildInfo.current.build)"), fromNewerBuild: true)
+            } else {
+                libraryProblem = LibraryProblem(path: url.path, message: error.localizedDescription)
+            }
             log("The library at \(url.path) could not be opened: \(error.localizedDescription)")
         }
     }
@@ -285,7 +293,7 @@ final class AppModel {
     /// boxes decide how much of a passage fits on a slide.
     private func scriptureTheme() -> Theme {
         let audience = profiles.first { $0.role == .audience && $0.isEnabled } ?? profiles.first { $0.role == .audience }
-        let look = audience.map { currentLook?.screenLook(for: $0.id) ?? .standard } ?? .standard
+        let look = audience.map { currentLook?.screenLook(for: $0.id, in: profiles) ?? .standard } ?? .standard
         return ThemeResolver.theme(for: .audience, lookThemeID: look.themeID, presentationThemeID: nil, themes: themes)
     }
 
@@ -550,6 +558,7 @@ final class AppModel {
                                                  launchedWithHardwareTest: HardwareTestLaunchMode.opensHardwareTest) else { return event }
             let responder = window.firstResponder
             let textInput = responder is NSText || responder is NSTextField
+            let appKitFocus = Self.appKitFocus(of: responder)
             let inNativeSearch = textInput && Self.isInsideSearchField(responder)
             let held = !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
             let shift = event.modifierFlags.contains(.shift)
@@ -559,8 +568,15 @@ final class AppModel {
                 guard let self else { return false }
                 let sheetOpen = self.ui.anySheetOpen || window.attachedSheet != nil
                 let inSearch = inNativeSearch || (textInput && self.ui.searchHasFocus)
-                switch KeyRouting.decision(for: key, textInputFocused: textInput, searchFieldFocused: inSearch,
-                                           sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
+                // FIX-H item 7: what has focus decides. A control the app drew reports its own focus; an AppKit control is read from the
+                // responder chain. A focused control keeps Space, Return and the arrows.
+                let focus: FocusedElement = textInput ? (inSearch ? .searchField : .textInput) : (self.ui.focusedControl ?? appKitFocus)
+                switch KeyRouting.decision(for: key, focus: focus, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
+                case .focusShow:
+                    self.ui.focusedControl = nil
+                    window.makeFirstResponder(nil)
+                    self.ui.focusGrid += 1        // the workspace view puts focus on the slide grid
+                    return true
                 case .ignore:
                     return true                   // swallowed: not a second Next, and not a beep either
                 case .transport(let command):
@@ -593,6 +609,7 @@ final class AppModel {
                 self?.updateReadouts()
                 self?.hotFolderTick()
                 self?.cue?.tick()                    // CUE-002b: delivers waited stages of macros that have come due
+                self?.mediaItemPlayer?.tick()        // FIX-H item 1: an announcements loop moves on, or ends when the foreground is no longer its
             }
         }
         // CUE-002b: once a second the schedule looks at the wall clock, MIDI devices and the remote server report their state; a
@@ -609,6 +626,23 @@ final class AppModel {
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.cue?.wakeFromSleep() }
         }
+    }
+
+    /// FIX-H item 7: what kind of AppKit control is the first responder, for the key router. A pop-up is checked before a button (it is
+    /// one). Every kind of AppKit button counts as a button: Space and Return act on it either way.
+    private static func appKitFocus(of responder: NSResponder?) -> FocusedElement {
+        var view = responder as? NSView
+        while let current = view {
+            switch current {
+            case is NSPopUpButton: return FocusedElement.appKit(.popUpButton)
+            case is NSButton: return FocusedElement.appKit(.pushButton)
+            case is NSSegmentedControl: return FocusedElement.appKit(.segmentedControl)
+            case is NSSlider: return FocusedElement.appKit(.slider)
+            case is NSTabView: return FocusedElement.appKit(.tabView)
+            default: view = current.superview
+            }
+        }
+        return .none
     }
 
     /// True when the text being edited belongs to a search field (the field editor is a subview of the field).
@@ -703,10 +737,13 @@ final class AppModel {
     var faultCards: [OutputFaultCard] { OutputFaultCards.cards(from: readouts) }
     private(set) var retryNotes: [UUID: String] = [:]
 
-    /// Reopens the failed output once through the coordinator's own restart. A failure is said plainly on its card.
+    /// Reopens the failed output once: the card's own output only (FIX-H item 4: a faulted mirror's Retry never restarts the healthy screen).
+    /// A failure is said plainly on its card.
     func retryOutput(_ card: OutputFaultCard) {
-        let outcome = OutputFaultCards.retry(card.screenID, name: card.name, reopen: { [self] id in restartScreen(id) },
-                                             state: { [self] id in readouts.first { $0.id == id }?.state })
+        startVideoIfNeeded()
+        let outcome = OutputFaultCards.retry(card, on: coordinator)
+        screensOn = coordinator.isActive
+        updateReadouts()
         switch outcome {
         case .reopened: retryNotes[card.screenID] = nil
         case .stillFailing(let text): retryNotes[card.screenID] = text
@@ -796,6 +833,10 @@ final class AppModel {
     @discardableResult
     func addTextProp(name: String, spec: TextPropSpec, targets: Set<ScreenRole>) -> Prop? { settings?.addTextProp(name: name, spec: spec, targets: targets) }
     func updateTextProp(_ id: UUID, name: String, spec: TextPropSpec) { settings?.updateTextProp(id, name: name, spec: spec) }
+    func togglePropTarget(_ id: UUID, role: ScreenRole) { settings?.togglePropTarget(id, role: role) }
+    func saveTextProp(_ id: UUID, name: String, spec: TextPropSpec, targets: Set<ScreenRole>) -> Bool {
+        settings?.saveTextProp(id, name: name, spec: spec, targets: targets) ?? false
+    }
 
     func removeProp(_ id: UUID) {
         scopedURLs.removeValue(forKey: id)?.stopAccessingSecurityScopedResource()
@@ -1402,7 +1443,7 @@ final class AppModel {
     /// chips and the media controller's screen chips are drawn from, so they only say what is true.
     var layerInputs: [ScreenLayerInput] {
         profiles.map { profile in
-            let screenLook = currentLook?.screenLook(for: profile.id) ?? .standard
+            let screenLook = currentLook?.screenLook(for: profile.id, in: profiles) ?? .standard
             let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
                                             presentationThemeID: workspace?.shownThemeID, themes: themes)
             var isMedia = false
@@ -1483,7 +1524,12 @@ final class AppModel {
 
     func updateReadouts() {
         let r = coordinator.readouts()
-        if r != readouts { readouts = r }
+        if r != readouts {
+            readouts = r
+            // FIX-H item 4: a "did not reopen" note goes with its card (the output came back, was disabled or removed).
+            let kept = OutputFaultCards.notes(retryNotes, keepingCardsOf: OutputFaultCards.cards(from: r))
+            if kept != retryNotes { retryNotes = kept }
+        }
         reportedImages = r.flatMap(\.unavailableImagePaths)
         // R6: the file system is asked on a background thread, and only about images the screens draw now.
         imageMonitor.check(ImageUsage.pathsInUse(props: props, themes: themes, profiles: profiles, look: currentLook,

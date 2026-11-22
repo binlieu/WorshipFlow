@@ -12,7 +12,7 @@ public enum ImageUsage {
                                   presentationThemeID: UUID?) -> Set<String> {
         var paths = Set<String>()
         for profile in profiles where profile.isEnabled && profile.role != .stage {
-            let screenLook = look?.screenLook(for: profile.id) ?? .standard
+            let screenLook = look?.screenLook(for: profile.id, in: profiles) ?? .standard
             if screenLook.visibleLayers.contains(.props) {
                 for prop in props where prop.isOn && prop.kind == .image && prop.targets.contains(profile.role) { paths.insert(prop.imagePath) }
             }

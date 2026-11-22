@@ -24,7 +24,7 @@ struct MediaTransportStrip: View {
                     .disabled(r.status == .ended)
                     Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.wfMono(12)).frame(width: 52, alignment: .trailing)
                     WFSlider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
-                             range: 0...max(r.duration, 0.1)) { editing in
+                             range: 0...max(r.duration, 0.1), accessibilityName: "Position") { editing in
                         if editing { dragPosition = r.position; dragging = true }
                         else { media.seek(to: dragPosition); dragging = false }
                     }

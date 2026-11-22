@@ -33,6 +33,18 @@ public struct Look: Sendable, Equatable, Codable, Hashable, Identifiable {
 
     /// A screen the Look does not mention shows everything.
     public func screenLook(for screenID: UUID) -> ScreenLook { screens[screenID] ?? .standard }
+
+    /// FIX-H item 12: like `screenLook(for:)`, but a screen with no entry of its own takes the entry the Look has for its role: the
+    /// first screen of that role, in `profiles` order, that has one. The seeded Looks hold one entry per screen that existed when they
+    /// were made; this lets a screen added later follow them. A role with no entry anywhere shows everything.
+    public func screenLook(for screenID: UUID, in profiles: [ScreenProfile]) -> ScreenLook {
+        if let own = screens[screenID] { return own }
+        guard let role = profiles.first(where: { $0.id == screenID })?.role else { return .standard }
+        for profile in profiles where profile.role == role {
+            if let entry = screens[profile.id] { return entry }
+        }
+        return .standard
+    }
 }
 
 /// An image that stays above the slide across slide changes and Clear, until switched off or Stop.
@@ -103,6 +115,17 @@ public struct TextPropSpec: Sendable, Equatable, Codable, Hashable {
     public var colorHex: String
     public var anchor: PropAnchor
 
+    // FIX-H item 5: decoding goes through the initialiser, so a stored size of zero or a million is clamped; a missing or unreadable
+    // colour or position takes the default rather than losing the words.
+    private enum CodingKeys: String, CodingKey { case text, fontSize, colorHex, anchor }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(text: (try? c.decodeIfPresent(String.self, forKey: .text)) ?? "",
+                  fontSize: (try? c.decodeIfPresent(Double.self, forKey: .fontSize)) ?? 48,
+                  colorHex: (try? c.decodeIfPresent(String.self, forKey: .colorHex)) ?? "#FFFFFF",
+                  anchor: (try? c.decodeIfPresent(PropAnchor.self, forKey: .anchor)) ?? .bottomLeft)
+    }
+
     public init(text: String, fontSize: Double = 48, colorHex: String = "#FFFFFF", anchor: PropAnchor = .bottomLeft) {
         self.text = text
         self.fontSize = fontSize.isFinite ? min(Self.fontSizes.upperBound, max(Self.fontSizes.lowerBound, fontSize)) : 48
@@ -140,7 +163,7 @@ public struct Prop: Sendable, Equatable, Codable, Hashable, Identifiable {
         self.name = name
         self.imagePath = imagePath
         self.frame = frame
-        self.opacity = opacity
+        self.opacity = opacity.isFinite ? min(1, max(0, opacity)) : 1      // FIX-H item 5: held in range here and when decoded
         self.isOn = isOn
         self.targets = targets
         self.kind = kind

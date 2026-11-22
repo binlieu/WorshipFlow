@@ -47,10 +47,27 @@ public final class LibraryStore: Sendable {
     static func open(at url: URL, upTo migration: String?, forcing backend: SearchBackend?) throws -> LibraryStore {
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        // FIX-H item 14: a library last opened by a newer build is looked at read-only first and refused before anything can be written.
+        if let newer = newerMigration(in: url) { throw newer }
         // One DatabasePool per file, kept for the life of the store (ADR-0004 decision 2).
         let pool = try DatabasePool(path: url.path, configuration: makeConfiguration())
         return try finishOpening(writer: pool, upTo: migration, forcing: backend,
                                  mediaPaths: MediaPathMapper(libraryFolder: url.deletingLastPathComponent()))
+    }
+
+    /// Reads the file's migration history without writing to it. Nil for a new file, a file that cannot be read this way (the normal
+    /// open then reports it as before) or a history this build knows entirely.
+    private static func newerMigration(in url: URL) -> LibraryFromNewerBuildError? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        var config = Configuration()
+        config.readonly = true
+        guard let queue = try? DatabaseQueue(path: url.path, configuration: config) else { return nil }
+        let known = Schema.makeMigrator().migrations
+        let applied: [String] = (try? queue.read { db in
+            try db.tableExists("grdb_migrations") ? try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid") : []
+        }) ?? []
+        guard let found = applied.last(where: { !known.contains($0) }), let latest = known.last else { return nil }
+        return LibraryFromNewerBuildError(found: found, known: latest)
     }
 
     private static func makeConfiguration() -> Configuration {

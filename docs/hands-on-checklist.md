@@ -239,3 +239,18 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Unplug a screen while the show runs: the card says which output stopped; Retry output after plugging it back; Details shows the recorded text and Copy copies it.
 
 - [ ] UI-005i: the interface text is Inter (rounded "G", flat-topped "1"); menus and the title bar stay the system font. About lists Inter. A song titled in Vietnamese, Chinese, Thai or Burmese shows no boxes in the library list, and rows keep their height.
+
+## FIX-H review fixes (UI-005a, UI-005b)
+
+- [ ] Announcements loop live, then play a clip from the bin or the dock: the loop does not put its picture back over your clip, and the playlist stops showing the loop as live. Clear the foreground while a loop runs: the same.
+- [ ] Blackout, then Next onto a video, a loop and a sound in the playlist: Blackout lifts and the picture and sound start together. The same after Clear and Clear background.
+- [ ] A file the bin lists but whose drive is unplugged: Go Live or Next onto it says which file, nothing is marked live and the screens keep what they had.
+- [ ] Switch to another playlist or delete the playlist while a loop or a sound is live: it stops; Next and Previous still work.
+- [ ] A screen with a mirror: unplug the mirror's display, Retry output: only the mirror restarts (the primary does not blink).
+- [ ] With macOS System Settings > Keyboard > "Keyboard navigation" ON, in Edit, Stage and Screens (no transport bar): Tab to a toggle, a checkbox, a segmented control, a tab, a slider and a button: Space and Return act on that control and the show does not move; the arrows move the slider and the segmented control; Escape returns focus to the show, then Space advances the show.
+- [ ] Sliders: Tab to the volume and position sliders; left and right arrows move them a step, Page Up and Down more, Home and End to the ends; with VoiceOver each says Position or its volume name and its value, and VoiceOver's adjust action moves it. A muted volume slider is dimmed and takes no key or click. A disabled toggle, checkbox and segmented control are dimmed and ignore clicks and Space.
+- [ ] VoiceOver on a segmented control and on the tabs: each segment or tab says its name and whether it is selected; the prop pills say AUD, STG or BRD for the prop, on or off, and act as toggles.
+- [ ] Props: click a pill (it dims and stays), click again (it comes back). Add text prop: the sheet says "Saved off. Switch it on when you want it shown."; the prop is off in the list; untick every screen and Save is refused with a line saying why.
+- [ ] In Edit, Stage and Screens the toolbar chip names the live video or loop, not a blank slide.
+- [ ] Add a second audience screen after the Notes Look was made: it follows the Notes Look's audience entry.
+- [ ] Open a library copy that a newer build has migrated (or one with an extra row in grdb_migrations, made on a scratch copy): the app says the library was last opened by a newer WorshipFlow, names the steps, changes nothing, and offers Quit or Open a different library. Do not do this on the real library.

@@ -95,6 +95,18 @@ public final class WorkspaceModel {
     public internal(set) var liveMediaItemID: UUID?
     /// UI-005b: told to the app, which plays the files. The model never touches a player: it says what the operator chose.
     @ObservationIgnored public var onMediaItem: (@MainActor (MediaItemCommand) -> Void)?
+    /// FIX-H item 6: the app's player, which says whether a command that asks for something to play actually started. When unset every
+    /// command counts as started (tests that only record commands).
+    @ObservationIgnored public var mediaItemHandler: (@MainActor (MediaItemCommand) -> MediaItemOutcome)?
+    /// FIX-H item 6: asked before anything on the screens changes: can this item play now? Nil: yes. Otherwise the plain reason.
+    @ObservationIgnored public var mediaItemPreflight: (@MainActor (PlaylistItemKind) -> String?)?
+    /// FIX-H item 3: the live media item as it was when it went live, so it can be ended after the playlist was reloaded or replaced.
+    @ObservationIgnored var liveMediaCopy: PlaylistItem?
+    /// FIX-H item 11: the live loop ended by itself (the foreground was cleared or taken). The position in the playlist is kept for Next
+    /// and Previous; only the "live" mark is gone.
+    public internal(set) var liveMediaEnded = false
+    /// The playlist item to mark live in the list when it is a file or a loop: nil once it ended by itself.
+    public var liveMediaMarkID: UUID? { liveMediaEnded ? nil : liveMediaItemID }
     /// UI-002: the countdown that is live, if any.
     public internal(set) var liveCountdown: LiveCountdown?
     /// Where the time comes from; tests replace it.
@@ -112,6 +124,12 @@ public final class WorkspaceModel {
     @ObservationIgnored private let clock: any SaveClock
     @ObservationIgnored var searchToken = 0
     @ObservationIgnored var stepping = false
+    /// FIX-H item 13: the last reading of the words for the Quick edit labels, and how many readings were made (tests count them).
+    struct LanguageCache { var first: [String]; var second: [String]; var firstResult: LanguageNaming.Detected?; var secondResult: LanguageNaming.Detected? }
+    @ObservationIgnored var languageCache: LanguageCache?
+    @ObservationIgnored public internal(set) var languageDetections = 0
+    /// The language a suggestion's name is written in (the operator's). Tests replace it.
+    @ObservationIgnored public var languageDisplayLocale: Locale = .current
     /// FIX-F item 4: the number of the newest request to put something into preview (a typed passage, a playlist item, a song).
     @ObservationIgnored var previewRequest = 0
 
@@ -174,9 +192,30 @@ public final class WorkspaceModel {
 
     /// The two fields' labels: the language of the words in each, or the neutral names when the words do not say.
     public var quickEditLanguageNames: (first: String, second: String) {
+        let read = languageReading()
+        return (read.first?.ownName ?? "First language", read.second?.ownName ?? "Second language")
+    }
+
+    /// FIX-H item 13: what the Quick edit fields are called. The library stores no language for a presentation or a slide (only the
+    /// primary and secondary text), so a language name is always a reading of the words: it is shown as a suggestion ("Vietnamese?"),
+    /// never as a fact. When the words do not say, the labels are the neutral names. Read once per change of the words, not per redraw.
+    public var quickEditLanguageLabels: (first: QuickEditLanguageLabel, second: QuickEditLanguageLabel) {
+        let read = languageReading()
+        func label(_ detected: LanguageNaming.Detected?, neutral: String) -> QuickEditLanguageLabel {
+            guard let detected else { return QuickEditLanguageLabel(text: neutral, isSuggestion: false) }
+            return QuickEditLanguageLabel(text: LanguageNaming.suggestion(for: detected, in: languageDisplayLocale), isSuggestion: true)
+        }
+        return (label(read.first, neutral: "First language"), label(read.second, neutral: "Second language"))
+    }
+
+    private func languageReading() -> (first: LanguageNaming.Detected?, second: LanguageNaming.Detected?) {
         let sample = slides.prefix(12)
-        return (LanguageNaming.name(of: sample.map(\.content.primary)) ?? "First language",
-                LanguageNaming.name(of: sample.compactMap(\.content.secondary)) ?? "Second language")
+        let firstWords = sample.map(\.content.primary), secondWords = sample.compactMap(\.content.secondary)
+        if let cached = languageCache, cached.first == firstWords, cached.second == secondWords { return (cached.firstResult, cached.secondResult) }
+        languageDetections += 1
+        let reading = (LanguageNaming.detect(firstWords), LanguageNaming.detect(secondWords))
+        languageCache = LanguageCache(first: firstWords, second: secondWords, firstResult: reading.0, secondResult: reading.1)
+        return reading
     }
 
     // MARK: Loading

@@ -39,6 +39,14 @@ final class WorkspaceUIState {
     var showClearMenuPreview = false
     /// True while the sidebar search field has keyboard focus (it is a SwiftUI field, not an NSSearchField).
     var searchHasFocus = false
+    /// FIX-H item 7: the custom control that has keyboard focus, if one does (a toggle, a slider, a tab...). The controls report it; the
+    /// key monitor reads it, so Space, Return and the arrows act on the control and not on the show.
+    var focusedControl: FocusedElement?
+
+    /// A control gained or lost keyboard focus. Losing it only counts when that kind is still the one recorded.
+    func controlFocus(_ kind: FocusedElement, _ focused: Bool) {
+        if focused { focusedControl = kind } else if focusedControl == kind { focusedControl = nil }
+    }
     /// Bumped by Command-E: the Quick edit tab puts the cursor in its first field.
     var focusQuickEdit = 0
     /// Counts requests for the live-slide edit (Option-Command-E, the Live button, the Edit header): the popover itself

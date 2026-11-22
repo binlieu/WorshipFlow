@@ -42,8 +42,51 @@ public enum KeyDecision: Sendable, Equatable {
     /// R1: a transport key that is being held down (auto-repeat). Consumed and ignored: only the first press of a key
     /// moves the show, so holding Space or an arrow never runs the deck forward.
     case ignore
+    /// FIX-H item 7: Escape on a focused control (a toggle, a slider, a button...): put keyboard focus back on the show (the slide grid), so
+    /// the transport keys work again. Consumed.
+    case focusShow
     /// The key is not ours: let the focused control, menu or system have it.
     case passThrough
+}
+
+/// FIX-H item 7: what has keyboard focus in the operator window, as far as the transport keys care.
+public enum FocusedElement: Sendable, Equatable {
+    /// Nothing in particular (the window, or a list the transport keys have always worked over).
+    case none
+    /// The slide grid: the show's own place.
+    case slideGrid
+    /// A text field or text editor (the search field excepted: `searchField`).
+    case textInput
+    case searchField
+    /// A control that is not a text field. Space and Return act on it; arrows act on a slider or a segmented control.
+    case toggle, checkbox, segmented, tab, slider, button, popUp
+
+    /// True for the controls, which keep their own keys.
+    public var isControl: Bool {
+        switch self {
+        case .toggle, .checkbox, .segmented, .tab, .slider, .button, .popUp: true
+        case .none, .slideGrid, .textInput, .searchField: false
+        }
+    }
+
+    /// The kinds of AppKit view the key monitor can find as the first responder, so the mapping is testable without AppKit.
+    public enum AppKitKind: Sendable, Equatable {
+        case checkbox, switchButton, pushButton, radioButton, segmentedControl, slider, popUpButton, tabView, textInput, other
+    }
+
+    public static func appKit(_ kind: AppKitKind) -> FocusedElement {
+        switch kind {
+        case .checkbox: .checkbox
+        case .switchButton: .toggle
+        case .pushButton, .radioButton: .button
+        case .segmentedControl: .segmented
+        case .slider: .slider
+        case .popUpButton: .popUp
+        case .tabView: .tab
+        case .textInput: .textInput
+        case .other: .none
+        }
+    }
 }
 
 public enum KeyRouting {
@@ -75,6 +118,24 @@ public enum KeyRouting {
         case .deleteKey: return .deleteSelectedObject
         case .b: return shiftDown ? .passThrough : .transport(.blackout)
         case .other: return .passThrough
+        }
+    }
+
+    /// FIX-H item 7: like `decision(for:textInputFocused:...)`, with what actually has focus. A focused control keeps Space, Return and the
+    /// arrows (and every other key); only Escape is ours, and it moves focus back to the show. The transport keys drive the show
+    /// when nothing, or the slide grid, has focus.
+    public static func decision(for key: KeyboardKey, focus: FocusedElement, sheetOpen: Bool, commandModifierDown: Bool = false,
+                                shiftDown: Bool = false, isRepeat: Bool = false) -> KeyDecision {
+        guard !sheetOpen, !commandModifierDown else { return .passThrough }
+        switch focus {
+        case .none, .slideGrid:
+            return decision(for: key, textInputFocused: false, sheetOpen: false, commandModifierDown: false, shiftDown: shiftDown, isRepeat: isRepeat)
+        case .textInput:
+            return decision(for: key, textInputFocused: true, sheetOpen: false)
+        case .searchField:
+            return decision(for: key, textInputFocused: true, searchFieldFocused: true, sheetOpen: false)
+        case .toggle, .checkbox, .segmented, .tab, .slider, .button, .popUp:
+            return key == .escape && !isRepeat ? .focusShow : .passThrough
         }
     }
 

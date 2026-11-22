@@ -318,3 +318,10 @@ public enum MediaTileMarks {
         return .none
     }
 }
+
+/// FIX-H item 13: a Quick edit field's label. A suggestion is a reading of the words ("Vietnamese?"), drawn as a question.
+public struct QuickEditLanguageLabel: Equatable, Sendable {
+    public var text: String
+    public var isSuggestion: Bool
+    public init(text: String, isSuggestion: Bool) { self.text = text; self.isSuggestion = isSuggestion }
+}

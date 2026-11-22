@@ -245,12 +245,17 @@ struct ShowInspector: View {
             if prop.kind == .image, app.unavailableImages.contains(prop.imagePath) {
                 Text("File not readable").font(.wf(11)).foregroundStyle(Tok.warning)
             }
-            ForEach(ScreenRole.allCases.filter { prop.targets.contains($0) }, id: \.self) { role in
-                Button { app.setProp(prop.id, target: role, isOn: false) } label: { PillTag(text: Self.abbreviation(role), color: role.tokenColor, height: 16) }
-                    .buttonStyle(.plain)
-                    .help("Drawn on \(role.rawValue) screens. Click to stop showing it there.")
-                    .accessibilityLabel("\(prop.name) on \(role.rawValue) screens")
-                    .accessibilityHint("Switches this prop off for \(role.rawValue) screens")
+            ForEach(PropPills.pills(for: prop), id: \.role) { pill in
+                // FIX-H item 10: a pill is a toggle. Off is drawn dimmed and stays in the row, so a click turns it on again.
+                Button { app.togglePropTarget(prop.id, role: pill.role) } label: {
+                    PillTag(text: pill.label, color: pill.role.tokenColor, height: 16).opacity(pill.isDimmed ? 0.35 : 1)
+                }
+                .buttonStyle(.plain)
+                .help(pill.isOn ? "Drawn on \(pill.role.rawValue) screens. Click to stop showing it there." : "Not drawn on \(pill.role.rawValue) screens. Click to show it there.")
+                .accessibilityLabel("\(prop.name) on \(pill.role.rawValue) screens")
+                .accessibilityValue(pill.isOn ? "On" : "Off")
+                .accessibilityAddTraits(.isToggle)
+                .accessibilityHint(pill.isOn ? "Stops showing this prop on \(pill.role.rawValue) screens" : "Shows this prop on \(pill.role.rawValue) screens")
             }
             Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { app.setProp(prop.id, isOn: $0) }))
                 .toggleStyle(.wfBare)
@@ -311,11 +316,16 @@ struct TextPropSheet: View {
             }
             Text("Speaker notes never go to the audience or broadcast screens, and this prop does not change that.")
                 .font(.wfSmall).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            if let problem = TextPropRules.problem(name: name, targets: targets) {
+                Text(problem).font(.wfSmall).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
+            } else if edit.propID == nil {
+                Text(TextPropRules.savedOffNote).font(.wfSmall).foregroundStyle(Tok.muted)      // FIX-H item 10
+            }
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Save") { save(); dismiss() }.keyboardShortcut(.defaultAction)
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Save") { if save() { dismiss() } }.keyboardShortcut(.defaultAction)
+                    .disabled(TextPropRules.problem(name: name, targets: targets) != nil)
             }
         }
         .padding(Space.s6).frame(width: 460)
@@ -326,14 +336,11 @@ struct TextPropSheet: View {
         }
     }
 
-    private func save() {
+    /// True when it was saved. A refusal (no name, no screen) leaves the sheet open; the line above the buttons says why.
+    private func save() -> Bool {
         let spec = TextPropSpec(text: words, fontSize: size, colorHex: Self.hex(color), anchor: anchor)
-        if let id = edit.propID {
-            app.updateTextProp(id, name: name, spec: spec)
-            for role in ScreenRole.allCases { app.setProp(id, target: role, isOn: targets.contains(role)) }
-        } else {
-            app.addTextProp(name: name, spec: spec, targets: targets)
-        }
+        if let id = edit.propID { return app.saveTextProp(id, name: name, spec: spec, targets: targets) }
+        return app.addTextProp(name: name, spec: spec, targets: targets) != nil
     }
 
     static func hex(_ color: Color) -> String {
@@ -383,9 +390,9 @@ struct QuickEditTab: View {
                     PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 18)
                         .accessibilityLabel("Preview only. The screens do not change until this slide goes live.")
                 }
-                let names = workspace.quickEditLanguageNames
-                field(names.first, slide: slide, kind: .first, focus: true)
-                field(names.second, slide: slide, kind: .second, focus: false)
+                let names = workspace.quickEditLanguageLabels          // FIX-H item 13: a reading of the words is a suggestion ("Vietnamese?")
+                field(names.first.text, slide: slide, kind: .first, focus: true)
+                field(names.second.text, slide: slide, kind: .second, focus: false)
                 field("Speaker notes — stage screens only", slide: slide, kind: .notes, focus: false)
                 // The design's footer row: the saved note at the left, Done (esc) at the right.
                 HStack(spacing: 8) {

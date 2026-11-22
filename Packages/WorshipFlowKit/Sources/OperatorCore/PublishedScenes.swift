@@ -18,7 +18,7 @@ public struct PublishedScenes: Sendable, Equatable {
                 stageScenes: [UUID: SceneDescription] = [:], media: MediaLayers? = nil) {
         var composed: [UUID: SceneDescription] = [:]
         for profile in profiles {
-            let screenLook = look?.screenLook(for: profile.id) ?? .standard
+            let screenLook = look?.screenLook(for: profile.id, in: profiles) ?? .standard
             if profile.role == .stage, let stage = stageScenes[profile.id] {
                 // UI-005b: props targeted to the stage (and shown by its Look) go on top of the stage layout's own scene.
                 composed[profile.id] = SceneComposer.addingProps(to: stage, role: .stage, state: state, look: screenLook, props: props)

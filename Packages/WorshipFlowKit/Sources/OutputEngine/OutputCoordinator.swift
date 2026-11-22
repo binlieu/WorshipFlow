@@ -177,6 +177,16 @@ public final class OutputCoordinator {
         finishChange()
     }
 
+    /// FIX-H item 4: Operator restart of one output only: the screen itself, or one of its mirrors. The screen's other outputs keep
+    /// running untouched.
+    public func restart(slot: OutputSlot) {
+        guard let profile = profiles.first(where: { $0.id == slot.screenID }), slots(of: profile).contains(slot) else { return }
+        isActive = true
+        forget(slot)
+        if profile.isEnabled { begin(slot, profile, plan: currentPlan()) }
+        finishChange()
+    }
+
     /// Operator stop of one screen and its mirrors.
     public func stop(_ id: UUID) {
         for slot in slotsOfScreen(id) { forget(slot) }

@@ -194,6 +194,7 @@ struct HeaderButtonStyle: ButtonStyle {
             .overlay { if let ring { shape.strokeBorder(ring, lineWidth: 1.5) } }
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)
             .contentShape(shape)
+            .wfFocusReport(.button)        // FIX-H item 7: a focused button keeps Space and Return
     }
 }
 

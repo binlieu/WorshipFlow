@@ -37,6 +37,9 @@ public enum ShowCommand: Sendable, Equatable {
     case clearBackground
     /// MEDIA-010: a new bin choice brings a cleared background back.
     case restoreBackground
+    /// FIX-H item 2: ends Blackout, Clear and Clear background without moving the live place or the preview. What taking a slide live
+    /// does to those three, for a file or loop that goes live over the slide that is already there. Ignored while nothing is live.
+    case liftHolds
     /// Drops the live deck (and ends Blackout); screens go empty. Preview is kept.
     case stop
     /// The one deliberate way to change live text (PRES-07).
@@ -129,6 +132,12 @@ public struct ShowState: Sendable, Equatable {
             backgroundHidden = true
 
         case .restoreBackground:
+            backgroundHidden = false
+
+        case .liftHolds:
+            guard liveDeck != nil else { return }
+            cleared = false
+            blackedOut = false
             backgroundHidden = false
 
         case .stop:

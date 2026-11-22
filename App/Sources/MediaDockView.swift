@@ -307,7 +307,7 @@ struct MediaControllerRow: View {
                 .accessibilityLabel("\(f.name), \(f.kind)")
             Text(Self.tenths(dragging ? dragPosition : f.position)).font(.wfMono(11, .medium))
             WFSlider(value: Binding(get: { dragging ? dragPosition : f.position }, set: { dragPosition = $0 }),
-                     range: 0...max(f.duration, 0.1), fill: Tok.cyan) { editing in
+                     range: 0...max(f.duration, 0.1), fill: Tok.cyan, accessibilityName: "Position") { editing in
                 if editing { dragPosition = f.position; dragging = true } else { f.seek(dragPosition); dragging = false }
             }
             .disabled(!f.canSeek).accessibilityLabel("Position in \(f.name)")

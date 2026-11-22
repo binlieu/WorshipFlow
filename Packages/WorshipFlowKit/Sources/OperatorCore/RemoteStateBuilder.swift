@@ -19,7 +19,9 @@ public enum RemoteStateBuilder {
         }
         state.playlist = workspace.playlistItems.compactMap { item in
             if case .header = item.kind { return nil }
-            return RemotePlaylistItem(title: item.title, isLive: !show.isStopped && item.id == workspace.liveItemID)
+            // FIX-H item 15: a file or loop is live while it plays (a sound plays with the screens stopped); a loop that ended by itself is not.
+            let live = item.kind.isMediaPlayback ? workspace.liveMediaMarkID == item.id : (!show.isStopped && item.id == workspace.liveItemID)
+            return RemotePlaylistItem(title: item.title, isLive: live)
         }
         if let stage {
             state.timers = stage.timerRows(at: stage.nowSeconds).map { RemoteTimer(name: $0.name, value: $0.text, isRunning: $0.isRunning) }

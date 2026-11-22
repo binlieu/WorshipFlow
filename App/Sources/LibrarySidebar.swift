@@ -332,7 +332,7 @@ struct LibrarySidebar: View {
         case .countdown: app.show.liveDeck?.presentationID == item.id
         case .scripture: app.show.liveDeck?.presentationID == item.id
         case .sermon: app.show.liveDeck?.presentationID == item.presentationID
-        case .media, .announcements: workspace.liveMediaItemID == item.id         // UI-005b
+        case .media, .announcements: workspace.liveMediaMarkID == item.id         // UI-005b; FIX-H item 11: not once the loop ended by itself
         case .header: false
         }
     }

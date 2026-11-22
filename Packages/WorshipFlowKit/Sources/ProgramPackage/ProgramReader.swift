@@ -44,8 +44,26 @@ extension ProgramPackageContents {
         catch { throw ProgramPackageError.manifestUnreadable("Something in it is missing or has the wrong shape.") }
 
         try validate(document)
+        try validateLoopTimes(in: data)
         let files = try checkFiles(of: document, in: root)
         return ProgramPackageContents(url: root, document: document, files: files)
+    }
+
+    /// FIX-H item 5: an announcements loop shows each picture for a time within `AnnouncementsSpec.pictureSeconds`. Decoding would hold a
+    /// value outside it to the nearest allowed one without a word, so the raw text is read here and the package is refused, in plain words,
+    /// before anything is written. (An operator who made the package by hand should hear about it, not get a different loop.)
+    private static func validateLoopTimes(in manifest: Data) throws {
+        guard let root = try? JSONSerialization.jsonObject(with: manifest) as? [String: Any], let items = root["items"] as? [[String: Any]] else { return }
+        let range = AnnouncementsSpec.pictureSeconds
+        for item in items {
+            guard let loop = item["announcements"] as? [String: Any], let number = loop["secondsPerPicture"] as? NSNumber else { continue }
+            let seconds = number.doubleValue
+            if !seconds.isFinite || seconds < Double(range.lowerBound) || seconds > Double(range.upperBound) {
+                let label = describe((loop["label"] as? String) ?? "an announcements loop")
+                let shown = seconds.isFinite ? String(Int(max(-1e9, min(1e9, seconds)))) : "an unreadable number of"
+                throw ProgramPackageError.manifestUnreadable("The loop \"\(label)\" shows each picture for \(shown) seconds. A picture stays between \(range.lowerBound) and \(range.upperBound) seconds, so the program was not opened.")
+            }
+        }
     }
 
     /// Every path the document names must be a safe package path that the media list covers, and the list must be sane.

@@ -86,8 +86,23 @@ extension WorkspaceModel {
         await mine.value
     }
 
+    /// FIX-H item 3: Next or Previous while a file or loop is live. True when the step was taken, or was refused on purpose (a passage
+    /// that is not installed, an item with no slides). When the live item is no longer in the playlist (it was removed or replaced
+    /// behind the model's back) there is nothing to step from: the stale file or loop is ended and the normal path takes over.
+    private func stepOutOfMedia(by direction: Int, epoch: Int) async -> Bool {
+        guard let live = liveItemID, playlistItems.contains(where: { $0.id == live }) else {
+            endLiveMediaItem()
+            return false
+        }
+        let stepped = await step(by: direction, epoch: epoch)
+        return stepped || liveMediaItemID != nil
+    }
+
     private func nextNow(epoch: Int) async {
-        if liveMediaItemID != nil { _ = await step(by: 1, epoch: epoch); return }       // UI-005b: a file or loop is live: Next moves on from it
+        if liveMediaItemID != nil {                       // UI-005b: a file or loop is live: Next moves on from it
+            if await stepOutOfMedia(by: 1, epoch: epoch) { return }
+            guard epoch == transportEpoch else { return }
+        }
         guard let live = show.liveDeck, let i = show.liveIndex else {
             apply(.next)                       // nothing live yet: the first slide of the preview goes live
             recordLiveSource()
@@ -103,7 +118,10 @@ extension WorkspaceModel {
         let epoch = transportEpoch
         await serialized { [self] in
             guard epoch == transportEpoch else { return }
-            if liveMediaItemID != nil { _ = await step(by: -1, epoch: epoch); return }   // UI-005b
+            if liveMediaItemID != nil {                                                    // UI-005b
+                if await stepOutOfMedia(by: -1, epoch: epoch) { return }
+                guard epoch == transportEpoch else { return }
+            }
             if show.liveDeck != nil, show.liveIndex == 0, await step(by: -1, epoch: epoch) { return }
             guard epoch == transportEpoch else { return }
             apply(.previous)

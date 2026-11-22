@@ -2,26 +2,45 @@
 // control. Every one keeps what the system control it replaces gives: a label for VoiceOver, its value, and keyboard operation
 // (Tab to reach it with full keyboard access, Space or Return to act, arrows for sliders).
 import SwiftUI
+import OperatorCore
+
+// MARK: Keyboard focus report (FIX-H item 7)
+
+/// Tells the key router that this control has keyboard focus, so Space, Return and the arrows act on it and not on the show. It reads the
+/// environment of the focusable control it sits inside, so it goes on the control's label or content, under the `Button` or `.focusable()`.
+struct WFFocusReport: ViewModifier {
+    let element: FocusedElement
+    @Environment(\.isFocused) private var isFocused
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: isFocused) { _, now in AppModel.shared.ui.controlFocus(element, now) }
+            .onDisappear { AppModel.shared.ui.controlFocus(element, false) }
+    }
+}
+extension View { func wfFocusReport(_ element: FocusedElement) -> some View { modifier(WFFocusReport(element: element)) } }
 
 // MARK: Segmented control (`.seg`)
 
 /// The design's segmented control: a `surface-2` track with a 1 pt `border`, radius 7, padding 2; the selected segment is
 /// `surface-3` with a 1 pt `border-strong` ring, its text stays `text`. A segment is a word, an icon, or both.
 struct WFSegmented<Value: Hashable>: View {
-    struct Item: Identifiable {
+    struct Item {
         let value: Value
         var title: String? = nil
         var symbol: String? = nil
         var label: String
-        var id: String { label }
     }
     let items: [Item]
     @Binding var selection: Value
     var accessibilityName = ""
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(items) { item in
+            // FIX-H item 8: segments are told apart by position, not by label (two may be named alike).
+            ForEach(SegmentIdentity.ids(count: items.count), id: \.self) { index in
+                let item = items[index]
                 let on = item.value == selection
                 Button { selection = item.value } label: {
                     HStack(spacing: 5) {
@@ -34,10 +53,12 @@ struct WFSegmented<Value: Hashable>: View {
                     .background { if on { RoundedRectangle(cornerRadius: Radius.segment).fill(Tok.surface3) } }
                     .overlay { if on { RoundedRectangle(cornerRadius: Radius.segment).strokeBorder(Tok.borderStrong, lineWidth: 1) } }
                     .contentShape(RoundedRectangle(cornerRadius: Radius.segment))
+                    .wfFocusReport(.segmented)
                 }
                 .buttonStyle(.plain)
                 .help(item.label)
                 .accessibilityLabel(item.label)
+                .accessibilityValue(on ? "Selected" : "")
                 .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
             }
         }
@@ -45,6 +66,8 @@ struct WFSegmented<Value: Hashable>: View {
         .wfOutline(RoundedRectangle(cornerRadius: Radius.track), stroke: Tok.border, fill: Tok.surface2)
         .padding(1)
         .fixedSize()
+        .opacity(ControlEnabledStyle.opacity(isEnabled: isEnabled))
+        .allowsHitTesting(ControlEnabledStyle.acceptsInput(isEnabled: isEnabled))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityName)
     }
@@ -56,8 +79,9 @@ struct WFSegmented<Value: Hashable>: View {
 struct WFToggleStyle: ToggleStyle {
     /// False for a toggle with no visible label (`.labelsHidden()` is not passed on to a custom style).
     var showsLabel = true
+    @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
-        Button { configuration.isOn.toggle() } label: {
+        Button { if ControlEnabledStyle.acceptsInput(isEnabled: isEnabled) { configuration.isOn.toggle() } } label: {
             HStack(spacing: 8) {
                 ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                     Capsule().fill(configuration.isOn ? Tok.cyan : Tok.borderStrong)
@@ -67,6 +91,8 @@ struct WFToggleStyle: ToggleStyle {
                 if showsLabel { configuration.label }
             }
             .contentShape(Rectangle())
+            .opacity(ControlEnabledStyle.opacity(isEnabled: isEnabled))
+            .wfFocusReport(.toggle)
         }
         .buttonStyle(.plain)
         .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
@@ -76,8 +102,9 @@ struct WFToggleStyle: ToggleStyle {
 /// 14 x 14, radius 3, 1 pt `border-strong`; checked = `blue` fill with the check in `on-brand` (white in light).
 struct WFCheckboxStyle: ToggleStyle {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
-        Button { configuration.isOn.toggle() } label: {
+        Button { if ControlEnabledStyle.acceptsInput(isEnabled: isEnabled) { configuration.isOn.toggle() } } label: {
             HStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 3).fill(configuration.isOn ? Tok.blue : .clear)
@@ -90,6 +117,8 @@ struct WFCheckboxStyle: ToggleStyle {
                 configuration.label
             }
             .contentShape(Rectangle())
+            .opacity(ControlEnabledStyle.opacity(isEnabled: isEnabled))
+            .wfFocusReport(.checkbox)
         }
         .buttonStyle(.plain)
         .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
@@ -110,6 +139,8 @@ struct WFSlider: View {
     @Binding var value: Double
     var range: ClosedRange<Double> = 0...1
     var fill: Color = Tok.cyan
+    /// The spoken name when the slider has none from outside (a position slider says "Position").
+    var accessibilityName = ""
     var onEditingChanged: (Bool) -> Void = { _ in }
     @State private var dragging = false
     @Environment(\.isEnabled) private var isEnabled
@@ -127,8 +158,9 @@ struct WFSlider: View {
                     .offset(x: width * fraction - 6.5)
             }
             .frame(height: geo.size.height)
-            .opacity(isEnabled ? 1 : 0.45)
+            .opacity(ControlEnabledStyle.opacity(isEnabled: isEnabled))
             .contentShape(Rectangle())
+            .wfFocusReport(.slider)
             .gesture(DragGesture(minimumDistance: 0)
                 .onChanged { drag in
                     if !dragging { dragging = true; onEditingChanged(true) }
@@ -137,7 +169,30 @@ struct WFSlider: View {
                 .onEnded { _ in dragging = false; onEditingChanged(false) }, including: isEnabled ? .all : .none)
         }
         .frame(height: 13)
-        .accessibilityRepresentation { Slider(value: $value, in: range, onEditingChanged: onEditingChanged) }
+        // FIX-H item 8: reachable with the keyboard (full keyboard access), and moved with the arrows in steps; Page Up and Down take a
+        // bigger step and Home and End go to the ends. The keys are the slider's only while it has focus (see `WFFocusReport`).
+        .focusable(isEnabled)
+        .focusEffectDisabled()
+        .onKeyPress(keys: [.leftArrow, .downArrow, .rightArrow, .upArrow, .pageUp, .pageDown, .home, .end]) { press in
+            guard isEnabled else { return .ignored }
+            let move: SliderStepping.Move
+            switch press.key {
+            case .leftArrow, .downArrow: move = .smaller
+            case .rightArrow, .upArrow: move = .larger
+            case .pageDown: move = .smallerPage
+            case .pageUp: move = .largerPage
+            case .home: move = .minimum
+            default: move = .maximum
+            }
+            onEditingChanged(true)
+            value = SliderStepping.value(from: value, range: range, move: move)
+            onEditingChanged(false)
+            return .handled
+        }
+        .accessibilityRepresentation {
+            Slider(value: $value, in: range, onEditingChanged: onEditingChanged)
+                .accessibilityLabel(accessibilityName)
+        }
     }
 }
 
@@ -163,6 +218,7 @@ struct WFPopup<Content: View>: View {
     var accessibilityName: String = ""
     var height: CGFloat = Space.controlHeight
     @ViewBuilder let content: () -> Content
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Menu { content() } label: {
@@ -176,6 +232,8 @@ struct WFPopup<Content: View>: View {
             .contentShape(Rectangle())
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+        .wfFocusReport(.popUp)
+        .opacity(ControlEnabledStyle.opacity(isEnabled: isEnabled))
         .accessibilityLabel(accessibilityName.isEmpty ? title : accessibilityName)
         .accessibilityValue(title)
     }
@@ -228,6 +286,8 @@ struct WFTabs<Value: Hashable>: View {
         }
         .padding(.horizontal, inset)
         .overlay(alignment: .bottom) { Rectangle().fill(Tok.border).frame(height: 1) }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Tabs")
     }
 }
 
@@ -250,9 +310,11 @@ struct WFTabButton: View {
             .padding(.horizontal, 9).padding(.vertical, 7)
             .overlay(alignment: .bottom) { if on { Rectangle().fill(Tok.blue).frame(height: 2) } }
             .contentShape(Rectangle())
+            .wfFocusReport(.tab)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityValue(on ? "Selected" : "")
         .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
     }
 }

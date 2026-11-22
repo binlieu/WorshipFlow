@@ -221,12 +221,14 @@ public final class AudioModel {
     /// Plays the file from the start. A cue that is already playing is left as it is; a paused one resumes. A file that
     /// cannot be read or opened is reported and nothing changes (a cue that was playing keeps playing).
     public func play(_ id: UUID) {
-        guard let asset = asset(id) else { return }
-        if isActive(id) { resume(id); return }
-        guard isAvailable(asset) else {
-            lastError = Self.missingMessage(asset)
-            return
-        }
+        if let problem = start(id) { lastError = problem }
+    }
+
+    /// FIX-H item 6: like `play`, but says why it did not play instead of only setting `lastError`. Nil when it plays.
+    public func start(_ id: UUID) -> String? {
+        guard let asset = asset(id) else { return nil }
+        if isActive(id) { resume(id); return nil }
+        guard isAvailable(asset) else { return Self.missingMessage(asset) }
         let file = access(asset)
         let engine = makeEngine()
         wire(engine, for: id)
@@ -238,8 +240,7 @@ public final class AudioModel {
         } catch {
             engine.stop()
             file.release()
-            lastError = "Could not play \"\(asset.name)\": \(error.localizedDescription) Choose another file, or remove it from the media bin and add it again."
-            return
+            return "Could not play \"\(asset.name)\": \(error.localizedDescription) Choose another file, or remove it from the media bin and add it again."
         }
         // It is sounding. Now the cues it replaces stop: an ordinary cue replaces the other ordinary cues.
         if !overlapIDs.contains(id) {
@@ -250,6 +251,7 @@ public final class AudioModel {
         var transport = MediaTransport(duration: asset.duration ?? 0, loops: looping)
         transport.play(at: now())
         activeCues.append(ActiveCue(assetID: id, transport: transport))
+        return nil
     }
 
     public func pause(_ id: UUID) {
@@ -464,4 +466,11 @@ public final class AudioModel {
     private func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
         writes.persist(key: key, what: what, operation)
     }
+}
+
+// FIX-H item 6: the sound player as the playlist runner sees it.
+extension AudioModel: AudioPlayerPort {
+    public func name(of assetID: UUID) -> String? { asset(assetID)?.name }
+    public func startSound(_ assetID: UUID) -> String? { start(assetID) }
+    public func isReadable(_ assetID: UUID) -> Bool { asset(assetID).map { isAvailable($0) } ?? false }
 }

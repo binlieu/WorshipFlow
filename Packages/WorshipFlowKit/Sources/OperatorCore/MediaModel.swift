@@ -70,6 +70,9 @@ public final class MediaModel {
     public private(set) var isMutedByBlackout = false
     /// True while a slide is live or cleared. A clip is only played over a running show, and stops with it.
     public private(set) var showIsLive = false
+    /// FIX-H item 1: how many times anything started a clip or picture over the screens (a bin choice, the dock, a cue, a folder, a
+    /// playlist loop). A loop compares it with the count after its own start to see that nobody else has taken the foreground.
+    public private(set) var foregroundStarts = 0
     /// UI-003: the clip over the slide starts again when it ends, until it is stopped or replaced. Only ever true while
     /// the clip it was chosen for is still the foreground.
     public var foregroundLoops: Bool {
@@ -294,15 +297,22 @@ public final class MediaModel {
 
     /// Plays the item once over the slides, from the start. Refused, with a message, while the screens are stopped.
     public func playForeground(_ id: UUID) {
-        guard let asset = asset(id), usable(asset, as: "a video or picture on the screens") else { return }
+        if let problem = startForeground(id) { lastError = problem }
+    }
+
+    /// FIX-H item 6: like `playForeground`, but says why it did not play instead of only setting `lastError`. Nil when it plays.
+    public func startForeground(_ id: UUID) -> String? {
+        guard let asset = asset(id) else { return nil }
+        if let problem = unusableReason(asset, as: "a video or picture on the screens") { return problem }
         guard showIsLive else {
-            lastError = "Take a slide live first, then play \"\(asset.name)\": the screens are stopped, so nobody would see it."
-            return
+            return "Take a slide live first, then play \"\(asset.name)\": the screens are stopped, so nobody would see it."
         }
         endFolderPlay(on: .foreground)
         loopingAssetID = nil                      // a new clip plays once unless the operator asks otherwise
         layers.startForeground(MediaSelection(asset: asset), at: now())
+        foregroundStarts += 1
         layersChanged()
+        return nil
     }
 
     /// UI-003: loop or stop looping the clip over the slide. Nothing is playing: nothing to loop.
@@ -598,6 +608,7 @@ public final class MediaModel {
         case .foreground:
             loopingAssetID = nil
             layers.startForeground(MediaSelection(asset: asset), at: now())
+            foregroundStarts += 1
         }
         layersChanged()
     }
@@ -645,15 +656,17 @@ public final class MediaModel {
     // MARK: Helpers
 
     private func usable(_ asset: MediaAsset, as use: String) -> Bool {
+        guard let problem = unusableReason(asset, as: use) else { return true }
+        lastError = problem
+        return false
+    }
+
+    private func unusableReason(_ asset: MediaAsset, as use: String) -> String? {
         guard asset.kind != .audio else {
-            lastError = "\"\(asset.name)\" is a sound file. Sound files are kept in the bin but cannot be used as \(use) yet."
-            return false
+            return "\"\(asset.name)\" is a sound file. Sound files are kept in the bin but cannot be used as \(use) yet."
         }
-        guard isAvailable(asset) else {
-            lastError = Self.missingMessage(asset, what: "The file")
-            return false
-        }
-        return true
+        guard isAvailable(asset) else { return Self.missingMessage(asset, what: "The file") }
+        return nil
     }
 
     private static func missingMessage(_ asset: MediaAsset, what: String) -> String {
@@ -684,4 +697,11 @@ public final class MediaModel {
             return nil
         }
     }
+}
+
+// FIX-H items 1 and 6: the picture layer as the playlist runner sees it.
+extension MediaModel: ForegroundPort {
+    public func name(of assetID: UUID) -> String? { asset(assetID)?.name }
+    public func isReadable(_ assetID: UUID) -> Bool { asset(assetID).map { isAvailable($0) } ?? false }
+    public var foregroundAssetID: UUID? { layers.foreground?.selection.assetID }
 }

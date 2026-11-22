@@ -32,6 +32,7 @@ extension WorkspaceModel {
 
     public func selectPlaylist(_ id: UUID) async {
         guard playlists.contains(where: { $0.id == id }) else { return }
+        if id != selectedPlaylistID { endLiveMediaItem() }       // FIX-H item 3: the file or loop belongs to the playlist being left
         selectedPlaylistID = id
         await reloadPlaylistItems()
         placeChanged()
@@ -44,6 +45,7 @@ extension WorkspaceModel {
 
     public func deletePlaylist(id: UUID) async {
         guard await attempt("delete the playlist", { try await self.store.deletePlaylist(id: id) }) != nil else { return }
+        if selectedPlaylistID == id { endLiveMediaItem() }       // FIX-H item 3: its file or loop cannot go on being "live"
         await reloadPlaylists()
         if selectedPlaylistID == id {
             selectedPlaylistID = playlists.first?.id
@@ -119,7 +121,8 @@ extension WorkspaceModel {
         case .scripture(let spec): await openScriptureItem(item, spec: spec); return        // LIB-004c
         case .media(let spec):                                // UI-005b: selected for Go Live, previewed in the bin player, never played
             _ = beginPreviewRequest(); selectedPlaylistItemID = id; placeChanged()
-            onMediaItem?(.preview(spec)); return
+            if case .failed(let text) = perform(.preview(spec)) { lastError = text }
+            return
         case .announcements:
             _ = beginPreviewRequest(); selectedPlaylistItemID = id; placeChanged(); return
         case .presentation, .sermon: break

@@ -235,7 +235,7 @@ public final class SettingsModel {
 
     // MARK: Looks (SCRN-08)
 
-    public func screenLook(for screenID: UUID) -> ScreenLook { currentLook?.screenLook(for: screenID) ?? .standard }
+    public func screenLook(for screenID: UUID) -> ScreenLook { currentLook?.screenLook(for: screenID, in: profiles) ?? .standard }
 
     public func selectLook(_ id: UUID) {
         guard id != selectedLookID, looks.contains(where: { $0.id == id }) else { return }
@@ -290,7 +290,7 @@ public final class SettingsModel {
 
     private func editScreenLook(_ screenID: UUID, _ change: (inout ScreenLook) -> Void) {
         guard let i = looks.firstIndex(where: { $0.id == selectedLookID }) else { return }
-        var screenLook = looks[i].screenLook(for: screenID)
+        var screenLook = looks[i].screenLook(for: screenID, in: profiles)
         let before = screenLook
         change(&screenLook)
         guard screenLook != before else { return }
@@ -354,16 +354,23 @@ public final class SettingsModel {
         savePropChange(props[i])
     }
 
+    /// FIX-H item 10: a click on a role's pill: on becomes off, off becomes on. The pill stays in the row either way.
+    public func togglePropTarget(_ id: UUID, role: ScreenRole) {
+        guard let prop = props.first(where: { $0.id == id }) else { return }
+        setProp(id, target: role, isOn: !prop.targets.contains(role))
+    }
+
     /// UI-005b: a prop that draws words (a service title strap, a speaker name). The words go through the same text path as the
-    /// slides' lyrics. A name is needed; nothing is added without one.
+    /// slides' lyrics. A name and at least one screen are needed; nothing is added without them. FIX-H item 10: a new text prop is
+    /// saved switched off, so it never appears on a screen the moment it is made.
     @discardableResult
     public func addTextProp(name: String, spec: TextPropSpec, targets: Set<ScreenRole>) -> Prop? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            lastError = "Could not add the prop: a name is needed. Type at least one letter and try again."
+        if let problem = TextPropRules.problem(name: name, targets: targets) {
+            lastError = "Could not add the prop: \(problem)"
             return nil
         }
-        let prop = Prop(name: trimmed, imagePath: "", frame: .full, targets: targets, kind: .text, text: spec)
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prop = Prop(name: trimmed, imagePath: "", frame: .full, isOn: false, targets: targets, kind: .text, text: spec)
         addProp(prop, bookmark: nil)
         return prop
     }
@@ -376,6 +383,22 @@ public final class SettingsModel {
         props[i].name = trimmed
         props[i].text = spec
         savePropChange(props[i])
+    }
+
+    /// FIX-H item 10: the Edit sheet's Save: name, words and screens together, refused as a whole (with the reason in `lastError`) when
+    /// no screen is chosen or the name is empty.
+    @discardableResult
+    public func saveTextProp(_ id: UUID, name: String, spec: TextPropSpec, targets: Set<ScreenRole>) -> Bool {
+        if let problem = TextPropRules.problem(name: name, targets: targets) {
+            lastError = "Could not save the prop: \(problem)"
+            return false
+        }
+        guard let i = props.firstIndex(where: { $0.id == id }), props[i].kind == .text else { return false }
+        props[i].name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        props[i].text = spec
+        props[i].targets = targets
+        savePropChange(props[i])
+        return true
     }
 
     private func savePropChange(_ prop: Prop) {

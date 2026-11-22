@@ -42,13 +42,30 @@ public struct AnnouncementsSpec: Equatable, Codable, Sendable, Hashable {
 
     public var label: String
     public var items: [MediaItemSpec]
-    /// How long each picture stays when there is more than one (a single picture stays; a video repeats).
-    public var secondsPerPicture: Int
+    /// How long each picture stays when there is more than one (a single picture stays; a video repeats). Always within
+    /// `pictureSeconds`: set through the initialiser or decoding, both of which clamp it.
+    public private(set) var secondsPerPicture: Int
 
     public init(label: String, items: [MediaItemSpec], secondsPerPicture: Int = 8) {
         self.label = label
         self.items = items.filter { $0.kind != .audio }
         self.secondsPerPicture = min(Self.pictureSeconds.upperBound, max(Self.pictureSeconds.lowerBound, secondsPerPicture))
+    }
+
+    // FIX-H item 5: a stored or imported loop goes through the same clamping as the initialiser. A value outside the range (zero
+    // made the one-second tick divide by zero) is held to the nearest allowed one; a missing time is the default.
+    private enum CodingKeys: String, CodingKey { case label, items, secondsPerPicture }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let raw = try? c.decodeIfPresent(Double.self, forKey: .secondsPerPicture)
+        let seconds = raw.flatMap { $0 }.map { $0.isFinite ? Int(max(-1e9, min(1e9, $0))) : 8 } ?? 8
+        self.init(label: try c.decode(String.self, forKey: .label), items: try c.decode([MediaItemSpec].self, forKey: .items), secondsPerPicture: seconds)
+    }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(label, forKey: .label)
+        try c.encode(items, forKey: .items)
+        try c.encode(secondsPerPicture, forKey: .secondsPerPicture)
     }
 
     /// A single video repeats; anything else is pictures, cycled.
@@ -57,8 +74,10 @@ public struct AnnouncementsSpec: Equatable, Codable, Sendable, Hashable {
 
     /// Which picture is up `elapsed` seconds after the loop started (always 0 for one item or none).
     public func pictureIndex(afterSeconds elapsed: Double) -> Int {
-        guard items.count > 1, elapsed.isFinite, elapsed > 0 else { return 0 }
-        return Int(elapsed / Double(secondsPerPicture)) % items.count
+        guard items.count > 1, elapsed.isFinite, elapsed > 0, secondsPerPicture > 0 else { return 0 }
+        // Taken as a remainder in floating point first, so an enormous elapsed time cannot overflow the integer conversion.
+        let steps = (elapsed / Double(secondsPerPicture)).truncatingRemainder(dividingBy: Double(items.count))
+        return min(items.count - 1, max(0, Int(steps)))
     }
 }
 
