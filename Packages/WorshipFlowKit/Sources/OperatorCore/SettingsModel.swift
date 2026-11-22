@@ -195,6 +195,33 @@ public final class SettingsModel {
         onProfilesChange?()
     }
 
+    // UI-006f (SC-03, SC-40): additive. Pure rules in `ScreenListEditing`; this writes the result.
+
+    /// Adds a screen at the end of the list: off, in a window, so it cannot change what an output shows until the operator turns it on.
+    @discardableResult
+    public func addProfile() -> ScreenProfile? {
+        guard isLoaded else { return nil }
+        let profile = ScreenListEditing.newScreen(existing: profiles)
+        profiles.append(profile)
+        persistProfiles()
+        onProfilesChange?()
+        return profile
+    }
+
+    /// Removes a screen and keeps the Looks' entries consistent (a surviving screen of the same role keeps its look). The last screen stays.
+    public func removeProfile(_ id: UUID) {
+        guard ScreenListEditing.canRemove(id, from: profiles) else { return }
+        let before = profiles
+        profiles = ScreenListEditing.removing(id, from: before)
+        for i in looks.indices {
+            let updated = ScreenListEditing.look(looks[i], afterRemoving: id, before: before)
+            if updated != looks[i] { looks[i] = updated; persistLook(updated) }
+        }
+        persistProfiles()
+        onProfilesChange?()
+        onAppearanceChange?()
+    }
+
     private func persistProfiles() {
         guard profilesWritable else { return }
         let snapshot = profiles

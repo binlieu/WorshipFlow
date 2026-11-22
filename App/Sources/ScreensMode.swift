@@ -74,11 +74,20 @@ private struct ScreensList: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // The design's "Add screen" button sits at the right of this row: there is no way to add a screen yet, so its room is kept empty.
-            // Open and close screens is the toolbar's button.
+            // UI-006f: "Add screen" at the right of this row (a new screen is off and in a window). Open and close screens is the toolbar's button.
             HStack(spacing: 0) {
                 SectionLabel("Screens", rectID: "sc.list.title")
                 Spacer(minLength: 0)
+                Button {
+                    if let added = app.settings?.addProfile() { app.ui.selectedScreenID = added.id }
+                } label: {
+                    HStack(spacing: 4) { Image(systemName: "plus").font(.wf(11, .semibold)); Text("Add screen") }
+                }
+                .buttonStyle(HeaderButtonStyle())
+                .disabled(app.settings == nil)
+                .help("Add a screen. It starts off, in a window, until you choose where it goes and turn it on.")
+                .accessibilityLabel("Add screen")
+                .wfRect("sc.list.add", size: 12, weight: 500, radius: Radius.md)
             }
             .padding(.horizontal, 12).frame(height: 42)
             VStack(spacing: 0) {

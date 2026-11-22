@@ -13,6 +13,7 @@ struct ScreensDetail: View {
     let app: AppModel
     let profile: ScreenProfile
     let readout: ScreenReadout
+    @State private var confirmRemove = false
 
     private var running: Bool { readout.state == .running || readout.state == .hidden }
     private var isSDI: Bool { profile.destination.isSDI }
@@ -52,8 +53,24 @@ struct ScreensDetail: View {
                 Button { app.restartScreen(profile.id) } label: { Text("Start output") }.buttonStyle(HeaderButtonStyle())
                     .wfRect("sc.detail.stop", size: 12, weight: 500, radius: Radius.md)
             }
-            // The design's "Remove screen" would be here: the app cannot remove a screen yet, so its room is kept.
-            Color.clear.frame(width: 110.2, height: 1)
+            // UI-006f: "Remove screen", asked first. Ghost and muted, not red: red is only for on air. The last screen cannot be removed.
+            let removable = ScreenListEditing.canRemove(profile.id, from: app.profiles)
+            Button { confirmRemove = true } label: { Text("Remove screen") }
+                .buttonStyle(HeaderButtonStyle(kind: .ghost))
+                .disabled(!removable)
+                .help(removable ? "Remove this screen's settings" : "The last screen cannot be removed.")
+                .accessibilityLabel("Remove screen \(profile.name)")
+                .wfRect("sc.detail.remove", size: 12, weight: 500, radius: Radius.md)
+                .confirmationDialog("Remove \(profile.name)?", isPresented: $confirmRemove, titleVisibility: .visible) {
+                    Button("Remove screen", role: .destructive) {
+                        let next = ScreenListEditing.selection(afterRemoving: profile.id, from: app.profiles)
+                        app.settings?.removeProfile(profile.id)
+                        app.ui.selectedScreenID = next
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Its output stops and its destination, mirrors and notes are forgotten. This cannot be undone. Your slides and media are not touched.")
+                }
         }
         .padding(.horizontal, 14).padding(.top, 8)
         .frame(height: 34, alignment: .top)
