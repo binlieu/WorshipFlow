@@ -128,7 +128,9 @@ import Persistence
         let r = try await rig()
         try r.target.perform(.transport(.clearBackground))
         await r.workspace.next()
-        #expect(!r.workspace.show.isBackgroundCleared && scene(r).backgroundMedia == .video(r.loop.id))
+        // FIX-I item 4, owner: "when clear the background. the live in media bin should be cleared as well". The hidden background comes
+        // back with the next slide, but the bin choice was dropped by the clear, so it is the slide's or the theme's own, not the loop.
+        #expect(!r.workspace.show.isBackgroundCleared && scene(r).backgroundMedia == nil && !r.media.model.hasLiveBackgroundOverride)
         try r.target.perform(.transport(.clearBackground))
         await r.workspace.goLive()
         #expect(!r.workspace.show.isBackgroundCleared)

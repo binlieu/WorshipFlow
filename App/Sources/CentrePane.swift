@@ -164,6 +164,12 @@ struct SlideGrid: View {
             }
     }
 
+    /// FIX-I item 2: Up and Down step a row, so the key router needs to know how many slides a row holds.
+    private func reportColumns(_ width: CGFloat) {
+        let count = SlideGridLayout.columnCount(width: Double(width))
+        if app.ui.gridColumns != count { Task { @MainActor in app.ui.gridColumns = count } }
+    }
+
     /// Five thumbnails across at the design's window size, more when wider, never fewer than one (`SlideGridLayout`).
     private func columns(for width: CGFloat) -> [GridItem] {
         let count = SlideGridLayout.columnCount(width: Double(width))
@@ -173,6 +179,7 @@ struct SlideGrid: View {
     }
 
     @ViewBuilder private func grid(width: CGFloat) -> some View {
+        let _ = reportColumns(width)
         ScrollViewReader { proxy in
             ScrollView {
                 if workspace.slides.isEmpty {
@@ -265,14 +272,35 @@ struct SlideGrid: View {
     @ViewBuilder private func slideMenu(_ i: Int) -> some View {
         Button("Go Live") { app.triggerSlide(i) }
         Button("Quick edit") { workspace.selectSlide(i); app.openQuickEdit() }
-        if SlideBackgroundDrop.hasOwnBackground(workspace.slides[i].content) {
-            Button("Use the presentation's background") { app.clearSlideBackground(slideID: workspace.slides[i].id) }
-        }
+        SlideBackgroundMenuItems(app: app, slide: workspace.slides[i])
         Divider()
         Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
         Button("Move later") { Task { await workspace.moveSlide(from: i, to: i + 1) } }.disabled(i == workspace.slides.count - 1)
         Divider()
         Button("Delete slide…", role: .destructive) { pendingDelete = i }
+    }
+}
+
+/// FIX-I item 6: the background entries of a slide thumbnail's context menu (Show grid and list, Edit film strip). Each is one undo step.
+struct SlideBackgroundMenuItems: View {
+    let app: AppModel
+    let slide: Slide
+
+    var body: some View {
+        Menu(SlideBackgroundMenu.setTitle) {
+            let choices = SlideBackgroundMenu.choices(from: app.media?.allAssets ?? [])
+            if choices.isEmpty { Text("The media bin has no pictures or videos") }
+            ForEach(choices) { asset in
+                Button(asset.name) {
+                    app.setSlideBackgroundFromMenu(SlideBackgroundDrop.selection(for: asset), slideID: slide.id)
+                }
+            }
+        }
+        .help(SlideBackgroundMenu.liveNote)
+        if SlideBackgroundMenu.clearIsOffered(for: slide.content) {
+            Button(SlideBackgroundMenu.clearTitle) { app.setSlideBackgroundFromMenu(nil, slideID: slide.id) }
+                .help(SlideBackgroundMenu.liveNote)
+        }
     }
 }
 
@@ -313,6 +341,7 @@ struct SlideList: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { app.triggerSlide(i) }
         .onTapGesture { workspace.selectSlide(i) }
+        .contextMenu { SlideBackgroundMenuItems(app: app, slide: slide) }        // FIX-I item 6
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
         .accessibilityAddTraits(selected ? .isSelected : [])

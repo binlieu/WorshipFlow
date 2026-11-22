@@ -95,7 +95,9 @@ public final class ShowCueTarget: CueTarget {
             case .off: if transport.isBlackedOut { transport.blackout() }
             }
         case .stop: transport.stop()
-        case .clearBackground: transport.clearBackground()
+        case .clearBackground:
+            transport.clearBackground()
+            media.setBackground(nil)       // FIX-I item 4: the background chosen from the bin (or a Play-folder run) is dropped, not just hidden
         case .clearForeground: media.stopForeground()
         case .clearMusic: media.clearMusic()
         }

@@ -84,11 +84,7 @@ struct EditModeView: View {
             return app.setSlideBackground(mediaID: mediaID, slideID: slide.id)
         }
         .dropDestination(for: URL.self) { urls, _ in app.setSlideBackground(fileURLs: urls, slideID: slide.id) }
-        .contextMenu {
-            if SlideBackgroundDrop.hasOwnBackground(slide.content) {
-                Button("Use the presentation's background") { app.clearSlideBackground(slideID: slide.id) }
-            }
-        }
+        .contextMenu { SlideBackgroundMenuItems(app: app, slide: slide) }        // FIX-I item 6
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)\(SlideBackgroundDrop.hasOwnBackground(slide.content) ? ", has its own background" : "")")
         .accessibilityValue(live ? "live" : "")

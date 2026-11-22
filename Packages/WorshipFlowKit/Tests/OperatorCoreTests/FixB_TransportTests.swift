@@ -44,8 +44,9 @@ import Persistence
         #expect(KeyRouting.decision(for: .escape, textInputFocused: true, sheetOpen: false, shiftDown: true) == .passThrough)
         #expect(KeyRouting.decision(for: .escape, textInputFocused: false, sheetOpen: true, shiftDown: true) == .passThrough)
         #expect(KeyRouting.decision(for: .escape, textInputFocused: false, sheetOpen: false, commandModifierDown: true, shiftDown: true) == .passThrough)
-        // Shift does not change what the other keys do.
-        #expect(KeyRouting.decision(for: .space, textInputFocused: false, sheetOpen: false, shiftDown: true) == .transport(.next))
+        // Shift does not change what the other keys do. FIX-I item 2: except Space, where Shift-Space is Previous (the owner's decision).
+        #expect(KeyRouting.decision(for: .space, textInputFocused: false, sheetOpen: false, shiftDown: true) == .transport(.previous))
+        #expect(KeyRouting.decision(for: .returnKey, textInputFocused: false, sheetOpen: false, shiftDown: true) == .transport(.goLive))
     }
 }
 

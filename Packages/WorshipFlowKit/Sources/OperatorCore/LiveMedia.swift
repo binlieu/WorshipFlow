@@ -35,6 +35,20 @@ public enum LiveMedia {
     }
 }
 
+/// FIX-I item 6: the slide thumbnail's context menu for backgrounds (Show grid and list, Edit film strip).
+public enum SlideBackgroundMenu {
+    public static let setTitle = "Set background…"
+    public static let clearTitle = "Clear this slide's background"
+    /// Said in the tooltip and the checklist: an edit never reaches the screens by itself.
+    public static let liveNote = "Changes the slide, not what is on the screens now. It shows live the next time this slide is taken live."
+
+    /// "Clear this slide's background" is offered whenever the slide has its own.
+    public static func clearIsOffered(for content: SlideContent) -> Bool { content.background != nil }
+
+    /// What "Set background…" lists: the bin's pictures and videos in bin order, never a sound.
+    public static func choices(from assets: [MediaAsset]) -> [MediaAsset] { assets.filter { $0.kind != .audio } }
+}
+
 /// Dropping a video or picture on a slide thumbnail.
 public enum SlideBackgroundDrop {
     /// A video or picture can be a background; a sound file cannot.

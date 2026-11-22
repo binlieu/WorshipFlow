@@ -43,8 +43,9 @@ import Testing
         for focus in [FocusedElement.none, .slideGrid] {
             #expect(KeyRouting.decision(for: .space, focus: focus, sheetOpen: false) == .transport(.next))
             #expect(KeyRouting.decision(for: .returnKey, focus: focus, sheetOpen: false) == .transport(.goLive))
-            #expect(KeyRouting.decision(for: .rightArrow, focus: focus, sheetOpen: false) == .transport(.next))
-            #expect(KeyRouting.decision(for: .leftArrow, focus: focus, sheetOpen: false) == .transport(.previous))
+            // FIX-I item 2, owner: "moving left / right button will move the selection but hit enter will bring the current live".
+            #expect(KeyRouting.decision(for: .rightArrow, focus: focus, sheetOpen: false) == .moveSelection(.right))
+            #expect(KeyRouting.decision(for: .leftArrow, focus: focus, sheetOpen: false) == .moveSelection(.left))
             #expect(KeyRouting.decision(for: .escape, focus: focus, sheetOpen: false) == .transport(.clear))
             #expect(KeyRouting.decision(for: .escape, focus: focus, sheetOpen: false, shiftDown: true) == .transport(.clearAll))
             #expect(KeyRouting.decision(for: .b, focus: focus, sheetOpen: false) == .transport(.blackout))

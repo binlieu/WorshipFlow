@@ -33,6 +33,12 @@ final class WorkspaceUIState {
     var dockLayer = MediaLayerChoice.background
     /// MEDIA-010: the item selected in the Media mode's bin (shown in the sidebar player) and the hot folder it is showing.
     var binSelection: UUID?
+    /// FIX-I item 2: which section the arrow keys act on (the slide grid or the media bin: whichever was clicked last), and how many columns each
+    /// draws, so Up and Down step a row.
+    var keySection = KeySection.slideGrid
+    var gridColumns = 5
+    var binColumns = 1
+    func keySectionEvent(_ event: KeySection.Event) { keySection = KeySection.after(event, from: keySection) }
     var binFolderID: UUID?
     /// Debug pictures only: draws the entries of the Clear menu as a list, because a real menu popup is a separate window the
     /// snapshot hook cannot capture. Never set in normal use.
@@ -41,12 +47,14 @@ final class WorkspaceUIState {
     var searchHasFocus = false
     /// FIX-H item 7: the custom control that has keyboard focus, if one does (a toggle, a slider, a tab...). The controls report it; the
     /// key monitor reads it, so Space, Return and the arrows act on the control and not on the show.
-    var focusedControl: FocusedElement?
+    var controlFocusTracker = ControlFocusTracker()
+    /// FIX-I item 1: true while the slide grid's own focusable container has focus (set by the workspace view). The controls under it
+    /// inherit that focus in SwiftUI's environment; the tracker ignores them meanwhile.
+    var gridHasFocus = false
+    var focusedControl: FocusedElement? { controlFocusTracker.current(gridHasFocus: gridHasFocus) }
 
-    /// A control gained or lost keyboard focus. Losing it only counts when that kind is still the one recorded.
-    func controlFocus(_ kind: FocusedElement, _ focused: Bool) {
-        if focused { focusedControl = kind } else if focusedControl == kind { focusedControl = nil }
-    }
+    /// A control gained or lost keyboard focus.
+    func controlFocus(id: UUID, _ kind: FocusedElement, _ focused: Bool) { controlFocusTracker.report(id: id, kind: kind, focused: focused) }
     /// Bumped by Command-E: the Quick edit tab puts the cursor in its first field.
     var focusQuickEdit = 0
     /// Counts requests for the live-slide edit (Option-Command-E, the Live button, the Edit header): the popover itself

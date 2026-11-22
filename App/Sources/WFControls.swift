@@ -11,11 +11,12 @@ import OperatorCore
 struct WFFocusReport: ViewModifier {
     let element: FocusedElement
     @Environment(\.isFocused) private var isFocused
+    @State private var identity = UUID()
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: isFocused) { _, now in AppModel.shared.ui.controlFocus(element, now) }
-            .onDisappear { AppModel.shared.ui.controlFocus(element, false) }
+            .onChange(of: isFocused) { _, now in AppModel.shared.ui.controlFocus(id: identity, element, now) }
+            .onDisappear { AppModel.shared.ui.controlFocus(id: identity, element, false) }
     }
 }
 extension View { func wfFocusReport(_ element: FocusedElement) -> some View { modifier(WFFocusReport(element: element)) } }
@@ -405,4 +406,14 @@ struct MessageCard<Trailing: View>: View {
 }
 extension MessageCard where Trailing == EmptyView {
     init(message: String) { self.init(message: message) { EmptyView() } }
+}
+
+// MARK: Keyboard section mark (FIX-I item 2)
+
+extension View {
+    /// The quiet mark of the section the arrow keys act on (the slide grid or the media bin): the design's blue at a low strength, 1 pt,
+    /// inside the edge. It takes no room and no clicks.
+    func keyboardSectionMark(_ on: Bool) -> some View {
+        overlay { if on { Rectangle().strokeBorder(Tok.blue.opacity(0.45), lineWidth: 1).allowsHitTesting(false).accessibilityHidden(true) } }
+    }
 }

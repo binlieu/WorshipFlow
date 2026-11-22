@@ -5,13 +5,16 @@ import Testing
 @Suite struct KeyRoutingTests {
     @Test func transportKeysReachTheShowWhenNothingIsBeingTyped() {
         let expected: [(KeyboardKey, TransportCommand)] = [
-            (.returnKey, .goLive), (.keypadEnter, .goLive), (.space, .next), (.rightArrow, .next),
-            (.downArrow, .next), (.leftArrow, .previous), (.upArrow, .previous), (.escape, .clear),
+            (.returnKey, .goLive), (.keypadEnter, .goLive), (.space, .next), (.escape, .clear),
         ]
         for (key, command) in expected {
             #expect(KeyRouting.transportCommand(for: key, textInputFocused: false, sheetOpen: false) == command, "\(key)")
         }
         #expect(KeyRouting.transportCommand(for: .other, textInputFocused: false, sheetOpen: false) == nil)
+        // FIX-I item 2, owner: "moving left / right button will move the selection but hit enter will bring the current live".
+        for key: KeyboardKey in [.rightArrow, .downArrow, .leftArrow, .upArrow] {
+            #expect(KeyRouting.transportCommand(for: key, textInputFocused: false, sheetOpen: false) == nil, "\(key) is not a transport key now")
+        }
     }
 
     @Test func nothingGoesToTheTransportWhileATextInputIsBeingEdited() {

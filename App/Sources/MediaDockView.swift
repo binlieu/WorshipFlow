@@ -15,7 +15,8 @@ struct MediaDockView: View {
     let available: Double
     @State private var dragStart: Double?
     @State private var dragHeight: Double?
-    @State private var selected: UUID?
+    /// FIX-I item 2: the same selection the arrow keys move (and the Media mode's bin shows).
+    private var selected: UUID? { app.ui.binSelection }
     @State private var targeted = false
     @State private var stripWidth: CGFloat = 812
 
@@ -37,6 +38,8 @@ struct MediaDockView: View {
         .background(Tok.surface)
         .overlay(alignment: .top) { if !state.isCollapsed { resizeHandle(current: state.height) } }      // over the top edge: it takes no room of its own
         .wfRect("dock")
+        .simultaneousGesture(TapGesture().onEnded { app.ui.keySectionEvent(.clickedMediaBin) })       // FIX-I item 2: the arrows act on the bin now
+        .keyboardSectionMark(app.effectiveKeySection == .mediaBin && app.workspace?.mode == .show)
         .overlay(targeted ? RoundedRectangle(cornerRadius: 4).stroke(Tok.blue, lineWidth: 2) : nil)
         .dropDestination(for: URL.self) { urls, _ in
             let files = urls.filter(\.isFileURL)
@@ -133,18 +136,19 @@ struct MediaDockView: View {
         return DockTile(asset: asset, mark: mark, width: width, index: index)
             .draggable(SlideBackgroundDrop.dragText(for: asset.id))       // MEDIA-010: drop it on a slide for that slide's own background
             .onTapGesture {
-                selected = asset.id
+                app.ui.binSelection = asset.id
+                app.ui.keySectionEvent(.clickedMediaBin)
                 app.performDockAction(MediaDock.action(for: asset, layer: app.ui.dockLayer))
             }
             .contextMenu {
                 Button("Add to playlist") { Task { await app.workspace?.addMediaItem(MediaItemSpec(assetID: asset.id, name: asset.name, kind: asset.kind)) } }
                 Divider()
                 if asset.kind != .audio {
-                    Button("Set as background") { selected = asset.id; media.setBackground(asset.id) }
-                    Button("Play in foreground") { selected = asset.id; media.playForeground(asset.id) }
+                    Button("Set as background") { app.ui.binSelection = asset.id; media.setBackground(asset.id) }
+                    Button("Play in foreground") { app.ui.binSelection = asset.id; media.playForeground(asset.id) }
                     if media.layers.background?.selection.assetID == asset.id { Button("Use the slide's own background") { media.dropBackgroundOverride() } }
                 } else {
-                    Button("Play sound") { selected = asset.id; audio?.play(asset.id) }
+                    Button("Play sound") { app.ui.binSelection = asset.id; audio?.play(asset.id) }
                     if audio?.isActive(asset.id) == true { Button("Stop sound") { audio?.stop(asset.id) } }
                 }
             }

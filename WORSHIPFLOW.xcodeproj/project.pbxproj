@@ -10,6 +10,7 @@
 		00751B4756B4AD10479B2D6E /* HotFolderSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF4F9BFE582616CC8E8F65DD /* HotFolderSupport.swift */; };
 		02DB272F53439307BF982418 /* OperatorWindowGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */; };
 		08082D4A09636B4A3A868426 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 7392E34C444186C64745A079 /* Domain */; };
+		09F098F1CD8B90E6530DD5E8 /* ThumbnailStills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D60BBF208DD8ABB2FED708 /* ThumbnailStills.swift */; };
 		0DAC4AA819C3A8A075C56CC4 /* SDIEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 1AE80C07788ADC1FC558D02D /* SDIEngine */; };
 		10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */; };
 		13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */; };
@@ -54,6 +55,7 @@
 		8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */; };
 		8D268E6D1CA2549A7FA3826A /* BinPlayerSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298B80B5D93A54F90F49B0A5 /* BinPlayerSupport.swift */; };
 		8F5AEDB90067555BB1456695 /* AppModel+Program.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26CA0960FC6722EC666D1BB6 /* AppModel+Program.swift */; };
+		905D1888E120908524D706A5 /* UISnapshotFixI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */; };
 		9265D0121221C24948323389 /* StageMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EBE480BA6AD2725A3CA353 /* StageMessageView.swift */; };
 		9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4324BEB75E64640972B783F /* LibrarySidebar.swift */; };
 		932E756E00CFAAE618412EB6 /* CueStore in Frameworks */ = {isa = PBXBuildFile; productRef = 928CE345DBD0F607AE5BF650 /* CueStore */; };
@@ -109,6 +111,8 @@
 		2F5D0BC38B19E5D5372B0F3C /* BinPlayerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinPlayerPanel.swift; sourceTree = "<group>"; };
 		32295D478AF06FE6654E71DA /* ShowMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowMode.swift; sourceTree = "<group>"; };
 		3492857FA2C3827B81259408 /* WFControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WFControls.swift; sourceTree = "<group>"; };
+		37D60BBF208DD8ABB2FED708 /* ThumbnailStills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailStills.swift; sourceTree = "<group>"; };
+		3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixI.swift; sourceTree = "<group>"; };
 		3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestView.swift; sourceTree = "<group>"; };
 		4F15479017EE9F052B9E363C /* DesignProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignProbe.swift; sourceTree = "<group>"; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
@@ -258,11 +262,13 @@
 				E0EBE480BA6AD2725A3CA353 /* StageMessageView.swift */,
 				DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */,
 				2031232049BA8C27AA077B2D /* Thumbnails.swift */,
+				37D60BBF208DD8ABB2FED708 /* ThumbnailStills.swift */,
 				A38CD5DB50486CAC827308DF /* TimersPanel.swift */,
 				C6862694E560546A6DA8686B /* ToolbarTimersView.swift */,
 				993D2499578DAFEB14C92990 /* TransportBar.swift */,
 				01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */,
 				55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */,
+				3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */,
 				78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */,
 				D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */,
 				E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */,
@@ -474,12 +480,14 @@
 				BA5C53C44C796A053A70D317 /* StageEditorView.swift in Sources */,
 				9265D0121221C24948323389 /* StageMessageView.swift in Sources */,
 				A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */,
+				09F098F1CD8B90E6530DD5E8 /* ThumbnailStills.swift in Sources */,
 				304DC2408548D72CDAC4B5C8 /* Thumbnails.swift in Sources */,
 				5FCE85521277B09512888B9E /* TimersPanel.swift in Sources */,
 				FF51555D896D21DE037B9CC8 /* ToolbarTimersView.swift in Sources */,
 				F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */,
 				681C9CA7F7769B2188A1B181 /* UISnapshotCues.swift in Sources */,
 				8C131235AB1BE42BA3D35E4C /* UISnapshotDesign.swift in Sources */,
+				905D1888E120908524D706A5 /* UISnapshotFixI.swift in Sources */,
 				510F04BB6CAADD39C7460240 /* UISnapshotMedia010.swift in Sources */,
 				10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */,
 				36FF51F147353E7711DB6517 /* UISnapshotRun.swift in Sources */,

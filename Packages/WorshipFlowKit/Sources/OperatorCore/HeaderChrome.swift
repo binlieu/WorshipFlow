@@ -57,7 +57,7 @@ public enum ClearControl {
             switch self {
             case .clearWords: "Hide the words on every screen"
             case .clearAll: "Hide the words and stop a clip playing over them (Shift-Escape)"
-            case .clearBackground: "Hide the background on every screen. Go Live, Next or a new choice brings one back"
+            case .clearBackground: "Drop the background chosen from the media bin and hide the background on every screen. The next slide shows its own background again"
             case .clearForeground: "Stop the clip playing over the words"
             case .clearMusic: "Stop the sound player (not a video's own sound)"
             }
@@ -126,12 +126,20 @@ public enum AppearanceChoice: String, CaseIterable, Sendable, Identifiable {
 }
 
 /// MEDIA-010: every key the Cues mode's keyboard table lists, in one place so a test can see that no two share a key.
+/// FIX-I item 2: the hints on the transport bar's buttons: the keys that really do it.
+public enum TransportKeyHints {
+    public static let previous = "⇧␣"
+    public static let next = "␣"
+    public static let goLive = "↩"
+}
+
 public enum ShowShortcuts {
     public struct Entry: Equatable, Sendable { public var key: String; public var command: String }
 
     public static let all: [Entry] = [
-        Entry(key: "→ or Space", command: "Next slide"), Entry(key: "←", command: "Previous slide"),
-        Entry(key: "↩", command: "Go live with the selected slide"), Entry(key: "B", command: "Blackout (toggle)"),
+        Entry(key: "Space", command: "Next slide"), Entry(key: "⇧ Space", command: "Previous slide"),
+        Entry(key: "← → ↑ ↓", command: "Move the selection (Preview only)"),
+        Entry(key: "↩", command: "Go live with the selected slide, or send the selected media item live"), Entry(key: "B", command: "Blackout (toggle)"),
         Entry(key: ClearControl.Action.clearWords.shortcut, command: "Clear"),
         Entry(key: ClearControl.Action.clearAll.shortcut, command: "Clear all"),
         Entry(key: ClearControl.Action.clearBackground.shortcut, command: "Clear background"),

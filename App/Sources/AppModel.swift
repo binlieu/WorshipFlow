@@ -2,6 +2,7 @@
 // by `OutputCoordinator`. This model sends commands and reads status; it never renders. Render threads read an
 // immutable `PublishedScenes` snapshot, never this object.
 import AppKit
+import SwiftUI
 import Observation
 import Domain
 import MediaEngine
@@ -182,7 +183,6 @@ final class AppModel {
             let model = WorkspaceModel(store: store)
             model.onShowChange = { [weak self] state in self?.showChanged(state) }
             model.onAppearanceChange = { [weak self] in self?.lookChanged() }
-            model.onClearAll = { [weak self] in self?.media?.stopForeground() }      // R8: Clear all also stops the clip
             workspace = model
             let editor = SlideEditorModel(workspace: model, imageChooser: { await Self.chooseImagePath() })
             editor.reservedFrames = { [weak self] content in
@@ -214,7 +214,7 @@ final class AppModel {
             media.onBackgroundAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setBackgroundAudio(volume: volume, muted: muted) }
             mediaRegistry.setBackgroundAudio(volume: Float(media.volume), muted: media.backgroundHeardMuted)
             // A new live background brings a cleared one back.
-            media.onBackgroundChosen = { [weak self] in self?.workspace?.showBackground() }
+            if let workspace { MediaWiring.connect(workspace: workspace, media: media) }      // R8, FIX-I item 4: Clear all stops the clip and drops the bin's background
             // FIX-G: bookmarks are resolved off the main actor, without UI and without mounting (HotFolderAccess).
             let hot = HotFolderModel(store: store, listing: FileSystemFolderListing(), watching: DispatchFolderWatching(), prober: AppMediaProber(),
                                      access: hotFolderAccess)
@@ -434,6 +434,19 @@ final class AppModel {
     /// The scene a screen is showing now, for the live thumbnails.
     func scene(forScreen id: UUID) -> SceneDescription { sceneBox.read().scene(forScreen: id) }
 
+    /// FIX-I item 5: the stills thumbnails draw their picture and video backgrounds from.
+    @ObservationIgnored let thumbnailStills = ThumbnailStills()
+
+    /// FIX-I item 5: which background a thumbnail of `slide` draws (its own, else the presentation's or the theme's) and whether it is missing.
+    func thumbnailBackground(for slide: SlideContent) -> ThumbnailBackground {
+        let profile = profiles.first { $0.role == .audience && $0.isEnabled } ?? profiles.first { $0.role == .audience }
+        let lookTheme = profile.flatMap { currentLook?.screenLook(for: $0.id, in: profiles).themeID }
+        let theme = ThemeResolver.theme(for: .audience, lookThemeID: lookTheme, presentationThemeID: workspace?.openThemeID, themes: themes)
+        let fromPresentation = lookTheme == nil && workspace?.openThemeID == theme.id
+        return ThumbnailBackground.resolve(slide: slide, theme: theme, themeIsThePresentations: fromPresentation,
+                                           available: media.map { Set($0.allAssets.map(\.id)) })
+    }
+
     /// How `slide` looks on the audience screen, built by the same composer the outputs use.
     func thumbnailScene(for slide: SlideContent) -> SceneDescription {
         var state = ShowState()
@@ -571,9 +584,9 @@ final class AppModel {
                 // FIX-H item 7: what has focus decides. A control the app drew reports its own focus; an AppKit control is read from the
                 // responder chain. A focused control keeps Space, Return and the arrows.
                 let focus: FocusedElement = textInput ? (inSearch ? .searchField : .textInput) : (self.ui.focusedControl ?? appKitFocus)
-                switch KeyRouting.decision(for: key, focus: focus, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
+                switch KeyRouting.decision(for: key, focus: focus, section: self.effectiveKeySection, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
                 case .focusShow:
-                    self.ui.focusedControl = nil
+                    self.ui.controlFocusTracker.clear()
                     window.makeFirstResponder(nil)
                     self.ui.focusGrid += 1        // the workspace view puts focus on the slide grid
                     return true
@@ -588,6 +601,12 @@ final class AppModel {
                     case .clearAll: self.clearAll(from: .key)
                     case .blackout: self.blackout(from: .key)
                     }
+                    return true
+                case .moveSelection(let move):
+                    self.moveSelection(move)       // FIX-I item 2: Preview only, never the live slide
+                    return true
+                case .sendBinSelectionLive:
+                    self.sendBinSelectionLive()
                     return true
                 case .leaveSearch:
                     self.ui.leaveSearch += 1      // the workspace view clears the search and puts focus on the slide grid
@@ -630,7 +649,7 @@ final class AppModel {
 
     /// FIX-H item 7: what kind of AppKit control is the first responder, for the key router. A pop-up is checked before a button (it is
     /// one). Every kind of AppKit button counts as a button: Space and Return act on it either way.
-    private static func appKitFocus(of responder: NSResponder?) -> FocusedElement {
+    static func appKitFocus(of responder: NSResponder?) -> FocusedElement {
         var view = responder as? NSView
         while let current = view {
             switch current {
@@ -644,6 +663,15 @@ final class AppModel {
         }
         return .none
     }
+
+    #if DEBUG
+    /// FIX-I (debug hook): the focus the key monitor would compute for this window right now.
+    static func keyFocus(window: NSWindow, ui: WorkspaceUIState) -> FocusedElement {
+        let responder = window.firstResponder
+        if responder is NSText || responder is NSTextField { return .textInput }
+        return ui.focusedControl ?? appKitFocus(of: responder)
+    }
+    #endif
 
     /// True when the text being edited belongs to a search field (the field editor is a subview of the field).
     private static func isInsideSearchField(_ responder: NSResponder?) -> Bool {
@@ -737,6 +765,39 @@ final class AppModel {
     var faultCards: [OutputFaultCard] { OutputFaultCards.cards(from: readouts) }
     private(set) var retryNotes: [UUID: String] = [:]
 
+    // FIX-I item 7: the card fades five seconds after it appears; the pill and the monitor keep the fault until the output sends again.
+    @ObservationIgnored private var faultVisibility = FaultCardVisibility()
+    /// The clock the fade reads (injected so a debug run can drive it).
+    @ObservationIgnored var faultClock: () -> Date = { Date() }
+    /// The screens whose fault card is on show now.
+    private(set) var shownFaultIDs: Set<UUID> = []
+    var shownFaultCards: [OutputFaultCard] { faultCards.filter { shownFaultIDs.contains($0.screenID) } }
+
+    /// Looks at the cards again: a new fault shows, a card whose five seconds are up fades. Called with every refresh of the readouts.
+    func refreshFaultVisibility() {
+        let now = faultClock()
+        faultVisibility.update(cards: faultCards, now: now)
+        let ids = Set(faultVisibility.visibleCards(from: faultCards, now: now).map(\.screenID))
+        if ids != shownFaultIDs { withAnimation(.easeOut(duration: 0.35)) { shownFaultIDs = ids } }
+    }
+
+    func faultCardPointer(_ over: Bool, screenID: UUID) {
+        faultVisibility.setPointerOver(over, screenID: screenID, now: faultClock())
+        refreshFaultVisibility()
+    }
+
+    func faultCardFocus(_ inside: Bool, screenID: UUID) {
+        faultVisibility.setFocusInside(inside, screenID: screenID, now: faultClock())
+        refreshFaultVisibility()
+    }
+
+    /// A click on a role's pill: the card of its faulted screens shows again, with Retry and Details.
+    func showFaultCards(for role: ScreenRole) {
+        let now = faultClock()
+        for readout in readouts where readout.role == role { faultVisibility.showAgain(screenID: readout.id, now: now) }
+        refreshFaultVisibility()
+    }
+
     /// Reopens the failed output once: the card's own output only (FIX-H item 4: a faulted mirror's Retry never restarts the healthy screen).
     /// A failure is said plainly on its card.
     func retryOutput(_ card: OutputFaultCard) {
@@ -746,7 +807,10 @@ final class AppModel {
         updateReadouts()
         switch outcome {
         case .reopened: retryNotes[card.screenID] = nil
-        case .stillFailing(let text): retryNotes[card.screenID] = text
+        case .stillFailing(let text):
+            retryNotes[card.screenID] = text
+            faultVisibility.showAgain(screenID: card.screenID, now: faultClock())      // the answer to Retry is on the card: let it be read
+            refreshFaultVisibility()
         }
     }
 
@@ -1042,6 +1106,48 @@ final class AppModel {
     func clearAll(from source: CommandSource = .button) {
         if let cue { cue.submit(.transport(.clearAll), from: source) } else if let w = workspace { w.clearAll() } else { send(.clearAll) }
     }
+    // MARK: The keyboard's section (FIX-I item 2)
+
+    /// The section the arrows act on. In the Media mode the bin is all there is; in Show a folded bin cannot hold the arrows.
+    var effectiveKeySection: KeySection {
+        if workspace?.mode == .media { return .mediaBin }
+        if workspace?.mode == .show, ui.keySection == .mediaBin, mediaDock.isCollapsed { return .slideGrid }
+        return ui.keySection
+    }
+
+    /// The bin's items as they are drawn now, in order: the dock's tab in Show, the bin or the chosen hot folder in the Media mode.
+    var visibleBinAssets: [MediaAsset] {
+        guard let media else { return [] }
+        if workspace?.mode == .media {
+            guard let folder = ui.binFolderID.flatMap({ hotFolders?.state(of: $0) }) else { return media.visibleAssets }
+            guard let kind = media.kindFilter else { return folder.items }
+            return folder.items.filter { $0.kind == kind }
+        }
+        return MediaDock.assets(media.assets, tab: ui.dockTab)
+    }
+
+    /// An arrow key: a step of the selection in the keyboard's section. Preview only; nothing on any screen changes.
+    func moveSelection(_ move: SelectionMove) {
+        switch effectiveKeySection {
+        case .slideGrid:
+            guard let workspace else { return }
+            let columns = ui.gridAsList ? 1 : ui.gridColumns
+            Task { await workspace.moveSelection(move, columns: columns) }
+        case .mediaBin:
+            let items = visibleBinAssets
+            let columns = workspace?.mode == .media ? ui.binColumns : max(1, items.count)       // the dock is one row
+            let current = ui.binSelection.flatMap { id in items.firstIndex { $0.id == id } }
+            guard let target = BinNavigation.target(count: items.count, current: current, move: move, columns: columns) else { return }
+            selectBinItem(items[target].id)
+        }
+    }
+
+    /// Return with the bin as the keyboard's section: the selected item goes live on the layer the bin's switch says, as a double click does.
+    func sendBinSelectionLive() {
+        guard let id = ui.binSelection, let asset = media?.asset(id) else { return }
+        performDockAction(MediaDock.action(for: asset, layer: ui.dockLayer))
+    }
+
     // MARK: The bin's selection and its player (MEDIA-010)
 
     /// A single click in the bin: select the item and show it in the sidebar player. Nothing goes live.
@@ -1079,6 +1185,9 @@ final class AppModel {
 
     /// "Use the presentation's background".
     func clearSlideBackground(slideID: UUID) { _ = slideEditor?.setBackground(nil, forSlide: slideID) }
+
+    /// FIX-I item 6: "Set background…" and "Clear this slide's background" from the thumbnail's context menu: one undo step, Preview only.
+    func setSlideBackgroundFromMenu(_ selection: MediaSelection?, slideID: UUID) { _ = slideEditor?.setBackgroundFromMenu(selection, forSlide: slideID) }
 
     // MARK: Hot folders (MEDIA-010)
 
@@ -1135,7 +1244,7 @@ final class AppModel {
 
     /// MEDIA-010: the three layer clears, through the same serial command path as every other transport command.
     func clearBackground(from source: CommandSource = .button) {
-        if let cue { cue.submit(.transport(.clearBackground), from: source) } else { workspace?.clearBackground() }
+        if let cue { cue.submit(.transport(.clearBackground), from: source) } else { workspace?.clearBackground(); media?.dropBackgroundOverride() }
     }
     func clearForeground(from source: CommandSource = .button) {
         if let cue { cue.submit(.transport(.clearForeground), from: source) } else { media?.stopForeground() }
@@ -1530,6 +1639,7 @@ final class AppModel {
             let kept = OutputFaultCards.notes(retryNotes, keepingCardsOf: OutputFaultCards.cards(from: r))
             if kept != retryNotes { retryNotes = kept }
         }
+        refreshFaultVisibility()
         reportedImages = r.flatMap(\.unavailableImagePaths)
         // R6: the file system is asked on a background thread, and only about images the screens draw now.
         imageMonitor.check(ImageUsage.pathsInUse(props: props, themes: themes, profiles: profiles, look: currentLook,

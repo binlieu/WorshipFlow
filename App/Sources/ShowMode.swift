@@ -29,7 +29,9 @@ struct ShowModeView: View {
                 .frame(minWidth: 460, maxWidth: .infinity)
                 .wfRect("main")
                 .focusable().focused(gridFocused).focusEffectDisabled()
-                .onChange(of: workspace.openPresentationID) { _, new in if new != nil { app.ui.scriptureOpen = false } }     // opening a song closes the passage view
+                .onChange(of: workspace.openPresentationID) { _, new in
+                    if new != nil { app.ui.scriptureOpen = false; app.ui.keySectionEvent(.presentationOpened) }     // FIX-I item 2: the grid has the arrows again
+                }     // opening a song closes the passage view
             ColumnHandle(width: Binding(get: { app.ui.inspectorWidth }, set: { app.ui.inspectorWidth = $0 }), range: 320...440, grows: -1, name: "Inspector width")
             ShowInspector(app: app, workspace: workspace)
                 .padding(.leading, 1)
@@ -86,6 +88,8 @@ struct ShowCentre: View {
                 } else {
                     CentrePane(app: app, workspace: workspace)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .simultaneousGesture(TapGesture().onEnded { app.ui.keySectionEvent(.clickedSlideGrid) })       // FIX-I item 2
+                        .keyboardSectionMark(app.effectiveKeySection == .slideGrid && workspace.mode == .show)
                 }
                 if let media = app.media {
                     MediaDockView(app: app, media: media, audio: app.audio, available: geo.size.height)

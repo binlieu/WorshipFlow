@@ -109,7 +109,7 @@ struct WorkspaceView: View {
             if let error = workspace.lastError ?? app.settingsError {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
-            ForEach(app.faultCards) { card in OutputFaultBar(app: app, card: card) }
+            ForEach(app.shownFaultCards) { card in OutputFaultBar(app: app, card: card).transition(.opacity) }
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
             if let cue = app.cue {
                 // CUE-002b: a failed action, a skipped scheduled event, a refused edit. Inside the operator window, never on an output.
@@ -150,6 +150,7 @@ struct WorkspaceView: View {
             }
         }
         .onChange(of: searchFocused) { _, now in app.ui.searchHasFocus = now }
+        .onChange(of: gridFocused) { _, now in app.ui.gridHasFocus = now }        // FIX-I item 1: controls under the grid inherit its focus
         // Keyboard focus belongs on the slide grid: at launch, after a sheet closes, and when Escape leaves the search.
         .onAppear { focusGridSoon() }
         .onChange(of: app.workspaceLoaded) { _, _ in focusGridSoon() }
@@ -201,7 +202,14 @@ struct WorkspaceView: View {
                 .overlay(alignment: .leading) { screensButton.padding(.leading, 12) }
             if !workspace.mode.showsTransportBar, app.mode != .stopped { liveChip }
             if let stage = app.stage { ToolbarTimersView(stage: stage) }
-            HStack(spacing: 12) { ForEach(app.rolePills) { RolePillView(pill: $0, rectID: "tb.pill.\($0.abbreviation.lowercased())") } }
+            HStack(spacing: 12) {
+                ForEach(app.rolePills) { pill in
+                    RolePillView(pill: pill, rectID: "tb.pill.\(pill.abbreviation.lowercased())")
+                        .onTapGesture { if pill.status == .fault { app.showFaultCards(for: pill.role) } }      // FIX-I item 7: shows the card again
+                        .accessibilityAddTraits(pill.status == .fault ? .isButton : [])
+                        .help(pill.status == .fault ? "\(pill.accessibilityText). Click to show the message with Retry and Details" : pill.accessibilityText)
+                }
+            }
         }
         .padding(.horizontal, 14)
         .frame(height: Space.toolbarHeight)
@@ -321,17 +329,24 @@ struct OutputFaultBar: View {
     let app: AppModel
     let card: OutputFaultCard
     @State private var showDetails = false
+    @FocusState private var focusedButton: Int?
 
     var body: some View {
         MessageCard(message: app.retryNotes[card.screenID] ?? card.message) {
             HStack(spacing: 8) {
                 Button("Retry output") { app.retryOutput(card) }.buttonStyle(HeaderButtonStyle())
                     .help("Open \(card.name) again. The show on the other screens is not touched.")
+                    .focused($focusedButton, equals: 0)
                 Button("Details") { showDetails = true }.buttonStyle(HeaderButtonStyle())
+                    .focused($focusedButton, equals: 1)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
         .background(Tok.bg)
+        // FIX-I item 7: the card fades after five seconds, but not while the pointer is over it or a button in it has keyboard focus (or its Details is open).
+        .onHover { app.faultCardPointer($0, screenID: card.screenID) }
+        .onChange(of: focusedButton) { _, now in app.faultCardFocus(now != nil || showDetails, screenID: card.screenID) }
+        .onChange(of: showDetails) { _, now in app.faultCardFocus(now || focusedButton != nil, screenID: card.screenID) }
         .sheet(isPresented: $showDetails) { OutputFaultDetails(card: card) }
     }
 }

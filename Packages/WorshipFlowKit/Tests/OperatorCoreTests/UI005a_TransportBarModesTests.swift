@@ -10,13 +10,16 @@ import Testing
 
     @Test func everyTransportKeyDecidesTheSameWhateverTheMode() {
         // The decision has no mode input at all; this pins the answers the three bar-less modes rely on.
-        let expected: [(KeyboardKey, TransportCommand)] = [(.returnKey, .goLive), (.space, .next), (.rightArrow, .next), (.leftArrow, .previous), (.escape, .clear), (.b, .blackout)]
+        let expected: [(KeyboardKey, TransportCommand)] = [(.returnKey, .goLive), (.space, .next), (.escape, .clear), (.b, .blackout)]
         for mode in WorkspaceMode.allCases {
             for (key, command) in expected {
                 let decision = KeyRouting.decision(for: key, textInputFocused: false, sheetOpen: false)
                 #expect(decision == .transport(command), "\(key) in \(mode.title)")
             }
             #expect(KeyRouting.decision(for: .escape, textInputFocused: false, sheetOpen: false, shiftDown: true) == .transport(.clearAll))
+            // FIX-I item 2: the arrows move the selection in every mode; they are no longer transport keys.
+            #expect(KeyRouting.decision(for: .rightArrow, textInputFocused: false, sheetOpen: false) == .moveSelection(.right))
+            #expect(KeyRouting.decision(for: .leftArrow, textInputFocused: false, sheetOpen: false) == .moveSelection(.left))
         }
     }
 }

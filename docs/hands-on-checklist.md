@@ -14,7 +14,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 
 - [ ] The toolbar switcher shows Show, Edit, Media, Stage, Cues, Screens. Command-1 to Command-6 switch to each, also while the cursor is in a text field. Quit and reopen: the last mode is back.
 - [ ] The transport bar (LIVE or STOPPED badge, the live words, "Song · Section · slide 3 of 9", Previous, Go Live, Next, Clear with its menu, Blackout, Stop, frame rate and dropped or late counts) is visible in every mode.
-- [ ] With a song live, switch to Screens, then to Media: Space and Right arrow still advance, Left arrow goes back, Escape clears, Return goes live. In a text field they type instead.
+- [ ] With a song live, switch to Screens, then to Media: Space still advances and Shift-Space goes back (the arrow keys only move the selection), Escape clears, Return takes the selected slide live. In a text field they type instead.
 - [ ] Press B with the slide grid focused: Audience goes black, Broadcast goes transparent (not black), Stage keeps its words and shows BLACKOUT. The transport badge reads BLACKOUT and the place is kept. Press B again: the same slide is back.
 - [ ] While blacked out, press Next, or click a slide twice: the picture comes back on that slide. While blacked out, Escape then B: the screens come back with the words still cleared. Stop ends Blackout.
 - [ ] Holding B does not flicker the screens. B in the search field or a text box types the letter. B does nothing with no slide live.
@@ -29,7 +29,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] On launch, without clicking anything, Space does not type into the search field.
 - [ ] Command-I opens Import lyrics. Paste two verses in English and Vietnamese, set two lines per slide, save.
 - [ ] Click a slide, press Return: it goes live (red outline; Audience preview shows it).
-- [ ] Space and Right arrow go to the next slide; Left arrow goes back.
+- [ ] Space goes to the next slide; Shift-Space goes back. The arrow keys only move the selection (Preview): nothing on any screen changes until Return.
 - [ ] Escape clears the words; the background stays.
 - [ ] While typing in the slide's text field, Space types a space and does not advance the slide.
 - [ ] Command-F puts the cursor in the search field at the top of Libraries in the sidebar (from any mode); type a Vietnamese word without accents; the song appears in the list beneath; Escape clears it and returns to the grid. There is no search field in the toolbar.
@@ -163,7 +163,7 @@ This creates the real library at `~/Library/Application Support/WORSHIPFLOW/Libr
 - [ ] Command-J opens Scripture with the cursor in the reference field. With no translation installed it says so and offers Import.
 - [ ] Import a translation file you may use: progress, then a plain result. Import the same file again: you are asked before it is replaced. Remove it: you are asked first.
 - [ ] Type `John 3:16-18` and Return: slides appear and the Preview monitor shows the first. Nothing changes on the audience screen. Type `Giăng 3:16`: the same verse.
-- [ ] Return again goes live; Space and the arrows step; Next at the last slide stays. Mouse: click a slide (Preview only), double-click (live).
+- [ ] Return again goes live; Space steps on, the arrows move the selection; Next at the last slide stays. Mouse: click a slide (Preview only), double-click (live).
 - [ ] Choose a second translation: both languages show on each slide; a verse missing in one shows the other alone. Check the stage and livestream screens show current and next, and the lower third.
 - [ ] Add to playlist, quit, reopen: the item is there and opens. Remove its translation: the item stays, says "not installed", and Next into it stops with a message.
 - [ ] Save as presentation: it opens and can be edited. Search a Vietnamese word without accents: the verse is found and opens.
@@ -195,7 +195,7 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Clear menu (the chevron next to Clear): Clear background, Clear foreground and Clear music, with Control-Option-B, F and M. Each takes away only its own layer. Go Live, Next or a new choice from the bin brings a background back. Blackout on, Clear background, Blackout off: the words come back and the background stays cleared.
 - [ ] Put a video behind the words (its sound is off), then click the speaker in the controller row: you hear it, and the icon matches. Press Next: it stays on. Blackout: silent; lifting it brings the sound back.
 - [ ] Media mode, Folders, +: choose a folder of videos. They appear as a source. Copy a new video into the folder: it appears when the copy is complete (not while it is growing). Rename and delete one in Finder: the bin follows. Play folder on the background: the videos play one after another in name order and start again. Rename the folder in Finder: it shows as missing; "Point to the folder again…" fixes it. The show is never held up.
-- [ ] Drag a video from the bin onto one slide's thumbnail in Show or Edit, then drag a picture from Finder onto another: each shows a small mark. Go live on a slide with a mark: its background plays. Right-click it, "Use the presentation's background": the mark goes. Command-Z with that slide selected in Edit undoes a drop. Quit and reopen: the marks are still there.
+- [ ] Drag a video from the bin onto one slide's thumbnail in Show or Edit, then drag a picture from Finder onto another: each shows a small mark. Go live on a slide with a mark: its background plays. Right-click it, "Clear this slide's background": the mark goes (one Command-Z brings it back); "Set background…" there picks from the bin. If that slide is live, the screens keep the old background until you take the slide live again. Command-Z with that slide selected in Edit undoes a drop. Quit and reopen: the marks are still there.
 - [ ] Check what was not seen by the coordinator's run: the drag and drop gestures themselves, the folder open panel, the double click, the real Clear menu popup and the player's video picture.
 
 ## UI-004 name, About, rounded borders, editor drag
@@ -270,3 +270,13 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Stage screen: current lyric, the second language on one line, NEXT and the next line in grey-blue (not green), the clock at the top right and the countdown below it in teal (red when it runs over); send a message: a yellow band with dark text along the bottom. A stage layout you made earlier looks as before.
 - [ ] Not built, so do not look for them: the W watermark on the audience screen and the section label "CHORUS x2" on the stage.
 - [ ] With real hardware only: send the lower third's fill and key to the keyer and check the plate's transparency, the edges of the plate and the text against the checkerboard. Nothing here has seen a keyer.
+
+## FIX-I keyboard, backgrounds and the warning card (by hand)
+
+- [ ] Click a slide, then a media bin tile, then the sidebar, then the inspector, then close a sheet: after each, Space still advances and Shift-Space goes back. (Build 101 lost these keys after a click in the media bin.)
+- [ ] The slide grid has a quiet blue edge when it has the arrows; click the media bin and the edge moves to the bin. A click in the sidebar, playlist or inspector leaves it where it was. Opening a presentation gives it back to the grid.
+- [ ] Slide grid: Left, Right, Up, Down move the blue Preview ring only; the Live ring and every screen stay still. Return takes the selected slide live. Right on the last slide of a song opened from the playlist selects the next playlist item (a header is skipped; a countdown, file or loop is selected as an item, a song opens on its first slide); Left on the first slide goes back to the last slide of the previous item. At the ends of the playlist, and for a song opened from the library, it stops.
+- [ ] Media bin (Show dock or the Media mode): the arrows move the selection and the player; Return sends the selected item live on the layer the bin's switch says. Arrows never change the live clip.
+- [ ] Put a bin picture live as the background, press Clear background (or Control-Option-B), then Next and Previous: the bin tile is no longer LIVE, the inspector row is gone, and the slides show their own or the theme's background. Clear foreground and Clear all drop their bin choices too. Blackout twice changes nothing.
+- [ ] Every slide thumbnail (grid, list, Edit, Preview monitor) shows the background the slide will have; a video shows one still with a small film mark; remove a file from disk and its thumbnail shows the missing mark. The Live monitor still shows the real picture including a bin choice.
+- [ ] Unplug an output (or use the simulated card's unplug): the red message fades after about 5 seconds, the toolbar pill and the monitor keep the fault, a click on the pill shows the card again with Retry output and Details. Keep the pointer over the card (or Tab onto its buttons): it stays until you leave.

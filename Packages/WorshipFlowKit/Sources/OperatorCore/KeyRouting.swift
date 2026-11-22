@@ -31,9 +31,38 @@ public enum KeyboardKey: Sendable, Equatable {
     }
 }
 
+/// FIX-I item 2: the part of Show the arrow keys act on: the slide grid or the media bin, whichever was clicked last.
+public enum KeySection: Sendable, Equatable {
+    case slideGrid, mediaBin
+
+    /// What happened that may move the arrows from one section to the other.
+    public enum Event: Sendable, Equatable {
+        case launch, presentationOpened, clickedSlideGrid, clickedMediaBin
+        /// A click in the sidebar, the playlist, the inspector, the toolbar or anywhere else: the arrows stay where they were.
+        case clickedElsewhere
+    }
+
+    public static func after(_ event: Event, from current: KeySection) -> KeySection {
+        switch event {
+        case .launch, .presentationOpened, .clickedSlideGrid: .slideGrid
+        case .clickedMediaBin: .mediaBin
+        case .clickedElsewhere: current
+        }
+    }
+}
+
+/// FIX-I item 2: an arrow key, as a move of the selection.
+public enum SelectionMove: Sendable, Equatable {
+    case left, right, up, down
+}
+
 public enum KeyDecision: Sendable, Equatable {
     /// The key drives the show and is consumed.
     case transport(TransportCommand)
+    /// FIX-I item 2: an arrow key moves the selection (Preview) in the keyboard's section. It never changes what is live. Consumed.
+    case moveSelection(SelectionMove)
+    /// FIX-I item 2: Return with the media bin as the keyboard's section: send the selected bin item live, as a double click does. Consumed.
+    case sendBinSelectionLive
     /// Escape in the search field: leave it and put keyboard focus back on the slide grid. Consumed.
     case leaveSearch
     /// SLIDE-001b: Delete with nothing being typed: remove the selected slide object, if there is one. The app lets
@@ -98,7 +127,7 @@ public enum KeyRouting {
     ///   - shiftDown: Shift is held (Shift-Escape is Clear all).
     ///   - isRepeat: the event is an auto-repeat of a key that is still held (`NSEvent.isARepeat`).
     public static func decision(for key: KeyboardKey, textInputFocused: Bool, searchFieldFocused: Bool = false,
-                                sheetOpen: Bool, commandModifierDown: Bool = false, shiftDown: Bool = false,
+                                section: KeySection = .slideGrid, sheetOpen: Bool, commandModifierDown: Bool = false, shiftDown: Bool = false,
                                 isRepeat: Bool = false) -> KeyDecision {
         guard !sheetOpen, !commandModifierDown else { return .passThrough }
         if textInputFocused {
@@ -111,9 +140,12 @@ public enum KeyRouting {
             }
         }
         switch key {
-        case .returnKey, .keypadEnter: return .transport(.goLive)
-        case .space, .rightArrow, .downArrow: return .transport(.next)
-        case .leftArrow, .upArrow: return .transport(.previous)
+        case .returnKey, .keypadEnter: return section == .mediaBin ? .sendBinSelectionLive : .transport(.goLive)
+        case .space: return .transport(shiftDown ? .previous : .next)      // FIX-I item 2: Space is Next from either section, Shift-Space is Previous
+        case .rightArrow: return .moveSelection(.right)
+        case .leftArrow: return .moveSelection(.left)
+        case .downArrow: return .moveSelection(.down)
+        case .upArrow: return .moveSelection(.up)
         case .escape: return .transport(shiftDown ? .clearAll : .clear)
         case .deleteKey: return .deleteSelectedObject
         case .b: return shiftDown ? .passThrough : .transport(.blackout)
@@ -124,12 +156,12 @@ public enum KeyRouting {
     /// FIX-H item 7: like `decision(for:textInputFocused:...)`, with what actually has focus. A focused control keeps Space, Return and the
     /// arrows (and every other key); only Escape is ours, and it moves focus back to the show. The transport keys drive the show
     /// when nothing, or the slide grid, has focus.
-    public static func decision(for key: KeyboardKey, focus: FocusedElement, sheetOpen: Bool, commandModifierDown: Bool = false,
-                                shiftDown: Bool = false, isRepeat: Bool = false) -> KeyDecision {
+    public static func decision(for key: KeyboardKey, focus: FocusedElement, section: KeySection = .slideGrid, sheetOpen: Bool,
+                                commandModifierDown: Bool = false, shiftDown: Bool = false, isRepeat: Bool = false) -> KeyDecision {
         guard !sheetOpen, !commandModifierDown else { return .passThrough }
         switch focus {
         case .none, .slideGrid:
-            return decision(for: key, textInputFocused: false, sheetOpen: false, commandModifierDown: false, shiftDown: shiftDown, isRepeat: isRepeat)
+            return decision(for: key, textInputFocused: false, section: section, sheetOpen: false, commandModifierDown: false, shiftDown: shiftDown, isRepeat: isRepeat)
         case .textInput:
             return decision(for: key, textInputFocused: true, sheetOpen: false)
         case .searchField:

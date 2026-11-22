@@ -360,6 +360,15 @@ public final class SlideEditorModel {
         return true
     }
 
+    /// FIX-I item 6: the thumbnail's context menu ("Set background…", "Clear this slide's background"). Undo works on the selected slide, so the
+    /// slide is selected first (Preview only: nothing goes live); then it is one undo step on that slide.
+    @discardableResult
+    public func setBackgroundFromMenu(_ selection: MediaSelection?, forSlide slideID: UUID) -> Bool {
+        guard let index = workspace.slides.firstIndex(where: { $0.id == slideID }) else { return false }
+        workspace.selectSlide(index)
+        return setBackground(selection, forSlide: slideID)
+    }
+
     // MARK: Undo and redo
 
     private var history: History? { slide.flatMap { histories[$0.id] } }

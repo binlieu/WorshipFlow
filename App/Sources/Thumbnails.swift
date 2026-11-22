@@ -40,6 +40,8 @@ private struct RenderKey: Hashable {
     let height: Int
     var channel: PreviewChannel = .composite
     var straight = false
+    /// FIX-I item 5: the still a thumbnail's background was drawn from (file, modification date, size), so a changed file is drawn again.
+    var variant: StillCacheKey?
 }
 
 /// Owns one `Compositor`, used only on its own serial queue (the compositor is not thread-safe).
@@ -68,12 +70,12 @@ final class PreviewRenderer: @unchecked Sendable {
     /// requests leaves at most one render running and one waiting, never a growing queue.
     func image(for scene: SceneDescription, width: Int, height: Int, cached: Bool,
                frames: (any MediaFrameSource)? = nil, channel: PreviewChannel = .composite, straight: Bool = false,
-               follow: UUID? = nil) async -> PreviewImage? {
+               follow: UUID? = nil, variant: StillCacheKey? = nil) async -> PreviewImage? {
         let ticket = follow.map { followTickets.take($0) }
         return await withCheckedContinuation { continuation in
             queue.async {
                 if let follow, let ticket, !self.followTickets.isNewest(ticket, for: follow) { continuation.resume(returning: nil); return }
-                continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames, channel, straight))
+                continuation.resume(returning: self.renderLocked(scene, width, height, cached, frames, channel, straight, variant))
             }
         }
     }
@@ -86,11 +88,11 @@ final class PreviewRenderer: @unchecked Sendable {
     #endif
 
     private func renderLocked(_ scene: SceneDescription, _ width: Int, _ height: Int, _ cached: Bool,
-                              _ frames: (any MediaFrameSource)?, _ channel: PreviewChannel, _ straight: Bool) -> PreviewImage? {
+                              _ frames: (any MediaFrameSource)?, _ channel: PreviewChannel, _ straight: Bool, _ variant: StillCacheKey?) -> PreviewImage? {
         #if DEBUG
         requestCount += 1
         #endif
-        let key = RenderKey(scene: scene, width: width, height: height, channel: channel, straight: straight)
+        let key = RenderKey(scene: scene, width: width, height: height, channel: channel, straight: straight, variant: variant)
         if cached, let hit = cache[key] { return hit }
         if compositor == nil, failure == nil {
             do { compositor = try Compositor() } catch { failure = "\(error)" }
@@ -151,6 +153,8 @@ final class PreviewRenderer: @unchecked Sendable {
     }
 }
 
+private struct ScenePreviewTask: Hashable { let scene: SceneDescription; let variant: StillCacheKey? }
+
 /// A 16:9 picture of a scene. Redraws when the scene changes, waiting a tenth of a second first so a burst of
 /// changes (typing, a Look change) becomes at most about ten renders per second.
 struct ScenePreview: View {
@@ -170,6 +174,9 @@ struct ScenePreview: View {
     var straightAlpha = false
     /// UI-004: draw at once, as fast as the scene changes, instead of waiting a tenth of a second (the slide editor during a drag).
     var follow = false
+    /// FIX-I item 5: `frames` are stills (a thumbnail's background): drawn once per scene and still, never redrawn on a timer. `variant` names the still.
+    var stills = false
+    var variant: StillCacheKey?
     @State private var picture: PreviewImage?
     @State private var followName = UUID()
 
@@ -181,14 +188,15 @@ struct ScenePreview: View {
             }
         }
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
-        .task(id: scene) {
+        .task(id: ScenePreviewTask(scene: scene, variant: variant)) {
             if picture != nil, !follow { try? await Task.sleep(for: .milliseconds(100)) }
             guard !Task.isCancelled else { return }
             let height = width * 9 / 16
             let made = await PreviewRenderer.shared.image(for: scene, width: width, height: height, cached: cached, frames: frames, channel: channel, straight: straightAlpha,
-                                                          follow: follow ? followName : nil)
+                                                          follow: follow ? followName : nil, variant: variant)
             guard !Task.isCancelled, let made else { return }
             picture = made
+            if stills { return }
             // A thumbnail of a media background: the player may not have a frame yet, so draw it again twice.
             if !animated, frames != nil, Self.hasMedia(scene) {
                 for pause in [800, 2500] {
@@ -235,21 +243,36 @@ extension ScenePreview {
     static func hasMedia(_ scene: SceneDescription) -> Bool { scene.backgroundMedia != nil || scene.foregroundMedia != nil }
 }
 
-/// A slide as the audience screen draws it.
+/// A slide as the audience screen draws it, with the background it will have when it goes live (FIX-I item 5): its own, else the
+/// presentation's or the theme's. A picture or video is one cached still frame taken off the main thread; the Live monitor, not this, shows a bin override.
 struct SlideThumbnail: View {
     let app: AppModel
     let slide: SlideContent
     /// The design's thumbnails are radius 4; the monitors in the inspector are radius 6.
     var cornerRadius: CGFloat = Radius.sm
+    @State private var stillsLoaded = 0
 
     var body: some View {
         // Reading `appearanceRevision` makes the thumbnail follow Look, theme and prop changes, and nothing else:
         // typing in one slide rebuilds that slide's thumbnail only (R15).
         let _ = app.appearanceRevision
+        let _ = stillsLoaded
         let scene = app.thumbnailScene(for: slide)
-        let policy = ThumbnailPolicy(scene: scene)      // UI-002: a media background shows as one still frame, not flat black
-        ScenePreview(scene: scene, width: 320, cached: policy.cacheable, frames: policy.wantsFrames ? app.mediaFrames : nil, animated: policy.animates)
+        let resolved = app.thumbnailBackground(for: slide)
+        let variant = resolved.stillToLoad.flatMap { app.thumbnailStills.loadedKey(for: $0.assetID) }
+        ScenePreview(scene: scene, width: 320, cached: true, frames: scene.backgroundMedia != nil ? app.thumbnailStills : nil,
+                     animated: false, stills: true, variant: variant)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(alignment: .bottomLeading) {
+                if resolved.showsFilmMark {
+                    Image(systemName: "film").font(.wf(9, .bold)).foregroundStyle(.white).padding(3)
+                        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 3)).padding(4).accessibilityHidden(true)
+                }
+            }
+            .task(id: resolved.stillToLoad) {
+                guard let own = resolved.stillToLoad, let asset = app.media?.asset(own.assetID) else { return }
+                if await app.thumbnailStills.ensure(asset) { stillsLoaded += 1 }
+            }
     }
 }
 
@@ -279,8 +302,8 @@ struct OwnBackgroundMark: View {
             Image(systemName: missing ? "exclamationmark.triangle.fill" : (content.background?.kind == .video ? "film" : "photo"))
                 .font(.wf(10, .bold)).foregroundStyle(missing ? Tok.warning : .white)
                 .padding(4).background(.black.opacity(0.65), in: Circle())
-                .help(missing ? "This slide's own background is no longer in the media bin. The slide shows its words on the theme's own background. Drop another item on it, or right-click to use the presentation's background."
-                              : "This slide has its own background. Right-click the slide to use the presentation's background again.")
+                .help(missing ? "This slide's own background is no longer in the media bin. The slide shows its words on the theme's own background. Drop another item on it, or right-click and choose Clear this slide's background."
+                              : "This slide has its own background. Right-click the slide and choose Clear this slide's background to go back to the presentation's.")
                 .accessibilityHidden(true)
         }
     }

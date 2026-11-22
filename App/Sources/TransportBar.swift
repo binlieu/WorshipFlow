@@ -20,12 +20,12 @@ struct TransportBar: View {
             .wfRect("tp.text")
             .accessibilityElement(children: .combine)
             Spacer(minLength: 10)
-            Button { app.previous() } label: { hinted("backward.fill", "Previous", "←") }
-                .buttonStyle(TransportButtonStyle()).wfRect("tp.previous", size: 13, weight: 600, radius: Radius.lg).help("Left arrow")
-            Button { app.goLive() } label: { hinted("play.fill", "Go Live", "↩", onFill: true) }
-                .buttonStyle(TransportButtonStyle(prominent: true)).wfRect("tp.golive", size: 13, weight: 600, radius: Radius.lg).help("Return: take the selected slide live")
-            Button { app.next() } label: { hinted("forward.fill", "Next", "→") }
-                .buttonStyle(TransportButtonStyle()).wfRect("tp.next", size: 13, weight: 600, radius: Radius.lg).help("Right arrow or Space")
+            Button { app.previous() } label: { hinted("backward.fill", "Previous", TransportKeyHints.previous) }
+                .buttonStyle(TransportButtonStyle()).wfRect("tp.previous", size: 13, weight: 600, radius: Radius.lg).help("Shift-Space: back one slide (the arrow keys only move the selection)")
+            Button { app.goLive() } label: { hinted("play.fill", "Go Live", TransportKeyHints.goLive, onFill: true) }
+                .buttonStyle(TransportButtonStyle(prominent: true)).wfRect("tp.golive", size: 13, weight: 600, radius: Radius.lg).help("Return: take the selected slide live, or send the selected media item live when the media bin has the arrow keys")
+            Button { app.next() } label: { hinted("forward.fill", "Next", TransportKeyHints.next) }
+                .buttonStyle(TransportButtonStyle()).wfRect("tp.next", size: 13, weight: 600, radius: Radius.lg).help("Space: on to the next slide")
             Rectangle().fill(Tok.border).frame(width: 1, height: 28).wfRect("tp.sep.0")
             clearControl
             Button { app.blackout() } label: { hinted("rectangle.fill", "Blackout", "B") }

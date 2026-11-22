@@ -16,6 +16,7 @@ struct MediaBinPanel: View {
     private var selected: UUID? { app.ui.binSelection }
 
     private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)]
+    private static func columnCount(width: CGFloat) -> Int { max(1, Int((width - 12 + 14) / (150 + 14))) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -96,6 +97,12 @@ struct MediaBinPanel: View {
                 .font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(6)
+        .background(GeometryReader { g in
+            // FIX-I item 2: the adaptive grid's column count (150 pt minimum, 14 pt gaps, 6 pt padding each side), for Up and Down.
+            Color.clear.onAppear { app.ui.binColumns = Self.columnCount(width: g.size.width) }
+                .onChange(of: g.size.width) { _, w in app.ui.binColumns = Self.columnCount(width: w) }
+        })
+        .simultaneousGesture(TapGesture().onEnded { app.ui.keySectionEvent(.clickedMediaBin) })
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(targeted ? Color.accentColor : .clear, lineWidth: 2))
         .dropDestination(for: URL.self) { urls, _ in
             let files = urls.filter(\.isFileURL)
@@ -125,11 +132,7 @@ struct MediaBinPanel: View {
     /// MEDIA-010: the hot folder the sidebar chose, if any; the grid then shows its items instead of the bin's.
     private var currentFolder: HotFolderState? { app.ui.binFolderID.flatMap { app.hotFolders?.state(of: $0) } }
 
-    private var shownAssets: [MediaAsset] {
-        guard let folder = currentFolder else { return media.visibleAssets }
-        guard let kind = media.kindFilter else { return folder.items }
-        return folder.items.filter { $0.kind == kind }
-    }
+    private var shownAssets: [MediaAsset] { app.visibleBinAssets }
 
     private func folderHeader(_ state: HotFolderState) -> some View {
         VStack(alignment: .leading, spacing: 6) {

@@ -217,6 +217,15 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // FIX-I: real key events after real clicks in each region.
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXI"] != nil {
+                await runFixIKeyScenario(note: { note($0) }, capture: { await capture($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // LIB-004c: the Scripture view in the running app (Command-J, an empty library, a typed reference, two translations), then out.
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SCRIPTURE"] != nil {
                 await runScriptureScenario(note: { note($0) }, capture: { await capture($0) },
