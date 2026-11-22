@@ -378,3 +378,30 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Switch to the other library in the sidebar, then click a playlist row whose song is in the first library. Same: no crash.
 - [ ] Open Launchpad and Spotlight and search "WorshipFlow": only the one in Applications should be listed. (Copies left in Xcode's DerivedData folders may stay listed until Spotlight rebuilds its index; they are marked not to be indexed from now on.)
 
+
+## UI-006c Edit
+
+- [ ] Edit: select a box, use Align > each of the 7 and press Command-Z once after each (one step); switch Audience / Stage / Broadcast and check the boxes disappear and Text / Shape / Image are disabled; pick 100 % and scroll the canvas, drag a box while zoomed; type in a words field and watch "Saving..." then "Saved just now" then counting up; cut the library file's write permission and check "Not saved".
+
+## UI-006d Media
+
+- [ ] unplug a disk with a bin item on it (or rename the file) and bring the app forward: callout and warning mark appear; Locate... and pick the file in its new place: the item returns, a slide that used it as background shows it again; choose a file of another kind: refused with a message; put the disk back: the callout goes. Make a collection from the "+", from a tile menu and by dragging a tile onto it; rename, delete (items stay); remove an item from the bin and see the count drop; relaunch and see it again; Up/Down in an open collection; light and dark; VoiceOver on the callout and rows.
+
+## UI-006e Stage
+
+- [ ] Stage: on your own layout click the eye of Notes, the canvas box fades and the stage screen drops it; click again. Tick Auto-fit on the lyric and send a long verse: it shrinks, never under 64 px. Change the 2nd lang. colour. Plus menu: make Band, Speaker, Clock only. Tab to an eye button with keyboard access: Space acts on it; click elsewhere and Space, Return, B, Escape act on the show again.
+
+## UI-006f Screens
+
+- [ ] Screens: press Add screen (a "Screen N" appears, off, in a window; select it and choose a destination, turn it on). With the screens closed press Identify screens: every display shows a label for three seconds (operator display, a screen's name, or "No screen is set to this display"). Open the screens: the button is disabled and says why. Select a screen and press Remove screen: Cancel keeps it; Remove deletes it and selects its neighbour; with one screen left the button is disabled. Relaunch: the list is as left. Dark and light. VoiceOver reads the three buttons.
+
+## UI-006g Cues
+
+- [ ] Cues: choose F1 for a macro in the Trigger menu; with focus on the slide grid press F1: the macro runs and Activity says "key macro ...". Focus the search field or a text box and press F1: nothing runs. Hold F1: it runs once.
+- [ ] Give F1 to a second macro: the first loses it (the menu said so). Delete a macro: its key is free. Quit and reopen: the keys are back.
+- [ ] Cues: Dry run on a macro with a Wait: groups "Right away" and "After n s" in the order Run uses; Run afterwards does the same. Nothing changes on any screen while the popover is open; Escape closes it; VoiceOver reads each step.
+- [ ] Cues: a second presentation with slide actions appears in the left column; clicking it opens it in Preview (Live unchanged) and shows its slides.
+
+## FIX-T review fixes
+
+- [ ] (1) open a Media bin that holds a tile with a stored length of 1e300 (edit a scratch library) and see "–:–", no crash; (2) import a hand-made package with `"size": 9223372036854775807` and see the plain refusal; (3) with a Bible passage in the playlist, press Next and remove it from the playlist at the same moment: Next stops with the message; (4) Close screens with an SDI card or the simulator and see the window answer at once; (5) name a playlist "Hardware Test" and press Space, Return, B and the arrows in the operator window: they work.

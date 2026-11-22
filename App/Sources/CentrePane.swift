@@ -159,7 +159,8 @@ private struct ScrollToSelection: View {
 struct SlideGrid: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
-    @State private var pendingDelete: Int?
+    /// The slide the confirmation is about, by identity: a position can name another slide by the time the operator answers (review 3, M2).
+    @State private var pendingDelete: UUID?
 
     var body: some View {
         let _ = BodyProbe.hit("SlideGrid")
@@ -169,7 +170,7 @@ struct SlideGrid: View {
             .confirmationDialog("Delete this slide?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                                 titleVisibility: .visible) {
                 Button("Delete slide", role: .destructive) {
-                    if let i = pendingDelete { Task { await workspace.deleteSlide(at: i) } }
+                    if let id = pendingDelete { Task { await workspace.deleteSlide(id: id) } }
                 }
                 Button("Cancel", role: .cancel) {}
             }
@@ -234,7 +235,7 @@ struct SlideGrid: View {
     /// FIX-M: the cell is a value-comparing view: a drop or an edit that changes one slide draws that slide's cell, not all of them.
     private func cell(_ slot: CellSlot, color: Color, available: Set<UUID>?) -> some View {
         SlideGridCell(app: app, workspace: workspace, slide: slot.slide, index: slot.index, isLast: slot.isLast, color: color,
-                      available: available, onDelete: { pendingDelete = $0 })
+                      available: available, onDelete: { _ in pendingDelete = slot.slide.id })
             .equatable()
     }
 

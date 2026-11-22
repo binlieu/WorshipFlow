@@ -159,3 +159,29 @@
 - FIX-S item 3: `FIXO_ViewSourceTests.theGridGivesTheModeToTheLiveCellOnly` asserts that the cell decides its own mode from its own live mark, not a sentence in a comment.
 - FIX-S item 4 (KI-196): `scripts/check.sh` and `scripts/package-test-build.sh` leave no indexable build app (`.metadata_never_index`, staging folder removed after the zip).
 
+
+## 2026-11-22 (UI-006c/d/e/f/g, FIX-T)
+
+**UI-006c (Edit)**
+
+- UI-006c: Edit gained Align (to slide, 7 commands), the Audience / Stage / Broadcast preview (read-only off Audience), Zoom (Fit, 25 to 100 %) and "Saved ... ago" in the live strip; Undo / Redo / Duplicate / Delete moved to the strip. Tests UI006c_EditFeaturesTests.
+
+**UI-006d (Media)**
+
+- Media bin: offline files are found (callout at the foot of the list, a mark on the tile, no timer) and Locate... points an item at its file again keeping its id, so slides recover; neighbours from the same folder move with it. Named collections in the bin's list (new, rename, delete, add by menu or drag, remove), kept in the library's app state. `LibraryStore.relocateMediaAsset` added.
+
+**UI-006e (Stage)**
+
+- UI-006e: Stage: hide an element with the eye in the element list; Auto-fit on the Size row; second-language colour row; presets Band, Speaker and Clock only from the plus menu; a warning under Size when a lyric is set under 64 px. Two optional keys in the layout definition JSON (`isHidden`, `autoFit`), no schema change.
+
+**UI-006f (Screens)**
+
+- UI-006f: Screens mode: Add screen (new screen starts off, in a window), Remove screen (asked first, last screen kept, Looks keep their entries), Identify screens (labels on every connected display for 3 s, only while the screens are closed; displays only, no SDI). Unit Tested; not hands-on tested.
+
+**UI-006g (Cues)**
+
+- UI-006g: Cues mode: a macro can be run from a function key (F1 to F12) chosen in the bar's Trigger menu (CU-21); a Dry run popover lists what Run would do, in delivery order with the waits and the problems, without touching any screen (CU-22; "Test in Preview" is not built); the left column lists every presentation that has slide actions and opens one in Preview (new read-only `CueStore.presentationsWithSlideActions`). The keys are kept in the app state as `cue.macro.keys`.
+
+**FIX-T (review fixes)**
+
+- H1/M3 manifest number bounds and total conversions; M1/M2 identity after await and `deleteSlide(id:)`; M7 media item remap; M4/M5/M6 SDI lifecycle (Simulated); L1, L10, L13, L20; text style bound.

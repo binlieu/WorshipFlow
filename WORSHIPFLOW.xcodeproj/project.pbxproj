@@ -17,6 +17,7 @@
 		13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */; };
 		1463D5B1D7A0AF1207FB6EE3 /* ControlPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */; };
 		16B17570CCBF92112CCD419C /* ProgramTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */; };
+		1751FC85805686296260147A /* CuesKeyTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9038814A131D4CE91A6C2169 /* CuesKeyTrigger.swift */; };
 		18808C469DDDCFC945049258 /* UISnapshotFixOModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83196D74BF6FAAD211DAEBBD /* UISnapshotFixOModes.swift */; };
 		19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */; };
 		1D57863F7A2133E6C9E2320C /* StageCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1218AAFF01DE245852BDAB9E /* StageCanvasView.swift */; };
@@ -25,6 +26,7 @@
 		28A2057DF36D637C3499C01F /* ShowMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32295D478AF06FE6654E71DA /* ShowMode.swift */; };
 		290CEB4FB2133C90AC582AEC /* MediaBinPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC10504886ECA9564D6B7B21 /* MediaBinPanel.swift */; };
 		293443AB187F98BCDDAFAAB7 /* EditMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3577B8A6A30E6666D1CC5615 /* EditMode.swift */; };
+		296C84909ABB6A23471CEAA5 /* ScreensIdentify.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48FEC8BFBA7379177349F095 /* ScreensIdentify.swift */; };
 		2F5F94FA6C2F81A20F953783 /* ScreensMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14ACF4576DE699F2593C66FE /* ScreensMode.swift */; };
 		304DC2408548D72CDAC4B5C8 /* Thumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2031232049BA8C27AA077B2D /* Thumbnails.swift */; };
 		36FF51F147353E7711DB6517 /* UISnapshotRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */; };
@@ -82,6 +84,7 @@
 		95E1629ED01A69EF90DDE1C1 /* ScriptureTranslationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */; };
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
 		9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */; };
+		A336FB1165F338A27ACC2971 /* CuesDryRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056223EE7E4446CE1F777C1A /* CuesDryRun.swift */; };
 		A496ACAFDAF5A1B86DC10C2E /* BodyProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5DE78F35EEED6222F974FD /* BodyProbe.swift */; };
 		A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */; };
 		A76C99E594D115E4C94D6314 /* MediaMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5F820BB86B87000626A8A7D /* MediaMode.swift */; };
@@ -104,12 +107,14 @@
 		D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B845A215193778B503237BC /* CuesTab.swift */; };
 		DB57A7075229EB502A101210 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B1B6A1952D317922E741F6 /* Components.swift */; };
 		DBDEC0CEFAF28D0C64DA6052 /* ScriptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8053413ADC834AF5ADB30E /* ScriptureView.swift */; };
+		DF80A26E54F8E9EA5F601F09 /* CuesTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C225518357D1B4183E779A /* CuesTrigger.swift */; };
 		E410DAE8C113BF1A4C2AE183 /* Inter in Resources */ = {isa = PBXBuildFile; fileRef = BC5BC8D29096E9098B4F7794 /* Inter */; };
 		E54F9651BC00B1031F6E63AE /* ProgramPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 936506800901E9AF4602BD17 /* ProgramPackage */; };
 		E589F2B59D4A672DCB70766F /* EditComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A877ED4F2EF74D6085522385 /* EditComponents.swift */; };
 		E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2BB235B612B4475C266D56AE /* OperatorCore */; };
 		E6AC32C651CBFBA1F460BFB0 /* RemoteControl in Frameworks */ = {isa = PBXBuildFile; productRef = 932ADBAD73F2F55585D0BB0A /* RemoteControl */; };
 		E84F5FBFB4BDEEC1F2D6E60D /* UISnapshotStageMouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4651BE1C44DFF6A198BC89E6 /* UISnapshotStageMouse.swift */; };
+		EA4E957AF8889DFC53A74B8D /* StageFeaturesSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7285E0D919931E1DEA1E543A /* StageFeaturesSnapshot.swift */; };
 		EAAD1833718E1F19F1DE941E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB63AA09191D65308E97C971 /* ContentView.swift */; };
 		ECFE8D4858668D14AA11353F /* ScreensSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD30EC95A7E0B964C4A51144 /* ScreensSnapshot.swift */; };
 		EE221F114B71A58BF1F1386D /* CueSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972BF78C395FB49A1F9F52DC /* CueSupport.swift */; };
@@ -129,6 +134,7 @@
 		005F7E8B7F1A0AA5D86B07DD /* MediaClearButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaClearButtons.swift; sourceTree = "<group>"; };
 		01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotCues.swift; sourceTree = "<group>"; };
 		02E12B0F6A66F80E0AEAC3A4 /* SlideGridCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideGridCell.swift; sourceTree = "<group>"; };
+		056223EE7E4446CE1F777C1A /* CuesDryRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesDryRun.swift; sourceTree = "<group>"; };
 		092AFE512585CDC4273F3A1D /* MediaDockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDockView.swift; sourceTree = "<group>"; };
 		0AFAF5674771E5C1B9889797 /* CuesMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesMode.swift; sourceTree = "<group>"; };
 		0B05143AD9A31F5DD17A7FB2 /* StageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageEditorView.swift; sourceTree = "<group>"; };
@@ -156,6 +162,7 @@
 		3E820F86A4CC07B5F37F419C /* MediaAudioColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAudioColumn.swift; sourceTree = "<group>"; };
 		3F71451566582108EB6E4ECD /* EditCanvasChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditCanvasChrome.swift; sourceTree = "<group>"; };
 		4651BE1C44DFF6A198BC89E6 /* UISnapshotStageMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotStageMouse.swift; sourceTree = "<group>"; };
+		48FEC8BFBA7379177349F095 /* ScreensIdentify.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensIdentify.swift; sourceTree = "<group>"; };
 		4AE4BEDE4969D279EC646513 /* UISnapshotFixNPress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixNPress.swift; sourceTree = "<group>"; };
 		4F15479017EE9F052B9E363C /* DesignProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignProbe.swift; sourceTree = "<group>"; };
 		4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryProbe.swift; sourceTree = "<group>"; };
@@ -168,9 +175,11 @@
 		6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptureTranslationsView.swift; sourceTree = "<group>"; };
 		7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		7285E0D919931E1DEA1E543A /* StageFeaturesSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageFeaturesSnapshot.swift; sourceTree = "<group>"; };
 		7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixM.swift; sourceTree = "<group>"; };
 		78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotMedia010.swift; sourceTree = "<group>"; };
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
+		79C225518357D1B4183E779A /* CuesTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesTrigger.swift; sourceTree = "<group>"; };
 		7F5D6F4EAC20DCA296CE73CC /* EditInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditInspector.swift; sourceTree = "<group>"; };
 		802821C5618EEB786F8E326B /* EditDesignCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDesignCapture.swift; sourceTree = "<group>"; };
 		83196D74BF6FAAD211DAEBBD /* UISnapshotFixOModes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixOModes.swift; sourceTree = "<group>"; };
@@ -178,6 +187,7 @@
 		8B845A215193778B503237BC /* CuesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesTab.swift; sourceTree = "<group>"; };
 		8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramTransfer.swift; sourceTree = "<group>"; };
 		8D99E62431530BB329A7B7D0 /* MediaStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaStrip.swift; sourceTree = "<group>"; };
+		9038814A131D4CE91A6C2169 /* CuesKeyTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesKeyTrigger.swift; sourceTree = "<group>"; };
 		918A4F877D346BF9B057DFF8 /* ScreensDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensDetail.swift; sourceTree = "<group>"; };
 		972BF78C395FB49A1F9F52DC /* CueSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueSupport.swift; sourceTree = "<group>"; };
 		993D2499578DAFEB14C92990 /* TransportBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBar.swift; sourceTree = "<group>"; };
@@ -292,9 +302,12 @@
 				B8A2B8A968E680E1C5E5CF64 /* CuesComponents.swift */,
 				CBE40339A5D9BF1D0E036D63 /* CuesControlInputs.swift */,
 				E155FF6C4037A8E612ACC07A /* CuesDesignCapture.swift */,
+				056223EE7E4446CE1F777C1A /* CuesDryRun.swift */,
 				BA3E0BA6ED027775B81E509B /* CuesEditors.swift */,
+				9038814A131D4CE91A6C2169 /* CuesKeyTrigger.swift */,
 				0AFAF5674771E5C1B9889797 /* CuesMode.swift */,
 				8B845A215193778B503237BC /* CuesTab.swift */,
+				79C225518357D1B4183E779A /* CuesTrigger.swift */,
 				972BF78C395FB49A1F9F52DC /* CueSupport.swift */,
 				4F15479017EE9F052B9E363C /* DesignProbe.swift */,
 				7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */,
@@ -328,6 +341,7 @@
 				8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */,
 				2F1EF3EC8B7199D274693CB2 /* ScreensComponents.swift */,
 				918A4F877D346BF9B057DFF8 /* ScreensDetail.swift */,
+				48FEC8BFBA7379177349F095 /* ScreensIdentify.swift */,
 				D46C243EFCCF8A34BEE79FD8 /* ScreensMap.swift */,
 				14ACF4576DE699F2593C66FE /* ScreensMode.swift */,
 				DD30EC95A7E0B964C4A51144 /* ScreensSnapshot.swift */,
@@ -343,6 +357,7 @@
 				1218AAFF01DE245852BDAB9E /* StageCanvasView.swift */,
 				85549CB8847B0E6629200EEC /* StageComposerView.swift */,
 				0B05143AD9A31F5DD17A7FB2 /* StageEditorView.swift */,
+				7285E0D919931E1DEA1E543A /* StageFeaturesSnapshot.swift */,
 				EEA55A5A32566C169711EDAF /* StageInspector.swift */,
 				E0EBE480BA6AD2725A3CA353 /* StageMessageView.swift */,
 				5D6FF54A03C97C582BF0AABD /* StageMode.swift */,
@@ -544,9 +559,12 @@
 				D29ACF97EBA638D18C05439A /* CuesComponents.swift in Sources */,
 				FE6620B4CED48BF0F7DB3300 /* CuesControlInputs.swift in Sources */,
 				543B669253E5A989097DE416 /* CuesDesignCapture.swift in Sources */,
+				A336FB1165F338A27ACC2971 /* CuesDryRun.swift in Sources */,
 				67E0E90136F49F8817A24D7B /* CuesEditors.swift in Sources */,
+				1751FC85805686296260147A /* CuesKeyTrigger.swift in Sources */,
 				87F91E1F669FE74AC56179D7 /* CuesMode.swift in Sources */,
 				D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */,
+				DF80A26E54F8E9EA5F601F09 /* CuesTrigger.swift in Sources */,
 				BE56B9D9BBA341182B2C5900 /* DesignProbe.swift in Sources */,
 				F645D9BDDC5E72FA4E85F317 /* DesignTokens.swift in Sources */,
 				48761EE667CF5E99202C5E2D /* EditCanvasChrome.swift in Sources */,
@@ -580,6 +598,7 @@
 				70CF61C4B13414CFCDBCA8BA /* SDIProviders.swift in Sources */,
 				D2A16ECFD162B3E50C969F70 /* ScreensComponents.swift in Sources */,
 				7CD3FD5AE2B34780478D2588 /* ScreensDetail.swift in Sources */,
+				296C84909ABB6A23471CEAA5 /* ScreensIdentify.swift in Sources */,
 				4CB1060CA1455638F030A54C /* ScreensMap.swift in Sources */,
 				2F5F94FA6C2F81A20F953783 /* ScreensMode.swift in Sources */,
 				ECFE8D4858668D14AA11353F /* ScreensSnapshot.swift in Sources */,
@@ -594,6 +613,7 @@
 				1D57863F7A2133E6C9E2320C /* StageCanvasView.swift in Sources */,
 				C4D89F7609397F613C9E024C /* StageComposerView.swift in Sources */,
 				BA5C53C44C796A053A70D317 /* StageEditorView.swift in Sources */,
+				EA4E957AF8889DFC53A74B8D /* StageFeaturesSnapshot.swift in Sources */,
 				3F602D3518952A018EBDBD75 /* StageInspector.swift in Sources */,
 				9265D0121221C24948323389 /* StageMessageView.swift in Sources */,
 				44304A318EC39076852D3772 /* StageMode.swift in Sources */,
