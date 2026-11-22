@@ -210,8 +210,12 @@ struct SlideGrid: View {
                             LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
                                 // FIX-M: a cell's identity is its slide (SlideCellKey), not its position, so a reorder moves cells and only the moved range
                                 // is drawn again.
-                                ForEach(run.indices.map { CellSlot(index: $0, key: keys[$0]) }) { slot in
-                                    cell(slot.index, color: run.tone.color, available: available).id(slot.key)
+                                // A lazy grid runs this closure later than the body that made the slots: after a shorter presentation is opened it can
+                                // still be asked for a position the new one does not have (crash in build 139). Out-of-range slots draw nothing.
+                                ForEach(run.indices.filter { keys.indices.contains($0) }.map { CellSlot(index: $0, key: keys[$0]) }) { slot in
+                                    if workspace.slides.indices.contains(slot.index) {
+                                        cell(slot.index, color: run.tone.color, available: available).id(slot.key)
+                                    }
                                 }
                             }
                             .wfRect("main.grid.\(runIndex)")
@@ -271,7 +275,7 @@ struct SlideList: View {
             LazyVStack(alignment: .leading, spacing: 2) {
                 ForEach(sectionRuns(workspace)) { run in
                     SectionHeader(run: run).padding(.horizontal, Space.s3)
-                    ForEach(run.indices, id: \.self) { i in row(i, color: run.tone.color) }
+                    ForEach(run.indices, id: \.self) { i in if workspace.slides.indices.contains(i) { row(i, color: run.tone.color) } }
                 }
             }
             .padding(Space.s3)

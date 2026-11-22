@@ -147,3 +147,7 @@
 
 - FIX-R: each product change of FIX-Q measured by an interleaved A/B (five Release measuring builds: full, without (b) `TickingWhile`, without (c) the grid's own marks, without (d) the Cues list, and all three put back; three rounds each in one session, then a spinner control and four more rounds of (c) against its absence). Result in `AI/reports/FIX-R-report.md`: (d) kept (Next in Cues 46 to 12 ms); (c) kept (2 to 4 ms better burst on Go Live, Previous, Clear, no gesture or drop measurably worse; the first-batch reorder gap did not repeat); (b) kept on a judgement, flagged: idle CPU 116 to 3.6 ms per 0.7 s, 3 to 4 times less CPU per command, but 1.3 to 1.9 times longer bursts on Show gestures, partly reproduced by an unrelated background load. Against `1d1e3be` a burst slowdown of 1.0 to 1.4 times exists in Show gestures and is explained by (b); wall-clock stall is not worse. KI-191 updated, KI-192 added (decision for the owner on (b)). No source, test or script changed; nothing rolled back.
 
+
+## 2026-11-22 (crash fix, KI-193)
+
+- Fixed a crash at launch in build 139 (`Index out of range` in the Show slide grid) reported by the owner with the performance test library. The Show grid, Show list and Edit film strip no longer read a slide by a position that the open presentation does not have. No behaviour change otherwise.

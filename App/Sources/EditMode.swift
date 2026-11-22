@@ -65,7 +65,7 @@ struct EditModeView: View {
                                 .wfRect("ed.fs.sec.\(runIndex)", size: 11, weight: 600)
                                 .accessibilityAddTraits(.isHeader)
                         }
-                        ForEach(run.indices, id: \.self) { i in filmCell(i) }
+                        ForEach(run.indices, id: \.self) { i in if workspace.slides.indices.contains(i) { filmCell(i) } }
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
