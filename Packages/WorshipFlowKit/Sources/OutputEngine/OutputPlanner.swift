@@ -150,7 +150,7 @@ public enum OutputPlanner {
             }
         }
         result.slots = entries.map(\.slot)
-        let slotOf = Dictionary(uniqueKeysWithValues: entries.map { ($0.synthetic, $0.slot) })
+        let slotOf = Dictionary(entries.map { ($0.synthetic, $0.slot) }, uniquingKeysWith: { first, _ in first })
 
         // Displays and windows: the existing router, one synthetic profile per slot.
         let synthetic = entries.map { ScreenProfile(id: $0.synthetic, name: "", role: .audience, destination: $0.destination) }

@@ -60,7 +60,13 @@ public protocol OutputTarget: AnyObject {
     /// Called on the main actor whenever the status changes (including when the window is closed or the display disappears).
     var onStatusChange: (@MainActor (OutputStatus) -> Void)? { get set }
     func start() throws
+    /// Stops the output and returns when it is stopped (for an SDI output: the card's port is closed).
     func stop()
+    /// FIX-T item 6 (M6): starts the stop and returns at once. `waitUntilStopped()` returns when it is done. For an output whose stop is
+    /// instant (a window, a display) this is the same as `stop()`.
+    func stopWithoutWaiting()
+    /// Returns when a stop begun with `stopWithoutWaiting()` has finished; at once when none is under way.
+    func waitUntilStopped()
 }
 
 extension OutputTarget {
@@ -69,6 +75,8 @@ extension OutputTarget {
     public var renderProblems: [String] { [] }
     public var sdiReport: SDIOutputReport? { nil }
     public var stoppedByDeviceLoss: Bool { false }
+    public func stopWithoutWaiting() { stop() }
+    public func waitUntilStopped() {}
 }
 
 /// The SDI-specific part of a screen's readout (HW-002).

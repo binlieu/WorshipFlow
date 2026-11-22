@@ -67,11 +67,15 @@ public struct NormalizedRect: Sendable, Equatable, Codable, Hashable {
 
     /// Integer pixel rectangle for a frame of the given size (edges rounded to the nearest pixel).
     public func pixelRect(width frameWidth: Int, height frameHeight: Int) -> PixelRect {
+        // FIX-T: total. A frame with an absurd or non-finite value (a hand-edited file) is held to a bound that still leaves `width * height * 4`
+        // room in an Int, instead of trapping in the conversion.
+        func pixels(_ v: Double) -> Int { Int(saturating: max(-1_073_741_824, min(1_073_741_824, v.isNaN ? 0 : v))) }
         let left = (x * Double(frameWidth)).rounded()
         let top = (y * Double(frameHeight)).rounded()
         let right = ((x + width) * Double(frameWidth)).rounded()
         let bottom = ((y + height) * Double(frameHeight)).rounded()
-        return PixelRect(x: Int(left), y: Int(top), width: Int(right - left), height: Int(bottom - top))
+        let l = pixels(left), t = pixels(top)
+        return PixelRect(x: l, y: t, width: pixels(right) - l, height: pixels(bottom) - t)
     }
 }
 
@@ -131,14 +135,19 @@ public struct TextStyle: Sendable, Equatable, Codable, Hashable {
     /// UI-005h: OpenType feature tags switched on (`["cv11"]` is Inter's single-storey a). Nil: the font's defaults.
     public var fontFeatures: [String]?
 
+    /// FIX-T item 1: the largest font size or outline width, in points at 1080 lines. Far beyond any text a person sets.
+    public static let largestFontSize = 10_000.0
+
     public init(fontName: String, fontSize: Double, color: ColorRGBA,
                 outlineWidth: Double = 0, outlineColor: ColorRGBA = .black, shadow: TextShadow? = nil,
                 weight: Int? = nil, letterSpacing: Double? = nil, lineHeight: Double? = nil,
                 opticalSize: Double? = nil, fontFeatures: [String]? = nil) {
         self.fontName = fontName
-        self.fontSize = fontSize
+        // FIX-T item 1: a size or outline that is not a number, or beyond any real text, is held to the range below (a style from a program
+        // package or a hand-edited library once reached the render thread with 1e300 and trapped in the bitmap size).
+        self.fontSize = fontSize.isNaN ? 0 : min(Self.largestFontSize, max(0, fontSize))
         self.color = color
-        self.outlineWidth = outlineWidth
+        self.outlineWidth = outlineWidth.isNaN ? 0 : min(Self.largestFontSize, max(0, outlineWidth))
         self.outlineColor = outlineColor
         self.shadow = shadow
         self.weight = weight.map { min(900, max(100, $0)) }

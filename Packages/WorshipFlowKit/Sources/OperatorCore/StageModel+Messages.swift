@@ -76,7 +76,7 @@ extension StageModel {
     }
 
     public func toolbarTimerRows(at seconds: TimeInterval) -> [ToolbarTimerRow] {
-        let labels = Dictionary(uniqueKeysWithValues: timerRows(at: seconds).map { ($0.id, $0.kindLabel) })
+        let labels = Dictionary(timerRows(at: seconds).map { ($0.id, $0.kindLabel) }, uniquingKeysWith: { first, _ in first })
         return toolbarTimers.map { timer in
             var canToggle = false
             if case .countdown = timer.kind { canToggle = true }

@@ -68,7 +68,7 @@ public struct MediaTransport: Sendable, Equatable, Codable, Hashable {
     /// How many times a looping item has wrapped since it was last started or sought (zero otherwise).
     public func loopCount(at now: Double) -> Int {
         guard isSized, loops else { return 0 }
-        return Int((raw(at: now) / duration).rounded(.down))
+        return Int(saturating: (raw(at: now) / duration).rounded(.down))
     }
 
     /// Starts or resumes. After the end of a clip that does not loop, starts again from zero. Does nothing when playing.

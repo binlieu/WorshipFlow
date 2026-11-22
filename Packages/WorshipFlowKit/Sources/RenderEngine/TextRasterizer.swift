@@ -39,12 +39,14 @@ public struct TextRasterizer: Sendable {
     /// UI-005h: the padding around the line boxes, in bitmap pixels: room for the outline, the shadow and stacked diacritics, so none is
     /// clipped. The compositor uses it to place a text block by its line boxes.
     public static func padding(for style: TextStyle) -> (x: Int, y: Int) {
-        let size = CGFloat(max(0, style.fontSize))
-        let outline = CGFloat(max(0, style.outlineWidth))
+        // FIX-T item 1: total. Every number is held to a range first (not a number is 0), so no style can trap the conversion below.
+        func held(_ v: Double) -> CGFloat { v.isNaN ? 0 : CGFloat(min(TextStyle.largestFontSize, max(0, v))) }
+        let size = held(style.fontSize)
+        let outline = held(style.outlineWidth)
         let shadow = style.shadow.flatMap { $0.color.alpha > 0 ? $0 : nil }
-        let blur = CGFloat(max(0, shadow?.blur ?? 0))
-        let shadowX = shadow.map { CGFloat(abs($0.offsetX)) + 2 * blur + 1 } ?? 0
-        let shadowY = shadow.map { CGFloat(abs($0.offsetY)) + 2 * blur + 1 } ?? 0
+        let blur = held(shadow?.blur ?? 0)
+        let shadowX = shadow.map { held(abs($0.offsetX)) + 2 * blur + 1 } ?? 0
+        let shadowY = shadow.map { held(abs($0.offsetY)) + 2 * blur + 1 } ?? 0
         return (Int((outline + size * 0.12 + 2 + shadowX).rounded(.up)), Int((outline + size * 0.45 + 2 + shadowY).rounded(.up)))
     }
 

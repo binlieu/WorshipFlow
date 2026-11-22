@@ -29,7 +29,7 @@ final class ProgramProgressRelay: @unchecked Sendable {
     let deliver: @Sendable (ProgramProgress) -> Void
     init(deliver: @escaping @Sendable (ProgramProgress) -> Void) { self.deliver = deliver }
     func report(_ p: ProgramProgress) {
-        let step = p.bytesTotal > 0 ? Int(p.bytesDone * 100 / p.bytesTotal) : p.filesDone
+        let step = p.bytesTotal > 0 ? Int(saturating: Double(p.bytesDone) * 100 / Double(p.bytesTotal)) : p.filesDone
         lock.lock()
         let fresh = step != lastStep || p.filesDone == p.filesTotal
         lastStep = step

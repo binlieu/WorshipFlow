@@ -85,7 +85,7 @@ public enum ProgramImporter {
                                   hooks: ProgramImportHooks, isCancelled: @Sendable () -> Bool, progress: @Sendable (ProgramProgress) -> Void) throws {
         guard !plan.copies.isEmpty else { return }
         let fm = FileManager.default
-        let total = plan.copies.reduce(Int64(0)) { $0 + ($1.entry.size ?? 0) }
+        let total = plan.copies.reduce(Int64(0)) { $0.saturatingAdding(max(0, $1.entry.size ?? 0)) }
         var done: Int64 = 0
         var filesDone = 0
         progress(ProgramProgress(bytesDone: 0, bytesTotal: total, filesDone: 0, filesTotal: plan.copies.count))
@@ -110,7 +110,7 @@ public enum ProgramImporter {
                     throw ProgramPackageError.mediaNameTaken(entry.name)
                 }
                 log.reused += 1
-                done += size
+                done = done.saturatingAdding(max(0, size))
             } else {
                 let partial = target.appendingPathExtension("partial")
                 try? fm.removeItem(at: partial)
@@ -277,7 +277,9 @@ enum ProgramImportWriter {
         }
         if case .skip = plan.playlistAction {} else {
             for (order, item) in plan.items.enumerated() {
-                let stored = item.kind.stored
+                // FIX-T item 5 (M7): a media item or a loop names bin entries by id; an entry skipped above (the file was already in the bin under
+                // another id) is replaced by the existing one, in this same transaction.
+                let stored = item.kind.remappingAssets(assetIDMap).stored
                 if item.kind.hasSlides, item.presentationID == nil { continue }
                 try db.execute(sql: """
                     INSERT INTO playlistItem (id, playlistID, presentationID, sortOrder, createdAt, arrangementID, kind, payload)
@@ -288,5 +290,18 @@ enum ProgramImportWriter {
         }
         result.playlistID = playlistID
         return result
+    }
+}
+
+extension PlaylistItemKind {
+    /// The same item with each bin entry id that `map` names replaced by its value. Everything else is kept as it is.
+    func remappingAssets(_ map: [UUID: UUID]) -> PlaylistItemKind {
+        guard !map.isEmpty else { return self }
+        func spec(_ s: MediaItemSpec) -> MediaItemSpec { MediaItemSpec(assetID: map[s.assetID] ?? s.assetID, name: s.name, kind: s.kind) }
+        switch self {
+        case .media(let s): return .media(spec(s))
+        case .announcements(let a): return .announcements(AnnouncementsSpec(label: a.label, items: a.items.map(spec), secondsPerPicture: a.secondsPerPicture))
+        default: return self
+        }
     }
 }

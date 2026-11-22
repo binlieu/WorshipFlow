@@ -85,7 +85,7 @@ public struct OutputHealthSummary: Sendable, Equatable {
 
     public var rateText: String {
         let rounded = (framesPerSecond * 100).rounded() / 100
-        return rounded == rounded.rounded() ? "\(Int(rounded)) fps" : String(format: "%.2f fps", rounded)
+        return rounded == rounded.rounded() ? "\(Int(saturating: rounded)) fps" : String(format: "%.2f fps", rounded)
     }
     public var countsText: String { "dropped \(dropped) · late \(late)" }
 }

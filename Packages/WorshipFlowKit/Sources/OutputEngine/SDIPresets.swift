@@ -93,7 +93,7 @@ public enum SDIPresets {
                                         after: describe(destination, device: device), destination: destination))
         }
         // Mirrors on this card keep their connectors; the planner gives primaries first, so say which would lose out.
-        let finalPrimary: [UUID: OutputDestination] = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, target[$0.id] ?? $0.destination) })
+        let finalPrimary: [UUID: OutputDestination] = Dictionary(profiles.map { ($0.id, target[$0.id] ?? $0.destination) }, uniquingKeysWith: { first, _ in first })
         var taken = Set<Int>()
         for p in enabled {
             if case .sdi(let id, let c, let k, _)? = finalPrimary[p.id], id == device.id { taken.insert(c); if k { taken.insert(c + 1) } }

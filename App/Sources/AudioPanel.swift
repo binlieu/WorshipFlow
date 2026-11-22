@@ -29,7 +29,7 @@ struct AudioPanel: View {
                 .help(audio.isMuted ? "Unmute the sound" : "Mute the sound")
                 WFSlider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), range: 0...1, fill: Tok.blue)
                     .disabled(audio.isMuted).accessibilityLabel("Sound volume")
-                Text("\(Int((audio.volume * 100).rounded()))%").font(.wfMono(11)).foregroundStyle(Tok.muted).frame(width: 36, alignment: .trailing)
+                Text(MediaClock.percent(audio.volume)).font(.wfMono(11)).foregroundStyle(Tok.muted).frame(width: 36, alignment: .trailing)
             }
             LevelMeter(audio: audio)
             if audio.assets.isEmpty {
@@ -167,7 +167,7 @@ private struct LevelMeter: View {
         .accessibilityElement()
         .accessibilityLabel("Sound level")
         .accessibilityValue(String(format: "left %d percent, right %d percent",
-                                   Int(((levels.peak.first ?? 0) * 100).rounded()), Int(((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
+                                   Int(saturating: Double((levels.peak.first ?? 0) * 100).rounded()), Int(saturating: Double((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
     }
 
     private struct Bar: View {

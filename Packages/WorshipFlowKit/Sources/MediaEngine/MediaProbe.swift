@@ -69,8 +69,8 @@ public enum MediaProbe {
             var width: Int?, height: Int?
             if let (size, transform) = try? await video.load(.naturalSize, .preferredTransform) {
                 let r = CGRect(origin: .zero, size: size).applying(transform)
-                width = Int(abs(r.width).rounded())
-                height = Int(abs(r.height).rounded())
+                width = Int(saturating: abs(r.width).rounded())
+                height = Int(saturating: abs(r.height).rounded())
             }
             return MediaInfo(kind: .video, duration: length, pixelWidth: width, pixelHeight: height, hasAudio: hasAudio)
         }

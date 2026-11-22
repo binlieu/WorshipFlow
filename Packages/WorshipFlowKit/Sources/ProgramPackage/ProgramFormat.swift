@@ -17,6 +17,16 @@ public enum ProgramFormat {
     public static let maxManifestBytes = 32 * 1024 * 1024
     /// More media files than this is refused.
     public static let maxMediaFiles = 20_000
+    /// FIX-T: bounds on the numbers a manifest may carry. Beyond them a package is refused in plain words.
+    /// A media length in seconds (100 hours).
+    public static let maxDurationSeconds = MediaClock.longest
+    /// A picture or video width or height in pixels.
+    public static let maxPixels = 100_000
+    /// One file's size in bytes (16 TiB), and all included files together (1 PiB).
+    public static let maxFileBytes: Int64 = 1 << 44
+    public static let maxTotalBytes: Int64 = 1 << 50
+    /// A slide object's frame, as a fraction of the slide; a value beyond this is not a position.
+    public static let maxFrameFraction = 1_000.0
 }
 
 /// Any JSON value. Used for slide actions, so a package keeps the actions exactly as the cue editor wrote them, also those

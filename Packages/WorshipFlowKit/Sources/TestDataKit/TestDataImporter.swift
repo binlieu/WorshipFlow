@@ -12,8 +12,12 @@ public struct ImportOptions: Sendable {
     /// makes a new empty library somewhere else.
     public var createLibrary = false
     public var dryRun = false
-    public init(libraryFile: URL, testData: URL, createLibrary: Bool = false, dryRun: Bool = false) {
+    /// FIX-T item 7 (L1): go on although nobody could say whether another program has the library open (`lsof` missing or failing). Without
+    /// it an existing library is refused in that case: "no answer" is not "free".
+    public var forceUnchecked = false
+    public init(libraryFile: URL, testData: URL, createLibrary: Bool = false, dryRun: Bool = false, forceUnchecked: Bool = false) {
         self.libraryFile = libraryFile; self.testData = testData; self.createLibrary = createLibrary; self.dryRun = dryRun
+        self.forceUnchecked = forceUnchecked
     }
 }
 
@@ -33,6 +37,8 @@ public struct ImportReport: Equatable, Sendable {
     public var migrationsBefore: [String]
     public var migrationsAfter: [String]
     public var dryRun: Bool
+    /// FIX-T item 7 (L1): the copy of the library's files made beside it before anything was written (nil for a new library or a dry run).
+    public var backupFile: String? = nil
 }
 
 public enum TestDataImporter {
@@ -56,7 +62,12 @@ public enum TestDataImporter {
             throw ImportRefusal(message: "There is no library file at \(file.path). Nothing was written. Pass --create-library to make a new one.")
         }
         switch usage.usage(of: file.path, ignoring: ownPID) {
-        case .free, .unknown: break
+        case .free: break
+        case .unknown:
+            // FIX-T item 7 (L1): nothing could be learned (lsof is missing or failed, and there is no -wal file). Not the same as free.
+            if exists && !options.forceUnchecked {
+                throw ImportRefusal(message: "Could not tell whether another program (WorshipFlow) has the library open: lsof is missing or did not answer. Nothing was written. Quit WorshipFlow and run this again with --force-unchecked.")
+            }
         case .inUse(let holders):
             let names = holders.map { "\($0.command) (pid \($0.pid))" }.joined(separator: ", ")
             throw ImportRefusal(message: "The library is open in another program: \(names). Quit it, then run this again. Nothing was written.")
@@ -78,6 +89,9 @@ public enum TestDataImporter {
             return ImportReport(libraryName: options.libraryName, libraryCreated: false, songsAdded: songs.count, songsSkipped: 0, slidesAdded: 0,
                                 imagesAdded: images.count, imagesSkipped: 0, migrationsBefore: [], migrationsAfter: [], dryRun: true)
         }
+        // FIX-T item 7 (L1): an existing library is copied (the file and its -wal and -shm) beside itself before the first write.
+        var backup: URL?
+        if exists { backup = try Self.backUp(file) }
         let store = try LibraryStore.open(at: file)
         defer { try? store.close() }
         let before = try await store.appliedMigrations()
@@ -87,7 +101,42 @@ public enum TestDataImporter {
         if exists, before != after { throw ImportRefusal(message: "The schema version changed during the import. This must not happen.") }
         return ImportReport(libraryName: options.libraryName, libraryCreated: batch.libraryCreated, songsAdded: batch.added.count,
                             songsSkipped: batch.skippedTitles.count, slidesAdded: batch.slidesAdded, imagesAdded: media.added.count,
-                            imagesSkipped: media.existing.count, migrationsBefore: before, migrationsAfter: after, dryRun: false)
+                            imagesSkipped: media.existing.count, migrationsBefore: before, migrationsAfter: after, dryRun: false,
+                            backupFile: backup?.path)
+    }
+
+    /// Copies `<name>.sqlite` and its `-wal` and `-shm` to `<name>-before-test-data-<date and time>.sqlite` (and the same suffixes) in the same
+    /// folder. The names are new each time; an existing file is never overwritten. Throws a refusal (nothing written) if any copy fails.
+    static func backUp(_ file: URL, now: Date = Date()) throws -> URL {
+        let manager = FileManager.default
+        let stamp: String = {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC"); f.dateFormat = "yyyyMMdd-HHmmss"
+            return f.string(from: now)
+        }()
+        let base = file.deletingPathExtension().lastPathComponent
+        let ext = file.pathExtension
+        var target: URL
+        var n = 0
+        repeat {
+            let suffix = n == 0 ? "" : "-\(n)"
+            target = file.deletingLastPathComponent().appendingPathComponent("\(base)-before-test-data-\(stamp)\(suffix)" + (ext.isEmpty ? "" : ".\(ext)"))
+            n += 1
+        } while manager.fileExists(atPath: target.path) || manager.fileExists(atPath: target.path + "-wal") || manager.fileExists(atPath: target.path + "-shm")
+        var made: [URL] = []
+        do {
+            for suffix in ["", "-wal", "-shm"] {
+                let source = URL(fileURLWithPath: file.path + suffix)
+                guard manager.fileExists(atPath: source.path) else { continue }
+                let copy = URL(fileURLWithPath: target.path + suffix)
+                try manager.copyItem(at: source, to: copy)
+                made.append(copy)
+            }
+        } catch {
+            for copy in made { try? manager.removeItem(at: copy) }
+            throw ImportRefusal(message: "Could not copy the library to a backup beside it (\(error.localizedDescription)). Nothing was written.")
+        }
+        return target
     }
 
     /// What the library holds now, read back through the Persistence API (nothing is written; the file must be up to date).

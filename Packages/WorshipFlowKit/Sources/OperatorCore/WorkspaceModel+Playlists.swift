@@ -11,12 +11,14 @@ extension WorkspaceModel {
     func reloadPlaylistItems() async {
         guard let id = selectedPlaylistID else { playlistItems = []; emptyPlaylistItemIDs = []; return }
         if let list = await attempt("read the playlist", { try await self.store.playlistItems(of: id) }) {
+            // FIX-T (M1 audit): the playlist was chosen before the suspension; if another was selected meanwhile, this older read is dropped.
+            guard selectedPlaylistID == id else { return }
             playlistItems = list
             var empty: Set<UUID> = []
             for item in list where ((try? await store.slides(forPlaylistItem: item.id))?.count ?? 1) == 0 {
                 if item.kind.hasSlides { empty.insert(item.id) }      // a passage, a file or a loop has no stored slides, and is not "empty"
             }
-            emptyPlaylistItemIDs = empty
+            if selectedPlaylistID == id { emptyPlaylistItemIDs = empty }
         }
         if let open = selectedPlaylistItemID, !playlistItems.contains(where: { $0.id == open }) {
             selectedPlaylistItemID = nil      // the item went away; the presentation stays open

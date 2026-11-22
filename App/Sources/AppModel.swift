@@ -917,7 +917,7 @@ final class AppModel {
     }
 
     func stopScreen(_ id: UUID) {
-        coordinator.stop(id)
+        coordinator.stop(id, waitForPorts: false)      // FIX-T M6: the main actor does not wait for the card
         updateReadouts()
     }
 
@@ -1539,8 +1539,9 @@ final class AppModel {
         return alert.runModal() == .alertFirstButtonReturn
     }
 
-    func stopScreens() {
-        coordinator.stop()
+    /// FIX-T M6: Close screens does not hold the main actor while an SDI port closes. Quitting (and the soak) wait, so nothing is cut off.
+    func stopScreens(waitForPorts: Bool = false) {
+        coordinator.stop(waitForPorts: waitForPorts)
         video?.stop()
         media?.screensClosed()      // R17: the clip playing over the slide, and its sound, stop with the screens
         screensOn = false
@@ -1556,7 +1557,7 @@ final class AppModel {
         audioTicker?.invalidate()
         audioTicker = nil
         audio?.shutdown()
-        stopScreens()
+        stopScreens(waitForPorts: true)
         mediaRegistry.closeAll()
         mediaAccess.values.forEach { $0.access.stop() }
         mediaAccess.removeAll()
@@ -1859,7 +1860,7 @@ final class AppModel {
         let videoFrames = video?.deliveredFrameCount ?? 0
         let videoDiag = video?.diagnostics ?? "none"
         let diag = soakProfileID.flatMap { coordinator.diagnostics(for: $0) } ?? "none"
-        stopScreens()
+        stopScreens(waitForPorts: true)
 
         let modeText: String
         if case .display(let id) = destination, let screen = NSScreen.screens.first(where: { DisplayOutput.displayID(of: $0) == id }) {

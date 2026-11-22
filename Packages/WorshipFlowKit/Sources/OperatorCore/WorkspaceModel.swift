@@ -39,7 +39,8 @@ public final class WorkspaceModel {
     public internal(set) var selectedPlaylistItemID: UUID?
     /// FIX-D S2: the playlist item the open presentation was opened from, whatever is selected now. Nil when it was opened from
     /// the library. A slide chosen after a countdown belongs to this item, and Next and Previous step from it.
-    @ObservationIgnored public internal(set) var openPlaylistItemID: UUID?
+    /// FIX-T item 7 (L13): observed. The slide header reads it (the arrangement popup shows and writes for this item), so a change must refresh it.
+    public internal(set) var openPlaylistItemID: UUID?
     public internal(set) var openPresentationID: UUID?
     /// LIB-004c: the Bible passage in preview, if one is (it is not a presentation: `openPresentationID` is nil then).
     public internal(set) var openScripture: OpenScripture?

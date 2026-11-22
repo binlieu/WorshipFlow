@@ -155,12 +155,15 @@ public final class OutputCoordinator {
         finishChange()
     }
 
-    /// Stops every output and clears faults.
-    public func stop() {
+    /// Stops every output and clears faults. With `waitForPorts` (the default) it returns when every SDI port is closed again, so the
+    /// connectors are free at once. The app passes false (FIX-T item 6, M6): an SDI output then closes its port on its own queue, the main
+    /// actor is not held for it, and the next SDI output waits for it before it opens a port.
+    public func stop(waitForPorts: Bool = true) {
         isActive = false
         for slot in Array(running.keys) { stopTarget(slot) }
         faults.removeAll()
         resumeOnReturn.removeAll()
+        if waitForPorts { awaitRetiredTargets() }
         finishChange()
     }
 
@@ -187,9 +190,10 @@ public final class OutputCoordinator {
         finishChange()
     }
 
-    /// Operator stop of one screen and its mirrors.
-    public func stop(_ id: UUID) {
+    /// Operator stop of one screen and its mirrors. `waitForPorts` as for `stop(waitForPorts:)`.
+    public func stop(_ id: UUID, waitForPorts: Bool = true) {
         for slot in slotsOfScreen(id) { forget(slot) }
+        if waitForPorts { awaitRetiredTargets() }
         finishChange()
     }
 
@@ -371,7 +375,9 @@ public final class OutputCoordinator {
             switch planned {
             case .display(let id): target = try makeTarget(profile, slot, .display(id))
             case .window: target = try makeTarget(profile, slot, .window)
-            case .sdi(let output): target = try makeSDITarget(profile, slot, output)
+            case .sdi(let output):
+                awaitRetiredTargets()
+                target = try makeSDITarget(profile, slot, output)
             }
             target.onStatusChange = { [weak self] status in self?.targetChanged(slot, status) }
             running[slot] = Running(target: target, destination: planned)
@@ -406,7 +412,20 @@ public final class OutputCoordinator {
     private func stopTarget(_ slot: OutputSlot) {
         guard let r = running.removeValue(forKey: slot) else { return }
         r.target.onStatusChange = nil
-        r.target.stop()
+        // FIX-T item 6 (M6): an SDI output closes its port on its own queue; the main actor does not wait for it. A new output waits
+        // (`awaitRetiredTargets`) before it opens a port, so a restart on the same connector never meets the old claim.
+        r.target.stopWithoutWaiting()
+        retiring.append(r.target)
+    }
+
+    /// Outputs whose stop was begun and may not have finished. Emptied by `awaitRetiredTargets`.
+    private var retiring: [any OutputTarget] = []
+
+    private func awaitRetiredTargets() {
+        guard !retiring.isEmpty else { return }
+        let waiting = retiring
+        retiring = []
+        for target in waiting { target.waitUntilStopped() }
     }
 
     /// A target stopped on its own (window closed, display unplugged, SDI card unplugged).
@@ -414,6 +433,7 @@ public final class OutputCoordinator {
         guard case .stopped(let reason) = status, let r = running[slot], case .stopped = r.target.status else { return }
         running[slot] = nil
         r.target.onStatusChange = nil
+        retiring.append(r.target)             // its teardown was queued when it stopped on its own
         var deviceLost = false
         if let reason {
             faults[slot] = reason
