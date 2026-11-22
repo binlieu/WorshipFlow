@@ -34,10 +34,16 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
     public var secondLanguage: StageSecondLanguage?
     /// UI-005h: next slide only. A caption ("NEXT") drawn with its own style and frame while there is a next slide.
     public var label: StageLabel?
+    /// UI-006e: hidden elements stay in the layout (and in the editor) but draw nothing on the stage screen. Absent in earlier layouts: false.
+    public var isHidden: Bool
+    /// UI-006e: the compositor shrinks this element's text until it fits its frame (never below `StageAutoFit.floor`). Absent in earlier layouts: false.
+    public var autoFit: Bool
 
     public init(id: UUID, kind: Kind, frame: NormalizedRect, style: TextStyle, alignment: TextAlignment,
                 verticalAlignment: VerticalAlignment = .top, showsSecondLanguage: Bool = true,
-                secondLanguage: StageSecondLanguage? = nil, label: StageLabel? = nil) {
+                secondLanguage: StageSecondLanguage? = nil, label: StageLabel? = nil, isHidden: Bool = false, autoFit: Bool = false) {
+        self.isHidden = isHidden
+        self.autoFit = autoFit
         self.id = id
         self.kind = kind
         self.frame = frame
@@ -50,7 +56,7 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, kind, frame, style, alignment, verticalAlignment, showsSecondLanguage, secondLanguage, label
+        case id, kind, frame, style, alignment, verticalAlignment, showsSecondLanguage, secondLanguage, label, isHidden, autoFit
     }
 
     /// FIX-J item 5: the second-language line and the label are stored relative to this element. A layout saved before that stored their frames
@@ -64,7 +70,9 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
                   verticalAlignment: try c.decode(VerticalAlignment.self, forKey: .verticalAlignment),
                   showsSecondLanguage: try c.decode(Bool.self, forKey: .showsSecondLanguage),
                   secondLanguage: try c.decodeIfPresent(StageSecondLanguage.Stored.self, forKey: .secondLanguage)?.resolved(in: frame),
-                  label: try c.decodeIfPresent(StageLabel.Stored.self, forKey: .label)?.resolved(in: frame))
+                  label: try c.decodeIfPresent(StageLabel.Stored.self, forKey: .label)?.resolved(in: frame),
+                  isHidden: try c.decodeIfPresent(Bool.self, forKey: .isHidden) ?? false,
+                  autoFit: try c.decodeIfPresent(Bool.self, forKey: .autoFit) ?? false)
     }
 
     /// The frame of the second-language line on the screen (nil when the element has none).
@@ -254,18 +262,21 @@ public enum StageComposer {
     /// One text layer per element that has something to show, in element order.
     public static func scene(layout: StageLayout, context: StageContext) -> SceneDescription {
         var layers: [TextLayer] = []
-        for element in layout.elements {
+        for element in layout.elements where !element.isHidden {
             var style = element.style
+            let fitFloor: Double? = element.autoFit ? StageAutoFit.floor(for: element) : nil
             let text: String?
             switch element.kind {
             case .currentSlide:
                 if let slide = context.state.liveSlide, var t = visible(slide.primary) {
                     if let second = element.secondLanguage {
                         // UI-005h: the second language is its own line, its lines joined, in its own style.
-                        layers.append(layer(t, style, element))
+                        layers.append(layer(t, style, element, fitFloor: fitFloor))
                         if element.showsSecondLanguage, let line = joined(slide.secondary, separator: second.separator) {
+                            // UI-006e: with auto-fit the second line shrinks by the same factor, so the two keep their ratio.
+                            let secondFloor = fitFloor.map { $0 * second.style.fontSize / max(1, element.style.fontSize) }
                             layers.append(TextLayer(text: line, style: second.style, frame: second.relativeFrame.placed(in: element.frame), alignment: second.alignment,
-                                                    verticalAlignment: second.verticalAlignment))
+                                                    verticalAlignment: second.verticalAlignment, fitFloor: secondFloor))
                         }
                         text = nil
                     } else {
@@ -298,13 +309,13 @@ public enum StageComposer {
             case .message: text = visible(context.message)
             case .notes: text = visible(context.notes)
             }
-            if let text { layers.append(layer(text, style, element, ticks: element.kind.ticks)) }
+            if let text { layers.append(layer(text, style, element, ticks: element.kind.ticks, fitFloor: fitFloor)) }
         }
         var plate: TextPlate?
         // UI-003 (LIVE-03): a layout that has no message element still shows a message that was sent, as a banner along
         // the bottom, so a message sent from the Show inspector is never silently lost. UI-005h: a layout with a message band draws it as
         // the band (dark text on a full-width warning plate); every other layout keeps the large warning-coloured text.
-        if !layout.elements.contains(where: { $0.kind == .message }), let banner = visible(context.message) {
+        if !layout.elements.contains(where: { $0.kind == .message && !$0.isHidden }), let banner = visible(context.message) {
             if let band = layout.messageBand {
                 plate = band.plate
                 layers.append(TextLayer(text: banner, style: band.style, frame: .full, alignment: .leading, verticalAlignment: .top, inPlate: true))
@@ -316,8 +327,8 @@ public enum StageComposer {
         return SceneDescription(backgroundColor: layout.background, showsVideo: false, textLayers: layers, plate: plate)
     }
 
-    private static func layer(_ text: String, _ style: TextStyle, _ element: StageElement, ticks: Bool = false) -> TextLayer {
-        TextLayer(text: text, style: style, frame: element.frame, alignment: element.alignment, verticalAlignment: element.verticalAlignment, ticks: ticks)
+    private static func layer(_ text: String, _ style: TextStyle, _ element: StageElement, ticks: Bool = false, fitFloor: Double? = nil) -> TextLayer {
+        TextLayer(text: text, style: style, frame: element.frame, alignment: element.alignment, verticalAlignment: element.verticalAlignment, fitFloor: fitFloor, ticks: ticks)
     }
 
     /// The non-blank lines of `text` joined by `separator`; nil when there are none.
