@@ -73,6 +73,7 @@
 		8C131235AB1BE42BA3D35E4C /* UISnapshotDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */; };
 		8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */; };
 		8D268E6D1CA2549A7FA3826A /* BinPlayerSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298B80B5D93A54F90F49B0A5 /* BinPlayerSupport.swift */; };
+		8DE49DAFD62E1F314980E62F /* MediaLocate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B92F7C5A35BA9A5018EC9F /* MediaLocate.swift */; };
 		8F5AEDB90067555BB1456695 /* AppModel+Program.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26CA0960FC6722EC666D1BB6 /* AppModel+Program.swift */; };
 		905D1888E120908524D706A5 /* UISnapshotFixI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */; };
 		9265D0121221C24948323389 /* StageMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EBE480BA6AD2725A3CA353 /* StageMessageView.swift */; };
@@ -163,6 +164,7 @@
 		55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotDesign.swift; sourceTree = "<group>"; };
 		5AC625191093FFEDD7A007C2 /* UISnapshotUI004.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotUI004.swift; sourceTree = "<group>"; };
 		5D6FF54A03C97C582BF0AABD /* StageMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageMode.swift; sourceTree = "<group>"; };
+		62B92F7C5A35BA9A5018EC9F /* MediaLocate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLocate.swift; sourceTree = "<group>"; };
 		6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptureTranslationsView.swift; sourceTree = "<group>"; };
 		7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -313,6 +315,7 @@
 				005F7E8B7F1A0AA5D86B07DD /* MediaClearButtons.swift */,
 				092AFE512585CDC4273F3A1D /* MediaDockView.swift */,
 				BF31C39E4AC1428C031A16D1 /* MediaItemPlayer.swift */,
+				62B92F7C5A35BA9A5018EC9F /* MediaLocate.swift */,
 				A5F820BB86B87000626A8A7D /* MediaMode.swift */,
 				8D99E62431530BB329A7B7D0 /* MediaStrip.swift */,
 				D677F8D362BB899C12954273 /* MediaSupport.swift */,
@@ -563,6 +566,7 @@
 				61A932267E46A8B2C6777FF5 /* MediaClearButtons.swift in Sources */,
 				F82100F982A1C5D2902F7509 /* MediaDockView.swift in Sources */,
 				D71B69AA09407449E1276061 /* MediaItemPlayer.swift in Sources */,
+				8DE49DAFD62E1F314980E62F /* MediaLocate.swift in Sources */,
 				A76C99E594D115E4C94D6314 /* MediaMode.swift in Sources */,
 				F16BD9434EB42FF588AEAE90 /* MediaStrip.swift in Sources */,
 				B73CCFD90200075DBEFABA61 /* MediaSupport.swift in Sources */,

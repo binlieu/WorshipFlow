@@ -12,6 +12,9 @@ struct MediaBinPanel: View {
     var listMode = false
     @State private var renaming: MediaAsset?
     @State private var renameText = ""
+    /// UI-006d: "New collection..." from a tile's menu: the tile waiting to go in, and the name being typed.
+    @State private var newCollectionFor: MediaAsset?
+    @State private var newCollectionName = ""
     /// FIX-G: a removal that would leave slides without their own background waits for the operator's answer.
     @State private var pendingRemoval: (asset: MediaAsset, message: String)?
     private var selected: UUID? { app.ui.binSelection }
@@ -33,7 +36,7 @@ struct MediaBinPanel: View {
                 } else if listMode {
                     LazyVStack(spacing: 2) {
                         ForEach(shownAssets) { asset in
-                            MediaListRow(asset: asset, selected: selected == asset.id, live: live(asset))
+                            MediaListRow(asset: asset, selected: selected == asset.id, live: live(asset), offline: media.offlineIDs.contains(asset.id))
                                 .modifier(Interaction(panel: self, asset: asset))
                         }
                     }
@@ -42,7 +45,7 @@ struct MediaBinPanel: View {
                         ForEach(Array(shownAssets.enumerated()), id: \.element.id) { index, asset in
                             MediaTile(index: index, asset: asset, isBackground: media.layerParts.background?.selection.assetID == asset.id,
                                       isForeground: media.layerParts.foreground?.selection.assetID == asset.id,
-                                      isSelected: selected == asset.id, isLive: live(asset))
+                                      isSelected: selected == asset.id, isLive: live(asset), isOffline: media.offlineIDs.contains(asset.id))
                                 .modifier(Interaction(panel: self, asset: asset))
                         }
                     }
@@ -68,6 +71,13 @@ struct MediaBinPanel: View {
                 if let asset = renaming { Task { await media.rename(asset.id, to: renameText) } }
             }
         }
+        .alert("New collection", isPresented: Binding(get: { newCollectionFor != nil }, set: { if !$0 { newCollectionFor = nil } })) {
+            TextField("Name", text: $newCollectionName)
+            Button("Cancel", role: .cancel) {}
+            Button("Create") {
+                if let asset = newCollectionFor { media.createCollection(newCollectionName, adding: [asset.id]) }
+            }
+        } message: { Text("A collection is a list of items from the bin. The files are not moved or copied.") }
         .alert("Remove from the media bin?", isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } })) {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) { if let asset = pendingRemoval?.asset { Task { await media.remove(asset.id) } } }
@@ -95,6 +105,22 @@ struct MediaBinPanel: View {
                 .accessibilityAction { app.selectBinItem(asset.id) }
                 .accessibilityAction(named: "Set as background") { media.setBackground(asset.id) }
                 .accessibilityAction(named: "Play in foreground") { media.playForeground(asset.id) }
+        }
+    }
+
+    /// UI-006d: put the item in a collection (a list of items from the bin) or take it out of the one that is open. Files never move.
+    @ViewBuilder
+    private func collectionItems(for asset: MediaAsset) -> some View {
+        Menu("Add to collection") {
+            ForEach(media.collections.items) { collection in
+                Button(collection.assetIDs.contains(asset.id) ? "\(collection.name) \u{2713}" : collection.name) { media.addToCollection([asset.id], collection: collection.id) }
+                    .disabled(collection.assetIDs.contains(asset.id))
+            }
+            if !media.collections.items.isEmpty { Divider() }
+            Button("New collection\u{2026}") { newCollectionName = ""; newCollectionFor = asset }
+        }
+        if let open = media.collectionFilter, let collection = media.collections.collection(open) {
+            Button("Remove from \"\(collection.name)\"") { media.removeFromCollection([asset.id], collection: open) }
         }
     }
 
@@ -166,6 +192,9 @@ struct MediaBinPanel: View {
             Button("Use the slide's own background") { media.dropBackgroundOverride() }
         }
         Divider()
+        collectionItems(for: asset)
+        if media.offlineIDs.contains(asset.id) { Button("Locate\u{2026}") { app.locateOfflineMedia(asset) } }
+        Divider()
         Button("Add to playlist") { Task { await app.workspace?.addMediaItem(MediaItemSpec(assetID: asset.id, name: asset.name, kind: asset.kind)) } }
         Button("Rename…") { renameText = asset.name; renaming = asset }
         Button("Remove from bin") { Task { await requestRemoval(asset) } }.disabled(media.assets.contains { $0.id == asset.id } == false)
@@ -181,6 +210,8 @@ struct MediaTile: View {
     let isForeground: Bool
     var isSelected = false
     var isLive = false
+    /// UI-006d: the file cannot be read now (a disk not connected, a file moved). A warning mark; Locate... is in the menu and the callout.
+    var isOffline = false
     @State private var result: MediaThumbnails.Result?
 
     var body: some View {
@@ -204,6 +235,15 @@ struct MediaTile: View {
                             .wfRect("media.tile.\(index).dur", size: 10, weight: 600, radius: Radius.xs).padding(5)
                     }
                 }
+                .overlay(alignment: .topTrailing) {
+                    if isOffline {
+                        Image(systemName: "exclamationmark.triangle.fill").font(.wf(11)).foregroundStyle(Tok.warning)
+                            .frame(width: 12, height: 12).padding(2)
+                            .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: Radius.sm)).padding(5)
+                            .help("This file cannot be read now. Right-click for Locate\u{2026}")
+                            .wfRect("media.extra.offline")
+                    }
+                }
                 .overlay(alignment: .bottomLeading) {
                     // What the tile is used for now (the owner's extra: the design shows only the ring).
                     VStack(alignment: .leading, spacing: 2) {
@@ -218,7 +258,7 @@ struct MediaTile: View {
         .wfRect("media.tile.\(index)")
         .task(id: asset.path) { result = await MediaThumbnails.shared.thumbnail(for: asset) }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(asset.name), \(asset.kind.rawValue)\(isBackground ? ", background" : "")\(isForeground ? ", playing" : "")")
+        .accessibilityLabel("\(asset.name), \(asset.kind.rawValue)\(isBackground ? ", background" : "")\(isForeground ? ", playing" : "")\(isOffline ? ", offline: the file cannot be read" : "")")
     }
 
     @ViewBuilder private var picture: some View {
@@ -245,11 +285,13 @@ struct MediaListRow: View {
     let asset: MediaAsset
     let selected: Bool
     let live: Bool
+    var offline = false
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: asset.kind == .video ? "film" : (asset.kind == .audio ? "music.note" : "photo")).font(.wf(13)).frame(width: 15, height: 15)
             Text(asset.name).font(.wf(13)).lineLimit(1).truncationMode(.middle).wfLine()
+            if offline { Image(systemName: "exclamationmark.triangle.fill").font(.wf(11)).foregroundStyle(Tok.warning).help("This file cannot be read now") }
             Spacer(minLength: 8)
             Text(asset.kind == .video ? "Video" : (asset.kind == .audio ? "Sound" : "Picture")).font(.wf(11)).foregroundStyle(Tok.muted).wfLine()
             Text(asset.duration.map(MediaTile.clock) ?? "").font(.wfMono(11)).foregroundStyle(Tok.muted).wfLine().frame(width: 48, alignment: .trailing)
@@ -258,6 +300,6 @@ struct MediaListRow: View {
         .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
         .overlay { if live { RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Tok.liveFill, lineWidth: 2) } }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(asset.name), \(asset.kind.rawValue)\(live ? ", on screen now" : "")")
+        .accessibilityLabel("\(asset.name), \(asset.kind.rawValue)\(live ? ", on screen now" : "")\(offline ? ", offline: the file cannot be read" : "")")
     }
 }

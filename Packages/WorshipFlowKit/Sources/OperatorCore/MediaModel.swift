@@ -109,7 +109,18 @@ public final class MediaModel {
     public enum FolderLayer: Sendable, Equatable { case background, foreground }
     private struct FolderPlay { var folderID: UUID; var layer: FolderLayer; var current: String; var reported: Set<String> = [] }
 
+    // UI-006d: named collections (MediaCollections.swift) and the files that cannot be read now (MediaOffline.swift). Stored here, the logic is in the extensions.
+    public internal(set) var collections = MediaCollections()
+    /// The collection the bin shows instead of a kind; nil shows `kindFilter`'s kind.
+    public var collectionFilter: UUID?
+    /// Bin items whose file cannot be read now, as the last check found them.
+    public internal(set) var offlineIDs: Set<UUID> = []
+    /// The callout's words for them, worked out where the file system is read (off the main thread). Nil when nothing is offline.
+    public internal(set) var offlineSummary: MediaOffline.Summary?
+    @ObservationIgnored var offlineTask: Task<Void, Never>?
+
     public var visibleAssets: [MediaAsset] {
+        if let collectionFilter, collections.collection(collectionFilter) != nil { return collections.assets(in: collectionFilter, from: assets) }      // UI-006d
         guard let kindFilter else { return assets }
         return assets.filter { $0.kind == kindFilter }
     }
@@ -138,10 +149,10 @@ public final class MediaModel {
 
     // MARK: Internals
 
-    @ObservationIgnored private let store: LibraryStore
-    @ObservationIgnored private let prober: any MediaProber
+    @ObservationIgnored let store: LibraryStore      // UI-006d: internal (was private) for MediaOffline/MediaCollections extensions
+    @ObservationIgnored let prober: any MediaProber      // UI-006d: internal (was private)
     @ObservationIgnored private let now: @Sendable () -> Double
-    @ObservationIgnored private let isAvailable: @Sendable (MediaAsset) -> Bool
+    @ObservationIgnored let isAvailable: @Sendable (MediaAsset) -> Bool      // UI-006d: internal (was private)
     @ObservationIgnored private let writes: RetryingWriteChain
 
     static let backgroundKey = "media.background"
@@ -174,6 +185,8 @@ public final class MediaModel {
     public func load() async {
         guard let all = await attempt("read the media bin", { try await self.store.mediaAssets(kind: nil) }) else { return }
         assets = all
+        await loadCollections()      // UI-006d
+        scheduleOfflineCheck()       // UI-006d
         onAssetsChange?(allAssets)
         guard let text = try? await store.state(for: Self.backgroundKey), let id = UUID(uuidString: text) else { return }
         guard let asset = asset(id) else {
@@ -261,9 +274,10 @@ public final class MediaModel {
         return SlideBackgroundRemovalImpact(itemName: name, uses: uses)
     }
 
-    private func reload() async {
+    func reload() async {      // UI-006d: internal (was private)
         guard let all = await attempt("read the media bin", { try await self.store.mediaAssets(kind: nil) }) else { return }
         assets = all
+        binChanged()                 // UI-006d: collections forget removed items; the offline set is checked again
         onAssetsChange?(allAssets)
     }
 
@@ -692,11 +706,11 @@ public final class MediaModel {
         onLayersChange?(layers)
     }
 
-    private func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
+    func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {
         writes.persist(key: key, what: what, operation)
     }
 
-    private func attempt<T>(_ what: String, _ body: () async throws -> T) async -> T? {
+    func attempt<T>(_ what: String, _ body: () async throws -> T) async -> T? {
         do { return try await body() } catch {
             lastError = WorkspaceModel.message(for: error, doing: what)
             return nil
