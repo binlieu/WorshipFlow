@@ -290,3 +290,18 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Stage editor: duplicate the built-in layout, drag the current-slide box: its second-language line goes with it; resize it: the line scales with it. Same for the next-slide box and the word NEXT.
 - [ ] Damaged data (only if you have a copy of a library to spare): a theme or stage layout the app cannot read is skipped, the others still list, and one message names the skipped one.
 - [ ] If the bundled font is ever missing (a damaged app), one red bar says screens are using a system font. A hardware-test report's machine section has an "Output font" line.
+
+## UI-005c Edit
+
+- [ ] Edit: select a text box, drag each of the eight handles and press Command-Z once (one step each); type a hex colour, "0 4 16" in the shadow field and "2" in the outline field; switch Object / Slide / Theme; type words in the Slide tab and see the filmstrip follow; pick a weight in Style.
+
+## UI-005d Media
+
+- [ ] In Media: click each row of the list; click a tile (blue ring, strip shows it), double-click (goes live as the layer switch says, red ring only while on air); play, restart and stop in the strip; Live background / Live foreground; the clear icons (tooltip with the key, greyed when nothing to clear, each clears only its layer; Clear in the transport bar still works); switch grid / list; add a folder; drag a tile on a slide; change the output device; play a sound and watch the Audio cue card and the Levels move.
+
+## UI-005g Cues
+
+- [ ] Cues: hover an action row: move, edit and remove appear at its right; Tab through the row reaches them; the edit popover still opens.
+- [ ] Cues: rename a macro in the bar's title (Return or leaving the field); delete from the ellipsis menu in the bar; "..." on a MIDI row deletes that binding.
+- [ ] Cues: the left column's Stream Deck row cannot be clicked; Schedule sits below Control inputs.
+- [ ] Cues: dark and light, a window narrower than 1440: the bar's Run button stays at the right.

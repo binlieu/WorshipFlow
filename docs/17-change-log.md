@@ -65,3 +65,15 @@
 ## 2026-11-21 (FIX-J)
 
 - FIX-J (UI-005h review): words are fitted to their blocks on the built-in looks (both languages shrink by one factor, floor 56 pt for the first language, clipped to the title-safe frame and flagged on the thumbnail and in the editor when they still do not fit; a theme switch, off for every stored theme and for the Classic themes, so none of them changes); the text cache evicts one least recently used entry at a time, the clock and timers have their own cache, and the selected slide's text is rasterised ahead of Go Live; stored colours, frames, shadows, text styles, gradients, plates and bars are clamped when read; an undecodable theme, Look or stage layout row is skipped and named once instead of hiding the rest; the stage's second-language line and NEXT label move and scale with their element; the launch checks the output font is the bundled Inter and the hardware-test environment records it; scripture slide limits use the design style's own line height and measured advance; the SDI opaque-key check knows a gradient; a plate takes its layers' opacity. The audience theme's second-language frame now reaches the title-safe bottom. New tests in `FIXJ_*.swift` (UI005hTests, OutputEngineTests, OperatorCoreTests, ProgramPackageTests). No migration. Report `AI/reports/FIX-J-report.md`.
+
+## 2026-11-21 (UI-005c)
+
+- UI-005c: Edit matched to 02-editor: 200/920/320 columns, object bar, live strip, centred 800 pt canvas with title-safe guide and eight-handle selection, inspector tabs Object / Slide / Theme in design fields, Style pop-up, Colour hex, Shadow and Outline rows, Position in pixels; words fields, theme and section-order controls moved into the Slide and Theme tabs. 97 of 113 mapped rectangles within 1 pt (see AI/reports/UI-005c-report.md).
+
+## 2026-11-21 (UI-005d)
+
+- UI-005d: Media mode drawn to the design's rectangles: 220 pt bin list, header bar with Import, layer switch and a grid / list switch, five-column grid with kind chip and duration, 77 pt clip strip (the bin player moved into it; the video picture is no longer drawn), 340 pt column with the Audio cue card, Output (device) and Levels (vertical meters on the printed scale), sound list below. Show dock header and Media bin header gain five clear icon buttons (lyric, background, foreground, music, all) through the existing commands. New scripts/design-map-media.json and scripts/design-capture-media.sh.
+
+## 2026-11-21 (UI-005g)
+
+- UI-005g: Cues mode matched to 06-cues.html: columns 230 / 1fr / 380, 26 pt list rows, a 43 pt page bar with an editable title and the Run button, 38 pt action rows (move, edit and remove on hover), tables for the MIDI map and the keyboard, the order note as a card with a bold lead, Stream Deck as a "later" row, Schedule moved to the bottom of the left column. Playback markers, Test in Preview and the keyboard trigger are not drawn. New debug capture `UI_SNAPSHOT_CUESDESIGN` and `scripts/cues-capture.sh`, map `scripts/design-map-cues.json`.
