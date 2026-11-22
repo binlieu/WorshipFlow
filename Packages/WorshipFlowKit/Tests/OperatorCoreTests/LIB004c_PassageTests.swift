@@ -99,7 +99,7 @@ import Persistence
     }
 
     @Test func severalVersesCanShareASlideWhenTheyFit() async throws {
-        let r = try await L4C.rig()
+        let r = try await L4C.rig(theme: .classicFullScreen)   // UI-005h: the built-in type is 119 pt, which holds about 55 characters; the Classic theme's 84 pt holds what this test was written for (was: L4C.rig())
         await r.scripture.setVersesPerSlide(2)
         await r.scripture.show("Psalm 23:1-3")
         let passage = try #require(r.scripture.passage)

@@ -336,6 +336,41 @@ enum Schema {
             }
         }
 
+        // UI-005h: additive. The built-in themes now draw the design's looks, so a library that already has content gets the two earlier looks
+        // as ordinary themes ("Classic full screen", "Classic lower third") the church can pick again, rename, edit or delete. Nothing that is
+        // stored is rewritten: the new theme and text-style fields are optional in the stored JSON and an absent one means the earlier look, so
+        // every theme a church made keeps drawing exactly what it drew. A library with no presentation and no theme has nothing to go back to
+        // and gets none. The definitions are frozen here as literals (not read from the code's current built-ins), and the fixed ids make
+        // the insert idempotent.
+        migrator.registerMigration("v13") { db in
+            let hasContent = try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM presentation) OR EXISTS(SELECT 1 FROM theme)") ?? false
+            guard hasContent else { return }
+            let now = Date()
+            for theme in ClassicThemesV13.themes {
+                try db.execute(sql: """
+                    INSERT OR IGNORE INTO theme (id, name, nameFolded, definition, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)
+                    """, arguments: [theme.id.dbText, theme.name, SearchFolding.fold(theme.name), try SettingsJSON.encode(theme), now, now])
+            }
+        }
+
         return migrator
     }
+}
+
+/// The two built-in looks as they were before UI-005h, written out so that migration v13 never depends on what the code draws today.
+private enum ClassicThemesV13 {
+    private static let gold = ColorRGBA(red: 1, green: 0.86, blue: 0.4)
+
+    static let themes: [Theme] = [
+        Theme(id: Theme.classicFullScreenID, name: "Classic full screen", background: .media,
+              primary: TextBlock(style: TextStyle(fontName: "Helvetica Neue", fontSize: 84, color: .white, outlineWidth: 4, outlineColor: .black),
+                                 frame: NormalizedRect(x: 0.06, y: 0.18, width: 0.88, height: 0.32), alignment: .center, verticalAlignment: .bottom),
+              secondary: TextBlock(style: TextStyle(fontName: "Helvetica Neue", fontSize: 64, color: gold, outlineWidth: 3, outlineColor: .black),
+                                   frame: NormalizedRect(x: 0.06, y: 0.52, width: 0.88, height: 0.28), alignment: .center, verticalAlignment: .top)),
+        Theme(id: Theme.classicLowerThirdID, name: "Classic lower third", background: .transparent,
+              primary: TextBlock(style: TextStyle(fontName: "Helvetica Neue", fontSize: 60, color: .white, outlineWidth: 3, outlineColor: .black),
+                                 frame: NormalizedRect(x: 0.08, y: 0.70, width: 0.84, height: 0.14), alignment: .center, verticalAlignment: .bottom),
+              secondary: TextBlock(style: TextStyle(fontName: "Helvetica Neue", fontSize: 44, color: gold, outlineWidth: 2, outlineColor: .black),
+                                   frame: NormalizedRect(x: 0.08, y: 0.85, width: 0.84, height: 0.11), alignment: .center, verticalAlignment: .top)),
+    ]
 }

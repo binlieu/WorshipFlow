@@ -39,11 +39,40 @@ public final class Compositor {
         let width: Int
         let height: Int
         var clipped = false
+        // UI-005h: the text block's line boxes inside the bitmap, and how many lines there are.
+        var lineBoxLeft = 0.0
+        var lineBoxTop = 0.0
+        var blockWidth = 0.0
+        var blockHeight = 0.0
+        var lineCount = 0
+        /// Pixels with ink, bitmap coordinates (empty when there is none).
+        var ink = CGRect.zero
     }
     private var textCache: [TextKey: CachedText] = [:]
     private let textCacheLimit = 64
     /// Number of Core Text rasterisations performed (for tests and diagnostics).
     public private(set) var rasterizationCount = 0
+
+    // UI-005h: gradient backgrounds (one frame-sized bitmap per gradient and output size) and plates (one per size, radius, colours and bar).
+    // Both are built on the first frame that needs them and reused; `looksCacheLimit` of each are kept.
+    private struct GradientKey: Hashable {
+        let gradient: GradientBackground
+        let width: Int
+        let height: Int
+    }
+    private struct PlateKey: Hashable {
+        let width: Int
+        let height: Int
+        let radius: Int           // hundredths of a pixel
+        let fill: ColorRGBA
+        let barX: Int, barY: Int, barWidth: Int, barHeight: Int
+        let barTop: ColorRGBA, barBottom: ColorRGBA
+    }
+    private var gradients: [GradientKey: MTLTexture] = [:]
+    private var plates: [PlateKey: MTLTexture] = [:]
+    private let looksCacheLimit = 8
+    /// Gradient and plate bitmaps rasterised so far (for tests and diagnostics).
+    public private(set) var looksRasterizationCount = 0
 
     // Shape cache (SLIDE-001a): one rasterised bitmap per distinct shape, size and colour.
     private struct ShapeKey: Hashable {
@@ -263,10 +292,23 @@ public final class Compositor {
 
         // Resolve text textures before encoding. A layer that cannot be drawn is skipped and reported: it never
         // keeps the rest of the scene from presenting (R2).
+        // UI-005h: with a plate, the layers marked `inPlate` are stacked on it and drawn right after it; the others are placed as ever.
         var placed: [QuadDraw] = []
-        for layer in scene.textLayers {
+        var plateDraws: [QuadDraw] = []
+        let platedLayers = scene.plate == nil ? [] : scene.textLayers.filter(\.inPlate)
+        for layer in scene.textLayers where scene.plate == nil || !layer.inPlate {
             if let draw = safeTextDraw(layer, width: width, height: height) { placed.append(draw) }
         }
+        if let plate = scene.plate, !platedLayers.isEmpty {
+            do {
+                if let result = try placePlate(plate, layers: platedLayers, width: width, height: height) {
+                    plateDraws = [result.draw].compactMap { $0 } + result.texts.map(\.draw)
+                }
+            } catch {
+                note(problem: "Plate skipped: \(error)")
+            }
+        }
+        let gradientDraw = scene.backgroundGradient.flatMap { gradientTexture($0, width: width, height: height) }
 
         // Resolve image textures too, before the pass starts.
         frameCounter += 1
@@ -307,6 +349,14 @@ public final class Compositor {
         var fullOpacity: Float = 1
         enc.setFragmentBytes(&fullOpacity, length: MemoryLayout<Float>.stride, index: 0)
 
+        // UI-005h: a gradient is the colour layer: under the loop or a chosen background, over the clear colour.
+        if let gradientDraw {
+            var q = QuadUniforms(origin: .zero, size: target, target: target, uvOrigin: .zero, uvSize: SIMD2<Float>(1, 1))
+            enc.setVertexBytes(&q, length: MemoryLayout<QuadUniforms>.stride, index: 0)
+            enc.setFragmentTexture(gradientDraw, index: 0)
+            enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        }
+
         // The shared video yields to a media background chosen in the scene.
         let backdrop: MTLTexture? = scene.backgroundMedia != nil ? backgroundMedia : (scene.showsVideo ? video : nil)
         if let backdrop, backdrop.width > 0, backdrop.height > 0 {
@@ -338,7 +388,7 @@ public final class Compositor {
         }
 
         // Objects, then lyric text. Each draw sets its own clip and opacity.
-        for q in objects + placed { draw(q, with: enc, target: target, width: width, height: height) }
+        for q in objects + plateDraws + placed { draw(q, with: enc, target: target, width: width, height: height) }
 
         if !overlays.isEmpty {
             enc.setScissorRect(MTLScissorRect(x: 0, y: 0, width: width, height: height))   // text drawing left a clip set
@@ -391,15 +441,34 @@ public final class Compositor {
         }
     }
 
-    /// Rasterises (or fetches) a text layer and places it in its frame. Nil when there is nothing to draw.
     private func textDraw(_ layer: TextLayer, width: Int, height: Int) throws -> QuadDraw? {
-        guard !layer.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        let frame = layer.frame.pixelRect(width: width, height: height)
-        guard frame.width > 8, frame.height > 0 else { return nil }
-        let opacity = Float(min(1, max(0, layer.opacity)))
-        guard opacity > 0 else { return nil }
+        try placeText(layer, width: width, height: height)?.draw
+    }
+
+    private struct PlacedText {
+        let draw: QuadDraw
+        let item: TextLayoutItem
+    }
+
+    /// A text bitmap's quad cut down to its ink (plus a pixel): a big soft shadow makes the padded bitmap several times the size of the words,
+    /// and every transparent pixel of a quad is still blended. The pixels that are drawn are the same ones, at the same places. Used for the
+    /// looks that place text by line boxes; the earlier placement keeps drawing the whole bitmap, byte for byte as before.
+    private func inkQuad(_ c: CachedText, origin: SIMD2<Float>, opacity: Float, clip: NormalizedRect.PixelRect?) -> QuadDraw {
+        let ink = c.ink
+        guard ink.width > 0, ink.height > 0, c.width > 0, c.height > 0 else {
+            return QuadDraw(texture: c.texture, origin: origin, size: SIMD2(Float(c.width), Float(c.height)), uvOrigin: .zero, uvSize: SIMD2(1, 1), opacity: opacity, clip: clip)
+        }
+        let x0 = max(0, Int(ink.minX) - 1), y0 = max(0, Int(ink.minY) - 1)
+        let x1 = min(c.width, Int(ink.maxX) + 1), y1 = min(c.height, Int(ink.maxY) + 1)
+        let w = Float(c.width), h = Float(c.height)
+        return QuadDraw(texture: c.texture, origin: SIMD2(origin.x + Float(x0), origin.y + Float(y0)), size: SIMD2(Float(x1 - x0), Float(y1 - y0)),
+                        uvOrigin: SIMD2(Float(x0) / w, Float(y0) / h), uvSize: SIMD2(Float(x1 - x0) / w, Float(y1 - y0) / h), opacity: opacity, clip: clip)
+    }
+
+    /// The style at the output's size: sizes, outline and shadow are points at the 1080-line reference height.
+    private func scaled(_ style: TextStyle, height: Int) -> TextStyle {
         let scale = Double(height) / Self.referenceHeight
-        var scaled = layer.style
+        var scaled = style
         scaled.fontSize *= scale
         scaled.outlineWidth *= scale
         if var shadow = scaled.shadow {
@@ -408,23 +477,202 @@ public final class Compositor {
             shadow.blur *= scale
             scaled.shadow = shadow
         }
-        let cached = try cachedText(layer.text, style: scaled, maxWidth: frame.width, alignment: layer.alignment)
+        return scaled
+    }
+
+    /// Rasterises (or fetches) a text layer and places it in its frame. Nil when there is nothing to draw.
+    ///
+    /// A style without a line height is placed by its padded bitmap, as it always was. A style with one is placed by its line boxes, like a
+    /// web page: the block's edges (the widest line, the lines' pitch times their count) sit on the frame's edge or centre, the text wraps at
+    /// the frame's width, and the bitmap's padding (for outline, shadow and marks) hangs outside it.
+    private func placeText(_ layer: TextLayer, width: Int, height: Int) throws -> PlacedText? {
+        guard !layer.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let frame = layer.frame.pixelRect(width: width, height: height)
+        guard frame.width > 8, frame.height > 0 else { return nil }
+        let opacity = Float(min(1, max(0, layer.opacity)))
+        guard opacity > 0 else { return nil }
+        let style = scaled(layer.style, height: height)
+        let lineBoxMode = layer.style.lineHeight != nil
+        let pad = TextRasterizer.padding(for: style)
+        let cached = try cachedText(layer.text, style: style, maxWidth: lineBoxMode ? frame.width + 2 * pad.x : frame.width, alignment: layer.alignment)
         if cached.clipped { note(problem: "Text taller than the limit was clipped (\"\(Self.snippet(layer.text))\")") }
-        let x: Int
-        switch layer.alignment {
-        case .leading: x = frame.x
-        case .center: x = frame.x + (frame.width - cached.width) / 2
-        case .trailing: x = frame.x + frame.width - cached.width
+        let item: (box: LayoutBox, origin: SIMD2<Float>, clip: NormalizedRect.PixelRect)
+        if lineBoxMode {
+            let fx = layer.frame.x * Double(width), fy = layer.frame.y * Double(height)
+            let fw = layer.frame.width * Double(width), fh = layer.frame.height * Double(height)
+            let bx: Double
+            switch layer.alignment {
+            case .leading: bx = fx
+            case .center: bx = fx + (fw - cached.blockWidth) / 2
+            case .trailing: bx = fx + fw - cached.blockWidth
+            }
+            let by: Double
+            switch layer.verticalAlignment {
+            case .top: by = fy
+            case .center: by = fy + (fh - cached.blockHeight) / 2
+            case .bottom: by = fy + fh - cached.blockHeight
+            }
+            // Whole pixels, so glyph edges are sampled exactly and stay as sharp as they were rasterised.
+            let origin = SIMD2(Float((bx - cached.lineBoxLeft).rounded()), Float((by - cached.lineBoxTop).rounded()))
+            item = (LayoutBox(x: bx, y: by, width: cached.blockWidth, height: cached.blockHeight), origin,
+                    NormalizedRect.PixelRect(x: frame.x - pad.x, y: frame.y - pad.y, width: frame.width + 2 * pad.x, height: frame.height + 2 * pad.y))
+        } else {
+            let x: Int
+            switch layer.alignment {
+            case .leading: x = frame.x
+            case .center: x = frame.x + (frame.width - cached.width) / 2
+            case .trailing: x = frame.x + frame.width - cached.width
+            }
+            let y: Int
+            switch layer.verticalAlignment {
+            case .top: y = frame.y
+            case .center: y = frame.y + (frame.height - cached.height) / 2
+            case .bottom: y = frame.y + frame.height - cached.height
+            }
+            item = (LayoutBox(x: Double(x), y: Double(y), width: Double(cached.width), height: Double(cached.height)),
+                    SIMD2(Float(x), Float(y)), frame)
         }
-        let y: Int
-        switch layer.verticalAlignment {
-        case .top: y = frame.y
-        case .center: y = frame.y + (frame.height - cached.height) / 2
-        case .bottom: y = frame.y + frame.height - cached.height
+        let draw = lineBoxMode
+            ? inkQuad(cached, origin: item.origin, opacity: opacity, clip: item.clip)
+            : QuadDraw(texture: cached.texture, origin: item.origin, size: SIMD2(Float(cached.width), Float(cached.height)),
+                       uvOrigin: .zero, uvSize: SIMD2(1, 1), opacity: opacity, clip: item.clip)
+        return PlacedText(draw: draw, item: TextLayoutItem(text: layer.text, box: item.box, fontSize: style.fontSize,
+                                                           weight: layer.style.weight ?? 400, lineCount: cached.lineCount, inPlate: false))
+    }
+
+    // MARK: Plate (UI-005h)
+
+    private struct PlateResult {
+        let plate: LayoutBox
+        let bar: LayoutBox?
+        let draw: QuadDraw?
+        let texts: [PlacedText]
+    }
+
+    /// Stacks the plated layers inside the plate's padding (beside its bar), sizes the plate to them, sits it `bottomMargin` above the bottom
+    /// of the frame and fetches its bitmap. Nil when no plated layer has anything to show: no words, no plate.
+    private func placePlate(_ plate: TextPlate, layers: [TextLayer], width: Int, height: Int) throws -> PlateResult? {
+        let scale = Double(height) / Self.referenceHeight
+        let shown = layers.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.opacity > 0 }
+        guard !shown.isEmpty else { return nil }
+        let plateX = plate.x * Double(width), plateW = plate.width * Double(width)
+        let padX = plate.paddingX * scale, padY = plate.paddingY * scale
+        let barW = (plate.bar?.width ?? 0) * scale, gap = plate.bar.map { $0.gap * scale } ?? 0
+        let textLeft = plateX + padX + (plate.bar == nil ? 0 : barW + gap)
+        let textWidth = plateX + plateW - padX - textLeft
+        guard textWidth > 8 else { return nil }
+
+        var blocks: [(layer: TextLayer, style: TextStyle, cached: CachedText)] = []
+        for layer in shown {
+            let style = scaled(layer.style, height: height)
+            let pad = TextRasterizer.padding(for: style)
+            let cached = try cachedText(layer.text, style: style, maxWidth: Int(textWidth.rounded()) + 2 * pad.x, alignment: layer.alignment)
+            if cached.clipped { note(problem: "Text taller than the limit was clipped (\"\(Self.snippet(layer.text))\")") }
+            blocks.append((layer, style, cached))
         }
-        return QuadDraw(texture: cached.texture, origin: SIMD2(Float(x), Float(y)),
-                        size: SIMD2(Float(cached.width), Float(cached.height)), uvOrigin: .zero, uvSize: SIMD2(1, 1),
-                        opacity: opacity, clip: frame)
+        let contentHeight = blocks.reduce(0) { $0 + $1.cached.blockHeight }
+        let plateHeight = contentHeight + 2 * padY
+        let plateBottom = Double(height) - plate.bottomMargin * scale
+        let plateTop = plateBottom - plateHeight
+
+        var texts: [PlacedText] = []
+        var y = plateTop + padY
+        for block in blocks {
+            let c = block.cached
+            let bx: Double
+            switch block.layer.alignment {
+            case .leading: bx = textLeft
+            case .center: bx = textLeft + (textWidth - c.blockWidth) / 2
+            case .trailing: bx = textLeft + textWidth - c.blockWidth
+            }
+            let origin = SIMD2(Float((bx - c.lineBoxLeft).rounded()), Float((y - c.lineBoxTop).rounded()))
+            let draw = inkQuad(c, origin: origin, opacity: Float(block.layer.opacity), clip: nil)
+            texts.append(PlacedText(draw: draw, item: TextLayoutItem(text: block.layer.text, box: LayoutBox(x: bx, y: y, width: c.blockWidth, height: c.blockHeight),
+                                                                    fontSize: block.style.fontSize, weight: block.layer.style.weight ?? 400,
+                                                                    lineCount: c.lineCount, inPlate: true)))
+            y += c.blockHeight
+        }
+
+        let left = Int(plateX.rounded()), top = Int(plateTop.rounded())
+        let right = Int((plateX + plateW).rounded()), bottom = Int(plateBottom.rounded())
+        var barBox: LayoutBox?
+        var barKey: (x: Int, y: Int, w: Int, h: Int)?
+        if let bar = plate.bar, barW > 0 {
+            let bl = Int((plateX + padX).rounded()), bt = Int((plateTop + padY).rounded())
+            let br = Int((plateX + padX + barW).rounded()), bb = Int((plateTop + padY + contentHeight).rounded())
+            barBox = LayoutBox(x: plateX + padX, y: plateTop + padY, width: barW, height: contentHeight)
+            barKey = (bl - left, bt - top, max(1, br - bl), max(1, bb - bt))
+            _ = bar
+        }
+        let box = LayoutBox(x: plateX, y: plateTop, width: plateW, height: plateHeight)
+        guard right > left, bottom > top else { return PlateResult(plate: box, bar: barBox, draw: nil, texts: texts) }
+        let key = PlateKey(width: right - left, height: bottom - top, radius: Int((plate.cornerRadius * scale * 100).rounded()), fill: plate.fill,
+                           barX: barKey?.x ?? 0, barY: barKey?.y ?? 0, barWidth: barKey?.w ?? 0, barHeight: barKey?.h ?? 0,
+                           barTop: plate.bar?.top ?? .clear, barBottom: plate.bar?.bottom ?? .clear)
+        guard let texture = plateTexture(key) else {
+            note(problem: "A plate could not be drawn (\(key.width)x\(key.height) px)")
+            return PlateResult(plate: box, bar: barBox, draw: nil, texts: texts)
+        }
+        let draw = QuadDraw(texture: texture, origin: SIMD2(Float(left), Float(top)), size: SIMD2(Float(key.width), Float(key.height)),
+                            uvOrigin: .zero, uvSize: SIMD2(1, 1), opacity: 1, clip: nil)
+        return PlateResult(plate: box, bar: barBox, draw: draw, texts: texts)
+    }
+
+    private func plateTexture(_ key: PlateKey) -> MTLTexture? {
+        if let hit = plates[key] { return hit }
+        let bar = key.barWidth > 0 ? (x: key.barX, y: key.barY, width: key.barWidth, height: key.barHeight, top: key.barTop, bottom: key.barBottom) : nil
+        guard let pixels = LooksRasterizer.plate(width: key.width, height: key.height, radius: Double(key.radius) / 100, fill: key.fill, bar: bar),
+              let texture = makeTexture(pixels, width: key.width, height: key.height) else { return nil }
+        looksRasterizationCount += 1
+        if plates.count >= looksCacheLimit { plates.removeAll(keepingCapacity: true) }
+        plates[key] = texture
+        return texture
+    }
+
+    private func gradientTexture(_ gradient: GradientBackground, width: Int, height: Int) -> MTLTexture? {
+        let key = GradientKey(gradient: gradient, width: width, height: height)
+        if let hit = gradients[key] { return hit }
+        guard let pixels = LooksRasterizer.gradient(gradient, width: width, height: height),
+              let texture = makeTexture(pixels, width: width, height: height) else {
+            note(problem: "A gradient background could not be drawn (\(width)x\(height) px)")
+            return nil
+        }
+        looksRasterizationCount += 1
+        if gradients.count >= looksCacheLimit { gradients.removeAll(keepingCapacity: true) }
+        gradients[key] = texture
+        return texture
+    }
+
+    private func makeTexture(_ pixels: [UInt8], width: Int, height: Int) -> MTLTexture? {
+        let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
+        td.usage = .shaderRead
+        td.storageMode = .shared
+        guard let texture = device.makeTexture(descriptor: td) else { return nil }
+        pixels.withUnsafeBytes { raw in
+            if let base = raw.baseAddress {
+                texture.replace(region: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0, withBytes: base, bytesPerRow: width * 4)
+            }
+        }
+        return texture
+    }
+
+    // MARK: Layout report (UI-005h)
+
+    /// Where `scene`'s text, plate and bar go at `width` x `height`, in output pixels: the line boxes' edges as laid out (a layer drawn
+    /// without a line height reports its padded bitmap). Rasterises like a frame would; for measuring, not for the live path.
+    public func layoutReport(scene: SceneDescription, width: Int, height: Int) throws -> SceneLayoutReport {
+        guard width > 0, height > 0 else { throw RenderError.invalidSize }
+        var report = SceneLayoutReport()
+        let platedLayers = scene.plate == nil ? [] : scene.textLayers.filter(\.inPlate)
+        for layer in scene.textLayers where scene.plate == nil || !layer.inPlate {
+            if let placed = try placeText(layer, width: width, height: height) { report.texts.append(placed.item) }
+        }
+        if let plate = scene.plate, let result = try placePlate(plate, layers: platedLayers, width: width, height: height) {
+            report.plate = result.plate
+            report.bar = result.bar
+            report.texts = result.texts.map(\.item) + report.texts
+        }
+        return report
     }
 
     /// The shape's bitmap placed on its frame. Nil when it draws nothing or fails to rasterise.
@@ -656,7 +904,9 @@ public final class Compositor {
             }
         }
         if textCache.count >= textCacheLimit { textCache.removeAll(keepingCapacity: true) }
-        let entry = CachedText(texture: tex, width: raster.width, height: raster.height, clipped: raster.clipped)
+        let entry = CachedText(texture: tex, width: raster.width, height: raster.height, clipped: raster.clipped,
+                               lineBoxLeft: raster.lineBoxLeft, lineBoxTop: raster.lineBoxTop, blockWidth: raster.blockWidth,
+                               blockHeight: raster.blockHeight, lineCount: raster.lineCount, ink: raster.inkBounds)
         textCache[key] = entry
         return entry
     }

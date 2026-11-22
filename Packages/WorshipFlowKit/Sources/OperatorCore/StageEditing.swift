@@ -40,7 +40,7 @@ public enum StageEditing {
     public static func needsPerSecondRefresh(_ layout: StageLayout) -> Bool {
         layout.elements.contains { element in
             switch element.kind {
-            case .timeOfDay, .timer: true
+            case .timeOfDay, .timer, .firstCountdown: true
             case .currentSlide, .nextSlide, .message, .notes: false
             }
         }

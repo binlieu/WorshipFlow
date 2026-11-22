@@ -76,7 +76,7 @@ def main(argv):
         if i in mapped_app: continue
         why = next((reason for rx, reason in iga if rx.search(i)), None)
         unmapped_app.append((i, why))
-    regions = ['toolbar', 'sidebar', 'centre', 'dock', 'inspector', 'transport']
+    regions = ['toolbar', 'sidebar', 'centre', 'dock', 'inspector', 'transport', 'window']   # UI-005h: 'window' holds the elements of mockups without a Show layout (07)
     print('%-10s %7s %9s %9s' % ('region', 'mapped', 'within 1', 'all ok'))
     tot = [0, 0, 0]
     for r in regions:

@@ -1,0 +1,135 @@
+{
+ "design": "docs/UI/mockups/07-output-looks.html",
+ "entries": [
+  {
+   "d": "div.g[0]>div[0]>div.o[1]>div[0]",
+   "a": "aud.primary"
+  },
+  {
+   "d": "div.g[0]>div[0]>div.o[1]>div[1]",
+   "a": "aud.secondary"
+  },
+  {
+   "d": "div.g[0]>div[0]>div.o[1]>img[0]",
+   "a": "aud.watermark"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[0]",
+   "a": "stg.current",
+   "skip": "R",
+   "why": "block-level box: as wide as the stage panel, where the app block is as wide as its longest line"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[1]",
+   "a": "stg.second",
+   "skip": "TRB",
+   "why": "the mockup gives this line a 16 px box (the page fixed line-height) centred on the line; the app draws a normal 1.3 line box on the same centre, so only the left edge is compared (the centre is checked in UI005h_RenderTests)"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[2]",
+   "a": "stg.next.label",
+   "skip": "RB",
+   "why": "the design box holds the label and the next line; the label alone is the first 34.4 px"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[2]>div[0]",
+   "a": "stg.next"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[3]",
+   "a": "stg.clock",
+   "skip": "LB",
+   "why": "the design box holds clock, timer and section label; compared on its top and right edge"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[3]>div[0]",
+   "a": "stg.timer",
+   "skip": "L",
+   "why": "the design timer is as wide as the block (the widest of timer and section label)"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[3]>div[1]",
+   "a": "stg.section"
+  },
+  {
+   "d": "div.g[0]>div[1]>div.o[1]>div[4]",
+   "a": "stg.band"
+  },
+  {
+   "d": "div.g[0]>div[2]>div.o.checker[1]>div[0]",
+   "a": "lt.plate"
+  },
+  {
+   "d": "div.g[0]>div[2]>div.o.checker[1]>div[0]>span[0]",
+   "a": "lt.bar"
+  },
+  {
+   "d": "div.g[0]>div[2]>div.o.checker[1]>div[0]>div[0]>div[0]",
+   "a": "lt.primary"
+  },
+  {
+   "d": "div.g[0]>div[2]>div.o.checker[1]>div[0]>div[0]>div[1]",
+   "a": "lt.secondary",
+   "skip": "R",
+   "why": "the design text lines sit in a wrapper as wide as the longer line; the second line is shorter than the wrapper"
+  },
+  {
+   "d": "div.g[0]>div[3]>div.o[1]>div[0]",
+   "a": "key.plate"
+  },
+  {
+   "d": "div.g[0]>div[3]>div.o[1]>div[0]>span[0]",
+   "a": "key.bar"
+  },
+  {
+   "d": "div.g[0]>div[3]>div.o[1]>div[0]>div[0]>div[0]",
+   "a": "key.primary"
+  },
+  {
+   "d": "div.g[0]>div[3]>div.o[1]>div[0]>div[0]>div[1]",
+   "a": "key.secondary",
+   "skip": "R",
+   "why": "the design text lines sit in a wrapper as wide as the longer line; the second line is shorter than the wrapper"
+  }
+ ],
+ "ignore_design": [
+  {
+   "match": "^$|^div\\.g\\[0\\]$",
+   "reason": "page or grid container"
+  },
+  {
+   "match": "^(h1|p)\\[0\\]$",
+   "reason": "page title and intro text"
+  },
+  {
+   "match": "div\\.lab\\[0\\]",
+   "reason": "panel caption row and its role badge"
+  },
+  {
+   "match": "div\\.note\\[2\\]",
+   "reason": "panel notes under each picture"
+  },
+  {
+   "match": "^div\\.g\\[0\\]>div\\[[0-3]\\]$",
+   "reason": "panel column"
+  },
+  {
+   "match": "^div\\.g\\[0\\]>div\\[[0-3]\\]>div\\.o(\\.checker)?\\[1\\]$",
+   "reason": "the 1920 x 1080 panel itself"
+  },
+  {
+   "match": "div\\.o(\\.checker)?\\[1\\]>div\\[0\\]>div\\[0\\]$",
+   "reason": "text wrapper: shrinks to its longer line (its lines are compared)"
+  }
+ ],
+ "ignore_app": [
+  {
+   "match": "^stg\\.band\\.text$",
+   "reason": "the band text: the design draws it as the band element's own text, in the band's padding (position checked in UI005h_RenderTests)"
+  },
+  {
+   "match": "^stg\\.other$",
+   "reason": "none expected"
+  }
+ ]
+}

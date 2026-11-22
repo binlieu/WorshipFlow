@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "RemoteControl", targets: ["RemoteControl"]),
         .library(name: "ProgramPackage", targets: ["ProgramPackage"]),
         .executable(name: "wf-bible-import", targets: ["BibleImportTool"]),
+        .executable(name: "wf-looks-probe", targets: ["LooksProbe"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -63,6 +64,8 @@ let package = Package(
         // LIB-004b: translations stored in the church library, and the command-line importer (ADR-0008).
         .target(name: "ScriptureStore", dependencies: ["ScriptureEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(name: "ScriptureStoreTests", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
+        // UI-005h: measures the output looks (rectangles, pictures, frame time); run by hand.
+        .executableTarget(name: "LooksProbe", dependencies: ["Domain", "RenderEngine", "SDIEngine"]),
         .executableTarget(name: "BibleImportTool", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
         // CUE-002a: storage of macros, slide actions, schedule and MIDI bindings in the church library.
         .target(name: "CueStore", dependencies: ["CueEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
@@ -86,6 +89,8 @@ let package = Package(
         .testTarget(name: "DomainTests", dependencies: ["Domain"]),
         .testTarget(name: "RenderEngineTests", dependencies: ["RenderEngine", "Domain"]),
         .testTarget(name: "OutputEngineTests", dependencies: ["OutputEngine"]),
+        // UI-005h: the output looks across model, rasteriser, compositor, fill and key matte, and migration v13.
+        .testTarget(name: "UI005hTests", dependencies: ["Domain", "RenderEngine", "SDIEngine", "Persistence", .product(name: "GRDB", package: "GRDB.swift")]),
     ],
     cxxLanguageStandard: .cxx17
 )

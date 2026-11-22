@@ -59,7 +59,7 @@ import Domain
 
         let new = try LibraryStore.open(at: file)
         let applied = try await new.appliedMigrations()
-        #expect(Array(applied.prefix(11)) == (1...11).map { "v\($0)" } && applied.last == "v12")
+        #expect(Array(applied.prefix(12)) == (1...12).map { "v\($0)" })   // UI-005h: v13 follows (was: applied.prefix(11) == v1...v11 && applied.last == "v12")
         // Every row is still there.
         let libraries = try await new.libraries()
         #expect(libraries.map(\.id) == [ids.library] && libraries.first?.name == "Songs")

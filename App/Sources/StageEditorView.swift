@@ -285,6 +285,7 @@ struct StageCanvas: View {
         case .message: "Message"
         case .notes: "Notes"
         case .timer(let id): "Timer: " + (stage.timers.first { $0.id == id }?.name ?? "deleted timer")
+        case .firstCountdown: "Timer: first countdown"
         }
     }
 

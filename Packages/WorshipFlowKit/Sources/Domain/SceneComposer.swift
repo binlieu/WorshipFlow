@@ -41,16 +41,18 @@ public struct SceneStyles: Sendable, Equatable {
 }
 
 public enum SceneComposer {
-    /// The earlier entry point: the role's default theme from `styles`, the standard Look, no props.
+    /// The earlier entry point: the role's default theme from `styles`, the standard Look, no props. With the standard styles that is the
+    /// built-in look of each role (UI-005h: the design's looks); custom styles still build the earlier-style themes from them.
     public static func scene(for role: ScreenRole, state: ShowState, clockText: String? = nil,
                              styles: SceneStyles = .standard) -> SceneDescription {
+        let standard = styles == .standard
         switch role {
         case .audience:
-            return themed(state, theme: Theme.makeFullScreen(styles: styles), look: .standard, props: [], media: nil, isBroadcast: false)
+            return themed(state, theme: standard ? Theme.fullScreen : Theme.makeFullScreen(styles: styles), look: .standard, props: [], media: nil, isBroadcast: false)
         case .stage:
             return stage(state, styles, clockText)
         case .broadcast:
-            return themed(state, theme: Theme.makeLowerThird(styles: styles), look: .standard, props: [], media: nil, isBroadcast: true)
+            return themed(state, theme: standard ? Theme.lowerThird : Theme.makeLowerThird(styles: styles), look: .standard, props: [], media: nil, isBroadcast: true)
         }
     }
 
@@ -70,9 +72,9 @@ public enum SceneComposer {
         return text
     }
 
-    private static func layer(_ text: String, _ block: TextBlock) -> TextLayer {
+    private static func layer(_ text: String, _ block: TextBlock, inPlate: Bool = false) -> TextLayer {
         TextLayer(text: text, style: block.style, frame: block.frame, alignment: block.alignment,
-                  verticalAlignment: block.verticalAlignment)
+                  verticalAlignment: block.verticalAlignment, inPlate: inPlate)
     }
 
     private static func themed(_ state: ShowState, theme: Theme, look: ScreenLook, props: [Prop], media: MediaLayers?,
@@ -91,6 +93,7 @@ public enum SceneComposer {
             switch theme.background {
             case .media:
                 scene.backgroundColor = Theme.mediaFallbackColor
+                scene.backgroundGradient = theme.mediaFallback     // UI-005h: under the loop, and what shows while none plays
                 scene.showsVideo = true
                 // A chosen background replaces the theme's shared loop; a still must not leave the loop showing.
                 if let chosen = override ?? own {
@@ -112,14 +115,21 @@ public enum SceneComposer {
                 }
             case .transparent:
                 scene.backgroundColor = .clear
+            case .gradient(let g):
+                // UI-005h: like a colour: a slide's own background or a bin choice covers it.
+                scene.backgroundColor = g.stops.last?.color ?? .black
+                scene.backgroundGradient = g
+                scene.backgroundMedia = override ?? own
             }
         }
         // A foreground clip replaces the slide text, so it follows the slide layer of the Look. Props stay on top.
         let foreground = look.visibleLayers.contains(.slide) ? media?.foreground?.selection.sceneMedia : nil
         scene.foregroundMedia = foreground
         if foreground == nil, look.visibleLayers.contains(.slide), let slide = state.liveSlide {
-            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary)) }
-            if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block)) }
+            let plated = theme.plate != nil
+            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary, inPlate: plated)) }
+            if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block, inPlate: plated)) }
+            if plated, !scene.textLayers.isEmpty { scene.plate = theme.plate }     // no words, no plate
             // Slide objects (SLIDE-001a) follow the slide layer. A keyed (transparent) screen leaves them out, so
             // full-frame artwork cannot cover a lower third.
             if !isBroadcast || theme.background != .transparent {
@@ -142,6 +152,10 @@ public enum SceneComposer {
     }
 
     private static func stage(_ state: ShowState, _ s: SceneStyles, _ clock: String?) -> SceneDescription {
+        // UI-005h: the standard styles are the built-in stage layout (the design's composition), with no timers and no message.
+        if s == .standard {
+            return StageComposer.scene(layout: .standard, context: StageContext(state: state, now: 0, timeOfDayText: clock ?? "", timers: [], message: nil, notes: nil))
+        }
         var layers: [TextLayer] = []
         if let slide = state.liveSlide, let p = visible(slide.primary) {
             var text = p

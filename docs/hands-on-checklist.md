@@ -261,3 +261,12 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 2. `UI_PREFIX=UI-005j scripts/design-capture.sh` builds a throw-away copy of the app, captures it at 1440 x 900 and also writes `<prefix>-show-dark.rects.json`: the rectangles of every view tagged with `.wfRect("id")` (debug builds only).
 3. `scripts/compare-rects.py /tmp/design.json <app>.rects.json scripts/design-map-show.json --top 5` prints, per region, the elements mapped and within 1 point; add `--all --bad --rects` for every element still out, `--unmapped` for the unmapped lists with their reasons.
 4. Check by eye: the window's top bar is the app's own (drag it; the three window buttons sit at its left); Add to playlist is in a song's context menu; the extras row is at the bottom of the right column.
+
+## UI-005h output looks (by hand)
+
+- [ ] Existing library: open it with this build. Songs that use the built-in theme (or none) now show Inter type on the design's teal-to-navy gradient; your own themes look exactly as before. The theme list has "Classic full screen" and "Classic lower third": pick one for a song and its old look returns.
+- [ ] Audience screen: the two languages are centred as one group, white 600 and yellow 500, soft shadow, no outline; a looping background still plays over the gradient and a slide's own background covers it. Vietnamese marks are not clipped on the longest line.
+- [ ] Broadcast screen (Lower 3rd Look): a dark rounded plate with a teal-to-blue bar sits above the bottom, grows upwards with a second line, and disappears on Clear and Blackout. In Screens the Key preview shows a light grey plate, a white bar and white text on black; the Fill preview shows the plate and text.
+- [ ] Stage screen: current lyric, the second language on one line, NEXT and the next line in grey-blue (not green), the clock at the top right and the countdown below it in teal (red when it runs over); send a message: a yellow band with dark text along the bottom. A stage layout you made earlier looks as before.
+- [ ] Not built, so do not look for them: the W watermark on the audience screen and the section label "CHORUS x2" on the stage.
+- [ ] With real hardware only: send the lower third's fill and key to the keyer and check the plate's transparency, the edges of the plate and the text against the checkerboard. Nothing here has seen a keyer.

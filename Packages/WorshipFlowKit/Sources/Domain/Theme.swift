@@ -25,6 +25,8 @@ public enum ThemeBackground: Sendable, Equatable, Codable, Hashable {
     case image(path: String)
     /// Alpha 0, for a broadcast overlay.
     case transparent
+    /// UI-005h: a radial gradient. A slide's own background or a bin choice still covers it, as for a colour.
+    case gradient(GradientBackground)
 }
 
 public struct Theme: Sendable, Equatable, Codable, Hashable, Identifiable {
@@ -34,13 +36,22 @@ public struct Theme: Sendable, Equatable, Codable, Hashable, Identifiable {
     public var primary: TextBlock
     /// Nil hides the second language.
     public var secondary: TextBlock?
+    /// UI-005h: for a `.media` background, the gradient drawn under the shared loop (and left showing while no loop plays). Nil: the flat
+    /// `mediaFallbackColor`, as every theme saved before this field drew it.
+    public var mediaFallback: GradientBackground?
+    /// UI-005h: a plate behind the text, with its accent bar. Nil: none, as before. With a plate the text blocks' frames are not used: the
+    /// plated lines are stacked inside the plate, which is sized to them (their alignment, style and order still come from the blocks).
+    public var plate: TextPlate?
 
-    public init(id: UUID, name: String, background: ThemeBackground, primary: TextBlock, secondary: TextBlock?) {
+    public init(id: UUID, name: String, background: ThemeBackground, primary: TextBlock, secondary: TextBlock?,
+                mediaFallback: GradientBackground? = nil, plate: TextPlate? = nil) {
         self.id = id
         self.name = name
         self.background = background
         self.primary = primary
         self.secondary = secondary
+        self.mediaFallback = mediaFallback
+        self.plate = plate
     }
 
     /// Colour under the background video (and behind it while no video is loaded).
@@ -63,9 +74,34 @@ public struct Theme: Sendable, Equatable, Codable, Hashable, Identifiable {
               secondary: TextBlock(style: s.broadcastSecondary, frame: s.broadcastSecondaryFrame, alignment: .center, verticalAlignment: .top))
     }
 
-    public static let fullScreen = makeFullScreen(styles: .standard)
-    public static let lowerThird = makeLowerThird(styles: .standard)
+    /// UI-005h: the design's looks (`OutputLooks`). `makeFullScreen` and `makeLowerThird` still build the earlier looks from `SceneStyles`.
+    public static let fullScreen = OutputLooks.audienceTheme()
+    public static let lowerThird = OutputLooks.lowerThirdTheme()
     public static let builtIn: [Theme] = [fullScreen, lowerThird]
+
+    // UI-005h: the two built-in looks as they were before the design's looks replaced them. They are not built in: migration v13 stores them
+    // in a library that already has content, as ordinary themes the church may rename, edit or delete, so it can go back.
+    public static let classicFullScreenID = UUID(uuid: (0x57, 0x46, 0x54, 0x48, 0x45, 0x4D, 0x45, 0x03, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03))
+    public static let classicLowerThirdID = UUID(uuid: (0x57, 0x46, 0x54, 0x48, 0x45, 0x4D, 0x45, 0x04, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04))
+
+    public static let classicFullScreen: Theme = {
+        var t = makeFullScreen(styles: .standard)
+        t.id = classicFullScreenID
+        t.name = "Classic full screen"
+        return t
+    }()
+
+    public static let classicLowerThird: Theme = {
+        var t = makeLowerThird(styles: .standard)
+        t.id = classicLowerThirdID
+        t.name = "Classic lower third"
+        return t
+    }()
+
+    public static let classic: [Theme] = [classicFullScreen, classicLowerThird]
+
+    /// The design's audience gradient, for a theme that chooses the Gradient background.
+    public static let designGradient = OutputLooks.audienceGradient
 }
 
 public enum ThemeResolver {

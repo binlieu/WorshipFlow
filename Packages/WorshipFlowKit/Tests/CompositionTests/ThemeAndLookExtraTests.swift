@@ -19,8 +19,9 @@ import Foundation
 
     @Test func builtInThemesComeFromTheStyles() {
         let s = SceneStyles.standard
-        #expect(Theme.fullScreen.primary.style == s.audiencePrimary && Theme.fullScreen.primary.frame == s.audiencePrimaryFrame)
-        #expect(Theme.lowerThird.secondary?.style == s.broadcastSecondary)
+        // UI-005h: the built-in themes are the design's looks; the earlier ones, which come from the styles, are the Classic themes (was: Theme.fullScreen, Theme.lowerThird)
+        #expect(Theme.classicFullScreen.primary.style == s.audiencePrimary && Theme.classicFullScreen.primary.frame == s.audiencePrimaryFrame)
+        #expect(Theme.classicLowerThird.secondary?.style == s.broadcastSecondary)
         #expect(Theme.mediaFallbackColor == s.audienceBackground)
     }
 

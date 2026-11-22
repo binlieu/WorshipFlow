@@ -13,7 +13,8 @@ import Foundation
     }
 
     @Test func aLayoutWithoutAMessageElementGetsABannerAlongTheBottom() {
-        let layout = StageLayout.standard
+        var layout = StageLayout.standard
+        layout.messageBand = nil          // UI-005h: the built-in layout draws the message as a band; a layout without a band keeps this banner (was: the built-in layout as it was)
         #expect(!layout.elements.contains { $0.kind == .message })
         let scene = StageComposer.scene(layout: layout, context: context(message: "Wrap up in 2 min"))
         let banner = scene.textLayers.first { $0.text == "Wrap up in 2 min" }

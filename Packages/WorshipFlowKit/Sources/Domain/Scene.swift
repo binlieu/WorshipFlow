@@ -42,6 +42,10 @@ public struct NormalizedRect: Sendable, Equatable, Codable, Hashable {
         public let y: Int
         public let width: Int
         public let height: Int
+
+        public init(x: Int, y: Int, width: Int, height: Int) {
+            self.x = x; self.y = y; self.width = width; self.height = height
+        }
     }
 
     /// Integer pixel rectangle for a frame of the given size (edges rounded to the nearest pixel).
@@ -88,15 +92,35 @@ public struct TextStyle: Sendable, Equatable, Codable, Hashable {
     public var outlineColor: ColorRGBA
     /// Nil: no shadow. Absent from content saved before shadows existed.
     public var shadow: TextShadow?
+    /// UI-005h: the CSS weight, 100 (thin) to 900 (black). Nil is the font's regular face, as every style saved before this field drew it.
+    /// A font with a weight axis (Inter) is set to the weight; any other font takes the nearest face of its family.
+    public var weight: Int?
+    /// UI-005h: space added after every letter, in em (0.08 = 8 % of the font size). Nil: none.
+    public var letterSpacing: Double?
+    /// UI-005h: the distance between lines as a multiple of the font size (1.2 = 120 %). Nil: the font's own line height. A style with a
+    /// line height also places its text block by its line boxes (like a web page) instead of by the padded bitmap; see `Compositor.layoutReport`.
+    public var lineHeight: Double?
+    /// UI-005h: the optical-size axis of a variable font (Inter: 14 to 32), in points. Nil: set to suit the size when a weight is set (large
+    /// text gets the tighter display cut). The design's pictures show Inter's text cut (14) at every size.
+    public var opticalSize: Double?
+    /// UI-005h: OpenType feature tags switched on (`["cv11"]` is Inter's single-storey a). Nil: the font's defaults.
+    public var fontFeatures: [String]?
 
     public init(fontName: String, fontSize: Double, color: ColorRGBA,
-                outlineWidth: Double = 0, outlineColor: ColorRGBA = .black, shadow: TextShadow? = nil) {
+                outlineWidth: Double = 0, outlineColor: ColorRGBA = .black, shadow: TextShadow? = nil,
+                weight: Int? = nil, letterSpacing: Double? = nil, lineHeight: Double? = nil,
+                opticalSize: Double? = nil, fontFeatures: [String]? = nil) {
         self.fontName = fontName
         self.fontSize = fontSize
         self.color = color
         self.outlineWidth = outlineWidth
         self.outlineColor = outlineColor
         self.shadow = shadow
+        self.weight = weight.map { min(900, max(100, $0)) }
+        self.letterSpacing = letterSpacing.flatMap { $0.isFinite ? $0 : nil }
+        self.lineHeight = lineHeight.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        self.opticalSize = opticalSize.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        self.fontFeatures = fontFeatures
     }
 }
 
@@ -108,19 +132,23 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
     public var verticalAlignment: VerticalAlignment
     /// 0...1, applied to the whole text (outline and shadow included). Lyric text is always 1; text boxes use it.
     public var opacity: Double
+    /// UI-005h: the text sits on the scene's plate. Its frame is not used: the compositor stacks the plated layers, in order, inside the
+    /// plate's padding (and beside its bar), and sizes the plate to them.
+    public var inPlate: Bool
 
     public init(text: String, style: TextStyle, frame: NormalizedRect,
                 alignment: TextAlignment = .center, verticalAlignment: VerticalAlignment = .center,
-                opacity: Double = 1) {
+                opacity: Double = 1, inPlate: Bool = false) {
         self.text = text
         self.style = style
         self.frame = frame
         self.alignment = alignment
         self.verticalAlignment = verticalAlignment
         self.opacity = opacity.isNaN ? 1 : min(1, max(0, opacity))
+        self.inPlate = inPlate
     }
 
-    private enum CodingKeys: String, CodingKey { case text, style, frame, alignment, verticalAlignment, opacity }
+    private enum CodingKeys: String, CodingKey { case text, style, frame, alignment, verticalAlignment, opacity, inPlate }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -128,7 +156,20 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
                   frame: try c.decode(NormalizedRect.self, forKey: .frame),
                   alignment: try c.decode(TextAlignment.self, forKey: .alignment),
                   verticalAlignment: try c.decode(VerticalAlignment.self, forKey: .verticalAlignment),
-                  opacity: try c.decodeIfPresent(Double.self, forKey: .opacity) ?? 1)
+                  opacity: try c.decodeIfPresent(Double.self, forKey: .opacity) ?? 1,
+                  inPlate: try c.decodeIfPresent(Bool.self, forKey: .inPlate) ?? false)
+    }
+
+    /// `inPlate` is written only when it is set, so a layer that is not on a plate encodes as it did before.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(text, forKey: .text)
+        try c.encode(style, forKey: .style)
+        try c.encode(frame, forKey: .frame)
+        try c.encode(alignment, forKey: .alignment)
+        try c.encode(verticalAlignment, forKey: .verticalAlignment)
+        try c.encode(opacity, forKey: .opacity)
+        if inPlate { try c.encode(true, forKey: .inPlate) }
     }
 }
 
@@ -164,11 +205,15 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
     public var foregroundMedia: SceneMedia?
     /// Slide objects (SLIDE-001a), back to front. Drawn after the foreground media and before the lyric text.
     public var objectLayers: [SceneObjectLayer]
+    /// UI-005h: a gradient drawn over the background colour and under everything else, in the whole frame.
+    public var backgroundGradient: GradientBackground?
+    /// UI-005h: a plate (and accent bar) drawn after the slide objects and before the text; the text layers marked `inPlate` sit on it.
+    public var plate: TextPlate?
 
     public init(backgroundColor: ColorRGBA, showsVideo: Bool = false, textLayers: [TextLayer],
                 backgroundImage: ImageLayer? = nil, overlayImages: [ImageLayer] = [],
                 backgroundMedia: SceneMedia? = nil, foregroundMedia: SceneMedia? = nil,
-                objectLayers: [SceneObjectLayer] = []) {
+                objectLayers: [SceneObjectLayer] = [], backgroundGradient: GradientBackground? = nil, plate: TextPlate? = nil) {
         self.backgroundColor = backgroundColor
         self.showsVideo = showsVideo
         self.textLayers = textLayers
@@ -177,10 +222,13 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
         self.backgroundMedia = backgroundMedia
         self.foregroundMedia = foregroundMedia
         self.objectLayers = objectLayers
+        self.backgroundGradient = backgroundGradient
+        self.plate = plate
     }
 
     private enum CodingKeys: String, CodingKey {
         case backgroundColor, showsVideo, textLayers, backgroundImage, overlayImages, backgroundMedia, foregroundMedia, objectLayers
+        case backgroundGradient, plate
     }
 
     public init(from decoder: Decoder) throws {
@@ -192,7 +240,9 @@ public struct SceneDescription: Sendable, Equatable, Codable, Hashable {
                   overlayImages: try c.decode([ImageLayer].self, forKey: .overlayImages),
                   backgroundMedia: try c.decodeIfPresent(SceneMedia.self, forKey: .backgroundMedia),
                   foregroundMedia: try c.decodeIfPresent(SceneMedia.self, forKey: .foregroundMedia),
-                  objectLayers: try c.decodeIfPresent([SceneObjectLayer].self, forKey: .objectLayers) ?? [])
+                  objectLayers: try c.decodeIfPresent([SceneObjectLayer].self, forKey: .objectLayers) ?? [],
+                  backgroundGradient: try c.decodeIfPresent(GradientBackground.self, forKey: .backgroundGradient),
+                  plate: try c.decodeIfPresent(TextPlate.self, forKey: .plate))
     }
 }
 

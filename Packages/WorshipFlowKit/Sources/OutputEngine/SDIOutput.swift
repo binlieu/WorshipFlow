@@ -32,6 +32,8 @@ final class SDIFrameRenderer: @unchecked Sendable {
     private let lock = NSLock()
     private var compositor: Compositor?
     private var texture: MTLTexture?
+    /// UI-005h: the frame is copied by the GPU into this shared buffer in the same command buffer, then to the ring by one memory copy.
+    private var readbackBuffer: MTLBuffer?
     private var textureProvider: (any VideoTextureProvider)?
     private var mediaResolver: MediaFrameResolver?
     private var recent: [VideoTexture] = []
@@ -80,13 +82,14 @@ final class SDIFrameRenderer: @unchecked Sendable {
             guard let cb = compositor.makeCommandBuffer() else { throw RenderError.resourceCreation("command buffer") }
             try compositor.encode(scene: scene, into: texture, video: video, commandBuffer: cb,
                                   backgroundMedia: media.background?.texture, foregroundMedia: media.foreground?.texture)
+            let copied = encodeReadback(of: texture, on: cb)
             cb.commit()
             cb.waitUntilCompleted()
             withExtendedLifetime(media.hold) {}
             if let error = cb.error { throw RenderError.pipeline("\(error)") }
             let slot = nextSlot
             nextSlot = (nextSlot + 1) % ring.count
-            read(texture, into: slot)
+            read(texture, into: slot, copied: copied)
             failed = nil
             let elapsed = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
             timing.frames += 1
@@ -99,15 +102,31 @@ final class SDIFrameRenderer: @unchecked Sendable {
         }
     }
 
+    /// Adds a GPU copy of the rendered frame into the shared readback buffer to the frame's command buffer. `getBytes` on the texture itself
+    /// costs about 1 ms for a flat picture and about 5 ms for one with a gradient or a photograph (measured with `wf-looks-probe readback`); the
+    /// GPU copy and a memory copy cost about 0.2 ms more than the render itself either way. False when the copy could not be encoded, in which
+    /// case `read` falls back to `getBytes`.
+    private func encodeReadback(of texture: MTLTexture, on commandBuffer: MTLCommandBuffer) -> Bool {
+        let length = width * height * 4
+        if readbackBuffer == nil { readbackBuffer = texture.device.makeBuffer(length: length, options: .storageModeShared) }
+        guard let buffer = readbackBuffer, buffer.length >= length, let blit = commandBuffer.makeBlitCommandEncoder() else { return false }
+        blit.copy(from: texture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                  sourceSize: MTLSize(width: width, height: height, depth: 1),
+                  to: buffer, destinationOffset: 0, destinationBytesPerRow: width * 4, destinationBytesPerImage: length)
+        blit.endEncoding()
+        return true
+    }
+
     /// Writes the pixels into the slot's own array. If something (the card, the session) still holds that array the
     /// write copies it first; that is counted, and does not happen in steady state with a ring larger than the frames in flight.
-    private func read(_ texture: MTLTexture, into slot: Int) {
+    private func read(_ texture: MTLTexture, into slot: Int, copied: Bool) {
         let before = ring[slot].withUnsafeBufferPointer { $0.baseAddress }
         let w = width, h = height
+        let source = copied ? readbackBuffer?.contents() : nil
         ring[slot].withUnsafeMutableBytes { raw in
-            if let base = raw.baseAddress {
-                texture.getBytes(base, bytesPerRow: w * 4, from: MTLRegionMake2D(0, 0, w, h), mipmapLevel: 0)
-            }
+            guard let base = raw.baseAddress else { return }
+            if let source { memcpy(base, source, w * h * 4) }
+            else { texture.getBytes(base, bytesPerRow: w * 4, from: MTLRegionMake2D(0, 0, w, h), mipmapLevel: 0) }
         }
         let after = ring[slot].withUnsafeBufferPointer { $0.baseAddress }
         if before != after { reallocations += 1 }

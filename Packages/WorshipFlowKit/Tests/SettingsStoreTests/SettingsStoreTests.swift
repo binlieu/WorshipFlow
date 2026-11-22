@@ -35,7 +35,7 @@ import Domain
         let after = try #require(try await new.presentations(in: lib.id).first)
         #expect(after.title == "Amazing Grace" && after.themeID == nil)
         #expect(try await new.groups(of: p.id).map(\.name) == ["Verse 1"])
-        #expect(try await new.themes().isEmpty)
+        #expect(try await new.themes().map(\.name).sorted() == ["Classic full screen", "Classic lower third"])   // UI-005h: v13 adds the two Classic themes to a library that has content (was: themes().isEmpty)
         try new.close()
     }
 

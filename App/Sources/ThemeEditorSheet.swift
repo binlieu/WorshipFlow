@@ -137,7 +137,7 @@ struct ThemeEditorSheet: View {
     // MARK: Background
 
     private enum BackgroundKind: String, CaseIterable, Identifiable {
-        case media = "Background video", color = "Colour", image = "Image", transparent = "Transparent"
+        case media = "Background video", color = "Colour", image = "Image", gradient = "Gradient", transparent = "Transparent"
         var id: String { rawValue }
     }
 
@@ -146,6 +146,7 @@ struct ThemeEditorSheet: View {
         case .media: .media
         case .color: .color
         case .image: .image
+        case .gradient: .gradient
         case .transparent: .transparent
         }
     }
@@ -162,6 +163,8 @@ struct ThemeEditorSheet: View {
                         if case .color = t.background {} else { t.background = .color(Theme.mediaFallbackColor) }
                     case .image:
                         if case .image = t.background {} else { t.background = .image(path: "") }
+                    case .gradient:
+                        if case .gradient = t.background {} else { t.background = .gradient(Theme.designGradient) }
                     case .transparent: t.background = .transparent
                     }
                 }
@@ -184,6 +187,9 @@ struct ThemeEditorSheet: View {
                     Text("That file cannot be read. The screen shows black behind the words.")
                         .font(.wfSmall).foregroundStyle(.orange)
                 }
+            case .gradient:
+                Text("The design's radial gradient, teal into navy. A background chosen in the media bin or on a slide covers it. Its colours are not editable yet.")
+                    .font(.wfSmall).foregroundStyle(.secondary)
             case .media:
                 Text("The looping background video chosen in the Background video panel.").font(.wfSmall).foregroundStyle(.secondary)
             case .transparent:

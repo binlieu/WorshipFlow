@@ -159,7 +159,7 @@ final class TestClock {
         model.removeElement(added[0], from: layout.id)
         await model.flush()
         let reloaded = await relaunch(store, clock)
-        #expect(reloaded.layout(withID: layout.id)?.elements.count == 3 + 6 - 1)
+        #expect(reloaded.layout(withID: layout.id)?.elements.count == 4 + 6 - 1)   // UI-005h: the built-in layout has four elements (was: 3 + 6 - 1)
         #expect(reloaded.layout(withID: layout.id)?.elements.contains { $0.id == added[0] } == false)
     }
 
@@ -356,7 +356,7 @@ final class TestClock {
         let (a, b) = (UUID(), UUID())
         #expect(model.needsPerSecondRefresh(forScreens: [a]))                      // the built-in layout has a clock
         let quiet = try #require(model.createLayout(name: "Quiet"))
-        for element in quiet.elements where element.kind == .timeOfDay { model.removeElement(element.id, from: quiet.id) }
+        for element in quiet.elements where element.kind == .timeOfDay || element.kind == .firstCountdown { model.removeElement(element.id, from: quiet.id) }   // UI-005h: the built-in layout also has a timer (was: .timeOfDay only)
         model.setLayout(quiet.id, forScreen: a)
         #expect(!model.needsPerSecondRefresh(forScreens: [a]))
         #expect(!model.needsPerSecondRefresh(forScreens: []))
