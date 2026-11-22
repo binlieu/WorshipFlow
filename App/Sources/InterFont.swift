@@ -58,6 +58,13 @@ enum InterFont {
 
     /// Inter at `size` and CSS weight with `tnum` and `cv11` on, as ui.css has them (`font-feature-settings: "tnum","cv11"`), and the
     /// optical-size axis at the size (clamped to its 14 to 32 range), as the browser does for a variable face.
+    /// UI-005j: the width of `text` in one line at `size` and the CSS `weight`, for the few places that size a block to its text.
+    static func textWidth(_ text: String, size: CGFloat, weight: CGFloat) -> CGFloat {
+        let font = ctFont(size: size, weight: weight) ?? CTFont(.system, size: size)
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: font]))
+        return CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
+    }
+
     static func ctFont(size: CGFloat, weight: CGFloat) -> CTFont? {
         guard let base else { return nil }
         let key = "\(size)/\(weight)"
@@ -67,7 +74,9 @@ enum InterFont {
             [kCTFontOpenTypeFeatureTag: "tnum", kCTFontOpenTypeFeatureValue: 1],
         ]
         var d = CTFontDescriptorCreateCopyWithVariation(base, CFNumber.of(wghtTag), weight)
-        d = CTFontDescriptorCreateCopyWithVariation(d, CFNumber.of(opszTag), min(32, max(14, size)))
+        // The browser that drew the design sets the axis to the size in points (CSS px x 3/4 is the inverse: 17 px asks for about 22.7), which
+        // is what makes its 17 px title 123.6 wide; the axis runs 14 to 32. (Measured against the mockup's rectangles, UI-005j.)
+        d = CTFontDescriptorCreateCopyWithVariation(d, CFNumber.of(opszTag), min(32, max(14, size * 4 / 3)))
         d = CTFontDescriptorCreateCopyWithAttributes(d, [kCTFontFeatureSettingsAttribute: features] as CFDictionary)
         let f = CTFontCreateWithFontDescriptor(d, size, nil)
         cache[key] = f

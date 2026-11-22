@@ -34,6 +34,13 @@ struct WFSegmented<Value: Hashable>: View {
     let items: [Item]
     @Binding var selection: Value
     var accessibilityName = ""
+    /// UI-005j: the dump's name for the track; its segments are `<name>.0`, `<name>.1`, ...
+    var rectID = ""
+    /// UI-005j: the media bin's layer choice is drawn in the design's picture with the tab strip's rules leaking into it (`.tabs b` beats
+    /// `.seg b`): each segment is 32 pt tall with 9 pt sides, and the chosen one has the tab's blue line under it.
+    var tabLike = false
+    /// Room around the track for a host that clips to its bounds (a toolbar item); 0 where the control sits in an ordinary layout.
+    var outerPadding: CGFloat = 1
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
@@ -44,15 +51,21 @@ struct WFSegmented<Value: Hashable>: View {
                 let on = item.value == selection
                 Button { selection = item.value } label: {
                     HStack(spacing: 5) {
-                        if let symbol = item.symbol { Image(systemName: symbol).font(.wf(item.title == nil ? 12 : 11)) }
-                        if let title = item.title { Text(title).font(.wf(12, .medium)) }
+                        if let symbol = item.symbol {
+                            if item.title == nil { Image(systemName: symbol).font(.wf(12)).frame(width: 12, height: 12) }      // ui.css: a 12 pt glyph, 4 pt above and below
+                            else { Image(systemName: symbol).font(.wf(11)) }
+                        }
+                        if let title = item.title { Text(title).font(.wf(12, .medium)).wfLine() }
                     }
-                    .padding(.horizontal, 11).padding(.vertical, 4)
-                    .frame(minHeight: 24)
+                    .padding(.horizontal, tabLike ? 9 : 11).padding(.top, tabLike ? 7 : 4).padding(.bottom, tabLike ? 9 : 4)
+                    .frame(minHeight: tabLike ? 32 : (item.title == nil ? 20 : 24))
                     .foregroundStyle(on ? Tok.text : Tok.muted)
                     .background { if on { RoundedRectangle(cornerRadius: Radius.segment).fill(Tok.surface3) } }
                     .overlay { if on { RoundedRectangle(cornerRadius: Radius.segment).strokeBorder(Tok.borderStrong, lineWidth: 1) } }
+                    .overlay(alignment: .bottom) { if on && tabLike { Rectangle().fill(Tok.blue).frame(height: 2).padding(.horizontal, 1) } }
                     .contentShape(RoundedRectangle(cornerRadius: Radius.segment))
+                    .wfRect(rectID.isEmpty ? "" : "\(rectID).\(index)", size: item.title == nil ? 12 : 12, weight: 500, radius: Radius.segment)
+                    .padding(.bottom, tabLike ? -1 : 0)         // ui.css `.tabs b`: margin-bottom -1
                     .wfFocusReport(.segmented)
                 }
                 .buttonStyle(.plain)
@@ -62,9 +75,10 @@ struct WFSegmented<Value: Hashable>: View {
                 .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
             }
         }
-        .padding(2)
+        .padding(3)         // ui.css `.seg`: a 1 pt border and 2 pt of padding
         .wfOutline(RoundedRectangle(cornerRadius: Radius.track), stroke: Tok.border, fill: Tok.surface2)
-        .padding(1)
+        .wfRect(rectID, radius: Radius.track)
+        .padding(outerPadding)
         .fixedSize()
         .opacity(ControlEnabledStyle.opacity(isEnabled: isEnabled))
         .allowsHitTesting(ControlEnabledStyle.acceptsInput(isEnabled: isEnabled))
@@ -141,6 +155,8 @@ struct WFSlider: View {
     var fill: Color = Tok.cyan
     /// The spoken name when the slider has none from outside (a position slider says "Position").
     var accessibilityName = ""
+    /// UI-005j: the dump's name for the track; `<name>.fill` and `<name>.thumb` are its parts.
+    var rectID = ""
     var onEditingChanged: (Bool) -> Void = { _ in }
     @State private var dragging = false
     @Environment(\.isEnabled) private var isEnabled
@@ -151,10 +167,11 @@ struct WFSlider: View {
             let span = max(range.upperBound - range.lowerBound, .leastNonzeroMagnitude)
             let fraction = CGFloat((value - range.lowerBound) / span).clamped01
             ZStack(alignment: .leading) {
-                Capsule().fill(Tok.surface3).frame(height: 5)
-                Capsule().fill(fill).frame(width: width * fraction, height: 5)
+                Capsule().fill(Tok.surface3).frame(height: 5).wfRect(rectID, radius: 2.5)
+                Capsule().fill(fill).frame(width: width * fraction, height: 5).wfRect(rectID.isEmpty ? "" : "\(rectID).fill", radius: 2.5)
                 Circle().fill(.white).frame(width: 13, height: 13)
                     .overlay(Circle().strokeBorder(Tok.borderStrong, lineWidth: 1))
+                    .wfRect(rectID.isEmpty ? "" : "\(rectID).thumb")
                     .offset(x: width * fraction - 6.5)
             }
             .frame(height: geo.size.height)
@@ -206,7 +223,7 @@ struct WFFieldChrome: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.wf(12))
-            .padding(.horizontal, 8).frame(height: height)
+            .padding(.horizontal, 9).frame(height: height)      // ui.css `.field`: padding 0 8 plus the 1 pt border
             .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: Tok.bg)
     }
 }
@@ -217,18 +234,20 @@ struct WFPopup<Content: View>: View {
     let title: String
     var accessibilityName: String = ""
     var height: CGFloat = Space.controlHeight
+    var rectID = ""
     @ViewBuilder let content: () -> Content
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Menu { content() } label: {
-            HStack(spacing: 6) {
-                Text(title).lineLimit(1)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.down").font(.wf(9, .semibold)).foregroundStyle(Tok.muted)
+            HStack(spacing: 0) {
+                Text(title).lineLimit(1).wfLine()
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.down").font(.wf(9, .semibold)).foregroundStyle(Tok.muted).frame(width: 12, height: 12).padding(.leading, 6)
             }
             .foregroundStyle(Tok.text)
             .wfField(height: height)
+            .wfRect(rectID, size: 12, weight: 400, radius: Radius.md)
             .contentShape(Rectangle())
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
@@ -276,16 +295,19 @@ struct WFTabs<Value: Hashable>: View {
     let tabs: [Tab]
     @Binding var selection: Value
     var inset: CGFloat = 10
+    /// UI-005j: the dump's name for the strip; its tabs are `<name>.0`, `<name>.1`, ...
+    var rectID = ""
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(tabs) { tab in
-                WFTabButton(title: tab.title, symbol: tab.symbol, dot: tab.dot, on: tab.value == selection) { selection = tab.value }
+            ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
+                WFTabButton(title: tab.title, symbol: tab.symbol, dot: tab.dot, on: tab.value == selection, rectID: rectID.isEmpty ? "" : "\(rectID).\(index)") { selection = tab.value }
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, inset)
         .overlay(alignment: .bottom) { Rectangle().fill(Tok.border).frame(height: 1) }
+        .wfRect(rectID)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Tabs")
     }
@@ -297,18 +319,20 @@ struct WFTabButton: View {
     var symbol: String? = nil
     var dot = false
     let on: Bool
+    var rectID = ""
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 5) {
-                if let symbol { Image(systemName: symbol).font(.wf(12)) }
-                Text(title).font(.wf(12, .medium)).fixedSize()
+                if let symbol { Image(systemName: symbol).font(.wf(12)).frame(width: 12, height: 12) }
+                Text(title).font(.wf(12, .medium)).fixedSize().wfLine()
                 if dot { Circle().fill(Tok.blue).frame(width: 6, height: 6).accessibilityHidden(true) }
             }
             .foregroundStyle(on ? Tok.text : Tok.muted)
-            .padding(.horizontal, 9).padding(.vertical, 7)
+            .padding(.horizontal, 9).padding(.top, 7).padding(.bottom, 9)      // ui.css `.tabs b`: 7 x 9 and a 2 pt line under (32 pt tall)
             .overlay(alignment: .bottom) { if on { Rectangle().fill(Tok.blue).frame(height: 2) } }
+            .wfRect(rectID, size: 12, weight: 500)
             .contentShape(Rectangle())
             .wfFocusReport(.tab)
         }
@@ -344,7 +368,7 @@ struct ThumbTag: View {
     let kind: Kind
     @Environment(\.colorScheme) private var scheme
     var body: some View {
-        Text(text).font(.wf(9, .heavy)).tracking(0.72)
+        Text(text).font(.wf(9, .heavy)).tracking(0.72).wfLine()
             .padding(.horizontal, 5).padding(.vertical, 1)
             .foregroundStyle(kind == .live ? Tok.onLive : (kind == .preview ? (scheme == .light ? Color.white : Tok.onBrand) : Tok.onBrand))
             .background(RoundedRectangle(cornerRadius: Radius.xs).fill(kind == .live ? Tok.liveFill : (kind == .preview ? Tok.blue : Tok.warning)))

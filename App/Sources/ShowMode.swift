@@ -19,17 +19,22 @@ struct ShowModeView: View {
         HStack(spacing: 0) {
             if app.ui.sidebarVisible {
                 LibrarySidebar(app: app, workspace: workspace, query: $query, searchFocused: searchFocused)
+                    .padding(.trailing, 1)          // the column's 1 pt border is outside its 255 pt of content, as in ui.css
                     .frame(width: app.ui.sidebarWidth)
+                    .wfRect("sidebar")
                     .overlay(alignment: .trailing) { Rectangle().fill(Tok.border).frame(width: 1) }
                 ColumnHandle(width: Binding(get: { app.ui.sidebarWidth }, set: { app.ui.sidebarWidth = $0 }), range: 240...380, grows: 1, name: "Sidebar width")
             }
             ShowCentre(app: app, workspace: workspace)
                 .frame(minWidth: 460, maxWidth: .infinity)
+                .wfRect("main")
                 .focusable().focused(gridFocused).focusEffectDisabled()
                 .onChange(of: workspace.openPresentationID) { _, new in if new != nil { app.ui.scriptureOpen = false } }     // opening a song closes the passage view
             ColumnHandle(width: Binding(get: { app.ui.inspectorWidth }, set: { app.ui.inspectorWidth = $0 }), range: 320...440, grows: -1, name: "Inspector width")
             ShowInspector(app: app, workspace: workspace)
+                .padding(.leading, 1)
                 .frame(width: app.ui.inspectorWidth)
+                .wfRect("inspector")
                 .overlay(alignment: .leading) { Rectangle().fill(Tok.border).frame(width: 1) }
         }
     }

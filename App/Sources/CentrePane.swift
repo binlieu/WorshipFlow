@@ -19,8 +19,11 @@ struct CentrePane: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             VStack(spacing: 0) {
-                ShowHeader(app: app, workspace: workspace)
-                Rectangle().fill(Tok.border).frame(height: 1)
+                VStack(spacing: 0) {
+                    ShowHeader(app: app, workspace: workspace)
+                    Rectangle().fill(Tok.border).frame(height: 1)
+                }
+                .wfRect("main.bar")
                 if app.ui.gridAsList { SlideList(app: app, workspace: workspace) } else { SlideGrid(app: app, workspace: workspace) }
             }
         }
@@ -38,7 +41,7 @@ struct ShowHeader: View {
 
     var body: some View {
         AdaptiveHeader(labelledWidth: 660, height: 42) { compact in header(compact: compact) }
-            .padding(.horizontal, Space.s5)
+            .padding(.leading, Space.s5)        // ui.css `.bar`: padding 8 x 14, but the picture's controls run to the column's edge (14 pt over), so none on the right
             .onAppear { title = presentation?.title ?? "" }
             .onChange(of: workspace.openPresentationID) { _, _ in title = presentation?.title ?? "" }
             .onChange(of: presentation?.title) { _, new in if !titleFocused { title = new ?? "" } }
@@ -49,7 +52,8 @@ struct ShowHeader: View {
         HStack(spacing: Space.s3) {
             // The design's 17 / 22 bold title. It is still the field that renames the presentation: a hidden copy of the text
             // gives the field the width of its words.
-            Text(title.isEmpty ? "Title" : title).font(.wf(17, .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, maxWidth: 300).layoutPriority(1)
+            Text(title.isEmpty ? "Title" : title).font(.wf(17, .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, alignment: .leading).fixedSize(horizontal: true, vertical: false).layoutPriority(1)
+                .wfRect("main.bar.title", size: 17, weight: 700)
                 .overlay {
                     TextField("Title", text: $title)
                         .textFieldStyle(.plain).font(.wf(17, .bold))
@@ -63,18 +67,18 @@ struct ShowHeader: View {
                 let itemID = workspace.openPlaylistItemID
                 let item = itemID.flatMap { id in workspace.playlistItems.first { $0.id == id } }
                 let chosen = item != nil ? item?.arrangementID : workspace.previewArrangementID
-                WFPopup(title: "Arrangement: \(workspace.arrangements.first { $0.id == chosen }?.name ?? "Natural")", accessibilityName: "Arrangement") {
+                WFPopup(title: "Arrangement: \(workspace.arrangements.first { $0.id == chosen }?.name ?? "Natural")", accessibilityName: "Arrangement", rectID: "main.bar.arrangement") {
                     Button("Natural order") { chooseArrangement(nil, item: itemID) }
                     ForEach(workspace.arrangements) { a in Button(a.name) { chooseArrangement(a.id, item: itemID) } }
                 }
-                .frame(minWidth: 110, maxWidth: 190).fixedSize(horizontal: false, vertical: true)
+                .fixedSize().padding(.leading, 8)
                 .help(itemID == nil ? "The section order shown in preview. Add the song to a playlist to keep an order with it." : "The section order this playlist item plays")
             }
             if let id = workspace.openPresentationID, workspace.bilingualPresentationIDs.contains(id) {
-                PillTag(text: "EN + VI", color: Tok.muted)
+                PillTag(text: "EN + VI", color: Tok.muted, rectID: "main.bar.lang")
                     .accessibilityLabel("Two languages")
             }
-            Spacer(minLength: 4)
+            Spacer(minLength: 0)
             controls(compact: compact).fixedSize()
         }
     }
@@ -82,17 +86,14 @@ struct ShowHeader: View {
     /// The header buttons with words, or (when the window is narrow) as icons with help text.
     private func controls(compact: Bool) -> some View {
         HStack(spacing: Space.s3) {
-            HeaderControlButton(control: .addSlide, symbol: "plus", compact: compact) { Task { await workspace.addSlide(SlideContent(primary: "")) } }
-            HeaderControlButton(control: .reflow, symbol: "text.alignleft", compact: compact) {
+            HeaderControlButton(control: .addSlide, symbol: "plus", compact: compact, rectID: "main.bar.addSlide") { Task { await workspace.addSlide(SlideContent(primary: "")) } }
+            HeaderControlButton(control: .reflow, symbol: "text.alignleft", compact: compact, rectID: "main.bar.reflow") {
                 if let id = workspace.openPresentationID { app.openImport(existing: id) }
             }
-            HeaderControlButton(control: .addToPlaylist, symbol: "text.badge.plus", compact: true) {
-                if let id = workspace.openPresentationID { Task { await workspace.addToPlaylist(id) } }
-            }
-            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact, ring: app.ui.tabs.quickEditIsOpen ? Tok.blue : nil) { app.openQuickEdit() }
+            HeaderControlButton(control: .quickEdit, symbol: "pencil", compact: compact, ring: app.ui.tabs.quickEditIsOpen ? Tok.blue : nil, rectID: "main.bar.quickEdit") { app.openQuickEdit() }
                 .disabled(workspace.slides.isEmpty)
             WFSegmented(items: [.init(value: false, symbol: "square.grid.2x2", label: "Grid"), .init(value: true, symbol: "list.bullet", label: "List")],
-                        selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 }), accessibilityName: "Slide view")
+                        selection: Binding(get: { app.ui.gridAsList }, set: { app.ui.gridAsList = $0 }), accessibilityName: "Slide view", rectID: "main.bar.view", outerPadding: 0)
         }
     }
 
@@ -118,13 +119,16 @@ struct ShowHeader: View {
 
 private struct SectionHeader: View {
     let run: SectionRun
+    var index = 0
     var body: some View {
         if let name = run.name {
             HStack(spacing: 6) {
-                Circle().fill(run.tone.color).frame(width: 8, height: 8)
-                Text(name).font(.wf(11, .semibold)).foregroundStyle(run.tone.color)
-                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.wf(11)).foregroundStyle(Tok.muted) }
+                Circle().fill(run.tone.color).frame(width: 8, height: 8).wfRect("main.sec.\(index).dot")
+                Text(name).font(.wf(11, .semibold)).foregroundStyle(run.tone.color).wfLine().wfRect("main.sec.\(index).name", size: 11, weight: 600)
+                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("main.sec.\(index).repeat", size: 11, weight: 400) }
             }
+            .frame(maxWidth: .infinity, alignment: .leading).frame(height: 16)         // ui.css `.sl`: a 16 pt line, 5 pt above the cards
+            .wfRect("main.sec.\(index)")
             .padding(.bottom, 5)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(run.repeatCount > 1 ? "\(name), played \(run.repeatCount) times" : name)
@@ -163,7 +167,9 @@ struct SlideGrid: View {
     /// Five thumbnails across at the design's window size, more when wider, never fewer than one (`SlideGridLayout`).
     private func columns(for width: CGFloat) -> [GridItem] {
         let count = SlideGridLayout.columnCount(width: Double(width))
-        return Array(repeating: GridItem(.flexible(minimum: 100, maximum: 300), spacing: 10, alignment: .top), count: count)
+        // The card width is worked out here, to the fraction, so the rows do not drift by the whole-point rounding of a flexible column.
+        let card = min(300, max(100, (width - 28 - CGFloat(count - 1) * 10) / CGFloat(count)))
+        return Array(repeating: GridItem(.fixed(card), spacing: 10, alignment: .top), count: count)
     }
 
     @ViewBuilder private func grid(width: CGFloat) -> some View {
@@ -174,14 +180,17 @@ struct SlideGrid: View {
                         .foregroundStyle(Tok.muted).padding(24)
                 }
                 LazyVStack(alignment: .leading, spacing: 9) {
-                    ForEach(sectionRuns(workspace)) { run in
-                        SectionHeader(run: run)
-                        LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
-                            ForEach(run.indices, id: \.self) { i in
-                                cell(i, color: run.tone.color).id(i)
+                    ForEach(Array(sectionRuns(workspace).enumerated()), id: \.element.id) { runIndex, run in
+                        VStack(alignment: .leading, spacing: 0) {       // the header is 5 pt above its cards; the 9 pt is between sections
+                            SectionHeader(run: run, index: runIndex)
+                            LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
+                                ForEach(run.indices, id: \.self) { i in
+                                    cell(i, color: run.tone.color).id(i)
+                                }
                             }
+                            .wfRect("main.grid.\(runIndex)")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -198,19 +207,22 @@ struct SlideGrid: View {
         return VStack(alignment: .leading, spacing: 3) {
             // The rings are drawn outside the picture (never over the words): idle 1 pt, preview 2 pt blue, live 3 pt red, at a 2 pt offset.
             SlideThumbnail(app: app, slide: slide.content)
-                .overlay(alignment: .topLeading) { tags(live: live, selected: selected).padding(5) }
+                .wfRect("main.cell.\(i).thumb", radius: 4)
+                .overlay(alignment: .topLeading) { tags(live: live, selected: selected).wfRect("main.cell.\(i).tag", size: 9, weight: 800, radius: Radius.xs).padding(5) }
                 .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: app.media.map { Set($0.allAssets.map(\.id)) }).padding(5) }
                 .wfThumbState(radius: 4, preview: selected && !live, live: live, liveColor: ringColor)
                 .padding(5)    // room for the outer ring inside the cell
                 .padding(-5)
             HStack(spacing: 6) {
-                Text("\(i + 1)").font(.wf(11, .semibold).monospacedDigit()).foregroundStyle(Tok.text)
+                Text("\(i + 1)").font(.wf(11, .semibold).monospacedDigit()).foregroundStyle(Tok.text).wfLine().wfRect("main.cell.\(i).num", size: 11, weight: 600)
                 let first = slide.content.primary.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
                 Text(first.isEmpty ? "Blank · background only" : first)
-                    .font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
+                    .font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
             }
-            .padding(.top, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .wfRect("main.cell.\(i).cap")
         }
+        .wfRect("main.cell.\(i)")
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { app.triggerSlide(i) }
         .onTapGesture { workspace.selectSlide(i) }

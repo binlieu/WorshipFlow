@@ -13,8 +13,9 @@ struct StageMessageView: View {
             HStack {
                 SectionLabel("Stage message")
                 Spacer()
-                Text("Stage screens only").font(.wf(11)).foregroundStyle(Tok.muted)
+                Text("Stage screens only").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("insp.stage.note", size: 11, weight: 400)
             }
+            .wfRect("insp.stage.title")
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) { field; recents; sendButton }
                 VStack(alignment: .leading, spacing: 6) {
@@ -37,7 +38,7 @@ struct StageMessageView: View {
 
     private var field: some View {
         TextField("", text: $text, prompt: Text("Wrap up in 2 min…").foregroundStyle(Tok.muted))
-            .textFieldStyle(.plain).wfField().frame(minWidth: 140)
+            .textFieldStyle(.plain).wfField().wfRect("insp.stage.field", size: 12, weight: 400, radius: Radius.md).frame(minWidth: 140)
             .onSubmit(submit)
             .accessibilityLabel("Stage message text")
     }
@@ -54,8 +55,8 @@ struct StageMessageView: View {
 
     private var sendButton: some View {
         // The design draws Send always enabled; with nothing typed it does nothing (and says so to VoiceOver).
-        Button(action: submit) { HStack(spacing: 6) { Image(systemName: "text.bubble").font(.wf(12)); Text("Send") }.fixedSize() }
-            .buttonStyle(HeaderButtonStyle())
+        Button(action: submit) { HStack(spacing: 6) { Image(systemName: "text.bubble").font(.wf(12)).frame(width: 12, height: 12); Text("Send") }.fixedSize() }
+            .buttonStyle(HeaderButtonStyle()).wfRect("insp.stage.send", size: 12, weight: 500, radius: Radius.md)
             .help("Show this message on the stage screens")
             .accessibilityHint(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Type a message first" : "")
     }

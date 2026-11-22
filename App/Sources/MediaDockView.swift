@@ -19,13 +19,12 @@ struct MediaDockView: View {
     @State private var targeted = false
     @State private var stripWidth: CGFloat = 812
 
-    private let headerHeight: CGFloat = 40
+    private let headerHeight: CGFloat = 46
 
     var body: some View {
         let state = app.mediaDock
         let height = MediaDock.clampedHeight(dragHeight ?? state.height, available: available)
         VStack(spacing: 0) {
-            if !state.isCollapsed { resizeHandle(current: state.height) }
             Rectangle().fill(Tok.border).frame(height: 1)
             header(collapsed: state.isCollapsed)
             if !state.isCollapsed {
@@ -36,6 +35,8 @@ struct MediaDockView: View {
             MediaControllerRow(app: app, media: media, audio: audio)
         }
         .background(Tok.surface)
+        .overlay(alignment: .top) { if !state.isCollapsed { resizeHandle(current: state.height) } }      // over the top edge: it takes no room of its own
+        .wfRect("dock")
         .overlay(targeted ? RoundedRectangle(cornerRadius: 4).stroke(Tok.blue, lineWidth: 2) : nil)
         .dropDestination(for: URL.self) { urls, _ in
             let files = urls.filter(\.isFileURL)
@@ -70,30 +71,31 @@ struct MediaDockView: View {
 
     private func header(collapsed: Bool) -> some View {
         HStack(spacing: 2) {
-            SectionLabel("Media bin").fixedSize().padding(.trailing, 4)
-            ForEach(MediaDockTab.allCases) { tab in
-                WFTabButton(title: tab.title, symbol: Self.symbol(tab), on: app.ui.dockTab == tab) {
+            SectionLabel("Media bin", rectID: "dock.title").fixedSize().padding(.trailing, 6)
+            ForEach(Array(MediaDockTab.allCases.enumerated()), id: \.element.id) { index, tab in
+                WFTabButton(title: tab.title, symbol: Self.symbol(tab), on: app.ui.dockTab == tab, rectID: "dock.tab.\(index)") {
                     app.ui.dockTab = tab; if app.mediaDock.isCollapsed { app.setMediaDock(collapsed: false) }
                 }
             }
             Spacer(minLength: 4)
             if MediaDock.showsLayerChoice(on: app.ui.dockTab) {
                 WFSegmented(items: MediaLayerChoice.allCases.map { .init(value: $0, title: $0 == .background ? "\($0.title) layer" : $0.title, label: "\($0.title) layer") },
-                            selection: Binding(get: { app.ui.dockLayer }, set: { app.ui.dockLayer = $0 }), accessibilityName: "Layer a click acts on")
+                            selection: Binding(get: { app.ui.dockLayer }, set: { app.ui.dockLayer = $0 }), accessibilityName: "Layer a click acts on", rectID: "dock.layer", tabLike: true, outerPadding: 0)
                     .help("What a click on a picture or video does: put it behind the words, or play it over them")
                     .padding(.vertical, 4)
             }
-            Button { app.chooseMedia() } label: { Image(systemName: "plus").font(.wf(12)).frame(width: 22, height: 22) }
+            Button { app.chooseMedia() } label: { Image(systemName: "plus").font(.wf(12)).frame(width: 22, height: 22).wfRect("dock.plus") }
                 .buttonStyle(.plain).foregroundStyle(Tok.muted)
                 .help("Add pictures, videos and sound to the media bin (or drop files here)")
                 .accessibilityLabel("Add media files")
-            Button { app.setMediaDock(collapsed: !collapsed) } label: { Image(systemName: collapsed ? "chevron.up" : "chevron.down").font(.wf(12)).frame(width: 22, height: 22) }
+            Button { app.setMediaDock(collapsed: !collapsed) } label: { Image(systemName: collapsed ? "chevron.up" : "chevron.down").font(.wf(12)).frame(width: 22, height: 22).wfRect("dock.chevron") }
                 .buttonStyle(.plain).foregroundStyle(Tok.muted)
                 .help(collapsed ? "Show the media bin" : "Fold the media bin away")
                 .accessibilityLabel(collapsed ? "Show the media bin" : "Fold the media bin away")
         }
         .padding(.horizontal, 10)
         .frame(height: headerHeight)
+        .wfRect("dock.tabs")
         .overlay(alignment: .bottom) { if !collapsed { Rectangle().fill(Tok.border).frame(height: 1) } }
     }
 
@@ -114,21 +116,21 @@ struct MediaDockView: View {
             let tileWidth = max(60, (stripWidth - 28 - 6 * 10) / 7)
             ScrollView(.horizontal, showsIndicators: items.count > 7) {
                 LazyHStack(alignment: .top, spacing: 10) {
-                    ForEach(items) { asset in tile(asset, width: tileWidth) }
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, asset in tile(asset, width: tileWidth, at: index) }
                 }
                 .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 6)
             }
-            .frame(height: 10 + tileWidth * 9 / 16 + 3 + 14 + 6)
+            .frame(height: 10 + tileWidth * 9 / 16 + 3 + 16 + 6)
             .background(GeometryReader { g in
                 Color.clear.onAppear { stripWidth = g.size.width }.onChange(of: g.size.width) { _, w in stripWidth = w }
             })
         }
     }
 
-    private func tile(_ asset: MediaAsset, width: CGFloat) -> some View {
+    private func tile(_ asset: MediaAsset, width: CGFloat, at index: Int) -> some View {
         let mark = MediaTileMarks.mark(for: asset, layers: media.layers, showIsLive: media.showIsLive, selected: selected,
                                        soundIsPlaying: audio?.activeCues.contains { $0.assetID == asset.id } ?? false)
-        return DockTile(asset: asset, mark: mark, width: width)
+        return DockTile(asset: asset, mark: mark, width: width, index: index)
             .draggable(SlideBackgroundDrop.dragText(for: asset.id))       // MEDIA-010: drop it on a slide for that slide's own background
             .onTapGesture {
                 selected = asset.id
@@ -164,6 +166,7 @@ private struct DockTile: View {
     let asset: MediaAsset
     let mark: MediaTileMark
     let width: CGFloat
+    var index = 0
     @State private var result: MediaThumbnails.Result?
 
     var body: some View {
@@ -186,14 +189,19 @@ private struct DockTile: View {
             .overlay(alignment: .bottomTrailing) {
                 if let d = asset.duration, asset.kind != .image {
                     Text(MediaTile.clock(d)).font(.wfMono(9, .semibold)).padding(.horizontal, 3).frame(height: 13)
-                        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.xs)).foregroundStyle(.white).padding(4)
+                        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.xs)).foregroundStyle(.white)
+                        .wfRect("dock.tile.\(index).dur", size: 9, weight: 600, radius: Radius.xs).padding(4)
                 }
             }
-            .overlay(alignment: .topLeading) { tag.padding(5) }
+            .wfRect("dock.tile.\(index).thumb", radius: 4)
+            .overlay(alignment: .topLeading) { tag.wfRect("dock.tile.\(index).tag", size: 9, weight: 800, radius: Radius.xs).padding(5) }
             .wfThumbState(radius: 4, preview: mark == .preview, live: mark == .live)
             Text(asset.name).font(.wf(11, .medium)).lineLimit(1).truncationMode(.tail)
-                .foregroundStyle(Tok.text).frame(width: width, alignment: .leading)
+                .foregroundStyle(Tok.text).wfLine()
+                .wfRect("dock.tile.\(index).name", size: 11, weight: 500)
+                .frame(maxWidth: width, alignment: .leading)
         }
+        .wfRect("dock.tile.\(index)")
         .contentShape(Rectangle())
         .task(id: asset.path) { result = await MediaThumbnails.shared.thumbnail(for: asset) }
     }
@@ -293,50 +301,53 @@ struct MediaControllerRow: View {
     private func row(_ f: Face) -> some View {
         HStack(spacing: 8) {
             Button(action: f.restart) { Image(systemName: "backward.end.fill") }
-                .buttonStyle(ControllerButtonStyle()).help("Back to the start").accessibilityLabel("Restart \(f.name)")
+                .buttonStyle(ControllerButtonStyle()).wfRect("ctl.restart", radius: Radius.md).help("Back to the start").accessibilityLabel("Restart \(f.name)")
             Button(action: f.togglePlay) { Image(systemName: f.isPlaying ? "pause.fill" : "play.fill") }
-                .buttonStyle(ControllerButtonStyle(selected: f.isPlaying))
+                .buttonStyle(ControllerButtonStyle(selected: f.isPlaying)).wfRect("ctl.play", radius: Radius.md)
                 .help(f.isPlaying ? "Pause" : "Play").accessibilityLabel(f.isPlaying ? "Pause \(f.name)" : "Play \(f.name)")
             Button(action: f.stop) { Image(systemName: "stop.fill") }
-                .buttonStyle(ControllerButtonStyle())
+                .buttonStyle(ControllerButtonStyle()).wfRect("ctl.stop", radius: Radius.md)
                 .help(f.kind == "Background" ? "Remove the background" : "Stop and bring the words back")
                 .accessibilityLabel("Stop \(f.name)")
-            Text(f.name).font(.wf(12, .bold)).lineLimit(1).truncationMode(.middle)
-                .frame(minWidth: 60, maxWidth: 170, alignment: .leading)
+            Text(f.name).font(.wf(12, .bold)).lineLimit(1).truncationMode(.middle).wfLine()
+                .fixedSize(horizontal: true, vertical: false)
+                .wfRect("ctl.name", size: 12, weight: 700)
                 .help(f.kind)
                 .accessibilityLabel("\(f.name), \(f.kind)")
-            Text(Self.tenths(dragging ? dragPosition : f.position)).font(.wfMono(11, .medium))
+            Text(Self.tenths(dragging ? dragPosition : f.position)).font(.wfMono(11, .regular)).wfLine().wfRect("ctl.elapsed", size: 11, weight: 400)
             WFSlider(value: Binding(get: { dragging ? dragPosition : f.position }, set: { dragPosition = $0 }),
-                     range: 0...max(f.duration, 0.1), fill: Tok.cyan, accessibilityName: "Position") { editing in
+                     range: 0...max(f.duration, 0.1), fill: Tok.cyan, accessibilityName: "Position", rectID: "ctl.scrub") { editing in
                 if editing { dragPosition = f.position; dragging = true } else { f.seek(dragPosition); dragging = false }
             }
             .disabled(!f.canSeek).accessibilityLabel("Position in \(f.name)")
             Text("\u{2212}" + Self.tenths(dragging ? max(0, f.duration - dragPosition) : f.remaining))
-                .font(.wfMono(11, .medium)).foregroundStyle(Tok.muted)
+                .font(.wfMono(11, .regular)).foregroundStyle(Tok.muted).wfLine().wfRect("ctl.remaining", size: 11, weight: 400)
             loopControl(f)
             soundControl(f)
             ForEach(f.chips, id: \.self) { chip in
-                PillTag(text: chip, color: Tok.blue, height: 18, maxWidth: 110)
+                PillTag(text: chip, color: Tok.blue, height: 18, maxWidth: 110, rectID: "ctl.chip.\(chip)")
             }
         }
         .padding(.horizontal, 14).padding(.top, 6).padding(.bottom, 10)
+        .wfRect("ctl")
     }
 
     @ViewBuilder private func loopControl(_ f: Face) -> some View {
         switch f.loops {
         case .toggle(let on, let set):
             Button { set(!on) } label: {
-                HStack(spacing: 5) { Image(systemName: "repeat").font(.wf(11)); Text("Loop").font(.wf(11, .semibold)) }
-                    .foregroundStyle(on ? Tok.cyan : Tok.muted).padding(.horizontal, 8).frame(height: 22)
-                    .wfOutline(Capsule(style: .circular), stroke: Tok.borderStrong)
-                    .contentShape(Capsule())
+                HStack(spacing: 5) { Image(systemName: "repeat").font(.wf(11)).frame(width: 12, height: 12); Text("Loop").font(.wf(11, .semibold)).wfLine() }
+                    .foregroundStyle(on ? Tok.cyan : Tok.muted).padding(.horizontal, 9).frame(height: 22)
+                    .wfOutline(RoundedRectangle(cornerRadius: 10, style: .circular), stroke: Tok.borderStrong)
+                    .wfRect("ctl.loop", size: 11, weight: 600, radius: 10)
+                    .contentShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
             .help(on ? "Looping: it starts again when it ends" : "Play once")
             .accessibilityLabel("Loop \(f.name)").accessibilityValue(on ? "on" : "off")
             .accessibilityAddTraits(.isToggle)
         case .always:
-            PillTag(text: "Loop", color: Tok.cyan, height: 22, lead: .symbol("repeat"))
+            PillTag(text: "Loop", color: Tok.cyan, height: 22, lead: .symbol("repeat"), rectID: "ctl.loop")
                 .help("A background always loops").accessibilityLabel("A background always loops")
         }
     }
@@ -344,28 +355,28 @@ struct MediaControllerRow: View {
     @ViewBuilder private func soundControl(_ f: Face) -> some View {
         switch f.sound {
         case .clip:
-            Button { media.setMuted(!media.isMuted) } label: { Image(systemName: media.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") }
+            Button { media.setMuted(!media.isMuted) } label: { Image(systemName: media.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill").wfRect("ctl.speaker") }
                 .buttonStyle(.plain).foregroundStyle(Tok.text)
                 .help(media.isMuted ? "Unmute the clip's sound" : "Mute the clip's sound").accessibilityLabel(media.isMuted ? "Unmute" : "Mute")
-            WFSlider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), range: 0...1, fill: Tok.blue)
+            WFSlider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), range: 0...1, fill: Tok.blue, rectID: "ctl.volume")
                 .frame(width: 70).disabled(media.isMuted).accessibilityLabel("Clip volume")
         case .cue:
             if let audio {
-                Button { audio.setMuted(!audio.isMuted) } label: { Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") }
+                Button { audio.setMuted(!audio.isMuted) } label: { Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill").wfRect("ctl.speaker") }
                     .buttonStyle(.plain).foregroundStyle(Tok.text)
                     .help(audio.isMuted ? "Unmute the sound" : "Mute the sound").accessibilityLabel(audio.isMuted ? "Unmute" : "Mute")
-                WFSlider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), range: 0...1, fill: Tok.blue)
+                WFSlider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), range: 0...1, fill: Tok.blue, rectID: "ctl.volume")
                     .frame(width: 70).disabled(audio.isMuted).accessibilityLabel("Sound volume")
             }
         case .background:
             // MEDIA-010: muted when it starts, and the operator can unmute it. The state shown is the state the player was given.
             let heard = media.backgroundHeardMuted
-            Button { media.setBackgroundMuted(!media.isBackgroundMuted) } label: { Image(systemName: heard ? "speaker.slash.fill" : "speaker.wave.2.fill") }
+            Button { media.setBackgroundMuted(!media.isBackgroundMuted) } label: { Image(systemName: heard ? "speaker.slash.fill" : "speaker.wave.2.fill").wfRect("ctl.speaker") }
                 .buttonStyle(.plain).foregroundStyle(Tok.text)
                 .help(media.isBackgroundMuted ? "The background video is muted. Click to unmute it." : (heard ? "Silent while Blackout is on" : "Mute the background video"))
                 .accessibilityLabel(media.isBackgroundMuted ? "Unmute background" : "Mute background")
                 .accessibilityValue(heard ? "muted" : "sound on")
-            WFSlider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), range: 0...1, fill: Tok.blue)
+            WFSlider(value: Binding(get: { media.volume }, set: { media.setVolume($0) }), range: 0...1, fill: Tok.blue, rectID: "ctl.volume")
                 .frame(width: 70).disabled(heard).accessibilityLabel("Background volume")
         }
     }

@@ -1,0 +1,7 @@
+#!/bin/bash
+# UI-005j tool 1 wrapper: compiles scripts/design-rects.swift once (cached) and runs it. See that file's header.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+tmp="${TMPDIR:-/tmp}/wf-design-rects"; mkdir -p "$tmp"
+if [ ! -x "$tmp/design-rects" ] || [ scripts/design-rects.swift -nt "$tmp/design-rects" ]; then swiftc -O scripts/design-rects.swift -o "$tmp/design-rects"; fi
+"$tmp/design-rects" "$@"

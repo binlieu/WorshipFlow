@@ -86,6 +86,7 @@ struct WorshipFlowApp: App {
             ContentView(app: AppModel.shared)
                 .modifier(HardwareTestLauncher())
         }
+        .windowStyle(.hiddenTitleBar)          // UI-005j: the app draws the design's toolbar itself (ContentView.operatorToolbar)
         .defaultSize(width: 1560, height: 900)
         .windowResizability(.contentMinSize)
         .defaultLaunchBehavior(HardwareTestLaunchMode.opensHardwareTest ? .suppressed : .automatic)

@@ -18,14 +18,14 @@ extension AppModel {
     Was blind, but now I see
 
     Chorus:
-    My chains are gone, I've been set free
-    My God, my Savior has ransomed me
-    And like a flood His mercy reigns
-    Unending love, amazing grace
-    My chains are gone, I've been set free
-    My God, my Savior has ransomed me
-    And like a flood His mercy reigns
-    Unending love, amazing grace
+    My chains are gone
+    I've been set free
+    My God, my Savior
+    has ransomed me
+    And like a flood
+    His mercy reigns
+    Unending love
+    Amazing grace
 
     Verse 2:
     'Twas grace that taught my heart to fear
@@ -44,14 +44,14 @@ extension AppModel {
     Từng mù lòa, nay tôi thấy
 
     Chorus:
-    Xiềng xích đã tan, tôi được tự do
-    Chúa tôi, Cứu Chúa tôi đã chuộc tôi
-    Như dòng nước lũ ơn thương xót
-    Tình yêu vô tận, ân điển lạ lùng
-    Xiềng xích đã tan, tôi được tự do
-    Chúa tôi, Cứu Chúa tôi đã chuộc tôi
-    Như dòng nước lũ ơn thương xót
-    Tình yêu vô tận, ân điển lạ lùng
+    Xiềng xích đã tan
+    Tôi được tự do
+    Chúa tôi, Cứu Chúa tôi
+    đã chuộc tôi
+    Như dòng nước lũ
+    ơn thương xót Ngài tuôn tràn
+    Tình yêu vô tận
+    Ân điển lạ lùng
 
     Verse 2:
     Chính ân điển dạy lòng tôi kính sợ
@@ -78,7 +78,7 @@ extension AppModel {
         let folder = URL(fileURLWithPath: dir).appendingPathComponent("design-media")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var paths: [String] = []
-        let clip = folder.appendingPathComponent("Waves — teal.mov")
+        let clip = folder.appendingPathComponent("Waves — teal.mov.mov")      // the controller row names the file with its extension in the design
         let source = URL(fileURLWithPath: ProcessInfo.processInfo.environment["UI_SNAPSHOT_CLIP"] ?? "TestMedia/loop-1080p5994.mov")
         if !FileManager.default.fileExists(atPath: clip.path) { try? FileManager.default.copyItem(at: source, to: clip) }
         paths.append(clip.path)

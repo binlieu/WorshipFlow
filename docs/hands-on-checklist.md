@@ -254,3 +254,10 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] In Edit, Stage and Screens the toolbar chip names the live video or loop, not a blank slide.
 - [ ] Add a second audience screen after the Notes Look was made: it follows the Notes Look's audience entry.
 - [ ] Open a library copy that a newer build has migrated (or one with an extra row in grdb_migrations, made on a scratch copy): the app says the library was last opened by a newer WorshipFlow, names the steps, changes nothing, and offers Quit or Open a different library. Do not do this on the real library.
+
+## UI-005j measuring Show against the mockup (by hand)
+
+1. `scripts/design-rects docs/UI/mockups/01-operator-show.html /tmp/design.json` writes every visible element's rectangle, font, colour and radius from the mockup (WebKit, 1440 x 900, Inter loaded from `Vendor/Inter`; add `--light` for the light theme, `--png out.png` for a picture of the render).
+2. `UI_PREFIX=UI-005j scripts/design-capture.sh` builds a throw-away copy of the app, captures it at 1440 x 900 and also writes `<prefix>-show-dark.rects.json`: the rectangles of every view tagged with `.wfRect("id")` (debug builds only).
+3. `scripts/compare-rects.py /tmp/design.json <app>.rects.json scripts/design-map-show.json --top 5` prints, per region, the elements mapped and within 1 point; add `--all --bad --rects` for every element still out, `--unmapped` for the unmapped lists with their reasons.
+4. Check by eye: the window's top bar is the app's own (drag it; the three window buttons sit at its left); Add to playlist is in a song's context menu; the extras row is at the bottom of the right column.

@@ -9,37 +9,48 @@ struct TransportBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            stateBadge
-            VStack(alignment: .leading, spacing: 1) {
-                Text(headline).font(.wf(13, .semibold)).lineLimit(1).truncationMode(.tail)
-                    .foregroundStyle(Tok.text)
-                if let detail { Text(detail).font(.wfCaption).lineLimit(1).truncationMode(.tail).foregroundStyle(Tok.muted) }
+            stateBadge.wfRect("tp.badge", size: 11, weight: 700, radius: Radius.sm)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(headline).font(.wf(13, .semibold)).lineLimit(1).truncationMode(.tail).wfLine().frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(Tok.text).wfRect("tp.headline", size: 13, weight: 600)
+                if let detail { Text(detail).font(.wfCaption).lineLimit(1).truncationMode(.tail).foregroundStyle(Tok.muted).wfLine().frame(maxWidth: .infinity, alignment: .leading).wfRect("tp.detail", size: 11, weight: 400) }
             }
-            .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+            // The design's text block is as wide as its longer line, and the buttons are pushed to the right edge by a spacer.
+            .frame(width: textBlockWidth, alignment: .leading)
+            .wfRect("tp.text")
             .accessibilityElement(children: .combine)
+            Spacer(minLength: 10)
             Button { app.previous() } label: { hinted("backward.fill", "Previous", "←") }
-                .buttonStyle(TransportButtonStyle()).help("Left arrow")
+                .buttonStyle(TransportButtonStyle()).wfRect("tp.previous", size: 13, weight: 600, radius: Radius.lg).help("Left arrow")
             Button { app.goLive() } label: { hinted("play.fill", "Go Live", "↩", onFill: true) }
-                .buttonStyle(TransportButtonStyle(prominent: true)).help("Return: take the selected slide live")
+                .buttonStyle(TransportButtonStyle(prominent: true)).wfRect("tp.golive", size: 13, weight: 600, radius: Radius.lg).help("Return: take the selected slide live")
             Button { app.next() } label: { hinted("forward.fill", "Next", "→") }
-                .buttonStyle(TransportButtonStyle()).help("Right arrow or Space")
-            Divider().frame(height: 26)
+                .buttonStyle(TransportButtonStyle()).wfRect("tp.next", size: 13, weight: 600, radius: Radius.lg).help("Right arrow or Space")
+            Rectangle().fill(Tok.border).frame(width: 1, height: 28).wfRect("tp.sep.0")
             clearControl
             Button { app.blackout() } label: { hinted("rectangle.fill", "Blackout", "B") }
-                .buttonStyle(TransportButtonStyle(active: workspace.show.isBlackedOut))
+                .buttonStyle(TransportButtonStyle(active: workspace.show.isBlackedOut)).wfRect("tp.blackout", size: 13, weight: 600, radius: Radius.lg)
                 .disabled(workspace.show.isStopped)
                 .help("B: every audience screen goes black and every broadcast screen transparent. Press again, or go to another slide, to bring the picture back.")
                 .accessibilityValue(workspace.show.isBlackedOut ? "on" : "off")
             Button { app.stopShow() } label: { hinted("stop.fill", "Stop", nil) }
-                .buttonStyle(TransportButtonStyle())
+                .buttonStyle(TransportButtonStyle()).wfRect("tp.stop", size: 13, weight: 600, radius: Radius.lg)
                 .disabled(workspace.show.isStopped).help("Empty every screen and drop the live slide")
+            Rectangle().fill(Tok.border).frame(width: 1, height: 28).wfRect("tp.sep.1")
             health
         }
         .padding(.horizontal, Space.s5)
         .frame(height: Space.transportBarHeight)
         .background(Tok.surface)
+        .wfRect("tp")
         .overlay(alignment: .top) { Rectangle().fill(Tok.border).frame(height: 1) }
         .overlay(alignment: .topTrailing) { if app.ui.showClearMenuPreview { clearMenuPreview } }
+    }
+
+    /// UI-005j: the width of the text block: the longer of its two lines as set in Inter, at most 440 pt (a longer headline is cut with an ellipsis).
+    private var textBlockWidth: CGFloat {
+        let widest = max(InterFont.textWidth(headline, size: 13, weight: 600), detail.map { InterFont.textWidth($0, size: 11, weight: 400) } ?? 0)
+        return min(440, ceil(widest))
     }
 
     /// The Clear menu's entries, drawn (debug pictures only; see `showClearMenuPreview`).
@@ -57,7 +68,7 @@ struct TransportBar: View {
 
     private func hinted(_ symbol: String, _ title: String, _ key: String?, onFill: Bool = false) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: symbol)
+            Image(systemName: symbol).frame(width: 15, height: 15)
             Text(title)
             if let key { KeyHint(key: key, onFill: onFill) }
         }
@@ -79,12 +90,12 @@ struct TransportBar: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "rectangle.slash")
+                Image(systemName: "rectangle.slash").frame(width: 15, height: 15)
                 Text("Clear")
-                KeyHint(key: "esc")
-                Image(systemName: "chevron.down").font(.wf(10, .bold))
+                Image(systemName: "chevron.down").font(.wf(10, .bold)).frame(width: 12, height: 12)
             }
             .transportChrome()
+            .wfRect("tp.clear", size: 13, weight: 600, radius: Radius.lg)
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
         .disabled(workspace.show.isStopped)
@@ -105,8 +116,8 @@ struct TransportBar: View {
 
     @ViewBuilder private var stateBadge: some View {
         switch app.mode {
-        case .live: Text("LIVE").font(.wf(11, .bold)).tracking(0.66).foregroundStyle(Tok.onLive)
-            .padding(.horizontal, 8).padding(.vertical, 3).background(Tok.liveFill, in: RoundedRectangle(cornerRadius: Radius.sm))
+        case .live: Text("LIVE").font(.wf(11, .bold)).tracking(0.66).wfLine().foregroundStyle(Tok.onLive)
+            .padding(.horizontal, 9).padding(.vertical, 4).background(Tok.liveFill, in: RoundedRectangle(cornerRadius: Radius.sm))      // ui.css `.badge`: padding 3 x 8 plus the 1 pt border
             .accessibilityLabel("Show state: live")
         case .stopped: badge("STOPPED", Tok.muted)
         case .cleared: badge("CLEARED", Tok.warning)
@@ -115,8 +126,8 @@ struct TransportBar: View {
     }
 
     private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text).font(.wf(11, .bold)).tracking(0.66).foregroundStyle(color)
-            .padding(.horizontal, 8).padding(.vertical, 3)
+        Text(text).font(.wf(11, .bold)).tracking(0.66).wfLine().foregroundStyle(color)
+            .padding(.horizontal, 9).padding(.vertical, 4)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: color)
             .accessibilityLabel("Show state: \(text.lowercased())")
     }
@@ -147,14 +158,17 @@ struct TransportBar: View {
 
     @ViewBuilder private var health: some View {
         if let h = app.outputHealth {
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 6) {
                         Circle().fill(h.needsAttention ? Tok.warning : Tok.cyan).frame(width: 5, height: 5).accessibilityHidden(true)
                         Text(h.rateText).foregroundStyle(h.needsAttention ? Tok.warning : Tok.text)
                     }
-                    Text(h.countsText).foregroundStyle(Tok.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 14)
+                    .wfRect("tp.health.rate", size: 11, weight: 400)
+                    Text(h.countsText).foregroundStyle(Tok.muted).frame(maxWidth: .infinity, alignment: .leading).wfRect("tp.health.counts", size: 11, weight: 400)
                 }
+                .wfRect("tp.health")
                 .font(.wfMono(11))
                 if let audio = app.audio { MiniMeter(audio: audio) }
             }
@@ -182,7 +196,7 @@ extension View {
     /// The look of a transport button, for controls that are not a plain Button (the Clear menu).
     func transportChrome() -> some View {
         self.font(.wf(13, .semibold)).foregroundStyle(Tok.text)
-            .padding(.horizontal, 16).frame(height: Space.transportHeight)
+            .padding(.horizontal, 17).frame(height: Space.transportHeight)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.borderStrong, fill: Tok.surface2)
     }
 }
@@ -206,8 +220,10 @@ private struct MiniMeter: View {
                     .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
                 .frame(width: 6, height: 34)
+                .wfRect("tp.meter.\(channel)", radius: 2)
             }
         }
+        .wfRect("tp.meters")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Sound level")
     }

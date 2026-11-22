@@ -151,6 +151,8 @@ extension AppModel {
                 }
                 ctx.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
                 layer.render(in: ctx)
+                // UI-005j: the rectangles of every tagged view, for scripts/compare-rects.py.
+                if let window { DesignProbe.write(window: window, to: URL(fileURLWithPath: dir).appendingPathComponent("\(ProcessInfo.processInfo.environment["UI_SNAPSHOT_PREFIX"] ?? "UI-001")-\(name).rects.json")) }
                 guard let image = ctx.makeImage() else { note("no image"); return }
                 let rep = NSBitmapImageRep(cgImage: image)
                 if let data = rep.representation(using: .png, properties: [:]) {

@@ -105,6 +105,7 @@ struct WorkspaceView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            operatorToolbar
             if let error = workspace.lastError ?? app.settingsError {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
@@ -127,15 +128,9 @@ struct WorkspaceView: View {
             if workspace.mode.showsTransportBar { TransportBar(app: app, workspace: workspace) }
         }
         .background(Tok.bg)
-        .toolbarBackground(Tok.surface, for: .windowToolbar)
-        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
-        .navigationTitle(serviceName)
+        .ignoresSafeArea(.container, edges: .top)          // the bar is the window's top 52 pt: there is no title bar above it
+        .navigationTitle(serviceName)           // the window's own title (Window menu, VoiceOver); the bar below draws its own block (UI-005j)
         .navigationSubtitle(serviceSubtitle)
-        .toolbar {
-            ToolbarItem(placement: .navigation) { sidebarToggle }
-            ToolbarItem(placement: .principal) { modeSwitcher }
-            ToolbarItem(placement: .primaryAction) { toolbarStatus }
-        }
         // UI-002: while a countdown is live its time is rewritten as it changes. It never moves the show on.
         .task(id: workspace.liveCountdown?.itemID) {
             guard workspace.liveCountdown != nil else { return }
@@ -191,6 +186,43 @@ struct WorkspaceView: View {
 
     // MARK: Toolbar
 
+    /// UI-005j: the design's 52 pt toolbar, drawn by the app instead of the system toolbar so every item sits where the mockup puts it:
+    /// 14 pt in, the three window buttons' 52 pt and 6 pt (the window has no title bar of its own, see `WindowChrome`), then 12 pt between
+    /// the sidebar button, the title block, the mode switcher (centred in the room between them and the timers), the timers and the pills.
+    private var operatorToolbar: some View {
+        HStack(spacing: 12) {
+            Color.clear.frame(width: 58, height: 1)      // under the window's own three buttons
+            sidebarToggle
+            titleBlock
+            Spacer(minLength: 0)
+            modeSwitcher
+            Spacer(minLength: 0)
+                // Open or close the screens: not in the design's toolbar, so it floats in the free room right of the mode switcher and takes none.
+                .overlay(alignment: .leading) { screensButton.padding(.leading, 12) }
+            if !workspace.mode.showsTransportBar, app.mode != .stopped { liveChip }
+            if let stage = app.stage { ToolbarTimersView(stage: stage) }
+            HStack(spacing: 12) { ForEach(app.rolePills) { RolePillView(pill: $0, rectID: "tb.pill.\($0.abbreviation.lowercased())") } }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: Space.toolbarHeight)
+        .background(Tok.surface)
+        .overlay(alignment: .bottom) { Rectangle().fill(Tok.border).frame(height: 1) }
+        .background(WindowDragArea())
+        .background(WindowChrome())
+        .wfRect("tb")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Toolbar")
+    }
+
+    private var screensButton: some View {
+        Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
+            Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display").font(.wf(13)).frame(width: 28, height: 24)
+        }
+        .buttonStyle(HeaderButtonStyle(kind: .ghost, compact: true))
+        .help(app.screensOn ? "Close screens" : "Open screens")
+        .accessibilityLabel(app.screensOn ? "Close screens" : "Open screens")
+    }
+
     /// The window's own title and subtitle carry the service and the library, so the name is shown once (KI-068).
     private var serviceName: String {
         workspace.serviceTitle()      // UI-005b: the service date and time when the playlist has them, else its name
@@ -199,12 +231,24 @@ struct WorkspaceView: View {
         "WorshipFlow · \(workspace.libraries.first { $0.id == workspace.selectedLibraryID }?.name ?? "")"
     }
 
+    /// UI-005j: the design's title block (13/600 over 11 muted, 16 pt lines), set by the toolbar so its place is the design's.
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(serviceName).font(.wf(13, .semibold)).foregroundStyle(Tok.text).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading).frame(height: 16).wfRect("tb.title", size: 13, weight: 600)
+            Text(serviceSubtitle).font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading).frame(height: 16).wfRect("tb.subtitle", size: 11, weight: 400)
+        }
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityHidden(true)       // the window title carries the same words
+    }
+
     /// The design's sidebar toggle (a ghost icon button left of the title). Only the Show mode has the sidebar.
     private var sidebarToggle: some View {
         Button { app.ui.sidebarVisible.toggle() } label: {
-            Image(systemName: "sidebar.left").font(.wf(14)).foregroundStyle(Tok.muted).frame(width: 28, height: 24)
+            Image(systemName: "sidebar.left").font(.wf(14)).foregroundStyle(Tok.muted).frame(width: 15, height: 15).padding(.horizontal, 11).frame(height: 26)
         }
         .buttonStyle(.plain)
+        .wfRect("tb.sidebarToggle")
         .keyboardShortcut("s", modifiers: [.command, .option])
         .disabled(workspace.mode != .show)
         .help(app.ui.sidebarVisible ? "Hide the sidebar (Option-Command-S)" : "Show the sidebar (Option-Command-S)")
@@ -214,7 +258,7 @@ struct WorkspaceView: View {
     /// The segmented mode switcher: icon and word per mode, Command-1 to Command-6.
     private var modeSwitcher: some View {
         WFSegmented(items: WorkspaceMode.allCases.map { .init(value: $0, title: $0.title, symbol: Self.symbol($0), label: "\($0.title) (Command-\($0.commandDigit))") },
-                    selection: Binding(get: { workspace.mode }, set: { workspace.setMode($0) }), accessibilityName: "Mode")
+                    selection: Binding(get: { workspace.mode }, set: { workspace.setMode($0) }), accessibilityName: "Mode", rectID: "tb.modes")
     }
 
     static func symbol(_ mode: WorkspaceMode) -> String {
@@ -225,22 +269,6 @@ struct WorkspaceView: View {
         case .stage: "music.mic"
         case .cues: "bolt"
         case .screens: "display"
-        }
-    }
-
-    /// Timers, then the AUD, STG and BRD pills: visible in every mode. The screens button (moved here from the transport bar)
-    /// opens and closes the screens; in the modes without the transport bar a LIVE chip says what is on the screens.
-    private var toolbarStatus: some View {
-        HStack(spacing: Space.s4) {
-            if !workspace.mode.showsTransportBar, app.mode != .stopped { liveChip }
-            if let stage = app.stage { ToolbarTimersView(stage: stage) }
-            Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
-                Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display").font(.wf(13)).frame(width: 28, height: 24)
-            }
-            .buttonStyle(HeaderButtonStyle(kind: .ghost, compact: true))
-            .help(app.screensOn ? "Close screens" : "Open screens")
-            .accessibilityLabel(app.screensOn ? "Close screens" : "Open screens")
-            HStack(spacing: 6) { ForEach(app.rolePills) { RolePillView(pill: $0) } }
         }
     }
 

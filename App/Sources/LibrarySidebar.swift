@@ -91,7 +91,7 @@ struct LibrarySidebar: View {
     private var librarySection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                SectionLabel("Libraries")
+                SectionLabel("Libraries", rectID: "sb.libs.title")
                 Spacer()
                 Menu {
                     Button("New presentation") { app.newPresentation() }
@@ -112,7 +112,7 @@ struct LibrarySidebar: View {
                         Button("Delete library…", role: .destructive) { pendingDelete = .library(library.id, library.name) }
                             .disabled(workspace.libraries.count < 2)
                     }
-                } label: { Image(systemName: "plus") }
+                } label: { Image(systemName: "plus").wfRect("sb.libs.plus") }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                     .help("New presentation (Command-N), import lyrics (Command-I), library actions")
                     .accessibilityLabel("Library actions")
@@ -123,9 +123,9 @@ struct LibrarySidebar: View {
                 // UI-005b: the design's order: songs, the Bible entry, then sermons and announcements.
                 let ordered = LibraryListing.sidebarOrder(workspace.libraries)
                 let bibleAt = LibraryListing.scriptureEntryPosition(in: ordered)
-                ForEach(Array(ordered.prefix(bibleAt))) { library in libraryRow(library) }
-                scriptureRow
-                ForEach(Array(ordered.dropFirst(bibleAt))) { library in libraryRow(library) }
+                ForEach(Array(ordered.prefix(bibleAt).enumerated()), id: \.element.id) { i, library in libraryRow(library, at: i) }
+                scriptureRow.wfRect("sb.lib.\(bibleAt)")
+                ForEach(Array(ordered.dropFirst(bibleAt).enumerated()), id: \.element.id) { i, library in libraryRow(library, at: bibleAt + 1 + i) }
             }
             .padding(.bottom, 10)
             Rectangle().fill(Tok.border).frame(height: 1).padding(.horizontal, -12)
@@ -133,7 +133,7 @@ struct LibrarySidebar: View {
             // and no extra inset. Up and Down move the selection like the List did; Tab reaches each row as a button.
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(rows) { row in songRow(row) }
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in songRow(row, at: i) }
                 }
                 .padding(.top, 10)
             }
@@ -160,7 +160,7 @@ struct LibrarySidebar: View {
         .padding(.horizontal, 12).padding(.vertical, 10)
     }
 
-    private func songRow(_ row: LibraryListing.Row) -> some View {
+    private func songRow(_ row: LibraryListing.Row, at index: Int) -> some View {
         let selected = workspace.openPresentationID == row.id
         return Button { open(row.id) } label: {
             HStack(spacing: 8) {
@@ -170,11 +170,12 @@ struct LibrarySidebar: View {
                 if let match = row.match {
                     Text(match == .title ? "Title" : "Lyrics").font(.wf(11)).foregroundStyle(Tok.muted)
                 } else if workspace.bilingualPresentationIDs.contains(row.id) {
-                    Text("EN · VI").font(.wf(11)).foregroundStyle(Tok.muted).accessibilityLabel("Two languages")
+                    Text("EN · VI").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("sb.song.\(index).badge", size: 11, weight: 400).accessibilityLabel("Two languages")
                 }
             }
             .padding(.horizontal, 8).frame(height: 26)
             .background(selected ? Tok.surface3 : Color.clear, in: RoundedRectangle(cornerRadius: Radius.md))
+            .wfRect("sb.song.\(index)", size: 13, weight: 400, radius: Radius.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -202,12 +203,13 @@ struct LibrarySidebar: View {
                 Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Tok.muted) }
                     .buttonStyle(.plain).help("Clear the search").accessibilityLabel("Clear the search")
             } else {
-                KeyHint(key: "⌘F")
+                KeyHint(key: "⌘F", rectID: "sb.search.kbd")
             }
         }
         .font(.wf(12))
-        .padding(.horizontal, 8).frame(height: Space.controlHeight)
+        .padding(.horizontal, 9).frame(height: Space.controlHeight)      // ui.css `.field`: padding 0 8 plus the 1 pt border
         .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: searchFocused.wrappedValue ? Tok.blue : Tok.borderStrong, fill: Tok.bg)
+        .wfRect("sb.search", size: 12, weight: 400, radius: Radius.md)
     }
 
     /// Opens a row: a search hit through the search (it may be in another library), a plain row directly.
@@ -241,7 +243,7 @@ struct LibrarySidebar: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private func libraryRow(_ library: Library) -> some View {
+    private func libraryRow(_ library: Library, at index: Int) -> some View {
         let selected = library.id == workspace.selectedLibraryID && !(app.ui.scriptureOpen || workspace.centreShowsScripture)
         return Button { app.ui.scriptureOpen = false; Task { await workspace.selectLibrary(library.id) } } label: {
             HStack(spacing: 8) {
@@ -249,11 +251,12 @@ struct LibrarySidebar: View {
                 Text(library.name).font(.wf(13)).lineLimit(1)
                 Spacer()
                 if let count = workspace.libraryCounts[library.id] {
-                    Text("\(count)").font(.wf(11)).foregroundStyle(Tok.muted)
+                    Text("\(count)").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("sb.lib.\(index).count", size: 11, weight: 400)
                 }
             }
             .padding(.horizontal, 8).frame(height: 26)
             .background(selected ? Tok.surface3 : Color.clear, in: RoundedRectangle(cornerRadius: Radius.md))
+            .wfRect("sb.lib.\(index)", size: 13, weight: 400, radius: Radius.md)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -265,14 +268,14 @@ struct LibrarySidebar: View {
 
     private var playlistSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                SectionLabel("Playlist")
-                WFPopup(title: currentPlaylist?.name ?? "No playlist", accessibilityName: "Playlist", height: 22) {
+            HStack(spacing: 8) {
+                SectionLabel("Playlist", rectID: "sb.pl.title")
+                WFPopup(title: currentPlaylist?.name ?? "No playlist", accessibilityName: "Playlist", height: 22, rectID: "sb.pl.popup") {
                     ForEach(workspace.playlists) { playlist in
                         Button(playlist.name) { Task { await workspace.selectPlaylist(playlist.id) } }
                     }
                 }
-                .fixedSize().padding(.leading, 2)
+                .fixedSize().padding(.leading, 6)
                 Spacer()
                 Menu {
                     Button("Add header…") { ask(.newHeader, "") }
@@ -287,14 +290,14 @@ struct LibrarySidebar: View {
                         Button("Import program…") { app.openImportProgram() }
                         Button("Delete playlist…", role: .destructive) { pendingDelete = .playlist(playlist.id, playlist.name) }
                     }
-                } label: { Image(systemName: "ellipsis").foregroundStyle(Tok.muted) }
+                } label: { Image(systemName: "ellipsis").foregroundStyle(Tok.muted).wfRect("sb.pl.menu") }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                     .help("Add a section header or a countdown, and playlist actions").accessibilityLabel("Playlist actions")
             }
             List(selection: Binding(get: { workspace.selectedPlaylistItemID },
                                     set: { id in if let id { selectPlaylistItem(id) } })) {
                 ForEach(Array(workspace.playlistItems.enumerated()), id: \.element.id) { index, item in
-                    playlistRow(item, number: playableNumber(index))
+                    playlistRow(item, number: playableNumber(index), at: index)
                 }
                 .onMove { source, destination in
                     guard let from = source.first else { return }
@@ -304,6 +307,7 @@ struct LibrarySidebar: View {
                     Task { await workspace.movePlaylistItem(id: id, to: to) }
                 }
             }
+            .environment(\.defaultMinListRowHeight, 1)      // UI-005j: the system's 24 pt minimum made every 22 pt header row 24
             .listStyle(.plain).scrollContentBackground(.hidden).contentMargins(.horizontal, 0, for: .scrollContent).tint(.clear)   // UI-005a: no system selection block behind the rounded rows
             .overlay {
                 if workspace.playlistItems.isEmpty {
@@ -337,12 +341,13 @@ struct LibrarySidebar: View {
         }
     }
 
-    @ViewBuilder private func playlistRow(_ item: PlaylistItem, number: Int) -> some View {
+    @ViewBuilder private func playlistRow(_ item: PlaylistItem, number: Int, at row: Int) -> some View {
         switch item.kind {
         case .header(let label):
             Text(label.uppercased()).font(.wf(11, .semibold)).tracking(0.44).foregroundStyle(Tok.muted).lineLimit(1)
-                .padding(.horizontal, 8).frame(height: 22, alignment: .leading)
-                .listRowInsets(EdgeInsets(top: 0, leading: -9, bottom: 0, trailing: -9)).listRowSeparator(.hidden)
+                .padding(.horizontal, 8).frame(maxWidth: .infinity, alignment: .leading).frame(height: 22, alignment: .leading)
+                .wfRect("sb.pl.row.\(row)", size: 11, weight: 600)
+                .listRowInsets(EdgeInsets(top: 0, leading: -8, bottom: 0, trailing: -9)).listRowSeparator(.hidden)
                 .selectionDisabled()
             .tag(item.id)
             .accessibilityElement(children: .combine)
@@ -354,7 +359,7 @@ struct LibrarySidebar: View {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .countdown(let spec):
-            rowChrome(item, icon: "timer") {
+            rowChrome(item, row: row, icon: "timer") {
                 Text(spec.label.isEmpty ? "Countdown" : spec.label).lineLimit(1)
                 Spacer()
                 Text(Self.summary(spec)).font(.wf(11)).foregroundStyle(Tok.muted)
@@ -367,7 +372,7 @@ struct LibrarySidebar: View {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .scripture(let spec):
-            rowChrome(item, icon: "book.closed") {
+            rowChrome(item, row: row, icon: "book.closed") {
                 Text(item.title).lineLimit(1)
                 if let warning = app.scripture?.availability(of: spec) {
                     Text("not installed").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
@@ -382,7 +387,7 @@ struct LibrarySidebar: View {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .media(let spec):
-            rowChrome(item, icon: Self.symbol(for: spec.kind)) {
+            rowChrome(item, row: row, icon: Self.symbol(for: spec.kind)) {
                 Text(item.title).lineLimit(1)
                 Spacer()
                 liveMarker(item)
@@ -392,7 +397,7 @@ struct LibrarySidebar: View {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .announcements(let spec):
-            rowChrome(item, icon: "megaphone") {
+            rowChrome(item, row: row, icon: "megaphone") {
                 Text(item.title).lineLimit(1)
                 Spacer()
                 liveMarker(item)
@@ -402,7 +407,7 @@ struct LibrarySidebar: View {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .sermon:
-            rowChrome(item, icon: "textformat") {
+            rowChrome(item, row: row, icon: "textformat") {
                 Text("Sermon — \(item.title)").lineLimit(1)
                 if workspace.emptyPlaylistItemIDs.contains(item.id) {
                     Text("empty").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
@@ -415,7 +420,7 @@ struct LibrarySidebar: View {
                 Button("Remove from playlist", role: .destructive) { Task { await workspace.removePlaylistItem(id: item.id) } }
             }
         case .presentation:
-            rowChrome(item, icon: "music.note") {
+            rowChrome(item, row: row, icon: "music.note") {
                 Text(item.title).lineLimit(1)
                 if workspace.emptyPlaylistItemIDs.contains(item.id) {
                     Text("empty").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
@@ -440,15 +445,16 @@ struct LibrarySidebar: View {
     }
 
     /// One playlist row in the design's form: a leading icon by kind (text colour), 13 pt text, 26 pt tall, `surface-3` when selected.
-    private func rowChrome<C: View>(_ item: PlaylistItem, icon: String, @ViewBuilder _ content: () -> C) -> some View {
+    private func rowChrome<C: View>(_ item: PlaylistItem, row: Int, icon: String, @ViewBuilder _ content: () -> C) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon).font(.wf(13)).foregroundStyle(Tok.text).frame(width: 16)
             content()
         }
         .font(.wf(13))
         .padding(.horizontal, 8).frame(height: 26)
+        .wfRect("sb.pl.row.\(row)", size: 13, weight: 400, radius: Radius.md)
         .tag(item.id)
-        .listRowInsets(EdgeInsets(top: 0, leading: -9, bottom: 0, trailing: -9)).listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 0, leading: -8, bottom: 0, trailing: -9)).listRowSeparator(.hidden)
         .listRowBackground(RoundedRectangle(cornerRadius: Radius.md).fill(workspace.selectedPlaylistItemID == item.id ? Tok.surface3 : .clear))
     }
 
@@ -456,8 +462,9 @@ struct LibrarySidebar: View {
         if isOnScreen(item) {
             HStack(spacing: 4) {
                 Circle().fill(Tok.live).frame(width: 8, height: 8)
-                Text("LIVE").font(.wf(11)).foregroundStyle(Tok.live)
+                Text("LIVE").font(.wf(11)).foregroundStyle(Tok.live).wfLine()
             }
+            .wfRect("sb.pl.live", size: 11, weight: 400)
             .accessibilityLabel("On screen")
         }
     }

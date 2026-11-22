@@ -14,10 +14,27 @@ struct ShowInspector: View {
     @State private var textPropEditing: TextPropEdit?
 
     var body: some View {
+        VStack(spacing: 0) {
+            scrolling
+            // UI-005j: what the design does not draw (Edit live slide, the live background override with Drop, Configure…) sits at the
+            // bottom, pinned, in the area the design leaves empty; it takes no space when there is nothing to show.
+            if showsSlimRow {
+                Rectangle().fill(Tok.border).frame(height: 1)
+                slimRow.padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Tok.surface)
+            }
+        }
+        .background(Tok.surface)
+    }
+
+    private var showsSlimRow: Bool {
+        workspace.show.liveSlide != nil || app.media?.hasLiveBackgroundOverride == true || app.profiles.filter(\.isEnabled).isEmpty
+    }
+
+    private var scrolling: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 monitors.padding(.horizontal, 12).padding(.vertical, 10)
-                slimRow.padding(.horizontal, 12).padding(.bottom, 8)
                 Rectangle().fill(Tok.border).frame(height: 1)
                 lookRow.padding(.horizontal, 12).padding(.vertical, 8)
                 tabBar
@@ -46,28 +63,35 @@ struct ShowInspector: View {
             GridRow(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Badge(text: "PREVIEW", style: .preview)
-                        if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.wf(11)).foregroundStyle(Tok.muted) }
+                        Badge(text: "PREVIEW", style: .preview, rectID: "insp.mon.0.badge")
+                        if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("insp.mon.0.caption", size: 11, weight: 400) }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .wfRect("insp.mon.0.head")
                     preview
                 }
+                .wfRect("insp.mon.0")
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         liveBadge
-                        Text(live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
+                        Text(live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
+                            .wfRect("insp.mon.1.caption", size: 11, weight: 400)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .wfRect("insp.mon.1.head")
                     liveMonitor
                 }
+                .wfRect("insp.mon.1")
             }
             if !others.isEmpty {
                 GridRow(alignment: .top) {
-                    screenCard(others[0])
-                    if others.count > 1 { screenCard(others[1]) } else { Color.clear }
+                    screenCard(others[0], at: 2)
+                    if others.count > 1 { screenCard(others[1], at: 3) } else { Color.clear }
                 }
                 if others.count > 2 {
                     GridRow(alignment: .top) {
-                        screenCard(others[2])
-                        if others.count > 3 { screenCard(others[3]) } else { Color.clear }
+                        screenCard(others[2], at: 4)
+                        if others.count > 3 { screenCard(others[3], at: 5) } else { Color.clear }
                     }
                 }
             }
@@ -123,8 +147,8 @@ struct ShowInspector: View {
                 RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
             }
         }
+        .wfRect("insp.mon.0.thumb", radius: 6)
         .wfThumbState(radius: 6, preview: true)
-        .padding(4)
         .accessibilityLabel("Preview: the selected slide")
     }
 
@@ -134,36 +158,40 @@ struct ShowInspector: View {
                 RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
             }
         }
+        .wfRect("insp.mon.1.thumb", radius: 6)
         .wfThumbState(radius: 6, live: app.mode == .live, liveColor: Tok.liveFill)
-        .padding(app.mode == .live ? 5 : 0)
         .accessibilityLabel("Live: what the audience screen shows now")
     }
 
     @ViewBuilder private var liveBadge: some View {
         switch app.mode {
-        case .live: Badge(text: "LIVE", style: .live)
-        case .cleared: Badge(text: "CLEARED", style: .warning)
-        case .blackout: Badge(text: "BLACKOUT", style: .warning)
-        case .stopped: Badge(text: "NOT LIVE", style: .outline(Tok.muted))
+        case .live: Badge(text: "LIVE", style: .live, rectID: "insp.mon.1.badge")
+        case .cleared: Badge(text: "CLEARED", style: .warning, rectID: "insp.mon.1.badge")
+        case .blackout: Badge(text: "BLACKOUT", style: .warning, rectID: "insp.mon.1.badge")
+        case .stopped: Badge(text: "NOT LIVE", style: .outline(Tok.muted), rectID: "insp.mon.1.badge")
         }
     }
 
     /// A stage or broadcast monitor with its ONE caption line: a dot, the role in bold, the connector, and SIM where it is simulated.
-    private func screenCard(_ profile: ScreenProfile) -> some View {
+    private func screenCard(_ profile: ScreenProfile, at index: Int) -> some View {
         let readout = app.readouts.first { $0.id == profile.id }
         let simulated = readout?.sdi?.isSimulated == true || readout?.mirrors.contains { $0.sdi?.isSimulated == true } == true
         return VStack(alignment: .leading, spacing: 5) {
             LiveScreenPreview(app: app, screenID: profile.id, cornerRadius: 6)
+                .wfRect("insp.mon.\(index).thumb", radius: 6)
                 .wfThumbState(radius: 6)
             HStack(spacing: 6) {
-                Circle().fill(profile.role.tokenColor).frame(width: 8, height: 8).accessibilityHidden(true)
-                Text(profile.role.rawValue.capitalized).font(.wf(11, .semibold)).foregroundStyle(Tok.text).lineLimit(1)
-                Text(connectorText(profile)).font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
+                Circle().fill(profile.role.tokenColor).frame(width: 8, height: 8).wfRect("insp.mon.\(index).dot").accessibilityHidden(true)
+                Text(profile.role.rawValue.capitalized).font(.wf(11, .semibold)).foregroundStyle(Tok.text).lineLimit(1).wfLine().wfRect("insp.mon.\(index).role", size: 11, weight: 600)
+                Text(connectorText(profile)).font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine().wfRect("insp.mon.\(index).dest", size: 11, weight: 400)
                 Spacer(minLength: 0)
-                if simulated { Text("SIM").font(.wf(9, .bold)).tracking(0.54).foregroundStyle(Tok.broadcast).padding(.horizontal, 6).padding(.vertical, 1)
-                    .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: Tok.broadcast).fixedSize() }
+                if simulated { Text("SIM").font(.wf(9, .bold)).tracking(0.54).wfLine().foregroundStyle(Tok.broadcast).padding(.horizontal, 7).padding(.vertical, 2)
+                    .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: Tok.broadcast).wfRect("insp.mon.\(index).sim", size: 9, weight: 700, radius: Radius.sm).fixedSize() }
             }
+            .wfRect("insp.mon.\(index).cap")
         }
+        .frame(maxHeight: .infinity, alignment: .top)       // the grid row's height is its tallest card (the Broadcast caption is 20 pt), as in CSS grid
+        .wfRect("insp.mon.\(index)")
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(profile.name), \(profile.role.rawValue) screen, \(app.destinationName(profile.destination))\(simulated ? ", simulated" : "")")
         .help("\(profile.name): \(app.destinationName(profile.destination)) · \(profile.videoMode.name)")
@@ -172,31 +200,38 @@ struct ShowInspector: View {
     // MARK: Look
 
     private var lookRow: some View {
-        GeometryReader { geo in lookButtons(width: geo.size.width) }.frame(height: 24)
+        GeometryReader { geo in lookButtons(width: geo.size.width) }.frame(height: 24).wfRect("insp.look.row")
     }
 
     private func lookButtons(width: CGFloat) -> some View {
-        // The row minus its label and the chevron: as many Looks as their names allow, the rest in the menu.
-        let room = Double(width) - 36 - 8 - 28
+        // The row minus its label, its chevron and the two 8 pt gaps: as many Looks as their names allow, the rest in the menu.
+        let room = Double(width) - 36 - 8 - 8 - 18
         let split = LookRow.split(app.looks, selected: app.selectedLookID, capacity: LookRow.capacity(for: app.looks, availableWidth: room))
-        return HStack(spacing: 4) {
-            SectionLabel("Look").frame(width: 36, alignment: .leading)
-            ForEach(split.visible) { look in
-                let selected = look.id == app.selectedLookID
-                Button { app.selectLook(look.id) } label: {
-                    Text(look.name).font(.wf(11, .medium)).lineLimit(1).fixedSize().frame(maxWidth: .infinity, minHeight: 24)
+        return HStack(spacing: 8) {
+            SectionLabel("Look").frame(width: 36, alignment: .leading).wfRect("insp.look.label", size: 11, weight: 600)
+            HStack(spacing: 4) {
+                ForEach(Array(split.visible.enumerated()), id: \.element.id) { index, look in
+                    let selected = look.id == app.selectedLookID
+                    Button { app.selectLook(look.id) } label: {
+                        Text(look.name).font(.wf(11, .medium)).lineLimit(1).frame(maxWidth: .infinity, minHeight: 24)
+                    }
+                    .buttonStyle(LookButtonStyle(selected: selected))
+                    .wfRect("insp.look.\(index)", size: 11, weight: 500, radius: Radius.md)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                 }
-                .buttonStyle(LookButtonStyle(selected: selected))
-                .accessibilityAddTraits(selected ? .isSelected : [])
+                if app.looks.isEmpty { Text("No Looks yet.").font(.wf(11)).foregroundStyle(Tok.muted) }
             }
-            if !split.overflow.isEmpty {
-                Menu {
-                    ForEach(split.overflow) { look in Button(look.name) { app.selectLook(look.id) } }
-                } label: { Image(systemName: "chevron.down").font(.wf(10, .semibold)).foregroundStyle(Tok.muted).frame(width: 24, height: 24) }
-                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("More Looks")
-                    .accessibilityLabel("More Looks")
-            }
-            if app.looks.isEmpty { Text("No Looks yet.").font(.wf(11)).foregroundStyle(Tok.muted) }
+            .frame(maxWidth: .infinity)
+            // The design's chevron: always there; it lists every Look (the ones that did not fit in the row are only here).
+            Menu {
+                ForEach(app.looks) { look in
+                    Button { app.selectLook(look.id) } label: {
+                        if look.id == app.selectedLookID { Label(look.name, systemImage: "checkmark") } else { Text(look.name) }
+                    }
+                }
+            } label: { Image(systemName: "chevron.down").font(.wf(10, .semibold)).foregroundStyle(Tok.muted).frame(width: 12, height: 12).frame(width: 18, height: 24).wfRect("insp.look.more") }
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize().help("All Looks")
+                .accessibilityLabel("All Looks")
         }
     }
 
@@ -204,7 +239,17 @@ struct ShowInspector: View {
 
     private var tabBar: some View {
         WFTabs(tabs: app.ui.tabs.visible.map { .init(value: $0, title: $0.title, symbol: $0 == .quickEdit ? "pencil" : nil, dot: $0 == .quickEdit) },
-               selection: Binding(get: { app.ui.tabs.selected }, set: { app.ui.tabs.select($0) }))
+               selection: Binding(get: { app.ui.tabs.selected }, set: { app.ui.tabs.select($0) }), rectID: "insp.tabs")
+        .overlay(alignment: .trailing) {
+            // UI-005j: "Add text prop…" is a + in the Props tab's line, not a row of its own (nothing is lost).
+            if app.ui.tabs.selected == .props {
+                Button { textPropEditing = TextPropEdit(propID: nil) } label: { Image(systemName: "plus").font(.wf(12)).foregroundStyle(Tok.muted).frame(width: 22, height: 22) }
+                    .buttonStyle(.plain).padding(.trailing, 10).wfRect("insp.tabs.add")
+                    .help("Add a text prop: a service title strap, a speaker name, words kept above the slides on the screens you choose")
+                    .accessibilityLabel("Add text prop")
+            }
+        }
+        .sheet(item: $textPropEditing) { edit in TextPropSheet(app: app, edit: edit) }
     }
 
     @ViewBuilder private var tabContent: some View {
@@ -222,33 +267,31 @@ struct ShowInspector: View {
     private var props: some View {
         return VStack(alignment: .leading, spacing: 0) {
             if app.props.isEmpty {
-                Text("No props. Add a logo image in Screens, or a text prop below, to keep it above the slides.").font(.wf(11)).foregroundStyle(Tok.muted)
+                Text("No props. Add a logo image in Screens, or a text prop with the + above, to keep it above the slides.").font(.wf(11)).foregroundStyle(Tok.muted)
             }
-            ForEach(app.props) { prop in propRow(prop) }
+            ForEach(Array(app.props.enumerated()), id: \.element.id) { index, prop in propRow(prop, at: index) }
             ForEach(Array(app.messages.enumerated()), id: \.offset) { _, m in
                 Text(m).font(.wf(11)).foregroundStyle(Tok.warning)
             }
-            Button { textPropEditing = TextPropEdit(propID: nil) } label: { Label("Add text prop…", systemImage: "plus") }
-                .buttonStyle(HeaderButtonStyle(kind: .ghost)).padding(.top, 6)
-                .help("A service title strap, a speaker name: words kept above the slides on the screens you choose")
         }
-        .sheet(item: $textPropEditing) { edit in TextPropSheet(app: app, edit: edit) }
     }
 
     /// One prop: icon by kind, name, the roles it is targeted to as pills that switch off when clicked, then its switch. The pills
     /// say where the prop is drawn when it is on and the screen's Look shows props: what is true, not decoration.
-    private func propRow(_ prop: Prop) -> some View {
+    private func propRow(_ prop: Prop, at index: Int) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: prop.kind == .text ? "textformat" : "photo").font(.wf(13)).foregroundStyle(Tok.text).frame(width: 15)
-            Text(prop.name).font(.wf(13)).lineLimit(1)
+            Image(systemName: prop.kind == .text ? "textformat" : "photo").font(.wf(13)).foregroundStyle(Tok.text).frame(width: 15, height: 15)
+                .wfRect("insp.prop.\(index).icon")
+            Text(prop.name).font(.wf(13)).lineLimit(1).wfRect("insp.prop.\(index).name", size: 13, weight: 400)
             Spacer()
             if prop.kind == .image, app.unavailableImages.contains(prop.imagePath) {
                 Text("File not readable").font(.wf(11)).foregroundStyle(Tok.warning)
             }
-            ForEach(PropPills.pills(for: prop), id: \.role) { pill in
+            // UI-005j: the row shows the screens the prop is on, as the design draws it; the context menu's "Show on" adds or removes one.
+            ForEach(PropPills.pills(for: prop).filter(\.isOn), id: \.role) { pill in
                 // FIX-H item 10: a pill is a toggle. Off is drawn dimmed and stays in the row, so a click turns it on again.
                 Button { app.togglePropTarget(prop.id, role: pill.role) } label: {
-                    PillTag(text: pill.label, color: pill.role.tokenColor, height: 16).opacity(pill.isDimmed ? 0.35 : 1)
+                    PillTag(text: pill.label, color: pill.role.tokenColor, height: 16, rectID: "insp.prop.\(index).pill.\(pill.label)").opacity(pill.isDimmed ? 0.35 : 1)
                 }
                 .buttonStyle(.plain)
                 .help(pill.isOn ? "Drawn on \(pill.role.rawValue) screens. Click to stop showing it there." : "Not drawn on \(pill.role.rawValue) screens. Click to show it there.")
@@ -258,9 +301,10 @@ struct ShowInspector: View {
                 .accessibilityHint(pill.isOn ? "Stops showing this prop on \(pill.role.rawValue) screens" : "Shows this prop on \(pill.role.rawValue) screens")
             }
             Toggle(prop.name, isOn: Binding(get: { prop.isOn }, set: { app.setProp(prop.id, isOn: $0) }))
-                .toggleStyle(.wfBare)
+                .toggleStyle(.wfBare).wfRect("insp.prop.\(index).toggle", radius: 9)
         }
         .frame(height: 28)
+        .wfRect("insp.prop.\(index)")
         .contentShape(Rectangle())
         .contextMenu {
             Menu("Show on") {
