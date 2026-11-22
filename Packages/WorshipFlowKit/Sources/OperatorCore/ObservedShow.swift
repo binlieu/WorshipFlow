@@ -70,7 +70,8 @@ public final class ObservedShow: Observable {
     public func set(_ new: ShowState) {
         let old = value
         var changed: [(will: () -> Void, did: () -> Void)] = []
-        func note<M>(_ keyPath: KeyPath<ObservedShow, M>) {
+        func note<M>(_ path: KeyPath<ObservedShow, M>) {
+            nonisolated(unsafe) let keyPath = path      // a key path is immutable; the release compiler cannot see that it is safe to capture
             changed.append((will: { self.registrar.willSet(self, keyPath: keyPath) }, did: { self.registrar.didSet(self, keyPath: keyPath) }))
         }
         if new.selectedIndex != old.selectedIndex { note(\.selectedIndex) }

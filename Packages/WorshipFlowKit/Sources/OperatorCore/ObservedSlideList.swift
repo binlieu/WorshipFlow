@@ -61,7 +61,8 @@ public final class ObservedSlideList: Observable {
             changed.formUnion(Set(oldIDs).subtracting(newIDs))
         }
         var notes: [(will: () -> Void, did: () -> Void)] = []
-        func note<M>(_ keyPath: KeyPath<ObservedSlideList, M>) {
+        func note<M>(_ path: KeyPath<ObservedSlideList, M>) {
+            nonisolated(unsafe) let keyPath = path      // a key path is immutable; the release compiler cannot see that it is safe to capture
             notes.append((will: { self.registrar.willSet(self, keyPath: keyPath) }, did: { self.registrar.didSet(self, keyPath: keyPath) }))
         }
         note(\.all)
