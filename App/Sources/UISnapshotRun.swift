@@ -190,6 +190,12 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // UI-005e: the Stage mode picture (the scenario is in UISnapshotStage.swift; this is the only line of it outside that file).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGE"] != nil {
+                await runStageDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace(); await stopCue(); shutdown(); exit(0)
+            }
             // FIX-K: real mouse and key events on the Edit canvas and the app's other drags (one added block; the same shape as the others).
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXK"] != nil {
                 await runFixKScenario(note: { note($0) }, capture: { await capture($0) })
