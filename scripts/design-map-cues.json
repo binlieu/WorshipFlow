@@ -335,9 +335,11 @@
   },
   {
    "d": "div.body[1]>div.main[1]>div.bar[0]>span.field[3]",
-   "a": "main.trigger",
-   "skip": "L",
-   "why": "content: the design's trigger names a key and a MIDI note, the app's only the MIDI binding (no keyboard trigger exists); the right edge is compared"
+   "a": "main.trigger"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[4]",
+   "a": "main.test"
   },
   {
    "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn.primary[5]",
@@ -825,11 +827,7 @@
   },
   {
    "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\.bar\\[0\\]>span\\.field\\[3\\]>b",
-   "reason": "the bold key inside the trigger field: the app has no keyboard trigger"
-  },
-  {
-   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\.bar\\[0\\]>span\\.btn\\[4\\]",
-   "reason": "left out, needs a feature slice (CU-22): \"Test in Preview\" has no dry-run behind it"
+   "reason": "the bold key inside the trigger field: it is part of the field's text, which is compared as the field"
   },
   {
    "match": "div\\.act\\[\\d\\]>span\\.row\\[1\\]>b\\[0\\]",
