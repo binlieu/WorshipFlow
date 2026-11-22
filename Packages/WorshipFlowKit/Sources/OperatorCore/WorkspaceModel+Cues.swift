@@ -5,12 +5,12 @@ import Domain
 import CueEngine
 
 extension WorkspaceModel: CueTransportPort {
-    public var isBlackedOut: Bool { show.isBlackedOut }
+    public var isBlackedOut: Bool { showParts.isBlackedOut }
 
     public func triggerSlide(_ index: Int) { goLive(at: index) }
 
     public func nextIfInDeck() -> Bool {
-        guard let live = show.liveDeck, let i = show.liveIndex else {
+        guard let live = showParts.liveDeck, let i = showParts.liveIndex else {
             apply(.next)                                  // nothing live yet: the first slide of the preview goes live
             recordLiveSource()
             placeChanged()
@@ -23,7 +23,7 @@ extension WorkspaceModel: CueTransportPort {
     }
 
     public func previousIfInDeck() -> Bool {
-        if show.liveDeck != nil, show.liveIndex == 0 { return false }
+        if !showParts.isStopped, showParts.liveIndex == 0 { return false }
         apply(.previous)
         placeChanged()
         return true
@@ -33,14 +33,14 @@ extension WorkspaceModel: CueTransportPort {
     public func goToSlide(_ index: Int) throws {
         guard !slides.isEmpty else { throw CueTargetError("There is no open song with slides to go to.") }
         guard slides.indices.contains(index) else { throw CueTargetError("There is no slide \(index + 1): the open song has \(slides.count).") }
-        if let live = show.liveDeck, live.presentationID != openPresentationID {
+        if let live = showParts.liveDeck, live.presentationID != openPresentationID {
             throw CueTargetError("The song on the screens is not the open one, so slide \(index + 1) was not chosen. Open the live song, or press Go Live.")
         }
         goLive(at: index)
     }
 
     public func liveSlideID(for event: SlideLiveEvent) -> UUID? {
-        guard show.liveDeck?.presentationID == event.presentationID, show.liveIndex == event.index,
+        guard showParts.liveDeckID == event.presentationID, showParts.liveIndex == event.index,
               liveSlideIDs.indices.contains(event.index) else { return nil }
         return liveSlideIDs[event.index]
     }

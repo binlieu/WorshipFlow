@@ -55,7 +55,7 @@ extension WorkspaceModel {
         transportEpoch &+= 1
         selectedPlaylistItemID = item.id
         let text = CountdownText.format(run.remaining(at: countdownClock()))
-        let keptSelection = show.selectedIndex
+        let keptSelection = showParts.selectedIndex
         apply(.load(ShowDeck(presentationID: item.id, slides: [SlideContent(primary: text)])))
         apply(.trigger(index: 0))
         // FIX-D S2: the countdown is live, but the preview goes back to the open presentation with the operator's own selection,
@@ -73,9 +73,9 @@ extension WorkspaceModel {
     /// Called about once a second by the app while a countdown is live. Rewrites the live slide's time; at zero it
     /// keeps showing 0:00 and never advances.
     public func countdownTick(now: Date? = nil) {
-        guard let live = liveCountdown, show.liveDeck?.presentationID == live.itemID, show.liveIndex == 0 else { return }
+        guard let live = liveCountdown, showParts.liveDeckID == live.itemID, showParts.liveIndex == 0 else { return }
         let text = CountdownText.format(live.run.remaining(at: now ?? countdownClock()))
-        guard show.liveSlide?.primary != text else { return }
+        guard showParts.liveSlide?.primary != text else { return }
         apply(.quickEdit(index: 0, content: SlideContent(primary: text)))
     }
 

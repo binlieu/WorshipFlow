@@ -287,7 +287,7 @@ struct EditInspector: View {
     // MARK: Slide tab: the words and the slide's actions
 
     @ViewBuilder private var slideTab: some View {
-        let index = workspace.show.selectedIndex
+        let index = workspace.showParts.selectedIndex
         if workspace.slides.indices.contains(index) {
             let slide = workspace.slides[index]
             EditSection {
@@ -315,7 +315,7 @@ struct EditInspector: View {
                     if let id = workspace.openPresentationID { app.openImport(existing: id) }
                 }
                 HeaderControlButton(control: .editLiveSlide, symbol: "pencil.and.outline", compact: false) { app.requestLiveQuickEdit() }
-                    .disabled(workspace.show.liveSlide == nil)
+                    .disabled(workspace.showParts.liveSlide == nil)
             }
         }
         if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }), item.kind.hasSlides {

@@ -132,7 +132,7 @@ struct SlideActionsEditor: View {
     }
 
     private var chosenSlide: Slide? {
-        workspace.slides.first { $0.id == app.ui.cuesSlideID } ?? workspace.slides[safe: workspace.show.selectedIndex] ?? workspace.slides.first
+        workspace.slides.first { $0.id == app.ui.cuesSlideID } ?? workspace.slides[safe: workspace.showParts.selectedIndex] ?? workspace.slides.first
     }
 
     private var slideList: some View {

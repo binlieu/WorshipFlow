@@ -339,3 +339,11 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Edit: click a text box, press the arrows (1 point, Shift 10 points) and Space, Return, B. Press Tab until a button in the toolbar has focus: the arrows still nudge the box you clicked last, and Space presses the button.
 - [ ] Edit, a lyric box: drag it, press Command-Tab away in the middle of the drag and back, then type a position in the inspector: it saves. "Apply to all slides in this song" asks "Apply this position to N slides?" and one Undo puts every slide back.
 - [ ] Clear background icon: with a picture theme or a theme with a motion background it is lit and its tooltip says "Clear background: theme video" or "picture".
+
+
+## FIX-O drops and the show state
+
+- [ ] Show, a song with many slides: drag a bin tile onto a slide, a slide to another place, files from Finder onto a slide and onto the dock. Each should land at once with no catch in the pointer, and nothing else on the screen should flicker (inspector, transport bar, toolbar).
+- [ ] Press Space (Next) and Shift-Space with the grid, the inspector and the media dock in view: the red marker moves, the transport line and the Preview picture follow, and nothing else redraws. Press B, B, then Escape: the amber tag and the Blackout button follow, and every thumbnail but the live one stays as it was.
+- [ ] Do the same keys in Edit, Media, Stage, Cues and Screens and look at the toolbar tag, the transport bar and the AUD, STG and BRD pills.
+- [ ] Optional: `scripts/measure-drags.sh` (with `UI_SNAPSHOT_FIXO=1`) prints drop and gesture times and view body counts; `scripts/fixo-modes.sh` checks every mode for parts that did not follow.

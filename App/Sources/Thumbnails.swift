@@ -268,6 +268,7 @@ struct SlideThumbnail: View {
     @State private var doesNotFit = false
 
     var body: some View {
+        let _ = BodyProbe.hit("SlideThumbnail")
         // Reading `appearanceRevision` makes the thumbnail follow Look, theme and prop changes, and nothing else:
         // typing in one slide rebuilds that slide's thumbnail only (R15).
         let _ = app.appearanceRevision

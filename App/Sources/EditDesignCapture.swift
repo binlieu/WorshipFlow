@@ -27,7 +27,7 @@ extension AppModel {
             editor.edit(id, key: "weight") { object in if case .text(var t) = object.content { t.style.weight = 600; object.content = .text(t) } }
             editor.select(id)
         }
-        note("edit design: slide \(workspace.show.selectedIndex + 1) of \(workspace.slides.count), live \(workspace.show.liveIndex.map { String($0 + 1) } ?? "-"), object \(editor.selectedObjectID != nil)")
+        note("edit design: slide \(workspace.showParts.selectedIndex + 1) of \(workspace.slides.count), live \(workspace.showParts.liveIndex.map { String($0 + 1) } ?? "-"), object \(editor.selectedObjectID != nil)")
         setAppearance(.dark)
         await capture("edit-dark")
         setAppearance(.light)

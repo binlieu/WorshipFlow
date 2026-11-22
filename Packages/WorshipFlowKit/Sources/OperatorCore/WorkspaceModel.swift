@@ -44,13 +44,25 @@ public final class WorkspaceModel {
     /// LIB-004c: the Bible passage in preview, if one is (it is not a presentation: `openPresentationID` is nil then).
     public internal(set) var openScripture: OpenScripture?
     /// The open presentation's slides in play order (the item's arrangement applied).
-    public internal(set) var slides: [Slide] = []
+    /// FIX-O (KI-180): the slide list, observable one part at a time (`slideList.count`, `.isEmpty`, `.order`, `.slide(at:)`); `slides` is the
+    /// whole list and depends on every change to it.
+    public let slideList = ObservedSlideList()
+    public internal(set) var slides: [Slide] {
+        get { slideList.all }
+        set { slideList.set(newValue) }
+    }
     public internal(set) var groups: [SlideGroup] = []
     public internal(set) var arrangements: [Arrangement] = []
     /// How many slides each section of the open song has, whatever order the open item plays it in.
     public internal(set) var groupSlideCounts: [UUID: Int] = [:]
     public internal(set) var searchResults: [SearchHit] = []
-    public internal(set) var show = ShowState()
+    /// FIX-O (KI-180): the show state, observable one part at a time (`ObservedShow`): a view reads the part it draws (`showParts.selectedIndex`,
+    /// `showParts.liveSlide`, ...) and a change to another part does not draw it again. `show` is the whole state, and depends on every part.
+    public let showParts = ObservedShow()
+    public internal(set) var show: ShowState {
+        get { showParts.state }
+        set { showParts.set(newValue) }
+    }
     public internal(set) var lastError: String?
     /// UI-001: which of the six modes the window shows. Restored on relaunch; changing it never touches the show.
     public internal(set) var mode: WorkspaceMode = .show
@@ -278,7 +290,7 @@ public final class WorkspaceModel {
         guard !restoring else { return }
         placeSaver?.schedule(WorkspacePlace(libraryID: selectedLibraryID, playlistID: selectedPlaylistID,
                                             playlistItemID: selectedPlaylistItemID, presentationID: openPresentationID,
-                                            slideIndex: show.selectedIndex))
+                                            slideIndex: showParts.current.selectedIndex))
     }
 
     private func storedPlace() async -> WorkspacePlace? {
@@ -304,15 +316,16 @@ public final class WorkspaceModel {
 
     /// The one place `show` changes, so the app is always told.
     func apply(_ command: ShowCommand) {
-        let wasStopped = show.isStopped
-        let before = show
-        show.apply(command)
+        let wasStopped = showParts.current.isStopped
+        let before = showParts.current
+        showParts.apply(command)
+        let after = showParts.current
         switch command {
         case .select, .load, .restore: break
-        default: if show != before { blockedStep = nil }     // a move of the live show ends the "stay" a stopped Next belongs to
+        default: if after != before { blockedStep = nil }     // a move of the live show ends the "stay" a stopped Next belongs to
         }
         defer {
-            if let event = SlideLiveEvent.detect(command: command, before: before, after: show) { onSlideWentLive?(event) }
+            if let event = SlideLiveEvent.detect(command: command, before: before, after: after) { onSlideWentLive?(event) }
         }
         switch command {
         case .trigger: captureLiveTheme()
@@ -320,11 +333,11 @@ public final class WorkspaceModel {
         case .stop: capturedLiveThemeID = nil
         default: break
         }
-        onShowChange?(show)
+        onShowChange?(after)
     }
 
     private func captureLiveTheme() {
-        capturedLiveThemeID = show.liveDeck.flatMap { presentationThemes[$0.presentationID] }
+        capturedLiveThemeID = showParts.current.liveDeck.flatMap { presentationThemes[$0.presentationID] }
     }
 
     func previewDeck() -> ShowDeck {
@@ -335,7 +348,7 @@ public final class WorkspaceModel {
     func loadPreview() { apply(.load(previewDeck())) }
 
     /// Replaces the preview deck, keeping the selected slide where it is. Never touches live.
-    func refreshPreview() { apply(.restore(deck: previewDeck(), selectedIndex: show.selectedIndex)) }
+    func refreshPreview() { apply(.restore(deck: previewDeck(), selectedIndex: showParts.current.selectedIndex)) }
 
     // MARK: Errors and small helpers
 

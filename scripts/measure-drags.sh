@@ -22,4 +22,4 @@ UI_SNAPSHOT_DIR="$OUT" UI_SNAPSHOT_PREFIX=FIXM UI_SNAPSHOT_FIXM=1 \
 PID=$!
 for _ in $(seq 1 240); do kill -0 $PID 2>/dev/null || break; [ -f "$OUT/ui-snapshots.log" ] && break; sleep 2; done
 sleep 2; kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
-grep -h "fixm" "$OUT/ui-snapshots.log" 2>/dev/null || { echo "no log; see $SCRATCH/run.log"; tail -20 "$SCRATCH/run.log"; }
+grep -h "fixm\|fixo" "$OUT/ui-snapshots.log" 2>/dev/null || { echo "no log; see $SCRATCH/run.log"; tail -20 "$SCRATCH/run.log"; }

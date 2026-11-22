@@ -90,6 +90,7 @@ struct ShowCentre: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
+        let _ = BodyProbe.hit("ShowCentre")
         GeometryReader { geo in
             VStack(spacing: 0) {
                 if app.ui.scriptureOpen || workspace.centreShowsScripture, let scripture = app.scripture {

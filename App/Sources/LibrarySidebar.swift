@@ -46,6 +46,7 @@ struct LibrarySidebar: View {
     @State private var loopEditing: LoopEdit?
 
     var body: some View {
+        let _ = BodyProbe.hit("LibrarySidebar")
         // The design's split: Libraries and the song list over 338 pt, the playlist beneath; a drag strip on the line moves it.
         GeometryReader { geo in
             VStack(spacing: 0) {
@@ -332,10 +333,10 @@ struct LibrarySidebar: View {
 
     private func isOnScreen(_ item: PlaylistItem) -> Bool {
         switch item.kind {
-        case .presentation: app.show.liveDeck?.presentationID == item.presentationID
-        case .countdown: app.show.liveDeck?.presentationID == item.id
-        case .scripture: app.show.liveDeck?.presentationID == item.id
-        case .sermon: app.show.liveDeck?.presentationID == item.presentationID
+        case .presentation: app.showParts.liveDeckID == item.presentationID
+        case .countdown: app.showParts.liveDeckID == item.id
+        case .scripture: app.showParts.liveDeckID == item.id
+        case .sermon: app.showParts.liveDeckID == item.presentationID
         case .media, .announcements: workspace.liveMediaMarkID == item.id         // UI-005b; FIX-H item 11: not once the loop ended by itself
         case .header: false
         }

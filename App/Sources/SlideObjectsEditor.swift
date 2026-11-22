@@ -50,7 +50,7 @@ struct EditCanvasArea: View {
     /// 1920 x 1080 · theme "..." · slide n of m: what the app knows (the output size is the compositor's fixed canvas).
     private var caption: some View {
         let theme = workspace.openThemeID.flatMap { id in app.themes.first { $0.id == id }?.name } ?? "Default"
-        let text = "1920 × 1080 · theme “\(theme)” · slide \(workspace.show.selectedIndex + 1) of \(workspace.slides.count)"
+        let text = "1920 × 1080 · theme “\(theme)” · slide \(workspace.showParts.selectedIndex + 1) of \(workspace.slides.count)"
         return Text(text).font(.wfMono(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
             .wfRect("ed.caption", size: 11, weight: 400)
             .allowsHitTesting(false)

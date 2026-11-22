@@ -104,6 +104,7 @@ struct WorkspaceView: View {
     @FocusState private var gridFocused: Bool
 
     var body: some View {
+        let _ = BodyProbe.hit("WorkspaceView")
         VStack(spacing: 0) {
             operatorToolbar
             if let error = workspace.lastError ?? app.settingsError {
@@ -121,7 +122,7 @@ struct WorkspaceView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The transport bar is in every mode: an operator in Screens can still advance the service. The clip strip
             // is in every mode but Show, where the media controller row under the dock replaces it (UI-003).
-            if workspace.mode != .show, let media = app.media, media.layers.foreground != nil {
+            if workspace.mode != .show, let media = app.media, media.layerParts.foreground != nil {
                 Divider()
                 MediaTransportStrip(media: media)
             }
@@ -204,7 +205,7 @@ struct WorkspaceView: View {
                 .overlay(alignment: .leading) { screensButton.padding(.leading, 12) }
             // FIX-K item 5 (owner: "remove live red on the top right corner. it looks too busy"): no LIVE chip here in any mode.
             // FIX-N item 3: but a quiet amber word, only while the screens are blacked out or cleared, so B and Escape show that they happened.
-            if let tag = ShowStateTag.text(for: app.show) {
+            if let tag = ShowStateTag.text(isBlackedOut: app.showParts.isBlackedOut, isCleared: app.showParts.isCleared) {
                 Badge(text: tag, style: .warning, rectID: "tb.stateTag")
                     .help(tag == "BLACKOUT" ? "Blackout is on: the audience screens are black. Press B to lift it." : "The words are cleared on every screen. Go live or press Next to bring them back.")
                     .accessibilityLabel(tag == "BLACKOUT" ? "Blackout is on" : "Cleared")

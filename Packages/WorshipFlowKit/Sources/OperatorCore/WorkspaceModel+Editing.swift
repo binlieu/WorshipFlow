@@ -28,12 +28,12 @@ extension WorkspaceModel {
 
     /// The one deliberate way to change what is on screen (PRES-07). It also saves the text.
     public func quickEditLiveSlide(_ content: SlideContent) async {
-        guard let index = show.liveIndex, show.liveDeck != nil else {
+        guard let index = showParts.liveIndex, !showParts.isStopped else {
             lastError = "Nothing is live, so there is nothing to quick-edit. Go live first."
             return
         }
         apply(.quickEdit(index: index, content: content))
-        guard liveSlideIDs.indices.contains(index), show.liveDeck?.presentationID == openPresentationID else { return }
+        guard liveSlideIDs.indices.contains(index), showParts.liveDeckID == openPresentationID else { return }
         let id = liveSlideIDs[index]
         guard let stored = slides.first(where: { $0.id == id }) else { return }
         // Only the words are saved: objects edited in preview since going live are not replaced by the live ones.
@@ -104,7 +104,7 @@ extension WorkspaceModel {
     /// The preview deck follows the new order, the selection stays on its index (as after a reload). Live is not touched. The saved place
     /// (presentation and slide index) is the same, so it is not written again: a drop is one write.
     private func refreshAfterReorder() {
-        let keep = min(show.selectedIndex, max(slides.count - 1, 0))
+        let keep = min(showParts.selectedIndex, max(slides.count - 1, 0))
         apply(.restore(deck: previewDeck(), selectedIndex: keep))
     }
 

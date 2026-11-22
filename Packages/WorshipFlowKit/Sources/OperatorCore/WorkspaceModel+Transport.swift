@@ -32,7 +32,7 @@ extension WorkspaceModel {
             } else if let id = selectedPlaylistItemID, let item = playlistItems.first(where: { $0.id == id }), item.kind.isMediaPlayback {
                 goLiveOnMediaItem(item)                      // UI-005b
             } else {
-                goLive(at: show.selectedIndex)
+                goLive(at: showParts.selectedIndex)
             }
         }
     }
@@ -50,7 +50,7 @@ extension WorkspaceModel {
     /// Notes which slides and which playlist item the live deck came from (only when something is live).
     func recordLiveSource() {
         // LIB-004c: a Bible passage is live. It has no stored slides, notes or sections; it belongs to the playlist item it came from, if any.
-        if let deck = show.liveDeck, let open = openScripture, deck.presentationID == open.deckID {
+        if let deck = showParts.liveDeck, let open = openScripture, deck.presentationID == open.deckID {
             liveSlideIDs = []
             liveSlideNotes = []
             liveTitle = open.title
@@ -58,7 +58,7 @@ extension WorkspaceModel {
             liveItemID = openPlaylistItemID
             return
         }
-        guard show.liveDeck != nil, show.liveDeck?.presentationID == openPresentationID else { return }
+        guard !showParts.isStopped, showParts.liveDeckID == openPresentationID else { return }
         liveSlideIDs = slides.map(\.id)
         liveSlideNotes = slides.map(\.notes)
         liveTitle = presentations.first { $0.id == openPresentationID }?.title
@@ -103,7 +103,7 @@ extension WorkspaceModel {
             if await stepOutOfMedia(by: 1, epoch: epoch) { return }
             guard epoch == transportEpoch else { return }
         }
-        guard let live = show.liveDeck, let i = show.liveIndex else {
+        guard let live = showParts.liveDeck, let i = showParts.liveIndex else {
             apply(.next)                       // nothing live yet: the first slide of the preview goes live
             recordLiveSource()
             placeChanged()
@@ -122,7 +122,7 @@ extension WorkspaceModel {
                 if await stepOutOfMedia(by: -1, epoch: epoch) { return }
                 guard epoch == transportEpoch else { return }
             }
-            if show.liveDeck != nil, show.liveIndex == 0, await step(by: -1, epoch: epoch) { return }
+            if !showParts.isStopped, showParts.liveIndex == 0, await step(by: -1, epoch: epoch) { return }
             guard epoch == transportEpoch else { return }
             apply(.previous)
             placeChanged()
@@ -173,7 +173,7 @@ extension WorkspaceModel {
 
     /// UI-001: "Amazing Grace · Chorus · slide 3 of 9" for the transport bar; nil when nothing is live.
     public var livePositionLine: String? {
-        guard let deck = show.liveDeck, let i = show.liveIndex else { return nil }
+        guard let deck = showParts.liveDeck, let i = showParts.liveIndex else { return nil }
         return LiveSummary.positionLine(title: liveTitle, section: liveSectionNames.indices.contains(i) ? liveSectionNames[i] : nil,
                                         index: i, count: deck.slides.count)
     }
@@ -181,9 +181,9 @@ extension WorkspaceModel {
     /// Speaker notes of the slide that is live, for the stage screen (LIVE-02); nil when nothing is live or the
     /// slide has none. Follows edits while the live presentation is the open one.
     public var liveNotes: String? {
-        guard let i = show.liveIndex, show.liveSlide != nil, liveSlideIDs.indices.contains(i) else { return nil }
+        guard let i = showParts.liveIndex, showParts.liveSlide != nil, liveSlideIDs.indices.contains(i) else { return nil }
         let text: String?
-        if show.liveDeck?.presentationID == openPresentationID, let slide = slides.first(where: { $0.id == liveSlideIDs[i] }) {
+        if showParts.liveDeckID == openPresentationID, let slide = slides.first(where: { $0.id == liveSlideIDs[i] }) {
             text = slide.notes
         } else {
             text = liveSlideNotes.indices.contains(i) ? liveSlideNotes[i] : nil

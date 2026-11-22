@@ -10,7 +10,7 @@ extension WorkspaceModel {
 
     /// The theme currently chosen for the presentation that is live (it follows `setTheme` at once). What the screens
     /// show is `shownThemeID`. It reaches audience screens only (`ThemeResolver`).
-    public var liveThemeID: UUID? { show.liveDeck.flatMap { presentationThemes[$0.presentationID] } }
+    public var liveThemeID: UUID? { showParts.liveDeck.flatMap { presentationThemes[$0.presentationID] } }
 
     /// R13: the theme the audience screens use for the live presentation. Captured when the show is triggered, so
     /// choosing another theme for the live presentation changes preview at once and the screens from the next trigger.

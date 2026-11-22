@@ -27,7 +27,7 @@ public struct ProgramImportOutcome: Sendable, Equatable {
 
 extension WorkspaceModel {
     /// Presentations that are on air now (the live deck's), which an import must not replace.
-    public var livePresentationIDs: Set<UUID> { show.liveDeck.map { [$0.presentationID] } ?? [] }
+    public var livePresentationIDs: Set<UUID> { showParts.liveDeck.map { [$0.presentationID] } ?? [] }
 
     /// Runs a program import around the workspace's own state (FIX-G item 3). Typing that is still waiting to be saved is written
     /// first, so the import (and the backup it makes) sees it and nothing is lost silently. When `perform` is done, drafts of the

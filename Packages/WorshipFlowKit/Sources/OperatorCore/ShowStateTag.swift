@@ -6,9 +6,12 @@ import Domain
 
 public enum ShowStateTag {
     /// "BLACKOUT" while blacked out (it wins over a clear that is waiting underneath), "CLEARED" while the words are cleared, else nil.
-    public static func text(for show: ShowState) -> String? {
-        if show.isBlackedOut { return "BLACKOUT" }
-        if show.isCleared { return "CLEARED" }
+    public static func text(for show: ShowState) -> String? { text(isBlackedOut: show.isBlackedOut, isCleared: show.isCleared) }
+
+    /// FIX-O: the same from the two parts alone, so the toolbar depends on those two and on nothing else of the show.
+    public static func text(isBlackedOut: Bool, isCleared: Bool) -> String? {
+        if isBlackedOut { return "BLACKOUT" }
+        if isCleared { return "CLEARED" }
         return nil
     }
 }

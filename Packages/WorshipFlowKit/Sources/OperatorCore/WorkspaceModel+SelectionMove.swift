@@ -7,7 +7,7 @@ import Domain
 extension WorkspaceModel {
     /// Moves the selection one step in the slide grid. `columns` is how many slides the grid draws across (1 for the list).
     public func moveSelection(_ move: SelectionMove, columns: Int) async {
-        let count = show.previewDeck?.slides.count ?? 0
+        let count = showParts.previewDeck?.slides.count ?? 0
         // A countdown, a file or a loop is selected as an item: the arrows step through the playlist from it.
         if selectionIsAnItem {
             await selectNeighbouringItem(direction: (move == .left || move == .up) ? -1 : 1, from: selectedPlaylistItemID)
@@ -18,7 +18,7 @@ extension WorkspaceModel {
             let flat = computed.flatMap(\.indices)
             return flat.count == count && !computed.isEmpty ? computed.map(\.indices) : [Array(0..<count)]      // a passage has no sections
         }()
-        if count > 0, let target = SlideGridNavigation.target(from: show.selectedIndex, move: move, columns: columns, runs: runs) {
+        if count > 0, let target = SlideGridNavigation.target(from: showParts.selectedIndex, move: move, columns: columns, runs: runs) {
             apply(.select(index: target))
             placeChanged()
             return
@@ -41,7 +41,7 @@ extension WorkspaceModel {
               let target = PlaylistStepping.target(kinds: playlistKinds, from: here, direction: direction) else { return }
         let item = playlistItems[target]
         await openPlaylistItem(item.id)
-        guard selectedPlaylistItemID == item.id, item.id == openPlaylistItemID, let count = show.previewDeck?.slides.count, count > 0 else { return }
+        guard selectedPlaylistItemID == item.id, item.id == openPlaylistItemID, let count = showParts.previewDeck?.slides.count, count > 0 else { return }
         apply(.select(index: direction > 0 ? 0 : count - 1))          // a song or passage: its first slide going forward, its last going back
         placeChanged()
     }

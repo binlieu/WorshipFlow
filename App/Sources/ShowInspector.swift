@@ -14,6 +14,7 @@ struct ShowInspector: View {
     @State private var textPropEditing: TextPropEdit?
 
     var body: some View {
+        let _ = BodyProbe.hit("ShowInspector")
         VStack(spacing: 0) {
             scrolling
             // UI-005j: what the design does not draw (Edit live slide, the live background override with Drop, Configure…) sits at the
@@ -28,7 +29,7 @@ struct ShowInspector: View {
     }
 
     private var showsSlimRow: Bool {
-        workspace.show.liveSlide != nil || app.media?.hasLiveBackgroundOverride == true || app.profiles.filter(\.isEnabled).isEmpty
+        workspace.showParts.hasLiveWords || app.media?.hasLiveBackgroundOverride == true || app.profiles.filter(\.isEnabled).isEmpty
     }
 
     private var scrolling: some View {
@@ -44,7 +45,7 @@ struct ShowInspector: View {
             }
         }
         .background(Tok.surface)
-        .onChange(of: workspace.slides.isEmpty) { _, empty in app.ui.tabs.selectedSlideChanged(hasSelectedSlide: !empty) }
+        .onChange(of: workspace.slideList.isEmpty) { _, empty in app.ui.tabs.selectedSlideChanged(hasSelectedSlide: !empty) }
     }
 
     private var live: ScreenProfile? { ShowMonitors.live(app.profiles) }
@@ -61,27 +62,11 @@ struct ShowInspector: View {
         let others = ShowMonitors.others(app.profiles)
         return Grid(horizontalSpacing: 10, verticalSpacing: 10) {
             GridRow(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Badge(text: "PREVIEW", style: .preview, rectID: "insp.mon.0.badge")
-                        if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("insp.mon.0.caption", size: 11, weight: 400) }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .wfRect("insp.mon.0.head")
-                    preview
-                }
-                .wfRect("insp.mon.0")
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        liveBadge
-                        Text(live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
-                            .wfRect("insp.mon.1.caption", size: 11, weight: 400)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .wfRect("insp.mon.1.head")
-                    liveMonitor
-                }
-                .wfRect("insp.mon.1")
+                PreviewMonitor(app: app, workspace: workspace)
+                    .wfRect("insp.mon.0")
+                LiveMonitor(app: app, live: live,
+                            caption: live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience")
+                    .wfRect("insp.mon.1")
             }
             if !others.isEmpty {
                 GridRow(alignment: .top) {
@@ -106,7 +91,7 @@ struct ShowInspector: View {
                 HStack(spacing: 5) { Image(systemName: "pencil.and.outline"); Text(QuickEditLabels.liveTitle) }
             }
             .buttonStyle(HeaderButtonStyle(ring: Tok.warning)).fixedSize()
-            .disabled(workspace.show.liveSlide == nil)
+            .disabled(!workspace.showParts.hasLiveWords)
             .help("\(HeaderChrome.Control.editLiveSlide.tooltip)")
             .accessibilityLabel("Edit live slide. Changes what the audience sees now.")
             .popover(isPresented: Binding(get: { app.ui.showLiveQuickEdit }, set: { app.ui.showLiveQuickEdit = $0 }), arrowEdge: .bottom) {
@@ -124,7 +109,7 @@ struct ShowInspector: View {
     /// (and is never written to the presentation). The button drops it.
     @ViewBuilder private var overrideChip: some View {
         if let media = app.media, media.hasLiveBackgroundOverride {
-            let name = media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "a background"
+            let name = media.layerParts.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "a background"
             HStack(spacing: 5) {
                 Image(systemName: "film").font(.wf(11)).foregroundStyle(Tok.muted).accessibilityHidden(true)
                 Text("Override: \(name)").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).truncationMode(.middle)
@@ -133,42 +118,6 @@ struct ShowInspector: View {
                     .accessibilityLabel("Drop the live background override")
             }
             .accessibilityElement(children: .contain)
-        }
-    }
-
-    @ViewBuilder private var preview: some View {
-        let index = workspace.show.selectedIndex
-        Group {
-            if workspace.slides.indices.contains(index) {
-                SlideThumbnail(app: app, slide: workspace.slides[index].content, cornerRadius: 6)
-            } else if let open = workspace.openScripture, open.contents.indices.contains(index) {
-                SlideThumbnail(app: app, slide: open.contents[index], cornerRadius: 6)       // LIB-004c: a passage in preview
-            } else {
-                RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
-            }
-        }
-        .wfRect("insp.mon.0.thumb", radius: 6)
-        .wfThumbState(radius: 6, preview: true)
-        .accessibilityLabel("Preview: the selected slide")
-    }
-
-    @ViewBuilder private var liveMonitor: some View {
-        Group {
-            if let live { LiveScreenPreview(app: app, screenID: live.id, cornerRadius: 6) } else {
-                RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
-            }
-        }
-        .wfRect("insp.mon.1.thumb", radius: 6)
-        .wfThumbState(radius: 6, live: app.mode == .live, liveColor: Tok.liveFill)
-        .accessibilityLabel("Live: what the audience screen shows now")
-    }
-
-    @ViewBuilder private var liveBadge: some View {
-        switch app.mode {
-        case .live: Badge(text: "LIVE", style: .live, rectID: "insp.mon.1.badge")
-        case .cleared: Badge(text: "CLEARED", style: .warning, rectID: "insp.mon.1.badge")
-        case .blackout: Badge(text: "BLACKOUT", style: .warning, rectID: "insp.mon.1.badge")
-        case .stopped: Badge(text: "NOT LIVE", style: .outline(Tok.muted), rectID: "insp.mon.1.badge")
         }
     }
 
@@ -323,6 +272,80 @@ struct ShowInspector: View {
     }
 }
 
+/// FIX-O: the Preview monitor on its own, so that moving the selection or editing the selected slide draws this and not the whole inspector
+/// (and a change to any other slide, a drop in the grid, draws nothing here). It reads the selection and the one slide at that place.
+private struct PreviewMonitor: View {
+    let app: AppModel
+    let workspace: WorkspaceModel
+
+    var body: some View {
+        let _ = BodyProbe.hit("PreviewMonitor")
+        let index = workspace.showParts.selectedIndex
+        let slide = workspace.slideList.slide(at: index)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Badge(text: "PREVIEW", style: .preview, rectID: "insp.mon.0.badge")
+                if !workspace.slideList.isEmpty { Text("slide \(index + 1)").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("insp.mon.0.caption", size: 11, weight: 400) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .wfRect("insp.mon.0.head")
+            Group {
+                if let slide {
+                    SlideThumbnail(app: app, slide: slide.content, cornerRadius: 6)
+                } else if let open = workspace.openScripture, open.contents.indices.contains(index) {
+                    SlideThumbnail(app: app, slide: open.contents[index], cornerRadius: 6)       // LIB-004c: a passage in preview
+                } else {
+                    RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
+                }
+            }
+            .wfRect("insp.mon.0.thumb", radius: 6)
+            .wfThumbState(radius: 6, preview: true)
+            .accessibilityLabel("Preview: the selected slide")
+        }
+    }
+}
+
+/// FIX-O: the Live monitor column on its own: it reads the mode (live, cleared, blackout, stopped), so Blackout and Clear draw this and not the whole inspector.
+private struct LiveMonitor: View {
+    let app: AppModel
+    let live: ScreenProfile?
+    let caption: String
+
+    var body: some View {
+        let _ = BodyProbe.hit("LiveMonitor")
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                liveBadge
+                Text(caption).font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
+                    .wfRect("insp.mon.1.caption", size: 11, weight: 400)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .wfRect("insp.mon.1.head")
+            liveMonitor
+        }
+    }
+
+    @ViewBuilder private var liveMonitor: some View {
+        Group {
+            if let live { LiveScreenPreview(app: app, screenID: live.id, cornerRadius: 6) } else {
+                RoundedRectangle(cornerRadius: 6).fill(Tok.surface2).aspectRatio(16.0 / 9.0, contentMode: .fit)
+            }
+        }
+        .wfRect("insp.mon.1.thumb", radius: 6)
+        .wfThumbState(radius: 6, live: app.mode == .live, liveColor: Tok.liveFill)
+        .accessibilityLabel("Live: what the audience screen shows now")
+    }
+
+    @ViewBuilder private var liveBadge: some View {
+        switch app.mode {
+        case .live: Badge(text: "LIVE", style: .live, rectID: "insp.mon.1.badge")
+        case .cleared: Badge(text: "CLEARED", style: .warning, rectID: "insp.mon.1.badge")
+        case .blackout: Badge(text: "BLACKOUT", style: .warning, rectID: "insp.mon.1.badge")
+        case .stopped: Badge(text: "NOT LIVE", style: .outline(Tok.muted), rectID: "insp.mon.1.badge")
+        }
+    }
+}
+
 struct TextPropEdit: Identifiable {
     let id = UUID()
     var propID: UUID?
@@ -423,12 +446,11 @@ struct QuickEditTab: View {
     @FocusState private var firstFocused: Bool
 
     var body: some View {
-        let index = workspace.show.selectedIndex
+        let index = workspace.showParts.selectedIndex
         VStack(alignment: .leading, spacing: Space.s3) {
-            if workspace.slides.indices.contains(index) {
-                let slide = workspace.slides[index]
+            if let slide = workspace.slideList.slide(at: index) {
                 HStack(spacing: 8) {
-                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.wf(13, .bold))
+                    Text("Slide \(index + 1) of \(workspace.slideList.count)").font(.wf(13, .bold))
                     if let section = sectionName(slide) { Text(section).font(.wf(11)).foregroundStyle(Tok.muted) }
                     Spacer(minLength: 4)
                     PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 18)

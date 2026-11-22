@@ -30,7 +30,7 @@ struct CuesTabView: View {
                 }
                 Divider()
                 nextEvent(cue)
-                if let slide = workspace.slides[safeIndex: workspace.show.selectedIndex], !cue.slideActions.actions(for: slide.id).isEmpty {
+                if let slide = workspace.slides[safeIndex: workspace.showParts.selectedIndex], !cue.slideActions.actions(for: slide.id).isEmpty {
                     let n = cue.slideActions.actions(for: slide.id).count
                     Label("The selected slide runs \(n) action\(n == 1 ? "" : "s") when it goes live.", systemImage: "bolt").font(.wf(12)).foregroundStyle(Tok.muted)
                 }

@@ -48,6 +48,7 @@ struct SlideGridCell: View, @MainActor Equatable {
     private var ringColor: Color { mode == .live ? Tok.liveFill : Tok.warning }
 
     var body: some View {
+        let _ = BodyProbe.hit("SlideGridCell")
         let i = index
         VStack(alignment: .leading, spacing: 3) {
             // The rings are drawn outside the picture (never over the words): idle 1 pt, preview 2 pt blue, live 3 pt red, at a 2 pt offset.

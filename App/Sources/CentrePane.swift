@@ -8,6 +8,7 @@ struct CentrePane: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
+        let _ = BodyProbe.hit("CentrePane")
         // Search lives at the top of the sidebar's Libraries section (UI-003); this pane is the open presentation only.
         if workspace.openPresentationID == nil {
             VStack(spacing: 8) {
@@ -40,6 +41,7 @@ struct ShowHeader: View {
     private var presentation: Presentation? { workspace.presentations.first { $0.id == workspace.openPresentationID } }
 
     var body: some View {
+        let _ = BodyProbe.hit("ShowHeader")
         AdaptiveHeader(labelledWidth: 660, height: 42) { compact in header(compact: compact) }
             .padding(.leading, Space.s5)        // ui.css `.bar`: padding 8 x 14, but the picture's controls run to the column's edge (14 pt over), so none on the right
             .onAppear { title = presentation?.title ?? "" }
@@ -139,8 +141,8 @@ private struct SectionHeader: View {
 
 /// The live slide's index, only while what is live is the presentation that is open.
 @MainActor private func liveIndex(_ app: AppModel, _ workspace: WorkspaceModel) -> Int? {
-    guard app.show.liveDeck?.presentationID == workspace.openPresentationID else { return nil }
-    return app.show.liveIndex
+    guard app.showParts.liveDeckID == workspace.openPresentationID else { return nil }
+    return app.showParts.liveIndex
 }
 
 struct SlideGrid: View {
@@ -152,6 +154,7 @@ struct SlideGrid: View {
     private var ringColor: Color { app.mode == .live ? Tok.liveFill : Tok.warning }
 
     var body: some View {
+        let _ = BodyProbe.hit("SlideGrid")
         GeometryReader { geo in grid(width: geo.size.width) }
             .frame(minHeight: 140)
             .background(Tok.bg)
@@ -180,9 +183,12 @@ struct SlideGrid: View {
 
     @ViewBuilder private func grid(width: CGFloat) -> some View {
         let _ = reportColumns(width)
+        let _ = BodyProbe.hit("SlideGrid.content")
         let keys = SlideCellKey.keys(for: workspace.slides.map(\.id))
         let available = app.media.map { Set($0.allAssets.map(\.id)) }      // once for the grid, not once per cell
         let live = liveIndex(app, workspace)
+        // FIX-O: only the live cell draws the mode (ring colour, tag); the others get a fixed value, so Blackout and Clear draw one cell, not all.
+        let liveMode: LiveMode = live == nil ? .live : app.mode
         ScrollViewReader { proxy in
             ScrollView {
                 if workspace.slides.isEmpty {
@@ -197,7 +203,7 @@ struct SlideGrid: View {
                                 // FIX-M: a cell's identity is its slide (SlideCellKey), not its position, so a reorder moves cells and only the moved range
                                 // is drawn again.
                                 ForEach(run.indices.map { CellSlot(index: $0, key: keys[$0]) }) { slot in
-                                    cell(slot.index, color: run.tone.color, available: available, live: live).id(slot.key)
+                                    cell(slot.index, color: run.tone.color, available: available, live: live, liveMode: liveMode).id(slot.key)
                                 }
                             }
                             .wfRect("main.grid.\(runIndex)")
@@ -208,15 +214,15 @@ struct SlideGrid: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 14)
             }
-            .onChange(of: workspace.show.selectedIndex) { _, new in if keys.indices.contains(new) { withAnimation { proxy.scrollTo(keys[new]) } } }
+            .onChange(of: workspace.showParts.selectedIndex) { _, new in if keys.indices.contains(new) { withAnimation { proxy.scrollTo(keys[new]) } } }
         }
     }
 
     /// FIX-M: the cell is a value-comparing view: a drop or an edit that changes one slide draws that slide's cell, not all of them.
-    private func cell(_ i: Int, color: Color, available: Set<UUID>?, live: Int?) -> some View {
+    private func cell(_ i: Int, color: Color, available: Set<UUID>?, live: Int?, liveMode: LiveMode) -> some View {
         let slide = workspace.slides[i]
         return SlideGridCell(app: app, workspace: workspace, slide: slide, index: i, isLast: i == workspace.slides.count - 1,
-                             selected: workspace.show.selectedIndex == i, live: live == i, mode: app.mode, color: color,
+                             selected: workspace.showParts.selectedIndex == i, live: live == i, mode: live == i ? liveMode : .live, color: color,
                              available: available, onDelete: { pendingDelete = $0 })
             .equatable()
     }
@@ -253,6 +259,7 @@ struct SlideList: View {
     private var ringColor: Color { app.mode == .live ? Tok.liveFill : Tok.warning }
 
     var body: some View {
+        let _ = BodyProbe.hit("SlideList")
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 2) {
                 ForEach(sectionRuns(workspace)) { run in
@@ -267,7 +274,7 @@ struct SlideList: View {
 
     private func row(_ i: Int, color: Color) -> some View {
         let slide = workspace.slides[i]
-        let selected = workspace.show.selectedIndex == i
+        let selected = workspace.showParts.selectedIndex == i
         let live = liveIndex(app, workspace) == i
         return HStack(spacing: 8) {
             Rectangle().fill(color).frame(width: 3, height: 16)
@@ -355,7 +362,7 @@ struct SlideEditor: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
-        let index = workspace.show.selectedIndex
+        let index = workspace.showParts.selectedIndex
         VStack(alignment: .leading, spacing: 8) {
             if workspace.slides.indices.contains(index) {
                 HStack {

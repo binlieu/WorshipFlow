@@ -26,12 +26,12 @@ struct MediaClearButtons: View {
 
     /// What is live now, for the icons: the words, what plays on each layer (a bin choice, else the live slide's own background) and the sound cues.
     private var live: ClearLiveState {
-        let show = app.workspace?.show
+        let show = app.workspace?.showParts
         let media = app.media
         func name(_ id: UUID?) -> String? { id.flatMap { media?.asset($0)?.name } }
-        var background = media?.layers.background?.selection
+        var background = media?.layerParts.background?.selection
         if background == nil, show?.isStopped == false, show?.isBackgroundCleared == false { background = show?.liveSlideAtPlace?.background }
-        let foreground = media?.layers.foreground?.selection
+        let foreground = media?.layerParts.foreground?.selection
         // FIX-N item 4: the theme's own video or picture on a screen that shows the background layer, while the show is live and the background is not cleared.
         let themeKind = show?.isStopped == false && show?.isBackgroundCleared == false && show?.isBlackedOut == false ? app.themeBackgroundKindOnScreen : nil
         let cue = app.audio?.activeCues.last
@@ -42,6 +42,7 @@ struct MediaClearButtons: View {
     }
 
     var body: some View {
+        let _ = BodyProbe.hit("MediaClearButtons")
         let live = live
         HStack(spacing: 0) {
             ForEach(ClearIcon.allCases, id: \.self) { icon in

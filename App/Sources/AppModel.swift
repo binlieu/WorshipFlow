@@ -44,7 +44,13 @@ final class AppModel {
         NSApplication.shared.windows.first { $0.identifier == operatorWindowIdentifier } ?? NSApplication.shared.windows.first { $0.title == operatorWindowTitle }
     }
 
-    private(set) var show = ShowState()
+    /// FIX-O (KI-180): what the outputs were last told, observable one part at a time like the workspace's own (`ObservedShow`). Views read
+    /// `showParts.<part>`; `show` is the whole state and depends on every part.
+    let showParts = ObservedShow()
+    private(set) var show: ShowState {
+        get { showParts.state }
+        set { showParts.set(newValue) }
+    }
     private(set) var readouts: [ScreenReadout] = []
     private(set) var displayChoices: [DisplayChoice] = []
     private(set) var screensOn = false
@@ -612,10 +618,10 @@ final class AppModel {
 
     // MARK: Derived state for the UI
 
-    var slides: [SlideContent] { show.previewDeck?.slides ?? [] }
-    var selectedIndex: Int { show.selectedIndex }
-    var liveIndex: Int? { show.liveIndex }
-    var mode: LiveMode { show.isStopped ? .stopped : (show.isBlackedOut ? .blackout : (show.isCleared ? .cleared : .live)) }
+    var slides: [SlideContent] { showParts.previewDeck?.slides ?? [] }
+    var selectedIndex: Int { showParts.selectedIndex }
+    var liveIndex: Int? { showParts.liveIndex }
+    var mode: LiveMode { showParts.isStopped ? .stopped : (showParts.isBlackedOut ? .blackout : (showParts.isCleared ? .cleared : .live)) }
 
     /// UI-001: the AUD, STG and BRD pills of the toolbar.
     var rolePills: [RolePill] {
@@ -1359,7 +1365,7 @@ final class AppModel {
 
     /// Option-Command-E: the popover that deliberately changes the LIVE slide. It lives on the Live monitor in Show.
     func requestLiveQuickEdit() {
-        guard workspace?.show.liveSlide != nil else { return }
+        guard workspace?.showParts.liveSlide != nil else { return }
         ui.liveQuickEditRequests += 1
         workspace?.setMode(.show)
         ui.showLiveQuickEdit = true

@@ -87,7 +87,7 @@ public final class SlideEditorModel {
     /// The selected slide of the open presentation.
     public var slide: Slide? {
         let slides = workspace.slides
-        let index = workspace.show.selectedIndex
+        let index = workspace.showParts.selectedIndex
         return slides.indices.contains(index) ? slides[index] : nil
     }
 

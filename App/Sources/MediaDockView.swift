@@ -22,6 +22,7 @@ struct MediaDockView: View {
     private let headerHeight: CGFloat = 46
 
     var body: some View {
+        let _ = BodyProbe.hit("MediaDockView")
         let state = app.mediaDock
         let height = MediaDock.clampedHeight(dragHeight ?? state.height, available: available)
         VStack(spacing: 0) {
@@ -147,7 +148,7 @@ struct MediaDockView: View {
                 if asset.kind != .audio {
                     Button("Set as background") { app.ui.binSelection = asset.id; media.setBackground(asset.id) }
                     Button("Play in foreground") { app.ui.binSelection = asset.id; media.playForeground(asset.id) }
-                    if media.layers.background?.selection.assetID == asset.id { Button("Use the slide's own background") { media.dropBackgroundOverride() } }
+                    if media.layerParts.background?.selection.assetID == asset.id { Button("Use the slide's own background") { media.dropBackgroundOverride() } }
                 } else {
                     Button("Play sound") { app.ui.binSelection = asset.id; audio?.play(asset.id) }
                     if audio?.isActive(asset.id) == true { Button("Stop sound") { audio?.stop(asset.id) } }
@@ -175,6 +176,7 @@ private struct DockTile: View {
     @State private var result: MediaThumbnails.Result?
 
     var body: some View {
+        let _ = BodyProbe.hit("DockTile")
         VStack(alignment: .leading, spacing: 3) {
             ZStack {
                 Color(white: 0.16)
@@ -259,7 +261,7 @@ struct MediaControllerRow: View {
     }
 
     private func face() -> Face? {
-        let source = MediaController.pick(foregroundLoaded: media.layers.foreground != nil, currentAudioCue: audio?.currentID,
+        let source = MediaController.pick(foregroundLoaded: media.layerParts.foreground != nil, currentAudioCue: audio?.currentID,
                                           backgroundIsVideo: media.backgroundReadout() != nil)
         switch source {
         case .foregroundClip?:

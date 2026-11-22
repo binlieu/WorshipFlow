@@ -273,19 +273,19 @@ struct PassageGrid: View {
                         }
                         .padding(Space.s5)
                     }
-                    .onChange(of: workspace.show.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
+                    .onChange(of: workspace.showParts.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
                 }
             }
         }
     }
 
     private func liveIndex() -> Int? {
-        guard let deckID, app.show.liveDeck?.presentationID == deckID else { return nil }
-        return app.show.liveIndex
+        guard let deckID, app.showParts.liveDeckID == deckID else { return nil }
+        return app.showParts.liveIndex
     }
 
     private func cell(_ i: Int) -> some View {
-        let selected = workspace.show.selectedIndex == i
+        let selected = workspace.showParts.selectedIndex == i
         let live = liveIndex() == i
         let slide = passage.slides[i]
         return VStack(alignment: .leading, spacing: 4) {

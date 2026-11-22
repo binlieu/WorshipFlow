@@ -220,6 +220,15 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // FIX-O: Go Live, Next, Previous, Blackout and Clear in every mode, looking for views that did not follow (one added block).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXO_MODES"] != nil {
+                await runFixOModesScenario(note: { note($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // FIX-M: drag sessions replayed through the window's drag-destination entry points (one added block; the same shape as the others).
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXM"] != nil {
                 await runFixMScenario(note: { note($0) })

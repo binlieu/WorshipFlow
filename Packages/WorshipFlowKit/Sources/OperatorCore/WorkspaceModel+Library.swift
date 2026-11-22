@@ -190,7 +190,7 @@ extension WorkspaceModel {
         groups = loaded.groups
         arrangements = loaded.arrangements
         groupSlideCounts = loaded.groupSlideCounts
-        let keep = min(show.selectedIndex, max(slides.count - 1, 0))
+        let keep = min(showParts.selectedIndex, max(slides.count - 1, 0))
         apply(.restore(deck: previewDeck(), selectedIndex: keep))
         placeChanged()
     }

@@ -151,8 +151,8 @@ struct MediaStrip: View {
     }
 
     @ViewBuilder private func roleBadge(_ asset: MediaAsset) -> some View {
-        let isBackground = media.layers.background?.selection.assetID == asset.id
-        let isForeground = media.layers.foreground?.selection.assetID == asset.id
+        let isBackground = media.layerParts.background?.selection.assetID == asset.id
+        let isForeground = media.layerParts.foreground?.selection.assetID == asset.id
         let sounding = app.audio?.isActive(asset.id) ?? false
         if media.showIsLive && isBackground { Badge(text: "LIVE · BACKGROUND", style: .live, rectID: "media.strip.badge") }
         else if media.showIsLive && isForeground { Badge(text: "LIVE · FOREGROUND", style: .live, rectID: "media.strip.badge") }

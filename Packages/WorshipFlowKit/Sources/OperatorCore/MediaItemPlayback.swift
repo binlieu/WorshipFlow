@@ -32,9 +32,9 @@ extension WorkspaceModel {
         let previousLiveItemID = liveItemID
         selectedPlaylistItemID = item.id
         var startedBlank = false
-        if visual, show.isStopped || show.liveDeck == nil {
+        if visual, showParts.isStopped {
             startedBlank = true
-            let keptSelection = show.selectedIndex
+            let keptSelection = showParts.selectedIndex
             apply(.load(ShowDeck(presentationID: item.id, slides: [SlideContent(primary: "")])))
             apply(.trigger(index: 0))
             apply(.restore(deck: previewDeck(), selectedIndex: keptSelection))     // the preview goes back to what the operator had
@@ -84,7 +84,7 @@ extension WorkspaceModel {
     /// What the live chip says in Edit, Stage and Screens: the live file or loop by its title, otherwise the live slide's words.
     public var liveChipLine: String? {
         if liveMediaMarkID != nil, let title = liveMediaCopy?.title { return title }
-        return show.liveSlide.map(LiveSummary.line(for:))
+        return showParts.liveSlide.map(LiveSummary.line(for:))
     }
 
     /// Ends the media item that is live, if one is: the app stops its file or loop. The slides are not touched.

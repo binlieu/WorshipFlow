@@ -17,6 +17,7 @@
 		13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */; };
 		1463D5B1D7A0AF1207FB6EE3 /* ControlPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */; };
 		16B17570CCBF92112CCD419C /* ProgramTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */; };
+		18808C469DDDCFC945049258 /* UISnapshotFixOModes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83196D74BF6FAAD211DAEBBD /* UISnapshotFixOModes.swift */; };
 		19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */; };
 		1D57863F7A2133E6C9E2320C /* StageCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1218AAFF01DE245852BDAB9E /* StageCanvasView.swift */; };
 		1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */; };
@@ -77,6 +78,7 @@
 		95E1629ED01A69EF90DDE1C1 /* ScriptureTranslationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */; };
 		988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9948423E632AF221937A9EB6 /* ImportSheet.swift */; };
 		9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */; };
+		A496ACAFDAF5A1B86DC10C2E /* BodyProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5DE78F35EEED6222F974FD /* BodyProbe.swift */; };
 		A525D32A009E25033F8B62B9 /* ThemeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB099663B568C7139B0D161E /* ThemeEditorSheet.swift */; };
 		A76C99E594D115E4C94D6314 /* MediaMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5F820BB86B87000626A8A7D /* MediaMode.swift */; };
 		A9243219076E8B694FCB4280 /* MIDIIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4EDCB0899697781D4FB48D05 /* MIDIIO */; };
@@ -143,6 +145,7 @@
 		3577B8A6A30E6666D1CC5615 /* EditMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMode.swift; sourceTree = "<group>"; };
 		37D60BBF208DD8ABB2FED708 /* ThumbnailStills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailStills.swift; sourceTree = "<group>"; };
 		3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixI.swift; sourceTree = "<group>"; };
+		3D5DE78F35EEED6222F974FD /* BodyProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyProbe.swift; sourceTree = "<group>"; };
 		3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestView.swift; sourceTree = "<group>"; };
 		3E820F86A4CC07B5F37F419C /* MediaAudioColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAudioColumn.swift; sourceTree = "<group>"; };
 		4651BE1C44DFF6A198BC89E6 /* UISnapshotStageMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotStageMouse.swift; sourceTree = "<group>"; };
@@ -162,6 +165,7 @@
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
 		7F5D6F4EAC20DCA296CE73CC /* EditInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditInspector.swift; sourceTree = "<group>"; };
 		802821C5618EEB786F8E326B /* EditDesignCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDesignCapture.swift; sourceTree = "<group>"; };
+		83196D74BF6FAAD211DAEBBD /* UISnapshotFixOModes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixOModes.swift; sourceTree = "<group>"; };
 		85549CB8847B0E6629200EEC /* StageComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageComposerView.swift; sourceTree = "<group>"; };
 		8B845A215193778B503237BC /* CuesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesTab.swift; sourceTree = "<group>"; };
 		8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramTransfer.swift; sourceTree = "<group>"; };
@@ -268,6 +272,7 @@
 				C339254CFC75C60002280994 /* AudioPanel.swift */,
 				5155C53E346262B7C544622F /* AudioSupport.swift */,
 				298B80B5D93A54F90F49B0A5 /* BinPlayerSupport.swift */,
+				3D5DE78F35EEED6222F974FD /* BodyProbe.swift */,
 				F28162D8810237DB29AB3177 /* CentrePane.swift */,
 				D4B1B6A1952D317922E741F6 /* Components.swift */,
 				26870985AC1243ADD0FE654D /* ComponentsBoard.swift */,
@@ -341,6 +346,7 @@
 				7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */,
 				0B9FC8B894AE463E3A36AB09 /* UISnapshotFixN.swift */,
 				4AE4BEDE4969D279EC646513 /* UISnapshotFixNPress.swift */,
+				83196D74BF6FAAD211DAEBBD /* UISnapshotFixOModes.swift */,
 				78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */,
 				E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */,
 				D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */,
@@ -512,6 +518,7 @@
 				5064BE52904C3EE8C418611E /* AudioPanel.swift in Sources */,
 				BA87BFAC597CB9D387BAEEDF /* AudioSupport.swift in Sources */,
 				8D268E6D1CA2549A7FA3826A /* BinPlayerSupport.swift in Sources */,
+				A496ACAFDAF5A1B86DC10C2E /* BodyProbe.swift in Sources */,
 				655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */,
 				DB57A7075229EB502A101210 /* Components.swift in Sources */,
 				4B01EACF67D12494AE666076 /* ComponentsBoard.swift in Sources */,
@@ -585,6 +592,7 @@
 				486060F1F8E880A3F5902085 /* UISnapshotFixM.swift in Sources */,
 				F1FA90BDEDE1E29F1B8FEABA /* UISnapshotFixN.swift in Sources */,
 				54C81FB3E57AF7F73052DED5 /* UISnapshotFixNPress.swift in Sources */,
+				18808C469DDDCFC945049258 /* UISnapshotFixOModes.swift in Sources */,
 				510F04BB6CAADD39C7460240 /* UISnapshotMedia010.swift in Sources */,
 				19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */,
 				10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */,

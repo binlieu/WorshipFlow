@@ -25,7 +25,7 @@ struct EditModeView: View {
                 VStack(spacing: 0) {
                     objectBar
                     status
-                    if let editor = app.slideEditor, workspace.slides.indices.contains(workspace.show.selectedIndex) {
+                    if let editor = app.slideEditor, workspace.slides.indices.contains(workspace.showParts.selectedIndex) {
                         EditCanvasArea(app: app, workspace: workspace, editor: editor)
                     } else {
                         Text("Select a slide to edit it.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -81,8 +81,8 @@ struct EditModeView: View {
 
     private func filmCell(_ i: Int) -> some View {
         let slide = workspace.slides[i]
-        let selected = workspace.show.selectedIndex == i
-        let live = app.show.liveDeck?.presentationID == workspace.openPresentationID && app.show.liveIndex == i
+        let selected = workspace.showParts.selectedIndex == i
+        let live = app.showParts.liveDeckID == workspace.openPresentationID && app.showParts.liveIndex == i
         return VStack(alignment: .leading, spacing: 4) {
             Text("\(i + 1)").font(.wf(11, .semibold)).foregroundStyle(Tok.text).wfLine()
                 .wfRect("ed.fs.num.\(i)", size: 11, weight: 600)
@@ -185,11 +185,11 @@ struct EditModeView: View {
     // MARK: Live strip (`surface-2`, padding 6 x 14, 12 pt)
 
     private var status: some View {
-        let editing = workspace.show.selectedIndex + 1
-        let liveSame = app.show.liveDeck?.presentationID == workspace.openPresentationID
+        let editing = workspace.showParts.selectedIndex + 1
+        let liveSame = app.showParts.liveDeckID == workspace.openPresentationID
         return HStack(spacing: 8) {
             Image(systemName: "lock").font(.wf(11)).frame(width: 12, height: 12).foregroundStyle(Tok.muted).wfRect("ed.strip.lock")
-            if liveSame, let live = app.show.liveIndex {
+            if liveSame, let live = app.showParts.liveIndex {
                 Text("Slide \(live + 1) is live.").font(.wf(12, .bold)).wfLine().wfRect("ed.strip.live", size: 12, weight: 700)
                 Text("You are editing slide \(editing). Nothing on the screens changes until it is triggered again.")
                     .foregroundStyle(Tok.muted).wfLine().wfRect("ed.strip.note", size: 12, weight: 400)

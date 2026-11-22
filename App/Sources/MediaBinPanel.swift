@@ -20,6 +20,7 @@ struct MediaBinPanel: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 5)
 
     var body: some View {
+        let _ = BodyProbe.hit("MediaBinPanel")
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if let folder = currentFolder { folderHeader(folder) }
@@ -39,8 +40,8 @@ struct MediaBinPanel: View {
                 } else {
                     LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
                         ForEach(Array(shownAssets.enumerated()), id: \.element.id) { index, asset in
-                            MediaTile(index: index, asset: asset, isBackground: media.layers.background?.selection.assetID == asset.id,
-                                      isForeground: media.layers.foreground?.selection.assetID == asset.id,
+                            MediaTile(index: index, asset: asset, isBackground: media.layerParts.background?.selection.assetID == asset.id,
+                                      isForeground: media.layerParts.foreground?.selection.assetID == asset.id,
                                       isSelected: selected == asset.id, isLive: live(asset))
                                 .modifier(Interaction(panel: self, asset: asset))
                         }
@@ -151,7 +152,7 @@ struct MediaBinPanel: View {
 
     /// Red only while it is on screen now: the background of a live show, or a playing clip.
     private func live(_ asset: MediaAsset) -> Bool {
-        media.showIsLive && (media.layers.background?.selection.assetID == asset.id || media.layers.foreground?.selection.assetID == asset.id)
+        media.showIsLive && (media.layerParts.background?.selection.assetID == asset.id || media.layerParts.foreground?.selection.assetID == asset.id)
     }
 
     @ViewBuilder
@@ -161,7 +162,7 @@ struct MediaBinPanel: View {
             Button("Play in foreground") { media.playForeground(asset.id) }
                 .disabled(!media.showIsLive)
         }
-        if media.layers.background?.selection.assetID == asset.id {
+        if media.layerParts.background?.selection.assetID == asset.id {
             Button("Use the slide's own background") { media.dropBackgroundOverride() }
         }
         Divider()
@@ -183,6 +184,7 @@ struct MediaTile: View {
     @State private var result: MediaThumbnails.Result?
 
     var body: some View {
+        let _ = BodyProbe.hit("MediaTile")
         VStack(alignment: .leading, spacing: 5) {
             Color.clear
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)

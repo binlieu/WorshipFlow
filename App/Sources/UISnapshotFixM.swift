@@ -43,11 +43,13 @@ struct DropReplayResult {
     var hoverPublishes: Int
     var dropCommits: Int
     var dropPublishes: Int
+    /// FIX-O: how many times each probed view body ran during the drop and the 1.5 s after it (`BodyProbe`).
+    var bodies = ""
     var line: String {
         let s = hover.sorted()
         func pct(_ q: Double) -> Double { s.isEmpty ? 0 : s[min(s.count - 1, Int(Double(s.count) * q))] }
-        return String(format: "hover %d updates: median %.2f / 95th %.2f / max %.2f ms, over 8 ms: %d, commits %d, publications %d | drop accepted %@: handler call %.2f ms, longest main-thread stall %.1f ms, last commit %.0f ms after the drop, commits %d, publications %d",
-                      s.count, pct(0.5), pct(0.95), s.last ?? 0, s.filter { $0 > 8 }.count, hoverCommits, hoverPublishes, accepted ? "yes" : "no", dropSync, stall, settle, dropCommits, dropPublishes)
+        return String(format: "hover %d updates: median %.2f / 95th %.2f / max %.2f ms, over 8 ms: %d, commits %d, publications %d | drop accepted %@: handler call %.2f ms, longest main-thread stall %.1f ms, last commit %.0f ms after the drop, commits %d, publications %d | bodies: %@",
+                      s.count, pct(0.5), pct(0.95), s.last ?? 0, s.filter { $0 > 8 }.count, hoverCommits, hoverPublishes, accepted ? "yes" : "no", dropSync, stall, settle, dropCommits, dropPublishes, bodies.isEmpty ? "-" : bodies)
     }
 }
 
@@ -129,6 +131,7 @@ extension AppModel {
             }
             var longest = 0.0, stop = false
             var lastCommit = 0.0
+            BodyProbe.reset()
             let t0 = ContinuousClock.now
             let ticker = Task { @MainActor in
                 var last = ContinuousClock.now
@@ -151,7 +154,7 @@ extension AppModel {
             _ = await ticker.value
             let end = counters()
             return DropReplayResult(hover: hover, accepted: accepted, dropSync: sync, stall: longest, settle: settle, hoverCommits: mid.commits - start.commits, hoverPublishes: mid.publishes - start.publishes,
-                                    dropCommits: end.commits - mid.commits, dropPublishes: end.publishes - mid.publishes)
+                                    dropCommits: end.commits - mid.commits, dropPublishes: end.publishes - mid.publishes, bodies: BodyProbe.summary())
         }
 
         func board(_ string: String) -> NSPasteboard {
@@ -179,7 +182,8 @@ extension AppModel {
         if let loop = ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXM_LOOP"], cells.count > 4 {
             let pics = media.assets.filter { $0.kind == .image }
             note("fixm loop \(loop) starts")
-            for n in 0..<120 {
+            let loops = Int(ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXM_LOOPS"] ?? "") ?? 120
+            for n in 0..<loops {
                 if loop == "background" { _ = await replay(board(SlideBackgroundDrop.dragText(for: pics[n % pics.count].id)), path: [cells[4].1, cells[4].1], settleMs: 20) }
                 else { _ = await replay(board(n % 2 == 0 ? "149" : "10"), path: [cells[4].1, cells[4].1], settleMs: 20) }
                 try? await Task.sleep(for: .milliseconds(60))
@@ -254,6 +258,48 @@ extension AppModel {
             report("files from Finder onto the bin", await replay(board(file: url), path: path))
         } else { note("fixm: no media grid rectangle") }
         await settle()
+        // ---- FIX-O: single gestures that change the show state. Each runs 5 times; main-thread time of the call, the longest stall around it, and
+        // how many times each probed view body ran (BodyProbe). A cell body count is the number of grid cells drawn again.
+        if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXO"] != nil {
+            workspace.setMode(.show); workspace.selectSlide(0); await settle(1.5)
+            func gesture(_ label: String, repeats: Int = 5, _ work: @MainActor (Int) async -> Void) async {
+                var rows: [String] = []
+                for n in 0..<repeats {
+                    var longest = 0.0, stop = false
+                    BodyProbe.reset()
+                    let ticker = Task { @MainActor in
+                        var last = ContinuousClock.now
+                        while !stop { try? await Task.sleep(for: .milliseconds(2)); let now = ContinuousClock.now; longest = max(longest, RealPointer.ms(now - last) - 2); last = now }
+                    }
+                    let t0 = ContinuousClock.now
+                    await work(n)
+                    let call = RealPointer.ms(ContinuousClock.now - t0)
+                    try? await Task.sleep(for: .milliseconds(700))
+                    stop = true; _ = await ticker.value
+                    rows.append(String(format: "call %.1f ms, stall %.1f ms, bodies: %@", call, longest, BodyProbe.summary().isEmpty ? "-" : BodyProbe.summary()))
+                    try? await Task.sleep(for: .milliseconds(300))
+                }
+                for (n, r) in rows.enumerated() { note("fixo[\(label)] run \(n + 1): \(r)") }
+            }
+            let slideIDs = workspace.slides.map(\.id)
+            await gesture("selection change (a cell on screen)") { n in workspace.selectSlide(2 + n * 2) }
+            await gesture("preview refresh (edit of a slide off screen)") { n in
+                var c = workspace.slides[150].content; c.primary = "Edited \(n) of the long song"
+                workspace.editSlide(id: slideIDs[150], content: c)
+            }
+            await gesture("preview refresh (edit of a slide on screen, not selected)") { n in
+                var c = workspace.slides[8].content; c.primary = "Edited here \(n) of the long song"
+                workspace.editSlide(id: slideIDs[8], content: c)
+            }
+            workspace.goLive(at: 3)
+            await settle(2)
+            await gesture("Next") { _ in await workspace.next() }
+            await gesture("Previous") { _ in await workspace.previous() }
+            await gesture("Blackout on and off") { _ in workspace.blackout(); try? await Task.sleep(for: .milliseconds(300)); workspace.blackout() }
+            await gesture("Clear then Go Live") { _ in workspace.clear(); try? await Task.sleep(for: .milliseconds(300)); workspace.goLive(at: 3) }
+            workspace.stop()
+            await settle(1)
+        }
         _ = editor; _ = big
     }
 }

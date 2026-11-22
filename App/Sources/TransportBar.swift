@@ -8,6 +8,7 @@ struct TransportBar: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
+        let _ = BodyProbe.hit("TransportBar")
         HStack(spacing: 10) {
             stateBadge.wfRect("tp.badge", size: 11, weight: 700, radius: Radius.sm)
             VStack(alignment: .leading, spacing: 0) {
@@ -29,13 +30,13 @@ struct TransportBar: View {
             Rectangle().fill(Tok.border).frame(width: 1, height: 28).wfRect("tp.sep.0")
             clearControl
             Button { app.blackout() } label: { hinted("rectangle.fill", "Blackout", "B") }
-                .buttonStyle(TransportButtonStyle(active: workspace.show.isBlackedOut)).wfRect("tp.blackout", size: 13, weight: 600, radius: Radius.lg)
-                .disabled(workspace.show.isStopped)
+                .buttonStyle(TransportButtonStyle(active: workspace.showParts.isBlackedOut)).wfRect("tp.blackout", size: 13, weight: 600, radius: Radius.lg)
+                .disabled(workspace.showParts.isStopped)
                 .help("B: every audience screen goes black and every broadcast screen transparent. Press again, or go to another slide, to bring the picture back.")
-                .accessibilityValue(workspace.show.isBlackedOut ? "on" : "off")
+                .accessibilityValue(workspace.showParts.isBlackedOut ? "on" : "off")
             Button { app.stopShow() } label: { hinted("stop.fill", "Stop", nil) }
                 .buttonStyle(TransportButtonStyle()).wfRect("tp.stop", size: 13, weight: 600, radius: Radius.lg)
-                .disabled(workspace.show.isStopped).help("Empty every screen and drop the live slide")
+                .disabled(workspace.showParts.isStopped).help("Empty every screen and drop the live slide")
             Rectangle().fill(Tok.border).frame(width: 1, height: 28).wfRect("tp.sep.1")
             health
         }
@@ -67,7 +68,7 @@ struct TransportBar: View {
     private var clearControl: some View {
         Button { app.clear() } label: { hinted("rectangle.slash", "Clear", nil) }
             .buttonStyle(TransportButtonStyle()).wfRect("tp.clear", size: 13, weight: 600, radius: Radius.lg)
-            .disabled(workspace.show.isStopped)
+            .disabled(workspace.showParts.isStopped)
             .help("Escape clears the words. Clear all and the layer clears are the icons in the media bin's header, their keys and the Show menu.")
             .accessibilityLabel("Clear")
     }
@@ -97,7 +98,7 @@ struct TransportBar: View {
         case .blackout: return "Blackout: audience screens are black, your place is kept"
         case .live:
             // UI-005a: the lines of the first language joined with a comma, as the design draws it.
-            guard let slide = workspace.show.liveSlide else { return "" }
+            guard let slide = workspace.showParts.liveSlide else { return "" }
             let text = slide.primary.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
             return text.isEmpty ? "(blank slide)" : text
         }
@@ -213,7 +214,7 @@ struct QuickEditView: View {
                 Button("Cancel", action: done).keyboardShortcut(.cancelAction)
                 Button("Apply to live") {
                     // Start from the live slide so its objects stay on screen; only the words change.
-                    var content = workspace.show.liveSlide ?? SlideContent(primary: "")
+                    var content = workspace.showParts.liveSlide ?? SlideContent(primary: "")
                     content.primary = primary
                     content.secondary = secondary.isEmpty ? nil : secondary
                     Task { await workspace.quickEditLiveSlide(content); done() }
@@ -222,8 +223,8 @@ struct QuickEditView: View {
         }
         .padding(14).frame(width: 440)
         .onAppear {
-            primary = workspace.show.liveSlide?.primary ?? ""
-            secondary = workspace.show.liveSlide?.secondary ?? ""
+            primary = workspace.showParts.liveSlide?.primary ?? ""
+            secondary = workspace.showParts.liveSlide?.secondary ?? ""
         }
     }
 

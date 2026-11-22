@@ -58,7 +58,12 @@ public final class MediaModel {
     public private(set) var assets: [MediaAsset] = []
     /// Nil shows every kind.
     public var kindFilter: MediaKind?
-    public private(set) var layers = MediaLayers()
+    /// FIX-O (KI-180): the layers, observable one at a time (`layerParts.background`, `layerParts.foreground`); `layers` is both and depends on both.
+    public let layerParts = ObservedLayers()
+    public private(set) var layers: MediaLayers {
+        get { layerParts.layers }
+        set { layerParts.set(newValue) }
+    }
     public internal(set) var lastError: String?
     /// R12: set while a write (the remembered background) failed and is still waiting to succeed, with the reason.
     public internal(set) var writeProblem: String?
@@ -77,7 +82,7 @@ public final class MediaModel {
     /// the clip it was chosen for is still the foreground.
     public var foregroundLoops: Bool {
         guard let id = loopingAssetID else { return false }
-        return layers.foreground?.selection.assetID == id
+        return layerParts.foreground?.selection.assetID == id
     }
     private var loopingAssetID: UUID?
 
@@ -88,7 +93,7 @@ public final class MediaModel {
     public var backgroundHeardMuted: Bool { isBackgroundMuted || isMutedByBlackout }
     /// MEDIA-010: a live background chosen in the bin (or by a cue or folder) is on. It is a live override: it never writes to
     /// the presentation, and it stays until it is dropped or replaced.
-    public var hasLiveBackgroundOverride: Bool { layers.background != nil }
+    public var hasLiveBackgroundOverride: Bool { layerParts.background != nil }
     /// The hot folder playing its videos one after another, if one is.
     public var playingFolderID: UUID? { folderPlay?.folderID }
     @ObservationIgnored private var hotAssetsByFolder: [UUID: [MediaAsset]] = [:]
@@ -243,8 +248,8 @@ public final class MediaModel {
     /// Removes the reference. The file on disk is never touched. A removed asset leaves the layers it was in.
     public func remove(_ id: UUID) async {
         guard asset(id) != nil else { return }
-        if layers.background?.selection.assetID == id { clearBackground() }
-        if layers.foreground?.selection.assetID == id { stopForeground() }
+        if layerParts.background?.selection.assetID == id { clearBackground() }
+        if layerParts.foreground?.selection.assetID == id { stopForeground() }
         guard await attempt("remove the media item", { try await self.store.removeMediaAsset(id: id) }) != nil else { return }
         await reload()
     }
@@ -269,7 +274,7 @@ public final class MediaModel {
         guard let asset = asset(id), usable(asset, as: "a background") else { return }
         pendingBackgroundID = nil
         endFolderPlay(on: .background)
-        if layers.background?.selection == MediaSelection(asset: asset) { return }
+        if layerParts.background?.selection == MediaSelection(asset: asset) { return }
         layers.setBackground(MediaSelection(asset: asset), at: now())
         persistBackground(asset.id)
         layersChanged()
@@ -281,7 +286,7 @@ public final class MediaModel {
 
     public func clearBackground() {
         endFolderPlay(on: .background)
-        let had = layers.background != nil
+        let had = layerParts.background != nil
         pendingBackgroundID = nil
         layers.setBackground(nil, at: now())
         persistBackground(nil)
@@ -317,32 +322,32 @@ public final class MediaModel {
 
     /// UI-003: loop or stop looping the clip over the slide. Nothing is playing: nothing to loop.
     public func setForegroundLoops(_ on: Bool) {
-        guard let f = layers.foreground else { loopingAssetID = nil; return }
+        guard let f = layerParts.foreground else { loopingAssetID = nil; return }
         loopingAssetID = on ? f.selection.assetID : nil
     }
 
     /// UI-003: back to the start of the clip, playing.
     public func restartForeground() {
-        guard layers.foreground != nil else { return }
+        guard layerParts.foreground != nil else { return }
         layers.seekForeground(to: 0, at: now())
         layers.resumeForeground(at: now())
         layersChanged()
     }
 
     public func pause() {
-        guard layers.foreground != nil else { return }
+        guard layerParts.foreground != nil else { return }
         layers.pauseForeground(at: now())
         layersChanged()
     }
 
     public func resume() {
-        guard layers.foreground != nil else { return }
+        guard layerParts.foreground != nil else { return }
         layers.resumeForeground(at: now())
         layersChanged()
     }
 
     public func seek(to seconds: Double) {
-        guard layers.foreground != nil else { return }
+        guard layerParts.foreground != nil else { return }
         layers.seekForeground(to: seconds, at: now())
         layersChanged()
     }
@@ -350,7 +355,7 @@ public final class MediaModel {
     public func stopForeground() {
         endFolderPlay(on: .foreground)
         loopingAssetID = nil
-        guard layers.foreground != nil else { return }
+        guard layerParts.foreground != nil else { return }
         layers.stopForeground()
         layersChanged()
     }
@@ -358,25 +363,25 @@ public final class MediaModel {
     // MARK: Background loop controls (UI-003)
 
     public func pauseBackground() {
-        guard layers.background != nil else { return }
+        guard layerParts.background != nil else { return }
         layers.pauseBackground(at: now())
         layersChanged()
     }
 
     public func resumeBackground() {
-        guard layers.background != nil else { return }
+        guard layerParts.background != nil else { return }
         layers.resumeBackground(at: now())
         layersChanged()
     }
 
     public func seekBackground(to seconds: Double) {
-        guard layers.background != nil else { return }
+        guard layerParts.background != nil else { return }
         layers.seekBackground(to: seconds, at: now())
         layersChanged()
     }
 
     public func restartBackground() {
-        guard layers.background != nil else { return }
+        guard layerParts.background != nil else { return }
         layers.seekBackground(to: 0, at: now())
         layers.resumeBackground(at: now())
         layersChanged()
@@ -384,7 +389,7 @@ public final class MediaModel {
 
     /// The background video's clock for the controller row. Nil for a picture, or with no background.
     public func backgroundReadout(at time: Double? = nil) -> ForegroundReadout? {
-        guard let b = layers.background, b.selection.kind == .video else { return nil }
+        guard let b = layerParts.background, b.selection.kind == .video else { return nil }
         let t = time ?? now()
         return ForegroundReadout(assetID: b.selection.assetID, name: asset(b.selection.assetID)?.name ?? "Background",
                                  status: b.transport.status(at: t), position: b.transport.position(at: t),
@@ -407,7 +412,7 @@ public final class MediaModel {
     /// the length is known the clip must be within a second of its end.
     @discardableResult
     public func playerReportedEnd(now at: Double? = nil) -> Bool {
-        guard let foreground = layers.foreground else { return false }
+        guard let foreground = layerParts.foreground else { return false }
         let t = at ?? now()
         let transport = foreground.transport
         if transport.duration > 0, transport.remaining(at: t) > 1.0 { return false }
@@ -420,7 +425,7 @@ public final class MediaModel {
 
     /// A clip set to loop that reached its end plays again from the start instead of leaving the screens.
     private func restartLoopingClipIfEnded(at t: Double) -> Bool {
-        guard foregroundLoops, let f = layers.foreground, f.transport.status(at: t) == .ended else { return false }
+        guard foregroundLoops, let f = layerParts.foreground, f.transport.status(at: t) == .ended else { return false }
         restartForegroundNow(f, at: t)
         return true
     }
@@ -432,7 +437,7 @@ public final class MediaModel {
 
     /// Position, duration and status of the foreground clip at `time` (now by default); nil when there is none.
     public func foregroundReadout(at time: Double? = nil) -> ForegroundReadout? {
-        guard let f = layers.foreground else { return nil }
+        guard let f = layerParts.foreground else { return nil }
         let t = time ?? now()
         return ForegroundReadout(assetID: f.selection.assetID, name: asset(f.selection.assetID)?.name ?? "Clip",
                                  status: f.transport.status(at: t), position: f.transport.position(at: t),
@@ -486,12 +491,12 @@ public final class MediaModel {
     /// screens show the words and the theme's own background instead of a hole, and the operator is told.
     public func reportUnavailable(_ ids: Set<UUID>) {
         var changed = false
-        if let f = layers.foreground, ids.contains(f.selection.assetID) {
+        if let f = layerParts.foreground, ids.contains(f.selection.assetID) {
             layers.stopForeground()
             lastError = Self.playbackMessage(asset(f.selection.assetID), what: "The video or picture")
             changed = true
         }
-        if let b = layers.background, ids.contains(b.selection.assetID) {
+        if let b = layerParts.background, ids.contains(b.selection.assetID) {
             layers.setBackground(nil, at: now())      // the stored choice is kept: it returns when the file does
             lastError = Self.playbackMessage(asset(b.selection.assetID), what: "The background")
             changed = true
@@ -510,12 +515,12 @@ public final class MediaModel {
         case .notOpen, .starting, .delivering: return
         }
         var changed = false
-        if let f = layers.foreground, f.selection.assetID == id {
+        if let f = layerParts.foreground, f.selection.assetID == id {
             layers.stopForeground()
             lastError = Self.playbackMessage(asset(id), what: "The video or picture", why: why)
             changed = true
         }
-        if let b = layers.background, b.selection.assetID == id {
+        if let b = layerParts.background, b.selection.assetID == id {
             layers.setBackground(nil, at: now())
             lastError = Self.playbackMessage(asset(id), what: "The background", why: why)
             changed = true
@@ -536,11 +541,11 @@ public final class MediaModel {
         for old in previous where onLayers.contains(old.id) && !listed.contains(old.id) { retainedHot[old.id] = old }
         for id in listed { retainedHot[id] = nil }
         onAssetsChange?(allAssets)
-        if let pending = pendingBackgroundID, layers.background == nil, let asset = asset(pending) { restoreRemembered(asset) }
+        if let pending = pendingBackgroundID, layerParts.background == nil, let asset = asset(pending) { restoreRemembered(asset) }
     }
 
     private var idsOnLayers: Set<UUID> {
-        Set([layers.background?.selection.assetID, layers.foreground?.selection.assetID].compactMap { $0 })
+        Set([layerParts.background?.selection.assetID, layerParts.foreground?.selection.assetID].compactMap { $0 })
     }
 
     /// A retained item that no layer holds any more goes (and the registry is told).
@@ -643,10 +648,10 @@ public final class MediaModel {
         guard let play = folderPlay else { return false }
         switch play.layer {
         case .background:
-            guard let b = layers.background else { folderPlay = nil; return false }
+            guard let b = layerParts.background else { folderPlay = nil; return false }
             guard b.transport.status(at: t) == .ended else { return false }
         case .foreground:
-            guard let f = layers.foreground else { folderPlay = nil; return false }
+            guard let f = layerParts.foreground else { folderPlay = nil; return false }
             guard f.transport.status(at: t) == .ended else { return false }
         }
         advanceFolder(at: t)
@@ -703,5 +708,5 @@ public final class MediaModel {
 extension MediaModel: ForegroundPort {
     public func name(of assetID: UUID) -> String? { asset(assetID)?.name }
     public func isReadable(_ assetID: UUID) -> Bool { asset(assetID).map { isAvailable($0) } ?? false }
-    public var foregroundAssetID: UUID? { layers.foreground?.selection.assetID }
+    public var foregroundAssetID: UUID? { layerParts.foreground?.selection.assetID }
 }
