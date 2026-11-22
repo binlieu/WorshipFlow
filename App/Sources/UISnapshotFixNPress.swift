@@ -1,7 +1,7 @@
 // FIX-N (debug builds only): the Stage canvas's press for the real-key run. In a session whose screen is locked the app cannot become active, and the
 // window swallows a synthetic mouse click as the activating click, so the press is made by calling the canvas's own press, move and release functions
 // (`StageCanvasDebug`, registered by the canvas view): they are what its gesture calls. What follows (the keys) is real events through the app's key monitor.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import OperatorCore
 

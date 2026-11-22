@@ -255,9 +255,17 @@ struct MediaControllerRow: View {
     private enum Sound { case clip, cue, background }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+        // FIX-Q: the clock runs only while a file is loaded for the row to drive. With nothing loaded (the usual state in Show) a ten-per-second timeline
+        // still made SwiftUI update the whole window ten times a second: about 16 ms of the main thread each, with a 200-slide grid on screen.
+        // Which file the row drives depends only on observed state (`pick`), so the row appears and the clock starts when one is loaded.
+        TickingWhile(active: hasSource, every: 0.1) {
             if let face = face() { row(face) }
         }
+    }
+
+    private var hasSource: Bool {
+        MediaController.pick(foregroundLoaded: media.layerParts.foreground != nil, currentAudioCue: audio?.currentID,
+                             backgroundIsVideo: media.layerParts.background?.selection.kind == .video) != nil
     }
 
     private func face() -> Face? {

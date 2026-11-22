@@ -4,7 +4,7 @@
 // real drag. What cannot be replayed without a hand: the drag source's image (AppKit builds it when the user starts dragging) and the
 // system's own cursor and autoscroll loop. Each replay reports the main-thread cost per hover update, the drop's synchronous cost, the
 // longest main-thread stall around the drop, database commits and output publications.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore
@@ -45,11 +45,15 @@ struct DropReplayResult {
     var dropPublishes: Int
     /// FIX-O: how many times each probed view body ran during the drop and the 1.5 s after it (`BodyProbe`).
     var bodies = ""
+    /// FIX-Q: the main thread's own CPU time from the drop to the end of the settle time, and its longest uninterrupted burst in one run-loop pass
+    /// (`MainThreadMeter`): the stall number above also counts time spent waiting (a display commit waiting for a frame of a locked screen).
+    var cpu = 0.0
+    var burst = 0.0
     var line: String {
         let s = hover.sorted()
         func pct(_ q: Double) -> Double { s.isEmpty ? 0 : s[min(s.count - 1, Int(Double(s.count) * q))] }
-        return String(format: "hover %d updates: median %.2f / 95th %.2f / max %.2f ms, over 8 ms: %d, commits %d, publications %d | drop accepted %@: handler call %.2f ms, longest main-thread stall %.1f ms, last commit %.0f ms after the drop, commits %d, publications %d | bodies: %@",
-                      s.count, pct(0.5), pct(0.95), s.last ?? 0, s.filter { $0 > 8 }.count, hoverCommits, hoverPublishes, accepted ? "yes" : "no", dropSync, stall, settle, dropCommits, dropPublishes, bodies.isEmpty ? "-" : bodies)
+        return String(format: "hover %d updates: median %.2f / 95th %.2f / max %.2f ms, over 8 ms: %d, commits %d, publications %d | drop accepted %@: handler call %.2f ms, longest main-thread stall %.1f ms (includes waits), main-thread CPU %.1f ms, longest CPU burst %.1f ms, last commit %.0f ms after the drop, commits %d, publications %d | bodies: %@",
+                      s.count, pct(0.5), pct(0.95), s.last ?? 0, s.filter { $0 > 8 }.count, hoverCommits, hoverPublishes, accepted ? "yes" : "no", dropSync, stall, cpu, burst, settle, dropCommits, dropPublishes, bodies.isEmpty ? "-" : bodies)
     }
 }
 
@@ -132,6 +136,9 @@ extension AppModel {
             var longest = 0.0, stop = false
             var lastCommit = 0.0
             BodyProbe.reset()
+            let meter = MainThreadMeter.shared
+            meter.install(); meter.resetBurst()
+            let cpu0 = meter.cpu()
             let t0 = ContinuousClock.now
             let ticker = Task { @MainActor in
                 var last = ContinuousClock.now
@@ -154,7 +161,8 @@ extension AppModel {
             _ = await ticker.value
             let end = counters()
             return DropReplayResult(hover: hover, accepted: accepted, dropSync: sync, stall: longest, settle: settle, hoverCommits: mid.commits - start.commits, hoverPublishes: mid.publishes - start.publishes,
-                                    dropCommits: end.commits - mid.commits, dropPublishes: end.publishes - mid.publishes, bodies: BodyProbe.summary())
+                                    dropCommits: end.commits - mid.commits, dropPublishes: end.publishes - mid.publishes, bodies: BodyProbe.summary(),
+                                    cpu: meter.cpu() - cpu0, burst: meter.longestBurst)
         }
 
         func board(_ string: String) -> NSPasteboard {
@@ -178,6 +186,13 @@ extension AppModel {
         await settle(1.5)
         let cells = visible("main.cell.")
         note("fixm: \(cells.count) grid cells realised; first \(cells.first?.0 ?? -1), last \(cells.last?.0 ?? -1)")
+        do {      // FIX-Q: what the window costs by itself over the same 1.5 s the drops are measured over
+            let m = MainThreadMeter.shared
+            m.install(); m.resetBurst()
+            let c0 = m.cpu()
+            try? await Task.sleep(for: .seconds(1.5))
+            note(String(format: "fixm: idle 1.5 s, grid on screen, no drag: main-thread CPU %.1f ms, longest CPU burst %.1f ms", m.cpu() - c0, m.longestBurst))
+        }
         // Profiling aid: UI_SNAPSHOT_FIXM_LOOP=background|reorder repeats one drop 120 times so `sample` can see where the main thread spends it.
         if let loop = ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXM_LOOP"], cells.count > 4 {
             let pics = media.assets.filter { $0.kind == .image }

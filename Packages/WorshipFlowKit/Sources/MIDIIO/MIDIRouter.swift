@@ -41,7 +41,7 @@ public final class MIDIRouter {
     public private(set) var isLearning = false
     /// Every message that reached the router (including ones no binding wanted).
     public private(set) var receivedCount = 0
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     /// FIX-P item 7 (debug builds only, compiled out of release): called with the seconds between a message's own timestamp and the moment its command
     /// had been handed to the app, for every message that ran a command. The running-app measurement under UI load reads it.
     public static var debugLatencyProbe: (@MainActor (TimeInterval) -> Void)?
@@ -180,7 +180,7 @@ public final class MIDIRouter {
         }
         if let command = filter.command(for: received.message, in: bindings, at: received.timestamp) {
             onCommand(command, received.message)
-            #if DEBUG
+            #if DEBUG || WF_MEASURE
             Self.debugLatencyProbe?(MIDIWire.nowSeconds() - received.timestamp)
             #endif
         }

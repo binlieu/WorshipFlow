@@ -145,13 +145,21 @@ private struct SectionHeader: View {
     return app.showParts.liveIndex
 }
 
+/// FIX-Q: scrolls the grid to the selected slide. A view of its own, so the selection is read here and not in the grid's body.
+private struct ScrollToSelection: View {
+    let workspace: WorkspaceModel
+    let proxy: ScrollViewProxy
+    let keys: [SlideCellKey]
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0)
+            .onChange(of: workspace.showParts.selectedIndex) { _, new in if keys.indices.contains(new) { withAnimation { proxy.scrollTo(keys[new]) } } }
+    }
+}
+
 struct SlideGrid: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
     @State private var pendingDelete: Int?
-
-    /// Red means on screen now: while cleared or blacked out the live place is marked in the warning colour instead.
-    private var ringColor: Color { app.mode == .live ? Tok.liveFill : Tok.warning }
 
     var body: some View {
         let _ = BodyProbe.hit("SlideGrid")
@@ -186,9 +194,9 @@ struct SlideGrid: View {
         let _ = BodyProbe.hit("SlideGrid.content")
         let keys = SlideCellKey.keys(for: workspace.slides.map(\.id))
         let available = app.media.map { Set($0.allAssets.map(\.id)) }      // once for the grid, not once per cell
-        let live = liveIndex(app, workspace)
-        // FIX-O: only the live cell draws the mode (ring colour, tag); the others get a fixed value, so Blackout and Clear draw one cell, not all.
-        let liveMode: LiveMode = live == nil ? .live : app.mode
+        // FIX-Q: the grid's own body reads neither the selection, the live place nor the mode. Each cell asks for its own marks (`SlideGridCell`), so
+        // Next, Previous, a selection, Blackout and Clear wake the cells that change and do not run this body or walk the 200 cells. FIX-O's rule stays:
+        // only the live cell draws the mode (written `mode: live == i ? liveMode : .live` then; now decided inside the cell from its own live mark).
         ScrollViewReader { proxy in
             ScrollView {
                 if workspace.slides.isEmpty {
@@ -203,7 +211,7 @@ struct SlideGrid: View {
                                 // FIX-M: a cell's identity is its slide (SlideCellKey), not its position, so a reorder moves cells and only the moved range
                                 // is drawn again.
                                 ForEach(run.indices.map { CellSlot(index: $0, key: keys[$0]) }) { slot in
-                                    cell(slot.index, color: run.tone.color, available: available, live: live, liveMode: liveMode).id(slot.key)
+                                    cell(slot.index, color: run.tone.color, available: available).id(slot.key)
                                 }
                             }
                             .wfRect("main.grid.\(runIndex)")
@@ -214,15 +222,14 @@ struct SlideGrid: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 14)
             }
-            .onChange(of: workspace.showParts.selectedIndex) { _, new in if keys.indices.contains(new) { withAnimation { proxy.scrollTo(keys[new]) } } }
+            .background(ScrollToSelection(workspace: workspace, proxy: proxy, keys: keys))
         }
     }
 
     /// FIX-M: the cell is a value-comparing view: a drop or an edit that changes one slide draws that slide's cell, not all of them.
-    private func cell(_ i: Int, color: Color, available: Set<UUID>?, live: Int?, liveMode: LiveMode) -> some View {
+    private func cell(_ i: Int, color: Color, available: Set<UUID>?) -> some View {
         let slide = workspace.slides[i]
-        return SlideGridCell(app: app, workspace: workspace, slide: slide, index: i, isLast: i == workspace.slides.count - 1,
-                             selected: workspace.showParts.selectedIndex == i, live: live == i, mode: live == i ? liveMode : .live, color: color,
+        return SlideGridCell(app: app, workspace: workspace, slide: slide, index: i, isLast: i == workspace.slides.count - 1, color: color,
                              available: available, onDelete: { pendingDelete = $0 })
             .equatable()
     }

@@ -7,7 +7,7 @@
 // Release builds compile this to nothing.
 import SwiftUI
 
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 
 final class DesignProbeView: NSView {
@@ -70,6 +70,12 @@ struct DesignProbeRepresentable: NSViewRepresentable {
     }
 }
 
+#endif
+
+#if DEBUG
+// FIX-Q: the tags are active in Debug only. A Release measuring build (WF_MEASURE) keeps the dump functions so the hooks compile, but draws no tags: the
+// probe puts a GeometryReader and an NSView behind every tagged view (several per slide cell), which the shipped app does not have and which made
+// a Release measuring build slower than the real one.
 extension View {
     func wfRect(_ id: String, size: Double? = nil, weight: Double? = nil, radius: Double? = nil) -> some View {
         background(GeometryReader { g in DesignProbeRepresentable(id: id, size: size, weight: weight, radius: radius, exact: g.frame(in: .global)) })

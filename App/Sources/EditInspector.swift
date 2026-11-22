@@ -41,7 +41,7 @@ struct EditInspector: View {
         .background(Tok.surface)
         .overlay(alignment: .leading) { Rectangle().fill(Tok.border).frame(width: 1) }
         .wfRect("ed.insp")
-        #if DEBUG
+        #if DEBUG || WF_MEASURE
         // The capture (EditDesignCapture.swift) switches tabs by notification; nothing else posts it.
         .onReceive(NotificationCenter.default.publisher(for: .init("wf.debug.editTab"))) { note in
             switch note.object as? String { case "slide": tab = .slide; case "theme": tab = .theme; default: tab = .object }

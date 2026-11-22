@@ -33,28 +33,33 @@ struct SlideGridCell: View, @MainActor Equatable {
     let slide: Slide
     let index: Int
     let isLast: Bool
-    let selected: Bool
-    let live: Bool
-    let mode: LiveMode
     let color: Color
     let available: Set<UUID>?
     let onDelete: (Int) -> Void
 
     static func == (a: SlideGridCell, b: SlideGridCell) -> Bool {
-        a.slide == b.slide && a.index == b.index && a.isLast == b.isLast && a.selected == b.selected && a.live == b.live
-            && a.mode == b.mode && a.color == b.color && a.available == b.available
+        a.slide == b.slide && a.index == b.index && a.isLast == b.isLast && a.color == b.color && a.available == b.available
     }
 
-    private var ringColor: Color { mode == .live ? Tok.liveFill : Tok.warning }
+    /// FIX-Q: the cell asks for its own marks, so Next, Previous and a selection wake the two cells that change and never the grid's body.
+    /// The live mark counts only while the live deck is the open presentation. Only the live cell draws the mode (FIX-O).
+    private struct Marks { var selected: Bool; var live: Bool; var mode: LiveMode }
+    private var marks: Marks {
+        let live = app.showParts.liveDeckID == workspace.openPresentationID && app.showParts.isLive(at: index)
+        return Marks(selected: workspace.showParts.isSelected(at: index), live: live, mode: live ? app.mode : .live)
+    }
 
     var body: some View {
         let _ = BodyProbe.hit("SlideGridCell")
         let i = index
+        let marks = marks
+        let (selected, live, mode) = (marks.selected, marks.live, marks.mode)
+        let ringColor = mode == .live ? Tok.liveFill : Tok.warning
         VStack(alignment: .leading, spacing: 3) {
             // The rings are drawn outside the picture (never over the words): idle 1 pt, preview 2 pt blue, live 3 pt red, at a 2 pt offset.
             SlideThumbnail(app: app, slide: slide.content)
                 .wfRect("main.cell.\(i).thumb", radius: 4)
-                .overlay(alignment: .topLeading) { tags.wfRect("main.cell.\(i).tag", size: 9, weight: 800, radius: Radius.xs).padding(5) }
+                .overlay(alignment: .topLeading) { tags(selected: selected, live: live, mode: mode).wfRect("main.cell.\(i).tag", size: 9, weight: 800, radius: Radius.xs).padding(5) }
                 .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: available).padding(5) }
                 .wfThumbState(radius: 4, preview: selected && !live, live: live, liveColor: ringColor)
                 .padding(5)    // room for the outer ring inside the cell
@@ -85,11 +90,11 @@ struct SlideGridCell: View, @MainActor Equatable {
         .contextMenu { menu }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
-        .accessibilityValue(stateWord)
+        .accessibilityValue(stateWord(selected: selected, live: live, mode: mode))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    @ViewBuilder private var tags: some View {
+    @ViewBuilder private func tags(selected: Bool, live: Bool, mode: LiveMode) -> some View {
         if live {
             switch mode {
             case .cleared: ThumbTag(text: "CLEARED", kind: .warning)
@@ -101,7 +106,7 @@ struct SlideGridCell: View, @MainActor Equatable {
         }
     }
 
-    private var stateWord: String {
+    private func stateWord(selected: Bool, live: Bool, mode: LiveMode) -> String {
         var words: [String] = []
         if live { words.append(mode == .cleared ? "live place, cleared" : (mode == .blackout ? "live place, blackout" : "live")) }
         if selected { words.append("in preview") }

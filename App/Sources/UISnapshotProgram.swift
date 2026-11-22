@@ -3,7 +3,7 @@
 // the playlist through the same sheet model the menu uses, edits one song, opens the package again through the import sheet
 // (summary, conflict, default answer), refuses a hostile package, and writes two pictures of the sheets. Nothing here runs
 // without the variable.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import SwiftUI
 import Domain

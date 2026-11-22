@@ -3,7 +3,7 @@
 // clock 74/9/22/15, timer 74/32/22/19, notes where the design draws its Section, message 4/87/92/10), two more layouts, the stage message
 // sent, the first element selected. Run with `UI_SNAPSHOT_STAGE=1` together with the design seed (`UI_SNAPSHOT_DESIGN=1`); written as
 // `<prefix>-stage-dark.png` / `-stage-light.png` with their `.rects.json`. Sample content is plain data; nothing is stored in a real library.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

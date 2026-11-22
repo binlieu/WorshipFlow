@@ -358,3 +358,11 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] After clicking a box, press Tab until a radio group (Hardware Test, or a sheet that has one) has focus: the arrows change the choice, not the box.
 - [ ] MIDI: with a real controller bound to Next, press pads while scrolling a long song and playing a clip: the slide follows within a blink. Note any delay.
 
+## FIX-Q Next, Previous and drops on the main thread
+
+- [ ] Show, a song with many slides, a media clip chosen as the background or loaded as the clip over the words: while it plays the Media controller row under the grid shows its time and the scrubber moves ten times a second. Stop the clip: the row goes away. Press Space (Next) and Shift-Space a few times with nothing loaded: the red marker, the transport line and the previews follow as before.
+- [ ] Media mode: play a sound: the Audio cue card and the sound's own row show the time and the meter move; stop it: both go quiet, "No sound playing" shows. (These clocks now run only while something plays.)
+- [ ] Drag a slide to another place, a bin tile onto a slide, a file from Finder onto a slide and onto the dock, with the media dock showing and nothing playing: each should land with no catch. The window should feel the same or better than the version before; this is the check the measuring cannot make (the screen was locked while measuring).
+- [ ] Cues mode, Slide actions with a long song: press Next from the transport bar or the Space key: the list follows without a pause.
+- [ ] Optional, no hand needed: `WF_CONFIG=Release scripts/fixq-run.sh` (gestures), `WF_CONFIG=Release scripts/measure-drags.sh` (drops) and `WF_CONFIG=Release FIXP=midi scripts/fixp-run.sh` (MIDI) build a Release copy with the timing hooks (`WF_MEASURE`) against a throw-away library and print the numbers. Run them on an unlocked screen with the Mac otherwise idle for the cleanest numbers.
+

@@ -96,14 +96,14 @@ final class PreviewRenderer: @unchecked Sendable {
         }
     }
 
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     /// UI-004: how many renders were asked for (hits included), for the drag exercise in the ui-snapshots hook.
     nonisolated(unsafe) private(set) var requestCount = 0
     #endif
 
     private func renderLocked(_ scene: SceneDescription, _ width: Int, _ height: Int, _ cached: Bool,
                               _ frames: (any MediaFrameSource)?, _ channel: PreviewChannel, _ straight: Bool, _ variant: StillCacheKey?) -> PreviewImage? {
-        #if DEBUG
+        #if DEBUG || WF_MEASURE
         requestCount += 1
         #endif
         let key = RenderKey(scene: scene, width: width, height: height, channel: channel, straight: straight, variant: variant)

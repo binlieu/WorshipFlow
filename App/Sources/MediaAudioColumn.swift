@@ -70,7 +70,8 @@ struct MediaAudioColumn: View {
     // MARK: Audio cue
 
     private var cueCard: some View {
-        TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+        // FIX-Q: the clock runs only while a sound is playing (see `TickingWhile`); a ten-per-second timeline with nothing playing updated the whole window.
+        TickingWhile(active: audio.currentID != nil, every: 0.1) {
             let readout = audio.currentID.flatMap { audio.readout(for: $0) }
             VStack(alignment: .leading, spacing: 0) {
                 SectionLabel("Audio cue").wfRect("media.cue.h", size: 11, weight: 600).padding(.bottom, 8)

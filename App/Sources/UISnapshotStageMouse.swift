@@ -1,7 +1,7 @@
 // UI-005e / FIX-K (debug builds only): drives the running Stage editor with real mouse events (mouse down, dragged, up sent to the window,
 // the same path a hand takes) and reports what moved. `UI_SNAPSHOT_STAGE_DRAG=1` with the Stage scenario. Reads the canvas boxes from the
 // design probe (`st.cv.el.N`), the frames from the model, and counts the model's publish calls (a write) during and after each drag.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

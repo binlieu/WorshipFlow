@@ -2,7 +2,7 @@
 // captures the Cues mode at 1440 x 900 points in the state of docs/UI/screens/06-cues.png as far as today's data allows: the design's five
 // macros (with the design's step counts), a slide action on two slides, seven MIDI bindings and a macro run for the Activity list.
 // Pictures and rectangle dumps go through the hook's `capture` (names `cues-dark`, `cues-light`). Sample content is plain data.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import CueEngine

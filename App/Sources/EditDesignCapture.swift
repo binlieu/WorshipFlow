@@ -3,7 +3,7 @@
 // one text object on it with the design's frame, size, shadow and weight, selected. The design's two lyric boxes are the theme's words in
 // the app (not objects), so the object here is an extra text box that stands for the selected one. Dark and light.
 // Run by scripts/design-capture-edit.sh by hand.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import SwiftUI
 import Domain

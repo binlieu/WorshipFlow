@@ -46,7 +46,7 @@ struct StageEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Tok.bg)
         .onAppear {
-            #if DEBUG
+            #if DEBUG || WF_MEASURE
             if let name = StageDesignSeed.openLayoutName, let match = stage.customLayouts.first(where: { $0.name == name }) { layoutID = match.id }
             #endif
             nameText = layout.name

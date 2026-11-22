@@ -4,7 +4,7 @@
 // keys) and the other drags the app has (slide grid, filmstrip, bin tiles, playlist rows, scrubber). Nothing here runs without the flag.
 // The synthetic events do not start AppKit's own drag session (that needs the system's drag loop), so the drag-and-drop kinds are measured at
 // the point they run: the drop destination's and the move's handlers, and the model's counters. The report says which.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore
@@ -14,10 +14,48 @@ import OperatorCore
     let window: NSWindow
 
     func rect(_ id: String) -> CGRect? {
-        DesignProbe.dump(window: window).first { ($0["id"] as? String) == id }.flatMap {
+        let dump = DesignProbe.dump(window: window)
+        // FIX-Q: a Release measuring build (WF_MEASURE) draws no design tags (they would slow it below the shipped app), so the dump is empty; the drop
+        // targets the drag replays need are then found from the views that registered for drags.
+        if dump.isEmpty { return dropViewRect(id) }
+        return dump.first { ($0["id"] as? String) == id }.flatMap {
             guard let x = $0["x"] as? Double, let y = $0["y"] as? Double, let w = $0["w"] as? Double, let h = $0["h"] as? Double else { return nil }
             return CGRect(x: x, y: y, width: w, height: h)
         }
+    }
+
+    /// The views that accept drops, as rectangles in window points with a top-left origin, one per distinct frame.
+    private func dropViewRects() -> [CGRect] {
+        guard let content = window.contentView else { return [] }
+        var found: [CGRect] = []
+        func walk(_ v: NSView) {
+            if !v.registeredDraggedTypes.isEmpty, !v.isHidden {
+                let r = v.convert(v.bounds, to: nil)
+                let top = CGRect(x: r.minX.rounded(), y: (window.frame.height - r.maxY).rounded(), width: r.width.rounded(), height: r.height.rounded())
+                if !found.contains(top), top.width > 0, top.height > 0 { found.append(top) }
+            }
+            v.subviews.forEach(walk)
+        }
+        walk(content)
+        return found
+    }
+
+    /// Stand-ins for the tagged views: "main.cell.k" is the k-th slide cell of the Show grid and "ed.fs.cell.k" the k-th filmstrip cell (row by row, as on
+    /// screen), "dock" the media dock, "media.grid" the Media bin. Any other id is not found.
+    private func dropViewRect(_ id: String) -> CGRect? {
+        let all = dropViewRects()
+        func order(_ a: CGRect, _ b: CGRect) -> Bool { abs(a.minY - b.minY) > 4 ? a.minY < b.minY : a.minX < b.minX }
+        if id.hasPrefix("main.cell."), let k = Int(id.dropFirst("main.cell.".count)), !id.dropFirst("main.cell.".count).contains(".") {
+            let cells = all.filter { (90...330).contains($0.width) && (50...280).contains($0.height) && $0.minX > 200 && $0.minY > 40 }.sorted(by: order)
+            return cells.indices.contains(k) ? cells[k] : nil
+        }
+        if id.hasPrefix("ed.fs.cell."), let k = Int(id.dropFirst("ed.fs.cell.".count)) {
+            let cells = all.filter { (120...200).contains($0.width) && (60...160).contains($0.height) && $0.minX < 230 }.sorted(by: order)
+            return cells.indices.contains(k) ? cells[k] : nil
+        }
+        if id == "dock" { return all.filter { $0.width > 450 && $0.minY > window.frame.height * 0.55 }.max { $0.width * $0.height < $1.width * $1.height } }
+        if id == "media.grid" { return all.filter { $0.width > 300 && $0.height > 200 }.max { $0.width * $0.height < $1.width * $1.height } }
+        return nil
     }
 
     /// Window points, top-left origin, to the event's bottom-left origin.

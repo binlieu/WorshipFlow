@@ -2,7 +2,7 @@
 // goes live, and writes one picture of the operator window per mode plus one with Blackout on. It also sends the real key
 // events for Command-1 to 6 and B through the app's own menu and key monitor and logs what happened. Pictures are drawn by
 // the window's own views (no screen capture), so a locked screen does not matter. Nothing here runs without the flag.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore
@@ -223,6 +223,15 @@ extension AppModel {
             // FIX-O: Go Live, Next, Previous, Blackout and Clear in every mode, looking for views that did not follow (one added block).
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXO_MODES"] != nil {
                 await runFixOModesScenario(note: { note($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
+            // FIX-Q: Next, Previous, Go Live, Blackout and Clear repeated with 200 slides, phase by phase (one added block; the same shape as the others).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXQ"] != nil {
+                await runFixQScenario(note: { note($0) })
                 try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
                 await flushWorkspace()
                 await stopCue()

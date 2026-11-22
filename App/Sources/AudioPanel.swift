@@ -102,7 +102,8 @@ struct AudioRow: View {
     @State private var dragPosition = 0.0
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+        // FIX-Q: the clock runs only while this sound is playing (see `TickingWhile`).
+        TickingWhile(active: audio.isActive(asset.id), every: 0.1) {
             let readout = audio.readout(for: asset.id)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {

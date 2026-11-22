@@ -54,7 +54,7 @@ public final class SlideEditorModel {
     private struct LyricCacheKey: Equatable { var slideID: UUID; var primary: String; var secondary: String?; var revision: Int }
     /// FIX-N item 8: changes when the theme or the screens change, so the cached theme frames are composed again. The app supplies it.
     @ObservationIgnored public var lyricThemeRevision: @MainActor () -> Int = { 0 }
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     /// FIX-N item 8 (debug only, compiled out of release): how many times the theme frames were composed, for the cache test.
     @ObservationIgnored public private(set) var debugLyricComposeCount = 0
     #endif
@@ -155,7 +155,7 @@ public final class SlideEditorModel {
         if let cache = lyricCache, cache.key == key { return cache.frames }
         let frames = lyricThemeFrames(slide.content)
         lyricCache = (key, frames)
-        #if DEBUG
+        #if DEBUG || WF_MEASURE
         debugLyricComposeCount += 1
         #endif
         return frames

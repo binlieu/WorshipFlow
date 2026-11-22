@@ -2,7 +2,7 @@
 // controller has a pill to draw) takes the pictures the rounded-border check needs: the toolbar's mode switcher and role
 // pills and the media controller's AUD pill, in dark and in light appearance. The picture is the whole window at 2x; the
 // crops are cut from it afterwards.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

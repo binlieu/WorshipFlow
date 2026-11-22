@@ -2,7 +2,7 @@
 // temporary library, with window outputs and no sound: a macro run from the Cues tab, a slide action that changes the Look, a MIDI
 // note arriving on the app's own virtual port, a scheduled event, and one remote-control request over the loopback interface with
 // the server on an ephemeral port, then switched off again. It writes pictures through the hook's `capture`.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import CoreMIDI
 import Domain

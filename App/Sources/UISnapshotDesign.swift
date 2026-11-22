@@ -3,7 +3,7 @@
 // dark (`01-operator-show`), with the Quick edit tab (`01b`), in light (`09`), and the component board (`08`, `10`) drawn by
 // `ComponentsBoard` in a separate window of the design's size. Sample content is plain data with the design's names; the media
 // are generated gradients and one test clip. Pictures are compared by scripts/compare-design.sh, by hand.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import SwiftUI
 import Domain

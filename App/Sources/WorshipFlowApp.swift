@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppModel.shared.startWorkspace()
             AppModel.shared.startSoakIfRequested()
             AppModel.shared.runUISnapshotsIfRequested()
-            #if DEBUG
+            #if DEBUG || WF_MEASURE
             AppModel.shared.runProgramExerciseIfRequested()      // LIB-005
             #endif
         }

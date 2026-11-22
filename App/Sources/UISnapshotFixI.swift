@@ -2,7 +2,7 @@
 // app's own key monitor and the window's responder chain) after real mouse events: at launch, after a click in the slide grid, the
 // sidebar, the inspector and the media bin, and after a sheet closes. For each it logs what had focus, what the router decided and
 // what the keys did to the show. Nothing here runs without the flag, and it only ever opens a window output, never a display.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

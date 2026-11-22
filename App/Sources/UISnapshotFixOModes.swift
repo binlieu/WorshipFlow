@@ -7,7 +7,7 @@
 //     and back): any region that differs is a part that did not follow. The toolbar and the transport bar are left out of that comparison
 //     (they are never rebuilt by a mode change; 1 covers them).
 // Nothing here runs without the flag.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

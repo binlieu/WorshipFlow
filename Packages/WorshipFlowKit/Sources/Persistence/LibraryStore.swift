@@ -18,7 +18,7 @@ public final class LibraryStore: Sendable {
     /// FIX-K: counts the transactions that changed the database, so a test or the debug hook can prove that a drag writes nothing until it is dropped.
     /// FIX-N item 8: debug builds only. A release build attaches no observer, so no write pays for the count.
     private let commits: CommitCounter
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     public var commitCount: Int { commits.count }
     #endif
 
@@ -84,7 +84,7 @@ public final class LibraryStore: Sendable {
         var config = Configuration()
         config.foreignKeysEnabled = true
         config.prepareDatabase { db in
-            #if DEBUG
+            #if DEBUG || WF_MEASURE
             db.add(transactionObserver: counter, extent: .databaseLifetime)
             #endif
             // ADR-0004 decision 3, set explicitly on every connection.
@@ -203,7 +203,7 @@ public final class LibraryStore: Sendable {
     }
 }
 
-#if DEBUG
+#if DEBUG || WF_MEASURE
 /// FIX-K: a transaction observer that only counts commits that changed something. FIX-N item 8: compiled out of release builds.
 final class CommitCounter: TransactionObserver, @unchecked Sendable {
     private let lock = NSLock()

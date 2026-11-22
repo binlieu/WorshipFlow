@@ -2,7 +2,7 @@
 // app's own key monitor and the window's responder chain) in Edit, Stage and Screens: after a click on a canvas box, after a drag, after a
 // sheet closes and after a mode change. For each case it logs what had focus and what Right, Space, Return, B, B and Escape did to the show.
 // Nothing here runs without the flag, and it only ever opens a window output, never a display.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

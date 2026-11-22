@@ -1,7 +1,7 @@
 // MEDIA-010 (debug builds only): `UI_SNAPSHOT_MEDIA010=1` with the ui-snapshots hook drives the live media control in the real
 // app against a temporary library: the bin player, a bin choice as a live override, the three layer clears, a hot folder
 // (`UI_SNAPSHOT_HOTFOLDER=<folder>`) and a slide's own background. Pictures go through the hook's `capture`.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

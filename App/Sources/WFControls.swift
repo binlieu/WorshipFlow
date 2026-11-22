@@ -417,3 +417,19 @@ extension View {
         overlay { if on { Rectangle().strokeBorder(Tok.blue.opacity(0.45), lineWidth: 1).allowsHitTesting(false).accessibilityHidden(true) } }
     }
 }
+
+/// FIX-Q: content that is redrawn on a timer only while `active`. When it is not, it is drawn once, and again when an observed value it reads changes.
+/// A `TimelineView` that ticks while it has nothing to show makes SwiftUI update the whole window every tick.
+struct TickingWhile<Content: View>: View {
+    let active: Bool
+    let every: TimeInterval
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if active {
+            TimelineView(.periodic(from: .now, by: every)) { _ in content() }
+        } else {
+            content()
+        }
+    }
+}

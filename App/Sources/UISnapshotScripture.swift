@@ -2,7 +2,7 @@
 // against a temporary library: Command-J through the real menu, the empty state, two invented translation files imported through
 // the model, a reference typed with real key events and Return, Go Live and Next from the keyboard, two translations side by side,
 // a playlist item, a search. The only verses here are invented (not scripture). It writes pictures through the hook's `capture`.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

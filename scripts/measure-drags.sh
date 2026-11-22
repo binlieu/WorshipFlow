@@ -4,13 +4,13 @@
 # the owner's library and saved state are never touched. Stops only the process it started. Env: WF_SCRATCH, WF_DERIVED_DATA.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+ROOT="$(pwd)"
 SCRATCH="${WF_SCRATCH:-$(mktemp -d "${TMPDIR:-/tmp}/wf-drags.XXXXXX")}"
 mkdir -p "$SCRATCH"
 OUT="$SCRATCH/out"; rm -rf "$OUT"; mkdir -p "$OUT"
 DD="${WF_DERIVED_DATA:-$SCRATCH/dd}"
-xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Debug -destination 'platform=macOS' \
-  -derivedDataPath "$DD" build -quiet > "$SCRATCH/build.log" 2>&1 || { grep -E "error:" "$SCRATCH/build.log" | head -20; exit 1; }
-APP_SRC=$(ls -d "$DD"/Build/Products/Debug/*.app | head -1)
+source "$ROOT/scripts/lib-measure-build.sh"
+APP_SRC=$(measure_build "$DD" "$SCRATCH/build.log") || exit 1
 APP="$SCRATCH/Capture.app"
 rm -rf "$APP"; cp -R "$APP_SRC" "$APP"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier org.worshipflow.dragmeasure.$$" "$APP/Contents/Info.plist"

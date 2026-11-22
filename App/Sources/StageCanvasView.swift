@@ -82,7 +82,7 @@ struct StageCanvas: View {
                 AppModel.shared.ui.stageTakesArrows = false
                 AppModel.shared.ui.stageArrow = nil
                 AppModel.shared.ui.stageArrowReleased = nil
-                #if DEBUG
+                #if DEBUG || WF_MEASURE
                 StageCanvasDebug.unregister()
                 #endif
             }
@@ -96,7 +96,7 @@ struct StageCanvas: View {
             let sx = Double(value.startLocation.x), sy = Double(value.startLocation.y)
             if pointerState.press(startedAt: sx, sy) { pressBegan(at: value.startLocation, in: canvas) }
             else if !pointerState.accepts(startedAt: sx, sy) {
-                #if DEBUG
+                #if DEBUG || WF_MEASURE
                 StageCanvasDebug.ignoredEvents += 1
                 #endif
                 return
@@ -174,7 +174,7 @@ struct StageCanvas: View {
         ui.stageTakesArrows = takesArrows
         ui.stageArrow = { dx, dy, shift in nudge(dx: dx, dy: dy, shift: shift) }
         ui.stageArrowReleased = { nudges.keyReleased() }
-        #if DEBUG
+        #if DEBUG || WF_MEASURE
         StageCanvasDebug.register(press: { point, size in pressBegan(at: point, in: size) }, move: { dx, dy, size in pressMoved(dx: dx, dy: dy, in: size) },
                                   release: { pressEnded() })
         #endif
@@ -270,7 +270,7 @@ private struct StageKeyCatcher: NSViewRepresentable {
     func updateNSView(_ view: StageKeyView, context: Context) { view.onArrow = onArrow; view.onRelease = onRelease; view.takesArrows = takesArrows; box.view = view }
 }
 
-#if DEBUG
+#if DEBUG || WF_MEASURE
 /// FIX-N (debug builds only): the Stage canvas's press, move and release handlers, for the real-key run in a session whose screen is locked (the app
 /// cannot become active, and the window swallows a synthetic click as the activating click). The hook calls the very functions the gesture calls; the keys
 /// that follow are real events through the app's own key monitor and responder chain.

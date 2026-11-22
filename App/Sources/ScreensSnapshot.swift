@@ -2,7 +2,7 @@
 // setup) captures the Screens mode at 1440 x 900 points in the state of docs/UI/screens/03-screens-outputs.png as far as today's data
 // allows: the simulated card, an audience screen on SDI 3, a stage screen on SDI 4, the fill-and-key broadcast screen on SDI 1 and 2
 // selected, each with the label the operator typed for where it goes. Pictures `screens-dark` and `screens-light`, with rectangles.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

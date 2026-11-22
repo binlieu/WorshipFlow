@@ -537,16 +537,19 @@ final class AppModel {
     /// The workspace changed the show: publish to every output and open the screens on the first slide.
     private func showChanged(_ state: ShowState) {
         let wasStopped = show.isStopped
-        show = state
-        media?.showStateChanged(isLive: !state.isStopped, isBlackedOut: state.isBlackedOut)     // Stop takes a playing clip off the screens too; Blackout takes its sound off
-        audio?.showStateChanged(isLive: !state.isStopped)     // ... and ends the sound cues (Clear and Clear all leave them)
+        PhaseProbe.time("show=") { show = state }
+        PhaseProbe.time("media/audio") {
+            media?.showStateChanged(isLive: !state.isStopped, isBlackedOut: state.isBlackedOut)     // Stop takes a playing clip off the screens too; Blackout takes its sound off
+            audio?.showStateChanged(isLive: !state.isStopped)     // ... and ends the sound cues (Clear and Clear all leave them)
+        }
         // R15: typing, moving the selection and loading a deck change preview only; the screens are republished
         // (every scene composed again) only when what they show changed.
-        scheduleImageWarm()
-        syncMediaPlayers()          // MEDIA-010: the new live slide may bring its own background (or take it away)
-        if publicationGate.shouldPublish(LiveOutputKey(state: state, notes: workspace?.liveNotes)) { publish() }
-        cue?.remoteStateMayHaveChanged()     // CUE-002b: phones connected to the remote server see the new slide at once
-        stage?.showStateChanged(isStopped: state.isStopped)      // Stop takes the stage message off the stage screens
+        PhaseProbe.time("imageWarm") { scheduleImageWarm() }
+        PhaseProbe.time("syncMedia") { syncMediaPlayers() }          // MEDIA-010: the new live slide may bring its own background (or take it away)
+        let publishNow = PhaseProbe.time("gate") { publicationGate.shouldPublish(LiveOutputKey(state: state, notes: workspace?.liveNotes)) }
+        if publishNow { publish() }
+        PhaseProbe.time("remote") { cue?.remoteStateMayHaveChanged() }     // CUE-002b: phones connected to the remote server see the new slide at once
+        PhaseProbe.time("stage") { stage?.showStateChanged(isStopped: state.isStopped) }      // Stop takes the stage message off the stage screens
         if wasStopped, !show.isStopped, !screensOn { startScreens() }
     }
 
@@ -763,7 +766,7 @@ final class AppModel {
         return .none
     }
 
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     /// FIX-I (debug hook): the focus the key monitor would compute for this window right now.
     static func keyFocus(window: NSWindow, ui: WorkspaceUIState) -> FocusedElement {
         let responder = window.firstResponder
@@ -1382,19 +1385,21 @@ final class AppModel {
         if let cue { cue.submit(.transport(.stop), from: source) } else if let w = workspace { w.stop() } else { send(.stop) }
     }
 
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     /// FIX-K (debug builds only): how many times the screens were republished, for the drag measurements.
     var debugPublishCount = 0
     #endif
 
     private func publish() {
-        #if DEBUG
+        #if DEBUG || WF_MEASURE
         debugPublishCount += 1
         #endif
         sceneRevision &+= 1
         liveRevision &+= 1
-        sceneBox.publish(makeSnapshot())
-        updateStageTicker()
+        let snapshot = PhaseProbe.time("publish: compose") { makeSnapshot() }
+        PhaseProbe.time("publish: box") { sceneBox.publish(snapshot) }
+        PhaseProbe.markPublished()
+        PhaseProbe.time("publish: ticker") { updateStageTicker() }
     }
 
     /// One immutable snapshot: every screen's scene for the state, Look, themes, props and stage layouts right now.
@@ -1733,7 +1738,7 @@ final class AppModel {
 
     /// The Mac's own name for the signal map. A debug run that writes pictures (the repository is public) shows a neutral name (KI-085).
     private static func signalMapHostName() -> String {
-        #if DEBUG
+        #if DEBUG || WF_MEASURE
         if snapshotDirectory != nil { return "This Mac" }
         #endif
         return Host.current().localizedName ?? "This Mac"

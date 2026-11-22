@@ -136,10 +136,12 @@ struct SlideActionsEditor: View {
     }
 
     private var slideList: some View {
-        VStack(spacing: 2) {
+        // FIX-Q: the chosen slide is worked out once for the list, not once per row (a search of all the slides per row, 200 x 200, ran on every Next).
+        let chosenID = chosenSlide?.id
+        return LazyVStack(spacing: 2) {      // FIX-Q: rows are made as they scroll into view, not all 200 on every change
             ForEach(Array(workspace.slides.enumerated()), id: \.element.id) { index, slide in
                 let count = cue.slideActions.actions(for: slide.id).count
-                let selected = chosenSlide?.id == slide.id
+                let selected = chosenID == slide.id
                 Button { app.ui.cuesSlideID = slide.id } label: {
                     HStack(spacing: Space.s3) {
                         Text("\(index + 1)").font(.wf(12, .bold).monospacedDigit()).frame(width: 24)

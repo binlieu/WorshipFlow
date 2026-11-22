@@ -3,7 +3,7 @@
 // the design's order (eight clips, seven pictures; every clip is the same test file under another name), the first one the live
 // background and the one the strip shows, a sound playing, dark and light. Rectangles go to <prefix>-media-*.rects.json for
 // scripts/compare-rects.py with scripts/design-map-media.json. Generated media only; nothing of the owner's library is used.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import Domain
 import OperatorCore

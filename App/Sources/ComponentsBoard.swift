@@ -1,6 +1,6 @@
 // UI-005a (debug builds only): the component board of docs/UI (08-components, 10-components-light), drawn with the app's own shared
 // components so it can be compared with the design picture by scripts/compare-design.sh. It is a test rig, not a screen.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import SwiftUI
 import Domain
 import OperatorCore

@@ -4,7 +4,7 @@
 import Foundation
 
 enum BodyProbe {
-    #if DEBUG
+    #if DEBUG || WF_MEASURE
     @MainActor private static var counts: [String: Int] = [:]
     @MainActor @discardableResult static func hit(_ name: String) -> Bool { counts[name, default: 0] += 1; return true }
     @MainActor static func reset() { counts = [:] }

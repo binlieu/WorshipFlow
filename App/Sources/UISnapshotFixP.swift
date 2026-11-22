@@ -5,7 +5,7 @@
 //  3. item 7: the delay from a MIDI message arriving on the app's own virtual port to its command having run, with no load and under a UI load
 //     (a 200-slide grid scrolling by the display, a 1080p59.94 clip playing as the background and a Next on every message).
 // Nothing here runs without the flag.
-#if DEBUG
+#if DEBUG || WF_MEASURE
 import AppKit
 import CoreMIDI
 import Domain

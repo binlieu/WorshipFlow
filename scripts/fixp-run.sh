@@ -13,9 +13,8 @@ OUT="${SCRATCH:?}/out"
 rmdir "$OUT/x"
 rm -f "$OUT/ui-snapshots.log"
 DD="${WF_DERIVED_DATA:-${SCRATCH:?}/dd}"
-xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Debug -destination 'platform=macOS' \
-  -derivedDataPath "$DD" build -quiet > "$SCRATCH/build.log" 2>&1 || { grep -E "error:" "$SCRATCH/build.log" | head -20; exit 1; }
-APP_SRC=$(ls -d "$DD"/Build/Products/Debug/*.app | head -1)
+source "$ROOT/scripts/lib-measure-build.sh"
+APP_SRC=$(measure_build "$DD" "$SCRATCH/build.log") || exit 1
 APP="$SCRATCH/Capture.app"
 rm -rf "${APP:?}"; cp -R "$APP_SRC" "$APP"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier org.worshipflow.fixprun.$$" "$APP/Contents/Info.plist"
