@@ -315,3 +315,12 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Transport bar: Clear has no arrow and no menu; Escape, the icons and the Show menu still clear.
 - [ ] Edit, Stage, Screens: no red LIVE chip at the top right; the mode tabs sit at the left next to the title.
 - [ ] Show with a long song and a full bin: drag the sidebar and inspector edges (a blue line follows, the columns move on release); reorder slides, playlist items, drop a tile on a slide and a file on the bin: nothing hitches.
+
+## UI-005e Stage
+
+- [ ] Stage: pick a layout card; rename the layout in the bar; Duplicate and Delete…; Timers… sheet; add each element with the bar buttons; drag a box and its corner handle; Shows / Size (type and stepper) / Weight / Colour (swatch and hex); element list selects the box; the Assigned to switch moves a stage screen to this layout; Send and Clear in the Stage message; the built-in layout shows the buttons disabled.
+- [ ] Stage: select, drag and resize each box (all eight handles, lyric boxes included) on your own layout; Command-Z undoes one drag; arrow keys nudge 1 pt, Shift 10; on Standard a drag changes nothing and Duplicate is offered.
+
+## UI-005f Screens
+
+- [ ] Screens: select each screen in the list and from its tile in the map; rename it, change its role and destination; switch Fill and key and Fill alpha; type a "Connected to" label and see "typed by you" in the map; choose a plan under the map and Apply or Cancel; Stop and Start output; add and remove a mirror; scroll to the bottom for the Look list, Props and Developer; check the SIMULATED marks appear only with the simulated card; dark and light.

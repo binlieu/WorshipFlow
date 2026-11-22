@@ -89,3 +89,12 @@
 
 - FIX-L (UI-005h, MEDIA-002): the SDI readback test failed in one of two check runs because another suite registered the bundled Inter between its two renders (the text drawn in two faces; 81,361 pixels in the text box differed). No engine change: the app registers Inter at launch before anything draws (KI-171). The test registers Inter first and compares with `PixelDiff.describe`, which reports the count, bounding box and first values of differing pixels instead of formatting two 8 MB arrays (that formatting took the failing test 1,114 s). Same assertions, none weakened.
 - FIX-L: `pauseHoldsAndSeekMovesTheFrame` runs its transport on a manual clock (a loaded Mac could outrun the clip's 2 s on the wall clock) and says what the player was doing when it fails; its original 62 s failure was not reproduced (KI-172). `TestMedia.writeMovie` retries a refused encoder session (KI-173).
+
+## 2026-11-21 (UI-005e)
+
+- UI-005e: Stage mode matches 04-stage.html (82 mapped elements, 71 within 1 point; rest listed in AI/reports/UI-005e-report.md). Layout list with preview cards and the stage message at the bottom, the bar, an 820 pt canvas with named dashed boxes, the inspector (Shows, Size, Weight, Colour), the element list and Assigned to with a per-screen switch. Own layouts are listed before the built-in one. Timers open in a sheet from a Timers… button under the layout list.
+- FIX-K (Stage): every element box on the Stage canvas can be selected, dragged, resized from eight handles and nudged with the arrows; the layout is written once on release as one undo step; a built-in layout says 'Built in. Duplicate to edit' with a Duplicate button.
+
+## 2026-11-21 (UI-005f)
+
+- UI-005f: Screens mode drawn to the mockup (left column 299, signal map with Mac node, role-coloured connector tiles with BNC ring, destination node from the operator's typed label, plan switch, two-column form with the design's pop-ups, toggle and segmented controls, counters, keyed previews at 270 wide). Left out with room kept: Add screen, Remove screen, Identify screens, enclosure and converter nodes, pixel-format and colour choices, Notes layer, per-screen Look, schedule-lead statistic. Look list, Props, Developer and warnings are below the designed area. New tools: `scripts/design-map-screens.json`, `scripts/compare-rects-screens.py`, `scripts/design-capture-screens.sh`. Implemented; 147 of 178 mapped elements within 1 pt (131 of 155 without the toolbar).
