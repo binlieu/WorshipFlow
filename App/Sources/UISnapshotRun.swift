@@ -190,6 +190,12 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // UI-005f: the Screens mode's design picture (one registered block; the scenario lives in ScreensSnapshot.swift).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_SCREENS"] != nil {
+                await runScreensScenario(note: { note($0) }, capture: { await capture($0) }, window: window)
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace(); await stopCue(); shutdown(); exit(0)
+            }
             // UI-005e: the Stage mode picture (the scenario is in UISnapshotStage.swift; this is the only line of it outside that file).
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGE"] != nil {
                 await runStageDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)

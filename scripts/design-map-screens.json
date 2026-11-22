@@ -1,0 +1,885 @@
+{
+ "design": "docs/UI/mockups/03-screens-outputs.html",
+ "entries": [
+  {
+   "d": "div.tb[0]>span.btn.ghost[0]",
+   "a": "tb.sidebarToggle"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.title[0]",
+   "a": "tb.title",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow \u00b7 Songs\" in the seed, \"WORSHIPFLOW \u00b7 Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.sub[1]",
+   "a": "tb.subtitle",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow \u00b7 Songs\" in the seed, \"WORSHIPFLOW \u00b7 Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]",
+   "a": "tb.modes",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[0]",
+   "a": "tb.modes.0",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[1]",
+   "a": "tb.modes.1",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[2]",
+   "a": "tb.modes.2",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[3]",
+   "a": "tb.modes.3",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[4]",
+   "a": "tb.modes.4",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b.on[5]",
+   "a": "tb.modes.5",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]",
+   "a": "tb.timers"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[0]",
+   "a": "tb.timer.0.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[0]",
+   "a": "tb.timer.0.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono[0]",
+   "a": "tb.timer.0.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.sep[1]",
+   "a": "tb.timer.1.sep"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[1]",
+   "a": "tb.timer.1.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[2]",
+   "a": "tb.timer.1.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono.c-muted[1]",
+   "a": "tb.timer.1.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.btn[3]",
+   "a": "tb.timer.1.button"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-aud[1]",
+   "a": "tb.pill.aud"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-stg[2]",
+   "a": "tb.pill.stg"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-brd[3]",
+   "a": "tb.pill.brd"
+  },
+  {
+   "d": "div.tb[0]",
+   "a": "tb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]>span.h[0]",
+   "a": "sc.list.title"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]",
+   "a": "sc.list.body"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[0]",
+   "a": "sc.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[0]>div.thumb.bg2[0]",
+   "a": "sc.row.0.thumb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[0]>div[1]>div.row[0]>b[0]",
+   "a": "sc.row.0.name",
+   "skip": "R",
+   "why": "content: the name is as wide as its text; the design box of a wrapped name is its longest line"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[0]>div[1]>div.row[0]>span.tgl.on[1]",
+   "a": "sc.row.0.toggle"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[0]>div[1]>div.row[1]>span.badge.c-aud[0]",
+   "a": "sc.row.0.role"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[0]>div[1]>div.c-muted[2]",
+   "a": "sc.row.0.dest",
+   "skip": "R",
+   "why": "content: the destination text is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[1]",
+   "a": "sc.row.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[1]>div.thumb[0]",
+   "a": "sc.row.1.thumb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[1]>div[1]>div.row[0]>b[0]",
+   "a": "sc.row.1.name",
+   "skip": "R",
+   "why": "content: the name is as wide as its text; the design box of a wrapped name is its longest line"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[1]>div[1]>div.row[0]>span.tgl.on[1]",
+   "a": "sc.row.1.toggle"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[1]>div[1]>div.row[1]>span.badge.c-stg[0]",
+   "a": "sc.row.1.role"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr[1]>div[1]>div.c-muted[2]",
+   "a": "sc.row.1.dest",
+   "skip": "R",
+   "why": "content: the destination text is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr.on[2]",
+   "a": "sc.row.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr.on[2]>div.thumb.checker[0]",
+   "a": "sc.row.2.thumb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr.on[2]>div[1]>div.row[0]>b[0]",
+   "a": "sc.row.2.name",
+   "skip": "R",
+   "why": "content: the name is as wide as its text; the design box of a wrapped name is its longest line"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr.on[2]>div[1]>div.row[0]>span.tgl.on[1]",
+   "a": "sc.row.2.toggle"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr.on[2]>div[1]>div.row[1]>span.badge.c-brd[0]",
+   "a": "sc.row.2.role"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.scr.on[2]>div[1]>div.c-muted[2]",
+   "a": "sc.row.2.dest",
+   "skip": "R",
+   "why": "content: the destination text is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.card[5]",
+   "a": "sc.verify"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.card[5]>div.row[0]>svg.i[0]",
+   "a": "sc.verify.icon"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.card[5]>div.row[0]>b[0]",
+   "a": "sc.verify.title"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.card[5]>span.c-muted[0]",
+   "a": "sc.verify.text",
+   "skip": "LRB",
+   "why": "content: the app's verification sentence is its own (more cautious) wording; the design box is an inline box (62.1 tall for four 16 pt lines), the app's a block of four lines"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.card[5]>div.row[1]>span.btn[0]",
+   "a": "sc.verify.run"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.card[5]>div.row[1]>span.btn.ghost[1]",
+   "a": "sc.verify.export"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]",
+   "a": "sc.map.bar"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span[0]",
+   "a": "sc.map.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.badge.c-brd[1]",
+   "a": "sc.map.badge"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.c-muted[3]",
+   "a": "sc.map.note"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[4]",
+   "a": "sc.map.rescan"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[4]>svg.i[0]",
+   "a": "sc.map.rescan.icon"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]",
+   "a": "sc.map.grid"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[0]",
+   "a": "sc.map.mac"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[0]>svg.i.l[0]",
+   "a": "sc.map.mac.icon"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[0]>b[0]",
+   "a": "sc.map.mac.title",
+   "skip": "R",
+   "why": "content: the host name is \"This Mac\" in a capture, \"Mac mini M4\" in the design"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[0]>small[0]",
+   "a": "sc.map.mac.sub"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[0]>small.mono[1]",
+   "a": "sc.map.mac.mono",
+   "skip": "R",
+   "why": "content: \"3 of 3 screens running\" against \"4 compositions \u00b7 0.64 ms\" (the render time is not measured)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[4]",
+   "a": "sc.map.conn.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[4]>span.bnc[0]",
+   "a": "sc.map.conn.1.bnc"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[4]>div[0]>b[0]",
+   "a": "sc.map.conn.1.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[4]>div[0]>small[0]",
+   "a": "sc.map.conn.1.sub",
+   "skip": "R",
+   "why": "the design sub line is a block as wide as the tile text; the app line is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[4]>svg.i[0]",
+   "a": "sc.map.conn.1.icon"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[8]",
+   "a": "sc.map.dest.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[8]>b[0]",
+   "a": "sc.map.dest.1.text",
+   "skip": "R",
+   "why": "content: the typed label is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[8]>small[0]",
+   "a": "sc.map.dest.1.sub",
+   "skip": "R",
+   "why": "content: \"typed by you\" against the design sub line"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[9]",
+   "a": "sc.map.conn.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[9]>span.bnc[0]",
+   "a": "sc.map.conn.2.bnc"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[9]>div[0]>b[0]",
+   "a": "sc.map.conn.2.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[9]>div[0]>small[0]",
+   "a": "sc.map.conn.2.sub",
+   "skip": "R",
+   "why": "the design sub line is a block as wide as the tile text; the app line is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-brd[9]>svg.i[0]",
+   "a": "sc.map.conn.2.icon"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[13]",
+   "a": "sc.map.dest.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[13]>b[0]",
+   "a": "sc.map.dest.2.text",
+   "skip": "R",
+   "why": "content: the typed label is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[13]>small[0]",
+   "a": "sc.map.dest.2.sub",
+   "skip": "R",
+   "why": "content: \"typed by you\" against the design sub line"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-aud[14]",
+   "a": "sc.map.conn.3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-aud[14]>span.bnc[0]",
+   "a": "sc.map.conn.3.bnc"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-aud[14]>div[0]>b[0]",
+   "a": "sc.map.conn.3.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-aud[14]>div[0]>small[0]",
+   "a": "sc.map.conn.3.sub",
+   "skip": "R",
+   "why": "the design sub line is a block as wide as the tile text; the app line is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-aud[14]>svg.i[0]",
+   "a": "sc.map.conn.3.icon"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[18]",
+   "a": "sc.map.dest.3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[18]>b[0]",
+   "a": "sc.map.dest.3.text",
+   "skip": "R",
+   "why": "content: the typed label is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[18]>small[0]",
+   "a": "sc.map.dest.3.sub",
+   "skip": "R",
+   "why": "content: \"typed by you\" against the design sub line"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-stg[19]",
+   "a": "sc.map.conn.4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-stg[19]>span.bnc[0]",
+   "a": "sc.map.conn.4.bnc"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-stg[19]>div[0]>b[0]",
+   "a": "sc.map.conn.4.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-stg[19]>div[0]>small[0]",
+   "a": "sc.map.conn.4.sub",
+   "skip": "R",
+   "why": "the design sub line is a block as wide as the tile text; the app line is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.conn.c-stg[19]>svg.i[0]",
+   "a": "sc.map.conn.4.icon"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[23]",
+   "a": "sc.map.dest.4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[23]>b[0]",
+   "a": "sc.map.dest.4.text",
+   "skip": "R",
+   "why": "content: the typed label is as wide as its words"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.map[1]>div.node[23]>small[0]",
+   "a": "sc.map.dest.4.sub",
+   "skip": "R",
+   "why": "content: \"typed by you\" against the design sub line"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[2]",
+   "a": "sc.map.foot"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[2]>span.c-muted[0]",
+   "a": "sc.map.foot.text",
+   "skip": "R",
+   "why": "content: the app names the device it sees, the design says \"DeckLink Duo 2 \u00b7 four 3G-SDI connectors \u00b7 HD only, no 4K.\""
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[2]>div.seg[0]",
+   "a": "sc.map.preset"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[2]>div.seg[0]>b[0]",
+   "a": "sc.map.preset.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[2]>div.seg[0]>b.on[1]",
+   "a": "sc.map.preset.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[4]",
+   "a": "sc.detail.bar"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[4]>b[0]",
+   "a": "sc.detail.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[4]>span.badge.c-brd[0]",
+   "a": "sc.detail.role"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[4]>span.pill.c-ok[1]",
+   "a": "sc.detail.status"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[4]>span.btn[3]",
+   "a": "sc.detail.stop"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]",
+   "a": "sc.form"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[0]",
+   "a": "sc.form.l0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[0]>label.k[0]",
+   "a": "sc.form.l0.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[1]",
+   "a": "sc.form.l1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[1]>label.k[0]",
+   "a": "sc.form.l1.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[2]",
+   "a": "sc.form.l2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[2]>label.k[0]",
+   "a": "sc.form.l2.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[3]",
+   "a": "sc.form.l3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[3]>label.k[0]",
+   "a": "sc.form.l3.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[4]",
+   "a": "sc.form.l4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[4]>label.k[0]",
+   "a": "sc.form.l4.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[5]",
+   "a": "sc.form.l5"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[5]>label.k[0]",
+   "a": "sc.form.l5.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[0]>span.field[0]",
+   "a": "sc.form.name"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[1]>div.seg[0]",
+   "a": "sc.form.role"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[1]>div.seg[0]>b[0]",
+   "a": "sc.form.role.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[1]>div.seg[0]>b[1]",
+   "a": "sc.form.role.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[1]>div.seg[0]>b.on[2]",
+   "a": "sc.form.role.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[2]>span.field[0]",
+   "a": "sc.form.dest"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[3]>span.field[0]",
+   "a": "sc.form.mode"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[3]>span.field[1]",
+   "a": "sc.form.pixel"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[4]>span.field[0]",
+   "a": "sc.form.note"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[0]>div.fr[5]>span.field[0]",
+   "a": "sc.form.audio"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[0]",
+   "a": "sc.form.r0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[0]>label.k[0]",
+   "a": "sc.form.r0.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[1]",
+   "a": "sc.form.r1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[1]>label.k[0]",
+   "a": "sc.form.r1.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[2]",
+   "a": "sc.form.r2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[2]>label.k[0]",
+   "a": "sc.form.r2.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[3]",
+   "a": "sc.form.r3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[3]>label.k[0]",
+   "a": "sc.form.r3.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[4]",
+   "a": "sc.form.r4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[4]>label.k[0]",
+   "a": "sc.form.r4.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[5]",
+   "a": "sc.form.r5"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[5]>label.k[0]",
+   "a": "sc.form.r5.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[0]>span.tgl.on[0]",
+   "a": "sc.form.keying"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[0]>span.c-muted[1]",
+   "a": "sc.form.keying.caption",
+   "skip": "R",
+   "why": "content: the app states which connectors carry fill and key, the design says \"Uses two connectors and two ATEM inputs\""
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[1]>div.seg[0]",
+   "a": "sc.form.alpha"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[1]>div.seg[0]>b.on[0]",
+   "a": "sc.form.alpha.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[1]>div.seg[0]>b[1]",
+   "a": "sc.form.alpha.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[2]>span.field[0]",
+   "a": "sc.form.look"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[3]>span.chk[0]",
+   "a": "sc.form.layer.0",
+   "skip": "RB",
+   "why": "the app tags the whole checkbox with its label; the design box is 14 x 14"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[3]>span.chk.on[1]",
+   "a": "sc.form.layer.1",
+   "skip": "RB",
+   "why": "the app tags the whole checkbox with its label; the design box is 14 x 14"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[3]>span.chk.on[2]",
+   "a": "sc.form.layer.2",
+   "skip": "RB",
+   "why": "the app tags the whole checkbox with its label; the design box is 14 x 14"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[4]>span.field[0]",
+   "a": "sc.form.fail"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.form[5]>div[1]>div.fr[5]>span.btn[0]",
+   "a": "sc.form.mirror"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]",
+   "a": "sc.stat"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[0]",
+   "a": "sc.stat.fps"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[0]>b.mono[0]",
+   "a": "sc.stat.fps.value",
+   "skip": "R",
+   "why": "the design value is a block as wide as its tile; the app value is as wide as its digits"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[0]>span[0]",
+   "a": "sc.stat.fps.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[1]",
+   "a": "sc.stat.presented"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[1]>b.mono[0]",
+   "a": "sc.stat.presented.value",
+   "skip": "R",
+   "why": "the design value is a block as wide as its tile; the app value is as wide as its digits"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[1]>span[0]",
+   "a": "sc.stat.presented.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[2]",
+   "a": "sc.stat.dropped"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[2]>b.mono.c-ok[0]",
+   "a": "sc.stat.dropped.value",
+   "skip": "R",
+   "why": "the design value is a block as wide as its tile; the app value is as wide as its digits"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[2]>span[0]",
+   "a": "sc.stat.dropped.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[3]",
+   "a": "sc.stat.late"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[3]>b.mono.c-ok[0]",
+   "a": "sc.stat.late.value",
+   "skip": "R",
+   "why": "the design value is a block as wide as its tile; the app value is as wide as its digits"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[3]>span[0]",
+   "a": "sc.stat.late.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[4]",
+   "a": "sc.stat.fifth"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[4]>b.mono[0]",
+   "a": "sc.stat.fifth.value",
+   "skip": "R",
+   "why": "the design value is a block as wide as its tile; the app value is as wide as its digits"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.stat[6]>div[4]>span[0]",
+   "a": "sc.stat.fifth.label",
+   "skip": "R",
+   "why": "content: the app counts repeated frames, the design shows the mean schedule lead (not measured)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]",
+   "a": "sc.prev"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[0]>div.thumb.checker[0]",
+   "a": "sc.prev.composite"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[0]>div.cap[1]",
+   "a": "sc.prev.composite.cap"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[0]>div.cap[1]>b[0]",
+   "a": "sc.prev.composite.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[1]>div.thumb[0]",
+   "a": "sc.prev.fill"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[1]>div.cap[1]",
+   "a": "sc.prev.fill.cap"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[1]>div.cap[1]>span.sq.c-brd[0]",
+   "a": "sc.prev.fill.sq"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[1]>div.cap[1]>b[0]",
+   "a": "sc.prev.fill.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[2]>div.thumb[0]",
+   "a": "sc.prev.key"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[2]>div.cap[1]",
+   "a": "sc.prev.key.cap"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[2]>div.cap[1]>span.sq.c-brd[0]",
+   "a": "sc.prev.key.sq"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div[2]>div.cap[1]>b[0]",
+   "a": "sc.prev.key.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[7]>div.c-muted[3]",
+   "a": "sc.prev.text",
+   "skip": "B",
+   "why": "content: the app text is a little longer (test pattern, not calibration slide), so it may wrap differently"
+  }
+ ],
+ "ignore_design": [
+  {
+   "match": "^div\\.lights|^div\\.tb\\[0\\]>div\\.lights",
+   "reason": "window buttons (system-drawn, grey because the capture window is not key)"
+  },
+  {
+   "match": "svg\\.i",
+   "reason": "icon glyph boxes (SF Symbols draw to their own metrics; the control containing each is compared)"
+  },
+  {
+   "match": "span\\.car",
+   "reason": "pop-up chevrons (inside compared pop-ups)"
+  },
+  {
+   "match": "div\\.side\\[0\\]>div\\.sec\\.row\\[0\\]>span\\.btn",
+   "reason": "Add screen: open, needs a feature slice (the model cannot add or remove a screen); its room is kept"
+  },
+  {
+   "match": "div\\.scr\\[3\\]",
+   "reason": "the fourth screen (Lobby): a capture has three screens, there is no way to add one yet"
+  },
+  {
+   "match": "div\\.scr.*div\\.thumb.*>div",
+   "reason": "picture contents of the screen thumbnails (drawn by the output renderer: UI-005h)"
+  },
+  {
+   "match": "span\\.btn\\[5\\]",
+   "reason": "Identify screens: open, needs a feature slice (no overlay that labels every output); its room is kept"
+  },
+  {
+   "match": "div\\.map\\[1\\]>div\\.node\\[2\\]",
+   "reason": "Thunderbolt PCIe enclosure node: not drawn, the app cannot know what is between the Mac and the card and the model has nowhere to keep a typed label; its room is kept"
+  },
+  {
+   "match": "div\\.map\\[1\\]>div\\.node\\[(6|11|16|21)\\]",
+   "reason": "SDI-to-HDMI converter nodes: not drawn for the same reason; their room is kept"
+  },
+  {
+   "match": "div\\.map\\[1\\]>div\\.wire",
+   "reason": "wires: the app draws one 2 pt wire across each kept room (Mac to connectors, connector to destination), so the 28 pt stubs have no counterpart"
+  },
+  {
+   "match": "div\\.main\\[1\\]>div\\[3\\]$",
+   "reason": "hairline between the map and the screen (a 1 pt rule the app draws itself)"
+  },
+  {
+   "match": "span\\.btn\\.ghost\\.c-live\\[4\\]",
+   "reason": "Remove screen: open, needs a feature slice (the model cannot remove a screen); its room is kept"
+  },
+  {
+   "match": "div\\.form\\[5\\]>div\\[1\\]>div\\.fr\\[3\\]>span\\.chk\\[3\\]",
+   "reason": "Notes layer: not built (speaker notes never reach a broadcast screen); its room is kept"
+  },
+  {
+   "match": "div\\.fr\\[3\\]>label|div\\.fr\\[3\\]>span\\.chk",
+   "reason": "checkbox labels (inside the compared checkboxes)"
+  },
+  {
+   "match": "div\\.fr\\[4\\]>label.*|div\\.form\\[5\\]>div\\[0\\]>div\\.fr\\[4\\]>label",
+   "reason": "the Colour label: the app shows \"Connected to\" in that room"
+  },
+  {
+   "match": "div\\[7\\]>div\\[\\d\\]>div\\.thumb.*>div",
+   "reason": "picture contents of the keyed previews (the slide plate and its text: UI-005h)"
+  },
+  {
+   "match": "span\\.d\\[0\\]$",
+   "reason": "status dots (inside compared pills)"
+  },
+  {
+   "match": "span\\.c-muted\\[0\\]>b\\[0\\]$|div\\.c-muted\\[3\\]>b\\[0\\]$",
+   "reason": "a bold phrase inside a compared text block"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.col\\[1\\]$|^div\\.body\\[1\\]$|div\\.side\\[0\\]$|div\\.sec\\.row\\[0\\]$|div\\.scr[a-z.]*\\[\\d\\]>div\\[1\\]$|div\\.scr[a-z.]*\\[\\d\\]>div\\[1\\]>div\\.row\\[\\d\\]$|div\\.grow\\[4\\]$|div\\.card\\[5\\]>div\\.row\\[\\d\\]$|div\\.main\\[1\\]$|div\\.conn[a-z.-]*\\[\\d+\\]>div\\[0\\]$|div\\.form\\[5\\]>div\\[[01]\\]$|div\\.main\\[1\\]>div\\[7\\]>div\\[\\d\\]$",
+   "reason": "wrappers: layout containers (the title block, columns, text blocks, rows, the flexible gap above the card) whose children are compared"
+  }
+ ],
+ "ignore_app": [
+  {
+   "match": "^sc\\.(side|main|map\\.foot)$|^sc\\.map\\.grid$",
+   "reason": "container"
+  }
+ ]
+}
