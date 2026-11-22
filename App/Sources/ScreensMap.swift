@@ -46,8 +46,17 @@ struct ScreensSignalMap: View {
             }
             .buttonStyle(HeaderButtonStyle()).help("Look for SDI cards again")
             .wfRect("sc.map.rescan", size: 12, weight: 500, radius: Radius.md)
-            // The design's "Identify screens" button would be here: nothing in the app puts a label on every output yet, so its room is kept.
-            Color.clear.frame(width: 114.8, height: 1)
+            // UI-006f: labels every connected display for three seconds; offered only while the screens are closed.
+            let identifyAllowed = ScreenIdentify.isAllowed(screensOpen: app.screensOn)
+            Button {
+                ScreensIdentifier.shared.show(profiles: app.profiles, operatorDisplay: ScreensIdentifier.operatorDisplayID())
+            } label: { Text("Identify screens") }
+            .buttonStyle(HeaderButtonStyle())
+            .disabled(!identifyAllowed)
+            .help(identifyAllowed ? "Show each display's screen name for three seconds. SDI outputs have no display to label." : ScreenIdentify.blockedReason)
+            .accessibilityLabel("Identify screens")
+            .accessibilityHint(identifyAllowed ? "Shows a label on every connected display for three seconds" : ScreenIdentify.blockedReason)
+            .wfRect("sc.map.identify", size: 12, weight: 500, radius: Radius.md)
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .frame(height: 43, alignment: .top)
