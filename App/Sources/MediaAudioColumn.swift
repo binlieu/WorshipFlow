@@ -199,7 +199,7 @@ struct MediaAudioColumn: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Sound level")
             .accessibilityValue(String(format: "left %d percent, right %d percent",
-                                       Int(saturating: ((levels.peak.first ?? 0) * 100).rounded()), Int(saturating: ((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
+                                       Int(saturating: Double((levels.peak.first ?? 0) * 100).rounded()), Int(saturating: Double((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(width: 339, alignment: .topLeading)

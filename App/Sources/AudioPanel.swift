@@ -167,7 +167,7 @@ private struct LevelMeter: View {
         .accessibilityElement()
         .accessibilityLabel("Sound level")
         .accessibilityValue(String(format: "left %d percent, right %d percent",
-                                   Int(saturating: ((levels.peak.first ?? 0) * 100).rounded()), Int(saturating: ((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
+                                   Int(saturating: Double((levels.peak.first ?? 0) * 100).rounded()), Int(saturating: Double((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
     }
 
     private struct Bar: View {

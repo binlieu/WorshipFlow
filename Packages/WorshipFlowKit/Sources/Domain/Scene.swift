@@ -135,14 +135,19 @@ public struct TextStyle: Sendable, Equatable, Codable, Hashable {
     /// UI-005h: OpenType feature tags switched on (`["cv11"]` is Inter's single-storey a). Nil: the font's defaults.
     public var fontFeatures: [String]?
 
+    /// FIX-T item 1: the largest font size or outline width, in points at 1080 lines. Far beyond any text a person sets.
+    public static let largestFontSize = 10_000.0
+
     public init(fontName: String, fontSize: Double, color: ColorRGBA,
                 outlineWidth: Double = 0, outlineColor: ColorRGBA = .black, shadow: TextShadow? = nil,
                 weight: Int? = nil, letterSpacing: Double? = nil, lineHeight: Double? = nil,
                 opticalSize: Double? = nil, fontFeatures: [String]? = nil) {
         self.fontName = fontName
-        self.fontSize = fontSize
+        // FIX-T item 1: a size or outline that is not a number, or beyond any real text, is held to the range below (a style from a program
+        // package or a hand-edited library once reached the render thread with 1e300 and trapped in the bitmap size).
+        self.fontSize = fontSize.isNaN ? 0 : min(Self.largestFontSize, max(0, fontSize))
         self.color = color
-        self.outlineWidth = outlineWidth
+        self.outlineWidth = outlineWidth.isNaN ? 0 : min(Self.largestFontSize, max(0, outlineWidth))
         self.outlineColor = outlineColor
         self.shadow = shadow
         self.weight = weight.map { min(900, max(100, $0)) }
