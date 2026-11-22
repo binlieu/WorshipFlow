@@ -23,34 +23,62 @@ struct EditCanvasArea: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
     @Bindable var editor: SlideEditorModel
+    /// UI-006c: the screen drawn (only Audience has boxes), the zoom, and the canvas width reported back so the zoom field can read it.
+    var role: EditPreviewRole = .audience
+    var zoom: EditZoom = .fit
+    @Binding var shownWidth: Double
     @State private var editingTextID: UUID?
+
+    init(app: AppModel, workspace: WorkspaceModel, editor: SlideEditorModel, role: EditPreviewRole = .audience, zoom: EditZoom = .fit,
+         shownWidth: Binding<Double> = .constant(800)) {
+        self.app = app
+        self.workspace = workspace
+        self.editor = editor
+        self.role = role
+        self.zoom = zoom
+        self._shownWidth = shownWidth
+    }
 
     var body: some View {
         GeometryReader { geo in
-            // 02-editor: an 800 pt canvas centred in the area; smaller windows scale it down.
-            let width = max(220, min(800, geo.size.width - 80, (geo.size.height - 120) * 16 / 9))
+            // 02-editor: an 800 pt canvas centred in the area on Fit (smaller windows scale it down); a fixed zoom is a share of the 1920 pt output and
+            // scrolls when the area is too small for it.
+            let width = zoom.canvasWidth(areaWidth: geo.size.width, areaHeight: geo.size.height)
+            let scrolls = zoom != .fit && (width > geo.size.width - 40 || width * 9 / 16 > geo.size.height - 40)
             ZStack(alignment: .bottomLeading) {
                 Tok.bg
                     .contentShape(Rectangle())
                     .onTapGesture { editor.select(nil); editingTextID = nil }
                     .wfRect("ed.wrap")
                 if let slide = editor.slide {
-                    SlideCanvas(app: app, editor: editor, content: slide.content, editingTextID: $editingTextID)
-                        .frame(width: width)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if scrolls {
+                        ScrollView([.horizontal, .vertical]) {
+                            SlideCanvas(app: app, editor: editor, content: slide.content, editingTextID: $editingTextID, role: role, renderWidth: zoom == .fit ? 880 : min(1920, max(880, width)))
+                                .frame(width: width)
+                                .padding(40)
+                        }
+                    } else {
+                        SlideCanvas(app: app, editor: editor, content: slide.content, editingTextID: $editingTextID, role: role, renderWidth: zoom == .fit ? 880 : min(1920, max(880, width)))
+                            .frame(width: width)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 } else {
                     Text("Select a slide to edit its objects.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 caption.padding(.leading, 14).padding(.bottom, 10)
             }
             .onChange(of: editor.selectedObjectID) { _, new in if new != editingTextID { editingTextID = nil } }
+            .onChange(of: width, initial: true) { _, new in shownWidth = new }
         }
     }
 
-    /// 1920 x 1080 · theme "..." · slide n of m: what the app knows (the output size is the compositor's fixed canvas).
+    /// 1920 x 1080 · theme "..." · slide n of m: what the app knows (the output size is the compositor's fixed canvas). Off Audience it says
+    /// which screen is drawn and that it is read-only.
     private var caption: some View {
         let theme = workspace.openThemeID.flatMap { id in app.themes.first { $0.id == id }?.name } ?? "Default"
-        let text = "1920 × 1080 · theme “\(theme)” · slide \(workspace.showParts.selectedIndex + 1) of \(workspace.slides.count)"
+        let slideOf = "slide \(workspace.showParts.selectedIndex + 1) of \(workspace.slides.count)"
+        let text = role.isEditable ? "1920 × 1080 · theme “\(theme)” · \(slideOf)"
+                                   : "\(role.title) screen, read-only · 1920 × 1080 · \(slideOf)"
         return Text(text).font(.wfMono(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
             .wfRect("ed.caption", size: 11, weight: 400)
             .allowsHitTesting(false)
@@ -65,6 +93,9 @@ struct SlideCanvas: View {
     let editor: SlideEditorModel
     let content: SlideContent
     @Binding var editingTextID: UUID?
+    /// UI-006c: the screen drawn. Anything but Audience is a read-only look: no boxes, no guide, nothing to drag.
+    var role: EditPreviewRole = .audience
+    var renderWidth: Double = 880
     @Environment(\.colorScheme) private var scheme
 
     /// UI-004: while an object is dragged the scene is drawn from the editor's transient frames, at once and as fast as the pointer moves.
@@ -84,8 +115,26 @@ struct SlideCanvas: View {
 
     var body: some View {
         let _ = app.sceneRevision          // follows theme and Look changes
-        ScenePreview(scene: app.thumbnailScene(for: shownContent), width: 880, cached: false, follow: !editor.dragFrames.isEmpty || !editor.lyricDragFrames.isEmpty)
+        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.editPreviewScene(role: role, for: shownContent),
+                     width: Int(renderWidth), cached: false, follow: !editor.dragFrames.isEmpty || !editor.lyricDragFrames.isEmpty)
             .overlay {
+                if role.isEditable { boxes }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+            .wfRect("ed.canvas", radius: 2)
+            // FIX-N item 6: a drag SwiftUI never ended (the window resigned key, the slide or the mode changed, the view went) is ended here, once, so the
+            // inspector's fields keep writing and no box is left "pressed".
+            .onDisappear { editor.endInteraction() }
+            .onChange(of: editor.slide?.id) { _, _ in editor.endInteraction() }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in editor.endInteraction() }
+            // `--shadow`: 0 12 40, 50 % black (18 % of the ink in light); the only shadow the design allows beside sheets and popovers.
+            .shadow(color: scheme == .light ? Color(red: 0.075, green: 0.157, blue: 0.239).opacity(0.18) : .black.opacity(0.5), radius: 20, y: 12)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(role.isEditable ? "Slide canvas" : "\(role.title) screen preview, read-only")
+    }
+
+    /// The guide, the lyric boxes and the object boxes over the picture (Audience only).
+    private var boxes: some View {
                 GeometryReader { geo in
                     ZStack(alignment: .topLeading) {
                         Color.clear.contentShape(Rectangle()).onTapGesture { editor.select(nil); editingTextID = nil }
@@ -120,18 +169,6 @@ struct SlideCanvas: View {
                     // local space, and a gesture measured there sees the pointer cover only half the distance (the cause of "cannot be dragged").
                     .coordinateSpace(name: SlideCanvasSpace.name)
                 }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 2))
-            .wfRect("ed.canvas", radius: 2)
-            // FIX-N item 6: a drag SwiftUI never ended (the window resigned key, the slide or the mode changed, the view went) is ended here, once, so the
-            // inspector's fields keep writing and no box is left "pressed".
-            .onDisappear { editor.endInteraction() }
-            .onChange(of: editor.slide?.id) { _, _ in editor.endInteraction() }
-            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in editor.endInteraction() }
-            // `--shadow`: 0 12 40, 50 % black (18 % of the ink in light); the only shadow the design allows beside sheets and popovers.
-            .shadow(color: scheme == .light ? Color(red: 0.075, green: 0.157, blue: 0.239).opacity(0.18) : .black.opacity(0.5), radius: 20, y: 12)
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Slide canvas")
     }
 }
 

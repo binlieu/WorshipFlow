@@ -41,8 +41,22 @@ extension AppModel {
         NotificationCenter.default.post(name: .init("wf.debug.editTab"), object: "object")
         if let shape = editor.add(.roundedRectangle) { editor.setFrame(shape, x: 0.1, y: 0.62, width: 0.3, height: 0.25); editor.select(shape) }
         await capture("edit-shape-dark")
+        // UI-006c: Align moves the selected shape to the right edge; the Stage and Broadcast previews; a 100 % zoom that scrolls.
+        let moved = editor.alignSelected(.right)
+        note("edit align: moved \(moved)")
+        await capture("edit-aligned-dark")
         editor.select(nil)
         await capture("edit-nosel-dark")
+        for word in ["stage", "broadcast", "audience"] {
+            NotificationCenter.default.post(name: .init("wf.debug.editPreview"), object: word)
+            try? await Task.sleep(for: .milliseconds(400))
+            await capture("edit-preview-\(word)-dark")
+        }
+        for z in ["100%", "50%"] {
+            NotificationCenter.default.post(name: .init("wf.debug.editPreview"), object: "zoom:\(z)")
+            try? await Task.sleep(for: .milliseconds(1500))
+            await capture("edit-zoom-\(z.dropLast())-dark")
+        }
     }
 }
 #endif

@@ -34,6 +34,7 @@
 		451EDECE11B7AE03F6F66257 /* ProgramSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50CC8A593F62AE4E30942E47 /* ProgramSheets.swift */; };
 		484FA672107A4E8A196C3618 /* EditInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5D6F4EAC20DCA296CE73CC /* EditInspector.swift */; };
 		486060F1F8E880A3F5902085 /* UISnapshotFixM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */; };
+		48761EE667CF5E99202C5E2D /* EditCanvasChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F71451566582108EB6E4ECD /* EditCanvasChrome.swift */; };
 		49B90133C766C12E9F49E57B /* WFControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3492857FA2C3827B81259408 /* WFControls.swift */; };
 		4A21A2BDC0855B80DC8874D9 /* MediaEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0A1491D9F0D3D5753C2F3408 /* MediaEngine */; };
 		4B01EACF67D12494AE666076 /* ComponentsBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26870985AC1243ADD0FE654D /* ComponentsBoard.swift */; };
@@ -152,6 +153,7 @@
 		3D5DE78F35EEED6222F974FD /* BodyProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyProbe.swift; sourceTree = "<group>"; };
 		3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestView.swift; sourceTree = "<group>"; };
 		3E820F86A4CC07B5F37F419C /* MediaAudioColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAudioColumn.swift; sourceTree = "<group>"; };
+		3F71451566582108EB6E4ECD /* EditCanvasChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditCanvasChrome.swift; sourceTree = "<group>"; };
 		4651BE1C44DFF6A198BC89E6 /* UISnapshotStageMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotStageMouse.swift; sourceTree = "<group>"; };
 		4AE4BEDE4969D279EC646513 /* UISnapshotFixNPress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixNPress.swift; sourceTree = "<group>"; };
 		4F15479017EE9F052B9E363C /* DesignProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignProbe.swift; sourceTree = "<group>"; };
@@ -294,6 +296,7 @@
 				972BF78C395FB49A1F9F52DC /* CueSupport.swift */,
 				4F15479017EE9F052B9E363C /* DesignProbe.swift */,
 				7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */,
+				3F71451566582108EB6E4ECD /* EditCanvasChrome.swift */,
 				A877ED4F2EF74D6085522385 /* EditComponents.swift */,
 				802821C5618EEB786F8E326B /* EditDesignCapture.swift */,
 				7F5D6F4EAC20DCA296CE73CC /* EditInspector.swift */,
@@ -543,6 +546,7 @@
 				D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */,
 				BE56B9D9BBA341182B2C5900 /* DesignProbe.swift in Sources */,
 				F645D9BDDC5E72FA4E85F317 /* DesignTokens.swift in Sources */,
+				48761EE667CF5E99202C5E2D /* EditCanvasChrome.swift in Sources */,
 				E589F2B59D4A672DCB70766F /* EditComponents.swift in Sources */,
 				B38F606CDF3B316A0DCBC9EF /* EditDesignCapture.swift in Sources */,
 				484FA672107A4E8A196C3618 /* EditInspector.swift in Sources */,
