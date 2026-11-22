@@ -1,0 +1,449 @@
+{
+ "design": "docs/UI/mockups/04-stage.html",
+ "entries": [
+  {
+   "d": "div.tb[0]>span.btn.ghost[0]",
+   "a": "tb.sidebarToggle"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.title[0]",
+   "a": "tb.title",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.sub[1]",
+   "a": "tb.subtitle",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]",
+   "a": "tb.modes",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[0]",
+   "a": "tb.modes.0",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[1]",
+   "a": "tb.modes.1",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[2]",
+   "a": "tb.modes.2",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b.on[3]",
+   "a": "tb.modes.3",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[4]",
+   "a": "tb.modes.4",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[5]",
+   "a": "tb.modes.5",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]",
+   "a": "tb.timers"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[0]",
+   "a": "tb.timer.0.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[0]",
+   "a": "tb.timer.0.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono[0]",
+   "a": "tb.timer.0.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.sep[1]",
+   "a": "tb.timer.1.sep"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[1]",
+   "a": "tb.timer.1.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[2]",
+   "a": "tb.timer.1.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono.c-muted[1]",
+   "a": "tb.timer.1.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.btn[3]",
+   "a": "tb.timer.1.button"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-aud[1]",
+   "a": "tb.pill.aud"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-stg[2]",
+   "a": "tb.pill.stg"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-brd[3]",
+   "a": "tb.pill.brd"
+  },
+  {
+   "d": "div.tb[0]",
+   "a": "tb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]",
+   "a": "st.side"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]>span.h[0]",
+   "a": "st.side.h"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]>svg.i.s[0]",
+   "a": "st.side.plus"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay.on[0]",
+   "a": "st.side.card.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay.on[0]>div.thumb[0]",
+   "a": "st.side.card.0.thumb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay.on[0]>div.cap[1]",
+   "a": "st.side.card.0.cap"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay[1]",
+   "a": "st.side.card.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay[1]>div.thumb[0]",
+   "a": "st.side.card.1.thumb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay[1]>div.cap[1]",
+   "a": "st.side.card.1.cap"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay[2]",
+   "a": "st.side.card.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay[2]>div.thumb[0]",
+   "a": "st.side.card.2.thumb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.lay[2]>div.cap[1]",
+   "a": "st.side.card.2.cap"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.h[0]",
+   "a": "st.msg.h",
+   "skip": "R",
+   "why": "the design's .h is a block as wide as the section; the app's label hugs its text (the text width is compared in st.side.h)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.field[1]",
+   "a": "st.msg.field"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.row[2]>span.btn.primary[0]",
+   "a": "st.msg.send"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.row[2]>span.btn[1]",
+   "a": "st.msg.clear"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.row[2]>span.c-muted[3]",
+   "a": "st.msg.note",
+   "skip": "L",
+   "why": "content: the caption reads \"On stage now\" while a message is up, \"Stage only\" otherwise; it is right-aligned"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]",
+   "a": "st.bar"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>b[0]",
+   "a": "st.bar.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.badge.c-stg[0]",
+   "a": "st.bar.badge"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[2]",
+   "a": "st.bar.current"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[3]",
+   "a": "st.bar.next"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[4]",
+   "a": "st.bar.clock"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[5]",
+   "a": "st.bar.timer"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[6]",
+   "a": "st.bar.message"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]",
+   "a": "st.cv"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el.on[0]",
+   "a": "st.cv.el.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el.on[0]>small[0]",
+   "a": "st.cv.el.0.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[1]",
+   "a": "st.cv.el.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[1]>small[0]",
+   "a": "st.cv.el.1.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[2]",
+   "a": "st.cv.el.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[2]>small[0]",
+   "a": "st.cv.el.2.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[3]",
+   "a": "st.cv.el.3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[3]>small[0]",
+   "a": "st.cv.el.3.label",
+   "skip": "R",
+   "why": "content: the label names the timer (\"Timer · first countdown\"); the design's sample timer is \"service elapsed\""
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[5]",
+   "a": "st.cv.el.5"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.cv[0]>div.el[5]>small[0]",
+   "a": "st.cv.el.5.label"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.row.mono.c-muted[1]",
+   "a": "st.cv.caption",
+   "skip": "R",
+   "why": "content: the caption states what the canvas does; the design's states a pixel size and a lyric minimum the app does not enforce"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]",
+   "a": "st.insp"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.h[0]",
+   "a": "st.insp.h",
+   "skip": "R",
+   "why": "the design's .h is a block as wide as the section; the app's label hugs its text (the text width is compared in st.side.h)"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[1]>label.k[0]",
+   "a": "st.insp.shows.label"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[1]>span.field[0]",
+   "a": "st.insp.shows"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[2]>label.k[0]",
+   "a": "st.insp.size.label"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[2]>span.field.mono[0]",
+   "a": "st.insp.size"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[3]>label.k[0]",
+   "a": "st.insp.weight.label"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[3]>span.field[0]",
+   "a": "st.insp.weight"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[4]>label.k[0]",
+   "a": "st.insp.colour.label"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[4]>span[0]",
+   "a": "st.insp.colour.swatch"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[4]>span.field.mono[1]",
+   "a": "st.insp.colour.hex"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.h[0]",
+   "a": "st.insp.elements.h",
+   "skip": "R",
+   "why": "the design's .h is a block as wide as the section; the app's label hugs its text (the text width is compared in st.side.h)"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li.on[1]",
+   "a": "st.insp.el.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[2]",
+   "a": "st.insp.el.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[3]",
+   "a": "st.insp.el.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[4]",
+   "a": "st.insp.el.3"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[6]",
+   "a": "st.insp.el.5"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.h[0]",
+   "a": "st.insp.assigned.h",
+   "skip": "R",
+   "why": "the design's .h is a block as wide as the section; the app's label hugs its text (the text width is compared in st.side.h)"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]",
+   "a": "st.insp.screen.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>span.dot.c-stg[0]",
+   "a": "st.insp.screen.0.dot"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>span.tgl.on[2]",
+   "a": "st.insp.screen.0.toggle"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.c-muted[2]",
+   "a": "st.insp.note"
+  }
+ ],
+ "ignore_design": [
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.lights",
+   "reason": "the window's three controls are the system's, drawn by the window"
+  },
+  {
+   "match": "(^|>)svg\\.i",
+   "reason": "icon glyph box: SF Symbols draw to their own metrics; the control containing the icon is compared"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.col\\[1\\]$",
+   "reason": "wrapper of the title and subtitle, which are compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]$|^div\\.body\\[1\\]>div\\.main\\[1\\]$",
+   "reason": "column wrapper: widths come from the window layout"
+  },
+  {
+   "match": "div\\.sec(\\.grow|\\.row)?\\[\\d\\]$|div\\.main\\[1\\]>div\\[1\\]$|>div\\.row\\[2\\]$",
+   "reason": "section or row wrapper: its position follows from the rows and padding inside, which are compared"
+  },
+  {
+   "match": "div\\.thumb\\[0\\]>div\\.l1|div\\.cv\\[0\\]>div\\.el[^>]*>div",
+   "reason": "picture contents: the sample words, clock and timer are drawn by the output renderer (the design's are HTML text), not by operator controls"
+  },
+  {
+   "match": "div\\.cv\\[0\\]>div\\.el\\[4\\]",
+   "reason": "the Section element ('Section · arrangement') does not exist in the model: open, needs a feature slice"
+  },
+  {
+   "match": "span\\.btn\\[7\\]",
+   "reason": "the Video button: no video element exists: open, needs a feature slice (its place at the right end of the bar is kept)"
+  },
+  {
+   "match": "div\\.fr\\[5\\]",
+   "reason": "the 2nd lang. colour row: the second-language colour is not a setting yet: open, needs a feature slice (its row is kept)"
+  },
+  {
+   "match": "div\\.fr\\[2\\]>span\\.chk",
+   "reason": "the Auto-fit checkbox: no auto-fit exists: open, needs a feature slice (a stepper takes its place)"
+  },
+  {
+   "match": "div\\.fr\\[\\d\\]$",
+   "reason": "row wrapper (the Size row also holds the Auto-fit text, not built); its controls are compared"
+  },
+  {
+   "match": "span\\.car",
+   "reason": "pop-up chevron inside a compared control"
+  },
+  {
+   "match": "div\\.sec\\[1\\]>div\\.li\\[5\\]$",
+   "reason": "the Section list row: no Section element exists: open, needs a feature slice"
+  },
+  {
+   "match": "div\\.sec\\[1\\]>div\\.li[^>]*>span\\.n",
+   "reason": "the per-element eye: no per-element hide exists: open, needs a feature slice"
+  },
+  {
+   "match": "span\\.pill\\.c-(aud|stg|brd)\\[\\d\\]>span\\.d\\[0\\]",
+   "reason": "status dot inside a compared pill"
+  },
+  {
+   "match": "div\\.cap\\[1\\]>b\\[0\\]",
+   "reason": "bold name inside the caption row, which is compared"
+  }
+ ],
+ "ignore_app": [
+  {
+   "match": "^st\\.cv\\.el\\.4",
+   "reason": "the Notes element: the design draws a Section element in this place; Notes is the owner's existing element, seeded there so the list lines up"
+  },
+  {
+   "match": "^st\\.insp\\.el\\.4$",
+   "reason": "the Notes row of the element list (see above)"
+  },
+  {
+   "match": "^st\\.bar\\.notes$",
+   "reason": "the Notes button: the design has no Notes; it sits left of Current so nothing designed moves"
+  },
+  {
+   "match": "^st\\.side\\.card\\.3",
+   "reason": "the built-in Standard layout: listed after the operator's layouts; the design shows three presets"
+  }
+ ]
+}

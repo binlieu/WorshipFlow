@@ -267,17 +267,3 @@ struct MediaModeView: View {
         switch kind { case nil: "square.grid.2x2"; case .video?: "film"; case .image?: "photo"; case .audio?: "music.note" }
     }
 }
-
-// MARK: Stage
-
-struct StageModeView: View {
-    let app: AppModel
-
-    var body: some View {
-        if let stage = app.stage {
-            StageEditorView(app: app, stage: stage)
-        } else {
-            Text("Stage layouts are not available.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
