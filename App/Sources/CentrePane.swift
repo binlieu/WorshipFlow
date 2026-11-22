@@ -180,6 +180,9 @@ struct SlideGrid: View {
 
     @ViewBuilder private func grid(width: CGFloat) -> some View {
         let _ = reportColumns(width)
+        let keys = SlideCellKey.keys(for: workspace.slides.map(\.id))
+        let available = app.media.map { Set($0.allAssets.map(\.id)) }      // once for the grid, not once per cell
+        let live = liveIndex(app, workspace)
         ScrollViewReader { proxy in
             ScrollView {
                 if workspace.slides.isEmpty {
@@ -191,8 +194,10 @@ struct SlideGrid: View {
                         VStack(alignment: .leading, spacing: 0) {       // the header is 5 pt above its cards; the 9 pt is between sections
                             SectionHeader(run: run, index: runIndex)
                             LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
-                                ForEach(run.indices, id: \.self) { i in
-                                    cell(i, color: run.tone.color).id(i)
+                                // FIX-M: a cell's identity is its slide (SlideCellKey), not its position, so a reorder moves cells and only the moved range
+                                // is drawn again.
+                                ForEach(run.indices.map { CellSlot(index: $0, key: keys[$0]) }) { slot in
+                                    cell(slot.index, color: run.tone.color, available: available, live: live).id(slot.key)
                                 }
                             }
                             .wfRect("main.grid.\(runIndex)")
@@ -203,82 +208,19 @@ struct SlideGrid: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 14)
             }
-            .onChange(of: workspace.show.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
+            .onChange(of: workspace.show.selectedIndex) { _, new in if keys.indices.contains(new) { withAnimation { proxy.scrollTo(keys[new]) } } }
         }
     }
 
-    private func cell(_ i: Int, color: Color) -> some View {
+    /// FIX-M: the cell is a value-comparing view: a drop or an edit that changes one slide draws that slide's cell, not all of them.
+    private func cell(_ i: Int, color: Color, available: Set<UUID>?, live: Int?) -> some View {
         let slide = workspace.slides[i]
-        let selected = workspace.show.selectedIndex == i
-        let live = liveIndex(app, workspace) == i
-        return VStack(alignment: .leading, spacing: 3) {
-            // The rings are drawn outside the picture (never over the words): idle 1 pt, preview 2 pt blue, live 3 pt red, at a 2 pt offset.
-            SlideThumbnail(app: app, slide: slide.content)
-                .wfRect("main.cell.\(i).thumb", radius: 4)
-                .overlay(alignment: .topLeading) { tags(live: live, selected: selected).wfRect("main.cell.\(i).tag", size: 9, weight: 800, radius: Radius.xs).padding(5) }
-                .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: app.media.map { Set($0.allAssets.map(\.id)) }).padding(5) }
-                .wfThumbState(radius: 4, preview: selected && !live, live: live, liveColor: ringColor)
-                .padding(5)    // room for the outer ring inside the cell
-                .padding(-5)
-            HStack(spacing: 6) {
-                Text("\(i + 1)").font(.wf(11, .semibold).monospacedDigit()).foregroundStyle(Tok.text).wfLine().wfRect("main.cell.\(i).num", size: 11, weight: 600)
-                let first = slide.content.primary.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
-                Text(first.isEmpty ? "Blank · background only" : first)
-                    .font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .wfRect("main.cell.\(i).cap")
-        }
-        .wfRect("main.cell.\(i)")
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) { app.triggerSlide(i) }
-        .onTapGesture { workspace.selectSlide(i) }
-        .draggable("\(i)")
-        .dropDestination(for: String.self) { items, _ in
-            guard let text = items.first else { return false }
-            // MEDIA-010: a tile from the media bin is this slide's own background; a slide's index is a reorder.
-            if let mediaID = SlideBackgroundDrop.mediaID(fromDragText: text) { return app.setSlideBackground(mediaID: mediaID, slideID: slide.id) }
-            guard let from = Int(text), from != i else { return false }
-            Task { await workspace.moveSlide(from: from, to: i) }
-            return true
-        }
-        .dropDestination(for: URL.self) { urls, _ in app.setSlideBackground(fileURLs: urls, slideID: slide.id) }
-        .contextMenu { slideMenu(i) }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Slide \(i + 1): \(slide.content.primary)")
-        .accessibilityValue(stateWord(live: live, selected: selected))
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        return SlideGridCell(app: app, workspace: workspace, slide: slide, index: i, isLast: i == workspace.slides.count - 1,
+                             selected: workspace.show.selectedIndex == i, live: live == i, mode: app.mode, color: color,
+                             available: available, onDelete: { pendingDelete = $0 })
+            .equatable()
     }
 
-    @ViewBuilder private func tags(live: Bool, selected: Bool) -> some View {
-        if live {
-            switch app.mode {
-            case .cleared: ThumbTag(text: "CLEARED", kind: .warning)
-            case .blackout: ThumbTag(text: "BLACKOUT", kind: .warning)
-            default: ThumbTag(text: "LIVE", kind: .live)
-            }
-        } else if selected {
-            ThumbTag(text: "PREVIEW", kind: .preview)
-        }
-    }
-
-    private func stateWord(live: Bool, selected: Bool) -> String {
-        var words: [String] = []
-        if live { words.append(app.mode == .cleared ? "live place, cleared" : (app.mode == .blackout ? "live place, blackout" : "live")) }
-        if selected { words.append("in preview") }
-        return words.joined(separator: ", ")
-    }
-
-    @ViewBuilder private func slideMenu(_ i: Int) -> some View {
-        Button("Go Live") { app.triggerSlide(i) }
-        Button("Quick edit") { workspace.selectSlide(i); app.openQuickEdit() }
-        SlideBackgroundMenuItems(app: app, slide: workspace.slides[i])
-        Divider()
-        Button("Move earlier") { Task { await workspace.moveSlide(from: i, to: i - 1) } }.disabled(i == 0)
-        Button("Move later") { Task { await workspace.moveSlide(from: i, to: i + 1) } }.disabled(i == workspace.slides.count - 1)
-        Divider()
-        Button("Delete slide…", role: .destructive) { pendingDelete = i }
-    }
 }
 
 /// FIX-I item 6: the background entries of a slide thumbnail's context menu (Show grid and list, Edit film strip). Each is one undo step.

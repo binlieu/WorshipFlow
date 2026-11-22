@@ -38,8 +38,20 @@ struct MediaAccess: Sendable {
     func stop() { if scoped { url.stopAccessingSecurityScopedResource() } }
 
     /// A bookmark for a file the operator just chose or dropped. Nil when the system will not make one.
-    static func bookmark(for url: URL) -> Data? {
+    nonisolated static func bookmark(for url: URL) -> Data? {
         try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+    }
+
+    /// FIX-M: bookmarks for dropped or chosen files, made on a background thread (making one reads the file's attributes, and a file on a slow
+    /// volume would stall the window). Access is started and stopped around each one, as the drop requires.
+    nonisolated static func bookmarks(for urls: [URL]) -> [URL: Data] {
+        var out: [URL: Data] = [:]
+        for url in urls {
+            let started = url.startAccessingSecurityScopedResource()
+            if let data = bookmark(for: url) { out[url] = data }
+            if started { url.stopAccessingSecurityScopedResource() }
+        }
+        return out
     }
 }
 

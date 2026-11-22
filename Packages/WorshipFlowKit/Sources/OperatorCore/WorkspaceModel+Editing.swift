@@ -61,14 +61,51 @@ extension WorkspaceModel {
         await reloadOpen()
     }
 
-    /// Moves slide `from` so that it ends at index `to`.
+    /// Moves slide `from` so that it ends at index `to`. FIX-M: the visible order changes at once (the rows keep their identity); the library is written
+    /// afterwards, one write per drop and in the order the drops arrived. A failed write puts the previous order back with a message, and drops queued
+    /// behind it are put back too and never written. Returns when this drop's write has ended; the screen did not wait for it.
     public func moveSlide(from: Int, to: Int) async {
-        guard slides.indices.contains(from), requireNaturalOrder("move the slide") else { return }
-        await flushDrafts()
-        let id = slides[from].id
+        guard slides.indices.contains(from), requireNaturalOrder("move the slide"), let presentationID = openPresentationID else { return }
         let target = max(0, min(to, slides.count - 1))
-        guard await attempt("move the slide", { try await self.store.moveSlide(id: id, to: target) }) != nil else { return }
-        await reloadOpen()
+        guard target != from else { return }
+        let id = slides[from].id
+        slideMoves.begin(current: slides.map(\.id))
+        let began = slideMoves.epoch
+        slides = Self.renumbered(OrderMove.moved(slides, from: from, to: target))
+        refreshAfterReorder()
+        let previous = slideMoveTail
+        let write = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self else { return }
+            if self.slideMoves.isStale(began) { self.slideMoves.skipped(); return }
+            do {
+                try await self.slideMoveWriter(id, target)
+                self.slideMoves.succeeded(id: id, to: target)
+                if self.slideMoves.isIdle, self.openPresentationID == presentationID, self.slides.map(\.id) != self.slideMoves.confirmed { await self.reloadOpen() }
+            } catch {
+                let order = self.slideMoves.failed()
+                self.lastError = Self.message(for: error, doing: "move the slide")
+                if self.openPresentationID == presentationID {
+                    self.slides = Self.renumbered(OrderMove.restoring(self.slides, toOrder: order))
+                    self.refreshAfterReorder()
+                }
+            }
+        }
+        slideMoveTail = write
+        await write.value
+    }
+
+    static func renumbered(_ slides: [Slide]) -> [Slide] {
+        var out = slides
+        for i in out.indices where out[i].sortOrder != i { out[i].sortOrder = i }
+        return out
+    }
+
+    /// The preview deck follows the new order, the selection stays on its index (as after a reload). Live is not touched. The saved place
+    /// (presentation and slide index) is the same, so it is not written again: a drop is one write.
+    private func refreshAfterReorder() {
+        let keep = min(show.selectedIndex, max(slides.count - 1, 0))
+        apply(.restore(deck: previewDeck(), selectedIndex: keep))
     }
 
     public func deleteSlide(at index: Int) async {

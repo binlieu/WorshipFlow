@@ -12,7 +12,6 @@ struct MediaBinPanel: View {
     var listMode = false
     @State private var renaming: MediaAsset?
     @State private var renameText = ""
-    @State private var targeted = false
     /// FIX-G: a removal that would leave slides without their own background waits for the operator's answer.
     @State private var pendingRemoval: (asset: MediaAsset, message: String)?
     private var selected: UUID? { app.ui.binSelection }
@@ -55,13 +54,12 @@ struct MediaBinPanel: View {
         .frame(maxHeight: .infinity)
         .onAppear { app.ui.binColumns = 5 }      // FIX-I item 2: the grid always has five columns, for Up and Down
         .simultaneousGesture(TapGesture().onEnded { app.ui.keySectionEvent(.clickedMediaBin) })
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(targeted ? Color.accentColor : .clear, lineWidth: 2))
-        .dropDestination(for: URL.self) { urls, _ in
+        .fileDropTarget(color: .accentColor, radius: 6) { urls in
             let files = urls.filter(\.isFileURL)
             guard !files.isEmpty else { return false }
             app.addMedia(files)
             return true
-        } isTargeted: { targeted = $0 }
+        }
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Name", text: $renameText)
             Button("Cancel", role: .cancel) {}
@@ -91,7 +89,7 @@ struct MediaBinPanel: View {
                     if let action = tap.sendLive { app.performDockAction(action) }
                 }
                 .onTapGesture { app.selectBinItem(MediaBinInteraction.tap(count: 1, asset: asset, layer: app.ui.dockLayer).select) }
-                .draggable(SlideBackgroundDrop.dragText(for: asset.id))
+                .draggable(SlideBackgroundDrop.dragText(for: asset.id)) { DragChip(text: asset.name, symbol: asset.dragSymbol) }
                 .accessibilityAddTraits(panel.selected == asset.id ? [.isSelected, .isButton] : .isButton)
                 .accessibilityAction { app.selectBinItem(asset.id) }
                 .accessibilityAction(named: "Set as background") { media.setBackground(asset.id) }

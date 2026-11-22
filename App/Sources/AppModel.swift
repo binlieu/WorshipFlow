@@ -1112,16 +1112,17 @@ final class AppModel {
         }
     }
 
+    /// FIX-M: the file drops being handled, so the next one starts after the last one ended (order is kept).
+    @ObservationIgnored private var mediaAddTail: Task<Void, Never>?
+
     /// Adds files chosen in the panel or dropped on the bin. Each gets a bookmark so access survives a relaunch.
     func addMedia(_ urls: [URL]) {
         guard let media else { return }
-        Task { @MainActor in
-            var bookmarks: [URL: Data] = [:]
-            for url in urls {
-                let started = url.startAccessingSecurityScopedResource()
-                if let data = MediaAccess.bookmark(for: url) { bookmarks[url] = data }
-                if started { url.stopAccessingSecurityScopedResource() }
-            }
+        // FIX-M: bookmarks are made off the main thread, and several drops are handled one after the other in the order they arrived.
+        let previous = mediaAddTail
+        mediaAddTail = Task { @MainActor in
+            await previous?.value
+            let bookmarks = await Task.detached(priority: .userInitiated) { MediaAccess.bookmarks(for: urls) }.value
             await media.add(urls: urls, bookmarks: bookmarks)
         }
     }
@@ -1223,10 +1224,11 @@ final class AppModel {
     /// A file from Finder dropped on a slide thumbnail: it joins the media bin, then becomes that slide's background.
     func setSlideBackground(fileURLs: [URL], slideID: UUID) -> Bool {
         guard let url = fileURLs.first(where: \.isFileURL), let media else { return false }
-        Task { @MainActor in
-            let started = url.startAccessingSecurityScopedResource()
-            let bookmark = MediaAccess.bookmark(for: url)
-            if started { url.stopAccessingSecurityScopedResource() }
+        // FIX-M: the drop returns at once; the bookmark, the probe and the library write happen off the main thread, in drop order.
+        let previous = mediaAddTail
+        mediaAddTail = Task { @MainActor in
+            await previous?.value
+            let bookmark = await Task.detached(priority: .userInitiated) { MediaAccess.bookmarks(for: [url])[url] }.value
             guard let asset = await media.add(url: url, bookmark: bookmark) else { return }
             _ = setSlideBackground(mediaID: asset.id, slideID: slideID)
         }

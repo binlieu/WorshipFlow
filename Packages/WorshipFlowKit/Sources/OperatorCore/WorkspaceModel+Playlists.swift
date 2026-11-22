@@ -98,9 +98,41 @@ extension WorkspaceModel {
         placeChanged()
     }
 
+    /// FIX-M: the visible order changes at once; the write follows, one per drop, in arrival order; a failure puts the previous order back.
     public func movePlaylistItem(id: UUID, to index: Int) async {
-        guard await attempt("move the item", { try await self.store.movePlaylistItem(id: id, to: index) }) != nil else { return }
-        await reloadPlaylistItems()
+        guard let from = playlistItems.firstIndex(where: { $0.id == id }), let playlistID = selectedPlaylistID else {
+            guard await attempt("move the item", { try await self.playlistMoveWriter(id, index) }) != nil else { return }
+            await reloadPlaylistItems()
+            return
+        }
+        let target = max(0, min(index, playlistItems.count - 1))
+        guard target != from else { return }
+        playlistMoves.begin(current: playlistItems.map(\.id))
+        let began = playlistMoves.epoch
+        playlistItems = Self.renumbered(OrderMove.moved(playlistItems, from: from, to: target))
+        let previous = playlistMoveTail
+        let write = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self else { return }
+            if self.playlistMoves.isStale(began) { self.playlistMoves.skipped(); return }
+            do {
+                try await self.playlistMoveWriter(id, target)
+                self.playlistMoves.succeeded(id: id, to: target)
+                if self.playlistMoves.isIdle, self.selectedPlaylistID == playlistID, self.playlistItems.map(\.id) != self.playlistMoves.confirmed { await self.reloadPlaylistItems() }
+            } catch {
+                let order = self.playlistMoves.failed()
+                self.lastError = Self.message(for: error, doing: "move the item")
+                if self.selectedPlaylistID == playlistID { self.playlistItems = Self.renumbered(OrderMove.restoring(self.playlistItems, toOrder: order)) }
+            }
+        }
+        playlistMoveTail = write
+        await write.value
+    }
+
+    private static func renumbered(_ items: [PlaylistItem]) -> [PlaylistItem] {
+        var out = items
+        for i in out.indices where out[i].sortOrder != i { out[i].sortOrder = i }
+        return out
     }
 
     public func removePlaylistItem(id: UUID) async {

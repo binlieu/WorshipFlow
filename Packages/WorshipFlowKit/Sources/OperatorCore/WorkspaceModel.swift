@@ -119,6 +119,14 @@ public final class WorkspaceModel {
     public var hasUnsavedDrafts: Bool { !pendingDrafts.isEmpty }
     /// How one typed slide reaches the library. The store's own write; tests replace it with a failing one.
     @ObservationIgnored lazy var draftWriter: @MainActor (Slide) async throws -> Void = { [store] slide in try await store.updateSlide(slide) }
+    /// FIX-M: how a dropped slide or playlist item reaches the library. The store's own write; tests replace it to hold or fail it.
+    @ObservationIgnored lazy var slideMoveWriter: @MainActor (UUID, Int) async throws -> Void = { [store] id, index in try await store.moveSlide(id: id, to: index) }
+    @ObservationIgnored lazy var playlistMoveWriter: @MainActor (UUID, Int) async throws -> Void = { [store] id, index in try await store.movePlaylistItem(id: id, to: index) }
+    /// FIX-M: the order the library holds while drops are written, and the chain that writes them one after the other in arrival order.
+    @ObservationIgnored var slideMoves = ReorderTracker<UUID>()
+    @ObservationIgnored var playlistMoves = ReorderTracker<UUID>()
+    @ObservationIgnored var slideMoveTail: Task<Void, Never>?
+    @ObservationIgnored var playlistMoveTail: Task<Void, Never>?
     @ObservationIgnored private var draftRetry: Task<Void, Never>?
     @ObservationIgnored private var draftFailures = 0
     @ObservationIgnored private let clock: any SaveClock

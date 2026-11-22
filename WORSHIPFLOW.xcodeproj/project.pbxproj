@@ -13,6 +13,7 @@
 		09F098F1CD8B90E6530DD5E8 /* ThumbnailStills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D60BBF208DD8ABB2FED708 /* ThumbnailStills.swift */; };
 		0DAC4AA819C3A8A075C56CC4 /* SDIEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 1AE80C07788ADC1FC558D02D /* SDIEngine */; };
 		10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */; };
+		1247EB89A2933ECB9887B73A /* SlideGridCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02E12B0F6A66F80E0AEAC3A4 /* SlideGridCell.swift */; };
 		13DCD22319424A960B678F80 /* WorkspaceUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3413299D6807F0227DE95A /* WorkspaceUIState.swift */; };
 		1463D5B1D7A0AF1207FB6EE3 /* ControlPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D4F36F19C47A1CB71FE4D8 /* ControlPanels.swift */; };
 		16B17570CCBF92112CCD419C /* ProgramTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */; };
@@ -31,6 +32,7 @@
 		44304A318EC39076852D3772 /* StageMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D6FF54A03C97C582BF0AABD /* StageMode.swift */; };
 		451EDECE11B7AE03F6F66257 /* ProgramSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50CC8A593F62AE4E30942E47 /* ProgramSheets.swift */; };
 		484FA672107A4E8A196C3618 /* EditInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F5D6F4EAC20DCA296CE73CC /* EditInspector.swift */; };
+		486060F1F8E880A3F5902085 /* UISnapshotFixM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */; };
 		49B90133C766C12E9F49E57B /* WFControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3492857FA2C3827B81259408 /* WFControls.swift */; };
 		4A21A2BDC0855B80DC8874D9 /* MediaEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0A1491D9F0D3D5753C2F3408 /* MediaEngine */; };
 		4B01EACF67D12494AE666076 /* ComponentsBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26870985AC1243ADD0FE654D /* ComponentsBoard.swift */; };
@@ -117,6 +119,7 @@
 /* Begin PBXFileReference section */
 		005F7E8B7F1A0AA5D86B07DD /* MediaClearButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaClearButtons.swift; sourceTree = "<group>"; };
 		01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotCues.swift; sourceTree = "<group>"; };
+		02E12B0F6A66F80E0AEAC3A4 /* SlideGridCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideGridCell.swift; sourceTree = "<group>"; };
 		092AFE512585CDC4273F3A1D /* MediaDockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaDockView.swift; sourceTree = "<group>"; };
 		0AFAF5674771E5C1B9889797 /* CuesMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesMode.swift; sourceTree = "<group>"; };
 		0B05143AD9A31F5DD17A7FB2 /* StageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageEditorView.swift; sourceTree = "<group>"; };
@@ -150,6 +153,7 @@
 		6B279AA2C0D0488616F667A7 /* ScriptureTranslationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptureTranslationsView.swift; sourceTree = "<group>"; };
 		7149ECD4043A4035CAA9F4FF /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7166181C03E3555D4CD67FBC /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixM.swift; sourceTree = "<group>"; };
 		78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotMedia010.swift; sourceTree = "<group>"; };
 		7904015CE5BD7D12564A3BED /* LiveScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScenes.swift; sourceTree = "<group>"; };
 		7F5D6F4EAC20DCA296CE73CC /* EditInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditInspector.swift; sourceTree = "<group>"; };
@@ -311,6 +315,7 @@
 				0F71BC1E2C82D2515656494C /* SectionOrderSheet.swift */,
 				9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */,
 				32295D478AF06FE6654E71DA /* ShowMode.swift */,
+				02E12B0F6A66F80E0AEAC3A4 /* SlideGridCell.swift */,
 				B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */,
 				F1320EF2993E56B2BB360523 /* SoakConfig.swift */,
 				1218AAFF01DE245852BDAB9E /* StageCanvasView.swift */,
@@ -329,6 +334,7 @@
 				55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */,
 				3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */,
 				D3284C1C8C378CF0A5AD8842 /* UISnapshotFixK.swift */,
+				7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */,
 				78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */,
 				E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */,
 				D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */,
@@ -551,6 +557,7 @@
 				FEFAA1D9FD9A70C527806951 /* SectionOrderSheet.swift in Sources */,
 				7E995D6D0D133D3BCFDE45AB /* ShowInspector.swift in Sources */,
 				28A2057DF36D637C3499C01F /* ShowMode.swift in Sources */,
+				1247EB89A2933ECB9887B73A /* SlideGridCell.swift in Sources */,
 				9EB585625EE03B3BDC65747C /* SlideObjectsEditor.swift in Sources */,
 				ADF4686D48AFC14A5FC39D9C /* SoakConfig.swift in Sources */,
 				1D57863F7A2133E6C9E2320C /* StageCanvasView.swift in Sources */,
@@ -569,6 +576,7 @@
 				8C131235AB1BE42BA3D35E4C /* UISnapshotDesign.swift in Sources */,
 				905D1888E120908524D706A5 /* UISnapshotFixI.swift in Sources */,
 				27605FF226FEA6A5040876BE /* UISnapshotFixK.swift in Sources */,
+				486060F1F8E880A3F5902085 /* UISnapshotFixM.swift in Sources */,
 				510F04BB6CAADD39C7460240 /* UISnapshotMedia010.swift in Sources */,
 				19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */,
 				10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */,

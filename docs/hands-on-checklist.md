@@ -324,3 +324,10 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 ## UI-005f Screens
 
 - [ ] Screens: select each screen in the list and from its tile in the map; rename it, change its role and destination; switch Fill and key and Fill alpha; type a "Connected to" label and see "typed by you" in the map; choose a plan under the map and Apply or Cancel; Stop and Start output; add and remove a mirror; scroll to the bottom for the Look list, Props and Developer; check the SIMULATED marks appear only with the simulated card; dark and light.
+
+## FIX-M drag and drop
+
+- [ ] Show with a long song and a full bin: drag a slide to another place (it lands at once; the label under the pointer is small), drag a bin tile onto a slide (its background changes at once), drop a file from Finder on the bin, on the dock and on a slide, and reorder the playlist: no hitch you can see.
+- [ ] Two-minute measuring procedure (the system's drag session cannot be replayed without a hand): open Terminal, run `sample WorshipFlow 20 -file ~/Desktop/drag.txt` (use any scratch folder, not a folder shared with others), and while it runs do three drags, each about 5 seconds: a slide to another place, a bin tile onto a slide, a file from Finder onto the bin. Open the file and look at the main thread: lines under `NSDisplayCycleFlush` and `NSHostingView.layout` are the window redrawing; more than about 10 percent of the 20 seconds busy, or a single stretch of more than 8 ms between the drops, is a hitch worth reporting with the file. Or: Instruments, template Animation Hitches, attach to WorshipFlow, do the same three drags, and read the hitch list (each row longer than 8 ms is one).
+- [ ] Optional, no hand needed: `scripts/measure-drags.sh` builds a debug copy against a throw-away library and prints the replayed numbers.
+

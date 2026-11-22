@@ -17,7 +17,6 @@ struct MediaDockView: View {
     @State private var dragHeight: Double?
     /// FIX-I item 2: the same selection the arrow keys move (and the Media mode's bin shows).
     private var selected: UUID? { app.ui.binSelection }
-    @State private var targeted = false
     @State private var stripWidth: CGFloat = 812
 
     private let headerHeight: CGFloat = 46
@@ -40,13 +39,12 @@ struct MediaDockView: View {
         .wfRect("dock")
         .simultaneousGesture(TapGesture().onEnded { app.ui.keySectionEvent(.clickedMediaBin) })       // FIX-I item 2: the arrows act on the bin now
         .keyboardSectionMark(app.effectiveKeySection == .mediaBin && app.workspace?.mode == .show)
-        .overlay(targeted ? RoundedRectangle(cornerRadius: 4).stroke(Tok.blue, lineWidth: 2) : nil)
-        .dropDestination(for: URL.self) { urls, _ in
+        .fileDropTarget(color: Tok.blue, radius: 4) { urls in
             let files = urls.filter(\.isFileURL)
             guard !files.isEmpty else { return false }
             app.addMedia(files)
             return true
-        } isTargeted: { targeted = $0 }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Media bin")
     }
@@ -137,7 +135,7 @@ struct MediaDockView: View {
         let mark = MediaTileMarks.mark(for: asset, layers: media.layers, showIsLive: media.showIsLive, selected: selected,
                                        soundIsPlaying: audio?.activeCues.contains { $0.assetID == asset.id } ?? false)
         return DockTile(asset: asset, mark: mark, width: width, index: index)
-            .draggable(SlideBackgroundDrop.dragText(for: asset.id))       // MEDIA-010: drop it on a slide for that slide's own background
+            .draggable(SlideBackgroundDrop.dragText(for: asset.id)) { DragChip(text: asset.name, symbol: asset.dragSymbol) }       // MEDIA-010: drop it on a slide for that slide's own background
             .onTapGesture {
                 app.ui.binSelection = asset.id
                 app.ui.keySectionEvent(.clickedMediaBin)
