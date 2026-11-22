@@ -190,6 +190,15 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // UI-005d: the Media mode in the state of the design picture (the one line this slice adds to this shared file).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_UIMEDIA"] != nil {
+                await runMediaDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // UI-005a: the five design pictures (Show dark, Quick edit, Show light, components dark and light), at 1440 x 900 points.
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil {
                 await runDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)

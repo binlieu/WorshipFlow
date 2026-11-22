@@ -1,0 +1,925 @@
+{
+ "design": "docs/UI/mockups/05-media-audio.html",
+ "entries": [
+  {
+   "d": "div.tb[0]>span.btn.ghost[0]",
+   "a": "tb.sidebarToggle"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.title[0]",
+   "a": "tb.title",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.sub[1]",
+   "a": "tb.subtitle",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]",
+   "a": "tb.modes",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[0]",
+   "a": "tb.modes.0",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[1]",
+   "a": "tb.modes.1",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b.on[2]",
+   "a": "tb.modes.2",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[3]",
+   "a": "tb.modes.3",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[4]",
+   "a": "tb.modes.4",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[5]",
+   "a": "tb.modes.5",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]",
+   "a": "tb.timers"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[0]",
+   "a": "tb.timer.0.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[0]",
+   "a": "tb.timer.0.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono[0]",
+   "a": "tb.timer.0.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.sep[1]",
+   "a": "tb.timer.1.sep"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[1]",
+   "a": "tb.timer.1.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[2]",
+   "a": "tb.timer.1.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono.c-muted[1]",
+   "a": "tb.timer.1.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.btn[3]",
+   "a": "tb.timer.1.button"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-aud[1]",
+   "a": "tb.pill.aud"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-stg[2]",
+   "a": "tb.pill.stg"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-brd[3]",
+   "a": "tb.pill.brd"
+  },
+  {
+   "d": "div.tp[2]",
+   "a": "tp"
+  },
+  {
+   "d": "div.tp[2]>span.badge.fill[0]",
+   "a": "tp.badge"
+  },
+  {
+   "d": "div.tp[2]>div.col[0]",
+   "a": "tp.text"
+  },
+  {
+   "d": "div.tp[2]>div.col[0]>span[0]",
+   "a": "tp.headline"
+  },
+  {
+   "d": "div.tp[2]>div.col[0]>span.sub.c-muted[1]",
+   "a": "tp.detail"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[1]",
+   "a": "tp.previous"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg.live[2]",
+   "a": "tp.golive"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[3]",
+   "a": "tp.next"
+  },
+  {
+   "d": "div.tp[2]>span[4]",
+   "a": "tp.sep.0"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[5]",
+   "a": "tp.clear"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[6]",
+   "a": "tp.blackout"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[7]",
+   "a": "tp.stop"
+  },
+  {
+   "d": "div.tp[2]>div.col.mono.c-muted[2]",
+   "a": "tp.health"
+  },
+  {
+   "d": "div.tp[2]>div.col.mono.c-muted[2]>span[0]",
+   "a": "tp.health.rate"
+  },
+  {
+   "d": "div.tp[2]>div.col.mono.c-muted[2]>span[1]",
+   "a": "tp.health.counts"
+  },
+  {
+   "d": "div.tp[2]>div.row[3]",
+   "a": "tp.meters"
+  },
+  {
+   "d": "div.tp[2]>div.row[3]>div.meter[0]",
+   "a": "tp.meter.0"
+  },
+  {
+   "d": "div.tp[2]>div.row[3]>div.meter[1]",
+   "a": "tp.meter.1"
+  },
+  {
+   "d": "div.tp[2]>span[8]",
+   "a": "tp.sep.1"
+  },
+  {
+   "d": "div.tb[0]",
+   "a": "tb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]",
+   "a": "media.sb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.h[0]",
+   "a": "media.sb.h.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.h[0]",
+   "a": "media.sb.h.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li.on[1]",
+   "a": "media.sb.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li.on[1]>span.n[0]",
+   "a": "media.sb.row.0.n",
+   "skip": "L",
+   "why": "content: right-aligned count, the seed has fifteen items where the design says 24, 7 and 41 (width differs with the digits)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[2]",
+   "a": "media.sb.row.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[2]>span.n[0]",
+   "a": "media.sb.row.1.n",
+   "skip": "L",
+   "why": "content: right-aligned count, the seed has fifteen items where the design says 24, 7 and 41 (width differs with the digits)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[3]",
+   "a": "media.sb.row.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[3]>span.n[0]",
+   "a": "media.sb.row.2.n",
+   "skip": "L",
+   "why": "content: right-aligned count, the seed has fifteen items where the design says 24, 7 and 41 (width differs with the digits)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.li[1]",
+   "a": "media.sb.audio.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[1]>div.li[1]>span.n[0]",
+   "a": "media.sb.audio.0.n",
+   "skip": "L",
+   "why": "content: right-aligned count, the seed has fifteen items where the design says 24, 7 and 41 (width differs with the digits)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]",
+   "a": "media.bar"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span[0]",
+   "a": "media.bar.title",
+   "skip": "R",
+   "why": "content: the title is the chosen bin row (\"All media\" in the seed, \"Motion backgrounds\" in the design)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[2]",
+   "a": "media.bar.import"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]",
+   "a": "media.bar.layer"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]>b.on[0]",
+   "a": "media.bar.layer.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]>b[1]",
+   "a": "media.bar.layer.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[1]",
+   "a": "media.bar.view"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[1]>b.on[0]",
+   "a": "media.bar.view.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[1]>b[1]",
+   "a": "media.bar.view.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]",
+   "a": "media.grid",
+   "skip": "B",
+   "why": "content: the grid is as tall as its rows; the seed has sixteen items (the design shows fifteen) and the sound is one of them"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[0]",
+   "a": "media.tile.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[0]>div.thumb.m.live[0]",
+   "a": "media.tile.0.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[0]>div.thumb.m.live[0]>span.kind[0]",
+   "a": "media.tile.0.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[0]>div.thumb.m.live[0]>span.dur[1]",
+   "a": "media.tile.0.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[0]>div.cap[1]>b[0]",
+   "a": "media.tile.0.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[1]",
+   "a": "media.tile.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[1]>div.thumb.m.sel[0]",
+   "a": "media.tile.1.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[1]>div.thumb.m.sel[0]>span.kind[0]",
+   "a": "media.tile.1.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[1]>div.thumb.m.sel[0]>span.dur[1]",
+   "a": "media.tile.1.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[1]>div.cap[1]>b[0]",
+   "a": "media.tile.1.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[2]",
+   "a": "media.tile.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[2]>div.thumb.m[0]",
+   "a": "media.tile.2.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[2]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.2.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[2]>div.thumb.m[0]>span.dur[1]",
+   "a": "media.tile.2.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[2]>div.cap[1]>b[0]",
+   "a": "media.tile.2.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[3]",
+   "a": "media.tile.3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[3]>div.thumb.m[0]",
+   "a": "media.tile.3.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[3]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.3.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[3]>div.thumb.m[0]>span.dur[1]",
+   "a": "media.tile.3.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[3]>div.cap[1]>b[0]",
+   "a": "media.tile.3.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[4]",
+   "a": "media.tile.4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[4]>div.thumb.m[0]",
+   "a": "media.tile.4.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[4]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.4.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[4]>div.thumb.m[0]>span.dur[1]",
+   "a": "media.tile.4.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[4]>div.cap[1]>b[0]",
+   "a": "media.tile.4.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[5]",
+   "a": "media.tile.5"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[5]>div.thumb.m[0]",
+   "a": "media.tile.5.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[5]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.5.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[5]>div.thumb.m[0]>span.dur[1]",
+   "a": "media.tile.5.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[5]>div.cap[1]>b[0]",
+   "a": "media.tile.5.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[6]",
+   "a": "media.tile.6"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[6]>div.thumb.m[0]",
+   "a": "media.tile.6.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[6]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.6.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[6]>div.cap[1]>b[0]",
+   "a": "media.tile.6.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[7]",
+   "a": "media.tile.7"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[7]>div.thumb.m[0]",
+   "a": "media.tile.7.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[7]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.7.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[7]>div.cap[1]>b[0]",
+   "a": "media.tile.7.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[8]",
+   "a": "media.tile.8"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[8]>div.thumb.m[0]",
+   "a": "media.tile.8.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[8]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.8.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[8]>div.cap[1]>b[0]",
+   "a": "media.tile.8.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[9]",
+   "a": "media.tile.9"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[9]>div.thumb.m[0]",
+   "a": "media.tile.9.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[9]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.9.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[9]>div.cap[1]>b[0]",
+   "a": "media.tile.9.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[10]",
+   "a": "media.tile.10"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[10]>div.thumb.m[0]",
+   "a": "media.tile.10.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[10]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.10.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[10]>div.cap[1]>b[0]",
+   "a": "media.tile.10.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[11]",
+   "a": "media.tile.11"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[11]>div.thumb.m[0]",
+   "a": "media.tile.11.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[11]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.11.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[11]>div.thumb.m[0]>span.dur[1]",
+   "a": "media.tile.11.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[11]>div.cap[1]>b[0]",
+   "a": "media.tile.11.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[12]",
+   "a": "media.tile.12"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[12]>div.thumb.m[0]",
+   "a": "media.tile.12.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[12]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.12.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[12]>div.thumb.m[0]>span.dur[1]",
+   "a": "media.tile.12.dur"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[12]>div.cap[1]>b[0]",
+   "a": "media.tile.12.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[13]",
+   "a": "media.tile.13"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[13]>div.thumb.m[0]",
+   "a": "media.tile.13.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[13]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.13.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[13]>div.cap[1]>b[0]",
+   "a": "media.tile.13.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[14]",
+   "a": "media.tile.14"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[14]>div.thumb.m[0]",
+   "a": "media.tile.14.thumb"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[14]>div.thumb.m[0]>span.kind[0]",
+   "a": "media.tile.14.kind"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.grid[1]>div[14]>div.cap[1]>b[0]",
+   "a": "media.tile.14.name",
+   "skip": "R",
+   "why": "content: the caption is as wide as the name (the design names the tiles differently from the files)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]",
+   "a": "media.strip"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[0]>b[0]",
+   "a": "media.strip.name",
+   "skip": "R",
+   "why": "content: the name of the file"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[0]>span.badge.fill[0]",
+   "a": "media.strip.badge"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[0]>span.c-muted.mono[1]",
+   "a": "media.strip.meta",
+   "skip": "R",
+   "why": "content: the meta line states only what the app knows (picture size and length)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[0]>span.pill.c-ok[3]",
+   "a": "media.strip.loop"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.btn[0]",
+   "a": "media.strip.restart"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.btn[1]",
+   "a": "media.strip.play"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.btn[2]",
+   "a": "media.strip.stop"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.mono[3]",
+   "a": "media.strip.elapsed"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>div.scrub[0]",
+   "a": "media.strip.scrub"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>div.scrub[0]>i[0]",
+   "a": "media.strip.scrub.fill",
+   "skip": "R",
+   "why": "content: the fill ends at the position"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>div.scrub[0]>u[0]",
+   "a": "media.strip.scrub.thumb",
+   "skip": "LR",
+   "why": "content: the knob sits at the position"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.mono.c-muted[4]",
+   "a": "media.strip.remaining"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]",
+   "a": "media.col"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]",
+   "a": "media.cue"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[0]>span.h[0]",
+   "a": "media.cue.h"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[1]>span.btn[0]",
+   "a": "media.cue.play"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[1]>div.col.grow[0]>b[0]",
+   "a": "media.cue.name"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[1]>div.col.grow[0]>span.c-muted.mono[0]",
+   "a": "media.cue.time"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[2]>div.scrub[0]",
+   "a": "media.cue.scrub"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[2]>div.scrub[0]>i[0]",
+   "a": "media.cue.scrub.fill",
+   "skip": "R",
+   "why": "content: the fill ends at the position"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[2]>div.scrub[0]>u[0]",
+   "a": "media.cue.scrub.thumb",
+   "skip": "LR",
+   "why": "content: the knob sits at the position"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[3]>div.scrub[0]",
+   "a": "media.cue.vol"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[3]>div.scrub[0]>i[0]",
+   "a": "media.cue.vol.fill",
+   "skip": "R",
+   "why": "content: the fill ends at the volume"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[3]>div.scrub[0]>u[0]",
+   "a": "media.cue.vol.thumb",
+   "skip": "LR",
+   "why": "content: the knob sits at the volume"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[3]>span.mono[0]",
+   "a": "media.cue.vol.value"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]",
+   "a": "media.out"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.h[0]",
+   "a": "media.out.h"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr.row[2]>label.k[0]",
+   "a": "media.out.label"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr.row[2]>span.field.grow[0]",
+   "a": "media.out.device"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.c-muted[3]",
+   "a": "media.out.hint"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.h[0]",
+   "a": "media.lev.h"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]",
+   "a": "media.lev.row"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col[0]>div.meter[0]",
+   "a": "media.lev.meter.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col[0]>div.meter[0]>i[0]",
+   "a": "media.lev.meter.0.fill",
+   "skip": "T",
+   "why": "content: the fill height is the level"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col[0]>span.c-muted[0]",
+   "a": "media.lev.label.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col[1]>div.meter[0]",
+   "a": "media.lev.meter.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col[1]>div.meter[0]>i[0]",
+   "a": "media.lev.meter.1.fill",
+   "skip": "T",
+   "why": "content: the fill height is the level"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col[1]>span.c-muted[0]",
+   "a": "media.lev.label.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col.mono.c-muted[4]",
+   "a": "media.lev.scale"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col.mono.c-muted[4]>span[0]",
+   "a": "media.lev.scale.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col.mono.c-muted[4]>span[1]",
+   "a": "media.lev.scale.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col.mono.c-muted[4]>span[2]",
+   "a": "media.lev.scale.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col.mono.c-muted[4]>span[3]",
+   "a": "media.lev.scale.3"
+  }
+ ],
+ "ignore_design": [
+  {
+   "match": "svg",
+   "reason": "icon glyph boxes: SF Symbols draw to their own metrics; the control containing each is compared"
+  },
+  {
+   "match": "div\\.lights",
+   "reason": "window buttons: system-drawn"
+  },
+  {
+   "match": "^div\\.body\\[1\\]$",
+   "reason": "wrapper"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]$",
+   "reason": "wrapper (column)"
+  },
+  {
+   "match": "div\\.sec(\\.grow)?\\[\\d\\]$",
+   "reason": "section wrapper (sections are compared through their contents)"
+  },
+  {
+   "match": "div\\.main\\[1\\]>div\\.grow\\[2\\]$",
+   "reason": "empty spacer"
+  },
+  {
+   "match": "div\\.grid\\[1\\]>div\\[\\d+\\]>div\\.cap\\[1\\]$",
+   "reason": "caption row wrapper (its text is compared)"
+  },
+  {
+   "match": "div\\.sec\\[0\\]>div\\.li\\[(4|5)\\]",
+   "reason": "LEFT OUT, open: Announcement loop and Live inputs are collections and a live-input source, features that do not exist (needs a feature slice)"
+  },
+  {
+   "match": "div\\.sec\\.grow\\[1\\]>div\\.li\\[2\\]",
+   "reason": "LEFT OUT, open: Sound cues is an audio collection (needs a feature slice)"
+  },
+  {
+   "match": "div\\.sec\\[2\\]>",
+   "reason": "LEFT OUT, open: the offline callout and Locate... (needs missing-file detection and relinking, a feature slice)"
+  },
+  {
+   "match": "div\\.sec\\[2\\]$",
+   "reason": "LEFT OUT, open: offline callout section"
+  },
+  {
+   "match": "div\\.dur|span\\.dur\\[1\\]",
+   "reason": "duration chip of a picture-less clip tile whose tile is not a clip in the seed"
+  },
+  {
+   "match": "div\\.main\\[1\\]>div\\[3\\]>div\\.row\\[0\\]$",
+   "reason": "row wrapper"
+  },
+  {
+   "match": "div\\.main\\[1\\]>div\\[3\\]>div\\.row\\[1\\]$",
+   "reason": "row wrapper"
+  },
+  {
+   "match": "div\\.row\\[1\\]>span\\.btn\\[(5|6|7)\\]",
+   "reason": "LEFT OUT, open: Mark in, Mark out and Add marker need in and out points and markers (a feature slice); their room is kept"
+  },
+  {
+   "match": "div\\.sec\\[0\\]>div\\.row\\[0\\]$",
+   "reason": "row wrapper"
+  },
+  {
+   "match": "div\\.sec\\[0\\]>div\\.row\\[0\\]>span\\.c-muted\\[2\\]",
+   "reason": "LEFT OUT, open: the audio collection name (needs named audio collections)"
+  },
+  {
+   "match": "div\\.row\\[(1|2|3)\\]$",
+   "reason": "row wrapper"
+  },
+  {
+   "match": "div\\.col\\.grow\\[0\\]$",
+   "reason": "column wrapper"
+  },
+  {
+   "match": "div\\.scrub\\[0\\]$",
+   "reason": "handled by the mapped entry"
+  },
+  {
+   "match": "div\\.sec\\[1\\]>div\\.mx\\[1\\]",
+   "reason": "LEFT OUT, open: the routing matrix needs per-bus routing in the audio model and embedded audio in the output engine (a feature slice); its room is kept"
+  },
+  {
+   "match": "span\\.field\\.grow\\[0\\]>span\\.car",
+   "reason": "chevron glyph box inside the compared pop-up"
+  },
+  {
+   "match": "div\\.sec\\.grow\\[2\\]>div\\.row\\[1\\]>div\\.col\\[(2|3)\\]",
+   "reason": "LEFT OUT, open: the Cue L and Cue R meters need a separate cue bus (a feature slice); their room is kept"
+  },
+  {
+   "match": "div\\.sec\\.grow\\[2\\]>div\\.row\\[1\\]>div\\.col\\[(0|1)\\]$",
+   "reason": "column wrapper"
+  },
+  {
+   "match": "div\\.side\\.r\\[2\\]>div\\.sec\\.grow\\[2\\]$",
+   "reason": "section that grows to the window bottom (its contents are compared)"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.lights",
+   "reason": "the window's three controls are the system's (drawn by the window, not by the app); the capture is taken with the window not key, so they are grey"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.col\\[1\\]$",
+   "reason": "wrapper of the title and subtitle, which are compared"
+  },
+  {
+   "match": "span\\.kbd\\[0\\]$",
+   "reason": "key hint inside a transport button: the button's rectangle is compared (its width includes the hint)"
+  },
+  {
+   "match": "span\\.c-ok\\[0\\]$",
+   "reason": "the \"●\" glyph of the health readout: the app draws a 5 pt circle"
+  },
+  {
+   "match": "div\\.meter\\[\\d\\]>i\\[0\\]$",
+   "reason": "content: the meter fill is the live programme level"
+  },
+  {
+   "match": "span\\.pill\\.c-(aud|stg|brd)\\[\\d\\]>span\\.d\\[0\\]",
+   "reason": "status dot inside the compared pill"
+  },
+  {
+   "match": "div\\.fr\\.row\\[2\\]$",
+   "reason": "row wrapper (its label and pop-up are compared)"
+  }
+ ],
+ "ignore_app": [
+  {
+   "match": "^media\\.tile\\.15",
+   "reason": "the sixteenth item of the bin is the sound (the design shows fifteen tiles)"
+  },
+  {
+   "match": "^media\\.(extra|list)\\.",
+   "reason": "the owner's extras (see the report)"
+  }
+ ]
+}

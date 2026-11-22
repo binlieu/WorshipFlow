@@ -95,7 +95,7 @@ private struct DevicePicker: View {
 }
 
 /// One sound file: play or pause, name, length, the switches, and the scrubber while it sounds.
-private struct AudioRow: View {
+struct AudioRow: View {
     @Bindable var audio: AudioModel
     let asset: MediaAsset
     @State private var dragging = false
