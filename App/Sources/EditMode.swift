@@ -1,7 +1,7 @@
 // UI-001 / ADR-0007 and UI-005c: the Edit mode, laid out as docs/UI/mockups/02-editor.html draws it: a 200 pt filmstrip, a centre with the object
 // bar, the live strip and the canvas, and a 320 pt inspector with the tabs Object, Slide and Theme (no transport bar in this mode).
-// Controls the design draws whose feature does not exist yet are left out and their room is kept (Video, Align, the Audience / Stage /
-// Broadcast preview, Zoom, Saved ... ago); they are listed in AI/reports/UI-005c-report.md.
+// UI-006c added Align, the Audience / Stage / Broadcast preview, the zoom field and the "Saved ... ago" words. The control whose feature still
+// does not exist (Video) keeps its room; see AI/reports/UI-005c-report.md and AI/reports/UI-006c-report.md.
 import SwiftUI
 import Domain
 import OperatorCore
@@ -9,6 +9,11 @@ import OperatorCore
 struct EditModeView: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
+    /// UI-006c: which screen's composition the canvas draws (view state only: nothing stored, nothing live), the canvas zoom, and the
+    /// width the canvas really has now (so the zoom field can say the true percentage while it is on Fit).
+    @State private var previewRole: EditPreviewRole = .audience
+    @State private var zoom: EditZoom = .fit
+    @State private var shownCanvasWidth: Double = 800
 
     var body: some View {
         if workspace.openPresentationID == nil {
@@ -26,7 +31,7 @@ struct EditModeView: View {
                     objectBar
                     status
                     if let editor = app.slideEditor, workspace.slides.indices.contains(workspace.showParts.selectedIndex) {
-                        EditCanvasArea(app: app, workspace: workspace, editor: editor)
+                        EditCanvasArea(app: app, workspace: workspace, editor: editor, role: previewRole, zoom: zoom, shownWidth: $shownCanvasWidth)
                     } else {
                         Text("Select a slide to edit it.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
@@ -35,6 +40,14 @@ struct EditModeView: View {
                 .wfRect("ed.main")
                 if let editor = app.slideEditor { EditInspector(app: app, workspace: workspace, editor: editor).frame(width: 320) }
             }
+            #if DEBUG || WF_MEASURE
+            // UI-006c debug hook (the screen may be locked, so clicks cannot drive these): "stage", "broadcast", "audience" and "zoom:100" etc.
+            .onReceive(NotificationCenter.default.publisher(for: .init("wf.debug.editPreview"))) { note in
+                guard let word = note.object as? String else { return }
+                if let role = EditPreviewRole(rawValue: word) { previewRole = role }
+                if word.hasPrefix("zoom:"), let z = EditZoom.allCases.first(where: { $0.title == String(word.dropFirst(5)) }) { zoom = z }
+            }
+            #endif
         }
     }
 
@@ -117,20 +130,37 @@ struct EditModeView: View {
     private var objectBar: some View {
         HStack(spacing: 8) {
             Button { app.insertObject(.textBox) } label: { barLabel("textformat", "Text") }
-                .buttonStyle(HeaderButtonStyle()).help("Add a text box to the selected slide").wfRect("ed.bar.text", size: 12, weight: 500, radius: 6)
+                .buttonStyle(HeaderButtonStyle()).disabled(!previewRole.isEditable).help("Add a text box to the selected slide").wfRect("ed.bar.text", size: 12, weight: 500, radius: 6)
             Menu {
                 Button("Rectangle") { app.insertObject(.rectangle) }
                 Button("Ellipse") { app.insertObject(.ellipse) }
                 Button("Rounded Rectangle") { app.insertObject(.roundedRectangle) }
             } label: { barLabel("square.on.circle", "Shape") }
-                .menuStyle(.button).buttonStyle(HeaderButtonStyle()).menuIndicator(.hidden).fixedSize()
+                .menuStyle(.button).buttonStyle(HeaderButtonStyle()).menuIndicator(.hidden).fixedSize().disabled(!previewRole.isEditable)
                 .help("Add a shape to the selected slide").wfRect("ed.bar.shape", size: 12, weight: 500, radius: 6)
             Button { app.insertImage() } label: { barLabel("photo", "Image") }
-                .buttonStyle(HeaderButtonStyle()).help("Add an image to the selected slide").wfRect("ed.bar.image", size: 12, weight: 500, radius: 6)
-            // The room of Video (76.1), the divider (1) and Align (90.3): features that do not exist yet. See the report.
+                .buttonStyle(HeaderButtonStyle()).disabled(!previewRole.isEditable).help("Add an image to the selected slide").wfRect("ed.bar.image", size: 12, weight: 500, radius: 6)
+            // The room of Video (76.1): a feature that does not exist yet (no video object in `SlideObject`). See the report.
             Color.clear.frame(width: 76.1, height: 1)
-            Color.clear.frame(width: 1, height: 1)
-            Color.clear.frame(width: 90.3, height: 1)
+            Rectangle().fill(Tok.border).frame(width: 1, height: 20).wfRect("ed.bar.div").accessibilityHidden(true)
+            // UI-006c: Align (to the slide), one undo step each.
+            Menu {
+                ForEach([ObjectAlignment.left, .centerHorizontally, .right], id: \.self) { alignItem($0) }
+                Divider()
+                ForEach([ObjectAlignment.top, .centerVertically, .bottom], id: \.self) { alignItem($0) }
+                Divider()
+                alignItem(.center)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "align.horizontal.center").frame(width: 15, height: 15)
+                    Text("Align")
+                    Image(systemName: "chevron.down").font(.wf(9, .semibold)).foregroundStyle(Tok.muted).frame(width: 12, height: 12)
+                }
+            }
+            .menuStyle(.button).buttonStyle(HeaderButtonStyle()).menuIndicator(.hidden).fixedSize()
+            .disabled(app.slideEditor?.selectedObjectID == nil || !previewRole.isEditable)
+            .help("Align the selected object to the slide").accessibilityLabel("Align")
+            .wfRect("ed.bar.align", size: 12, weight: 500, radius: 6)
             Menu {
                 Button("Bring to front") { orderSelected { $0.bringToFront($1) } }
                 Button("Bring forward") { orderSelected { $0.bringForward($1) } }
@@ -144,11 +174,22 @@ struct EditModeView: View {
                 }
             }
             .menuStyle(.button).buttonStyle(HeaderButtonStyle()).menuIndicator(.hidden).fixedSize()
-            .disabled(app.slideEditor?.selectedObjectID == nil)
+            .disabled(app.slideEditor?.selectedObjectID == nil || !previewRole.isEditable)
             .help("Change the stacking order of the selected object").accessibilityLabel("Arrange")
             .wfRect("ed.bar.arrange", size: 12, weight: 500, radius: 6)
             Spacer(minLength: 0)
-            if let editor = app.slideEditor { historyButtons(editor) }
+            // UI-006c: the screen whose composition the canvas draws, and the zoom. The preview is read-only except on Audience.
+            EditSegmented(items: EditPreviewRole.allCases.map { .init(value: $0, title: $0.title, label: "Preview as the \($0.title) screen") },
+                          selection: $previewRole, accessibilityName: "Preview as screen", rectID: "ed.bar.role")
+                .help("Draw the slide as the Audience, Stage or Broadcast screen composes it. Only Audience can be edited here.")
+                .onChange(of: previewRole) { _, role in if !role.isEditable { app.slideEditor?.select(nil) } }
+            EditPopup(title: "\(EditZoom.percent(forCanvasWidth: shownCanvasWidth))%", accessibilityName: "Zoom", rectID: "ed.bar.zoom") {
+                ForEach(EditZoom.allCases, id: \.self) { z in
+                    Button { zoom = z } label: { if z == zoom { Label(z.title, systemImage: "checkmark") } else { Text(z.title) } }
+                }
+            }
+            .frame(minWidth: 62.2).fixedSize()
+            .help("Canvas zoom, as a share of the 1920 × 1080 output")
         }
         .padding(.horizontal, 14)
         .frame(height: 46)                      // the design's bar is as tall as its Audience / Stage / Broadcast switch (30) plus 8 above and below
@@ -156,6 +197,10 @@ struct EditModeView: View {
         .background(Tok.surface)
         .overlay(alignment: .bottom) { Rectangle().fill(Tok.border).frame(height: 1) }
         .wfRect("ed.bar")
+    }
+
+    private func alignItem(_ alignment: ObjectAlignment) -> some View {
+        Button(alignment.title) { app.slideEditor?.alignSelected(alignment) }
     }
 
     private func barLabel(_ symbol: String, _ title: String) -> some View {
@@ -180,8 +225,10 @@ struct EditModeView: View {
     }
 
     private func iconButton(_ symbol: String, _ label: String, help: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol).frame(width: 15, height: 15) }
-            .buttonStyle(HeaderButtonStyle(compact: true)).frame(width: 26)
+        // UI-006c: the four history and object buttons moved from the bar (whose room the preview switch and zoom now take) to the strip's right,
+        // as plain 12 pt icons so the strip stays the design's 29 pt.
+        Button(action: action) { Image(systemName: symbol).font(.wf(12)).frame(width: 22, height: 16).contentShape(Rectangle()) }
+            .buttonStyle(.plain).foregroundStyle(enabled ? Tok.text : Tok.muted.opacity(0.5))
             .disabled(!enabled).help(help).accessibilityLabel(label)
     }
 
@@ -201,6 +248,8 @@ struct EditModeView: View {
                 Text("Editing changes the preview only.").foregroundStyle(Tok.muted).wfLine().wfRect("ed.strip.note", size: 12, weight: 400)
             }
             Spacer(minLength: 0)
+            if let editor = app.slideEditor { historyButtons(editor) }
+            EditSaveText(workspace: workspace)
         }
         .font(.wf(12)).lineLimit(1)
         .padding(.horizontal, 14).padding(.vertical, 6)

@@ -9,13 +9,13 @@
    "d": "div.tb[0]>div.col[1]>span.title[0]",
    "a": "tb.title",
    "skip": "R",
-   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+   "why": "content: the subtitle is \"WorshipFlow \u00b7 Songs\" in the seed, \"WORSHIPFLOW \u00b7 Lakeshore library\" in the design; the block is as wide as its longer line"
   },
   {
    "d": "div.tb[0]>div.col[1]>span.sub[1]",
    "a": "tb.subtitle",
    "skip": "R",
-   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+   "why": "content: the subtitle is \"WorshipFlow \u00b7 Songs\" in the seed, \"WORSHIPFLOW \u00b7 Lakeshore library\" in the design; the block is as wide as its longer line"
   },
   {
    "d": "div.tb[0]>div.seg[3]",
@@ -291,7 +291,7 @@
    "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.row.mono.c-muted[1]",
    "a": "ed.caption",
    "skip": "R",
-   "why": "content: the design names its theme \"Worship — full\", the seed's song uses the Default theme; the line is as wide as its text"
+   "why": "content: the design names its theme \"Worship \u2014 full\", the seed's song uses the Default theme; the line is as wide as its text"
   },
   {
    "d": "div.body[1]>div.side.r[2]",
@@ -472,6 +472,38 @@
   {
    "d": "div.body[1]>div.side.r[2]>div.sec[3]>div[1]>span.field.mono[3]",
    "a": "ed.insp.pos.h"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span[4]",
+   "a": "ed.bar.div"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[5]",
+   "a": "ed.bar.align"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]",
+   "a": "ed.bar.role"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]>b.on[0]",
+   "a": "ed.bar.role.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]>b[1]",
+   "a": "ed.bar.role.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>div.seg[0]>b[2]",
+   "a": "ed.bar.role.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.field[8]",
+   "a": "ed.bar.zoom"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[1]>span.c-muted[2]",
+   "a": "ed.strip.saved"
   }
  ],
  "ignore_design": [
