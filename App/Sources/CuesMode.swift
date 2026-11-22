@@ -1,6 +1,8 @@
 // CUE-002b (item 6) / UI-001: the Cues mode, after docs/UI/screens/06-cues.png as far as the features exist. Left: macros, slide
-// actions, the schedule and the control inputs. Centre: what is chosen. Right: the MIDI map, the keyboard and the activity.
-// Playback markers (AUTO-08) and Stream Deck are not drawn: neither exists yet, and a control that does nothing is not shown.
+// actions, the control inputs and the schedule. Centre: what is chosen. Right: the MIDI map, the keyboard and the activity.
+// UI-005g: drawn at the rectangles of docs/UI/mockups/06-cues.html (columns 230 / 1fr / 380, rows, bar, tables), measured by
+// scripts/design-map-cues.json. Playback markers, Test in Preview and a keyboard trigger are not drawn (no feature behind them);
+// Stream Deck is a row marked "later", as the design draws it.
 import SwiftUI
 import Domain
 import CueEngine
@@ -13,11 +15,17 @@ struct CuesModeView: View {
     var body: some View {
         if let cue = app.cue {
             HStack(spacing: 0) {
-                CuesSidebar(app: app, cue: cue, workspace: workspace).frame(width: 260)
-                Divider()
+                // ui.css: a column's 1 pt border is inside its 230 and 380 pt.
+                CuesSidebar(app: app, cue: cue, workspace: workspace)
+                    .padding(.trailing, 1).frame(width: 230)
+                    .background(Tok.surface)
+                    .overlay(alignment: .trailing) { Rectangle().fill(Tok.border).frame(width: 1) }
                 CuesCentre(app: app, cue: cue, workspace: workspace).frame(maxWidth: .infinity, maxHeight: .infinity)
-                Divider()
-                CuesInfoColumn(app: app, cue: cue).frame(width: Space.inspectorWidth)
+                    .background(Tok.bg)
+                CuesInfoColumn(app: app, cue: cue)
+                    .padding(.leading, 1).frame(width: 380)
+                    .background(Tok.surface)
+                    .overlay(alignment: .leading) { Rectangle().fill(Tok.border).frame(width: 1) }
             }
         } else {
             Text("Macros and control inputs are not available.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -48,55 +56,64 @@ private struct CuesSidebar: View {
     var body: some View {
         let selection = CuesSelection.effective(app.ui.cuesSelection, cue: cue)
         ScrollView {
-            VStack(alignment: .leading, spacing: Space.s5) {
-                HStack {
-                    SectionLabel("Macros")
-                    Spacer()
-                    Button { create() } label: { Image(systemName: "plus").frame(width: 24, height: 24).contentShape(Rectangle()) }
-                        .buttonStyle(.plain).help("New macro").accessibilityLabel("New macro")
-                }
-                VStack(spacing: 2) {
-                    ForEach(cue.macros) { macro in
-                        row(symbol: "bolt", title: macro.name, trailing: "\(macro.steps.count)", selected: selection == .macro(macro.id)) {
+            VStack(alignment: .leading, spacing: 0) {
+                CuesSection(first: true, rectID: "sb.sec.0") {
+                    HStack(spacing: 8) {
+                        SectionLabel("Macros", rectID: "sb.macros.title")
+                        Spacer()
+                        Button { create() } label: {
+                            Image(systemName: "plus").font(.wf(12)).frame(width: 12, height: 12).wfRect("sb.macros.plus").padding(6).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).padding(-6).help("New macro").accessibilityLabel("New macro")
+                    }
+                    .padding(.bottom, 6)
+                    ForEach(Array(cue.macros.enumerated()), id: \.element.id) { index, macro in
+                        CuesListRow(symbol: "bolt", title: macro.name, count: "\(macro.steps.count)", selected: selection == .macro(macro.id),
+                                    rectID: "sb.macros.row.\(index)", accessibility: "\(macro.name), \(macro.steps.count) actions") {
                             app.ui.cuesSelection = .macro(macro.id)
                         }
                     }
                     if cue.macros.isEmpty {
-                        Text("No macros yet. Press + to make one.").font(.wf(12)).foregroundStyle(Tok.muted)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, Space.s3)
+                        Text("No macros yet. Press + to make one.").font(.wf(12)).foregroundStyle(Tok.muted).padding(.horizontal, 8)
                     }
                 }
-                Divider()
-                SectionLabel("Slide actions")
-                row(symbol: "music.note", title: "Actions on slides", trailing: "\(slidesWithActions)", selected: selection == .slideActions) {
-                    app.ui.cuesSelection = .slideActions
+                CuesSection(rectID: "sb.sec.1") {
+                    SectionLabel("Slide actions", rectID: "sb.slides.title").padding(.bottom, 6)
+                    CuesListRow(symbol: "music.note", title: openTitle ?? "Actions on slides", count: "\(slidesWithActions)", selected: selection == .slideActions,
+                                rectID: "sb.slides.row.0", accessibility: "Slide actions, \(slidesWithActions) slides have actions") {
+                        app.ui.cuesSelection = .slideActions
+                    }
                 }
-                Divider()
-                SectionLabel("Schedule")
-                row(symbol: "calendar", title: "Scheduled events", trailing: "\(cue.schedule.events.filter(\.isEnabled).count)", selected: selection == .schedule) {
-                    app.ui.cuesSelection = .schedule
+                CuesSection(rectID: "sb.sec.2") {
+                    SectionLabel("Control inputs", rectID: "sb.inputs.title").padding(.bottom, 6)
+                    CuesListRow(symbol: "slider.vertical.3", title: midiTitle, trailing: AnyView(midiState), selected: selection == .midi,
+                                rectID: "sb.inputs.row.0", accessibility: "MIDI") { app.ui.cuesSelection = .midi }
+                    // The design draws Stream Deck as a row marked "later": there is no Stream Deck support, so it is not a button.
+                    CuesListRow(symbol: "square.grid.2x2", title: "Stream Deck", count: "later", enabled: false,
+                                rectID: "sb.inputs.row.1", accessibility: "Stream Deck, later, not available") {}
+                    CuesListRow(symbol: "dot.radiowaves.left.and.right", title: "Remote control", count: cue.remoteStatus.isRunning ? "on" : "off", selected: selection == .remote,
+                                rectID: "sb.inputs.row.2", accessibility: "Remote control, \(cue.remoteStatus.isRunning ? "on" : "off")") { app.ui.cuesSelection = .remote }
                 }
-                Divider()
-                SectionLabel("Control inputs")
-                VStack(spacing: 2) {
-                    row(symbol: "pianokeys", title: "MIDI", trailingView: AnyView(midiDot), selected: selection == .midi) { app.ui.cuesSelection = .midi }
-                    row(symbol: "dot.radiowaves.left.and.right", title: "Remote control",
-                        trailingView: AnyView(Text(cue.remoteStatus.isRunning ? "on" : "off").font(.wf(12)).foregroundStyle(Tok.muted)),
-                        selected: selection == .remote) { app.ui.cuesSelection = .remote }
+                // The owner's extra (CUE-003): the schedule, below the designed sections so nothing of them moves.
+                CuesSection(rectID: "sb.sec.3") {
+                    SectionLabel("Schedule", rectID: "sb.schedule.title").padding(.bottom, 6)
+                    CuesListRow(symbol: "calendar", title: "Scheduled events", count: "\(cue.schedule.events.filter(\.isEnabled).count)", selected: selection == .schedule,
+                                rectID: "sb.schedule.row.0") { app.ui.cuesSelection = .schedule }
                 }
             }
-            .padding(Space.s5)
         }
         .background(Tok.surface)
     }
 
+    private var openTitle: String? { workspace.presentations.first { $0.id == workspace.openPresentationID }?.title }
     private var slidesWithActions: Int { workspace.slides.filter { !cue.slideActions.actions(for: $0.id).isEmpty }.count }
+    private var midiTitle: String { cue.midi.inputName.map { "MIDI \u{2014} \($0)" } ?? "MIDI" }
 
-    @ViewBuilder private var midiDot: some View {
+    @ViewBuilder private var midiState: some View {
         switch cue.midiStatus.source {
-        case .connected: Circle().fill(Tok.statusOK).frame(width: 8, height: 8).accessibilityLabel("MIDI device connected")
-        case .waiting, .failed: Image(systemName: "exclamationmark.triangle.fill").font(.wf(10)).foregroundStyle(Tok.warning).accessibilityLabel("MIDI device offline")
-        case .none: Text(cue.midiStatus.isEnabled ? "on" : "off").font(.wf(12)).foregroundStyle(Tok.muted)
+        case .connected: Text("\u{25CF}").font(.wf(11)).foregroundStyle(Tok.statusOK).wfLine().wfRect("sb.inputs.row.0.n", size: 11, weight: 400).accessibilityLabel("MIDI device connected")
+        case .waiting, .failed: Image(systemName: "exclamationmark.triangle.fill").font(.wf(10)).foregroundStyle(Tok.warning).wfRect("sb.inputs.row.0.n").accessibilityLabel("MIDI device offline")
+        case .none: Text(cue.midiStatus.isEnabled ? "on" : "off").font(.wf(11)).foregroundStyle(Tok.muted).wfLine().wfRect("sb.inputs.row.0.n", size: 11, weight: 400)
         }
     }
 
@@ -104,23 +121,6 @@ private struct CuesSidebar: View {
         Task { @MainActor in
             if let macro = await cue.createMacro(name: "New macro") { app.ui.cuesSelection = .macro(macro.id) }
         }
-    }
-
-    private func row(symbol: String, title: String, trailing: String? = nil, trailingView: AnyView? = nil, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: Space.s3) {
-                Image(systemName: symbol).frame(width: 18).foregroundStyle(Tok.muted)
-                Text(title).font(.wf(14)).lineLimit(1)
-                Spacer(minLength: 4)
-                if let trailing { Text(trailing).font(.wf(12)).foregroundStyle(Tok.muted) }
-                if let trailingView { trailingView }
-            }
-            .padding(.horizontal, Space.s3).frame(height: 32)
-            .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -132,18 +132,12 @@ private struct CuesCentre: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.s5) {
-                switch CuesSelection.effective(app.ui.cuesSelection, cue: cue) {
-                case .macro(let id): MacroEditor(app: app, cue: cue, macroID: id).id(id)
-                case .slideActions: SlideActionsEditor(app: app, cue: cue, workspace: workspace)
-                case .schedule: ScheduleEditor(app: app, cue: cue)
-                case .midi: MIDISection(app: app, cue: cue)
-                case .remote: RemoteSection(app: app, cue: cue)
-                }
-            }
-            .padding(Space.s6)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+        switch CuesSelection.effective(app.ui.cuesSelection, cue: cue) {
+        case .macro(let id): MacroEditor(app: app, cue: cue, macroID: id).id(id)
+        case .slideActions: SlideActionsEditor(app: app, cue: cue, workspace: workspace)
+        case .schedule: ScheduleEditor(app: app, cue: cue)
+        case .midi: MIDISection(app: app, cue: cue)
+        case .remote: RemoteSection(app: app, cue: cue)
         }
     }
 }
@@ -156,49 +150,80 @@ private struct CuesInfoColumn: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Space.s5) {
-                midiMap
-                Divider()
-                keyboard
-                Divider()
-                activity
+            VStack(alignment: .leading, spacing: 0) {
+                CuesSection(first: true, rectID: "r.sec.0") { midiMap.padding(.bottom, 1) }      // a table's collapsed borders add 1 pt under it
+                CuesSection(rectID: "r.sec.1") { keyboard.padding(.bottom, 1) }
+                CuesSection(rectID: "r.sec.2") { activity }
             }
-            .padding(Space.s5)
         }
         .background(Tok.surface)
     }
 
+    private static let inputWidth: CGFloat = 90.5, commandWidth: CGFloat = 224.6
+
     private var midiMap: some View {
-        VStack(alignment: .leading, spacing: Space.s3) {
-            HStack {
-                SectionLabel("MIDI map")
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                SectionLabel("MIDI map", rectID: "r.midi.title")
                 Spacer()
-                Button("Manage…") { app.ui.cuesSelection = .midi }.buttonStyle(HeaderButtonStyle())
+                // The design's button is "Learn…"; learning lives on the MIDI page, so this opens it.
+                Button("Manage\u{2026}") { app.ui.cuesSelection = .midi }.buttonStyle(CuesSmallButtonStyle()).wfRect("r.midi.manage", size: 12, weight: 500, radius: Radius.md)
+            }
+            .frame(height: 22).padding(.bottom, 6)
+            CuesTableRow(height: 28, rectID: "r.midi.th") {
+                CuesCell(width: Self.inputWidth, rectID: "r.midi.th.0", size: 11, weight: 600) { CuesTableHead(text: "Input") }
+                CuesCell(width: Self.commandWidth, rectID: "r.midi.th.1", size: 11, weight: 600) { CuesTableHead(text: "Command") }
+                CuesCell(rectID: "r.midi.th.2", size: 11, weight: 600) { EmptyView() }
             }
             if cue.bindings.bindings.isEmpty {
-                Text("No MIDI bindings. Turn MIDI on and press Learn to bind a pad.").font(.wf(12)).foregroundStyle(Tok.muted)
-            } else {
-                ForEach(cue.bindings.bindings) { binding in
-                    HStack {
-                        Text(MIDIText.pattern(binding.pattern)).font(.wfMonoData).frame(width: 120, alignment: .leading).lineLimit(1)
-                        Text(MIDIText.command(binding.command, macros: cue.macros)).font(.wf(13)).lineLimit(1)
-                        Spacer(minLength: 0)
+                Text("No MIDI bindings. Turn MIDI on and press Learn on the MIDI page to bind a pad.").font(.wf(12)).foregroundStyle(Tok.muted)
+                    .padding(.horizontal, 8).padding(.vertical, 6)
+            }
+            ForEach(Array(cue.bindings.bindings.enumerated()), id: \.element.id) { index, binding in
+                CuesTableRow(rectID: "r.midi.row.\(index)") {
+                    CuesCell(width: Self.inputWidth, rectID: "r.midi.row.\(index).0", size: 11, weight: 400) {
+                        Text(Self.shortPattern(binding.pattern)).font(.wfMono(11)).lineLimit(1).wfLine()
+                    }
+                    CuesCell(width: Self.commandWidth, rectID: "r.midi.row.\(index).1") {
+                        Text(MIDIText.command(binding.command, macros: cue.macros)).font(.wf(12)).lineLimit(1).wfLine()
                         if cue.conflictingBindingIDs.contains(binding.id) {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).help("Another binding uses the same pad").accessibilityLabel("Conflict")
+                            Image(systemName: "exclamationmark.triangle.fill").font(.wf(10)).foregroundStyle(Tok.warning).padding(.leading, 4)
+                                .help("Another binding uses the same pad").accessibilityLabel("Conflict")
                         }
                     }
-                    Divider()
+                    CuesCell(rectID: "r.midi.row.\(index).2") {
+                        Menu {
+                            Button("Open the MIDI page") { app.ui.cuesSelection = .midi }
+                            Button("Delete binding", role: .destructive) { Task { @MainActor in await cue.deleteBinding(binding.id) } }
+                        } label: { Image(systemName: "ellipsis").font(.wf(12)).foregroundStyle(Tok.muted).frame(width: 12, height: 12) }
+                            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                            .help("Binding actions").accessibilityLabel("Actions for binding \(MIDIText.pattern(binding.pattern))")
+                    }
                 }
             }
         }
     }
 
+    /// "Note C2" as the design writes it: the channel is left out for channel 1 and written short ("Note C2 ch 2") for another, so it fits the column.
+    private static func shortPattern(_ pattern: MIDIPattern) -> String {
+        let full = MIDIText.pattern(pattern)
+        guard let range = full.range(of: " \u{00B7} ch ") else { return full }
+        let channel = full[range.upperBound...]
+        return channel == "1" ? String(full[..<range.lowerBound]) : "\(full[..<range.lowerBound]) ch \(channel)"
+    }
+
+    private static let keyWidth: CGFloat = 143.6
+
     private var keyboard: some View {
-        VStack(alignment: .leading, spacing: Space.s3) {
-            SectionLabel("Keyboard")
-            ForEach(Self.keys, id: \.1) { key, command in
-                HStack { KeyHint(key: key).frame(width: 96, alignment: .leading); Text(command).font(.wf(13)); Spacer() }
-                Divider()
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel("Keyboard", rectID: "r.kb.title").padding(.bottom, 6)
+            ForEach(Array(Self.keys.enumerated()), id: \.offset) { index, entry in
+                CuesTableRow(height: index == 0 ? 28 : 29, rectID: "r.kb.row.\(index)") {
+                    CuesCell(width: Self.keyWidth, rectID: "r.kb.row.\(index).0") { CuesKbd(key: entry.0, rectID: "r.kb.row.\(index).kbd") }
+                    CuesCell(rectID: "r.kb.row.\(index).1") { Text(entry.1).font(.wf(12)).lineLimit(1).wfLine() }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(entry.0): \(entry.1)")
             }
         }
     }
@@ -207,19 +232,22 @@ private struct CuesInfoColumn: View {
     static let keys: [(String, String)] = ShowShortcuts.all.map { ($0.key, $0.command) }
 
     private var activity: some View {
-        VStack(alignment: .leading, spacing: Space.s3) {
-            SectionLabel("Activity")
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel("Activity", rectID: "r.act.title").padding(.bottom, 6)
             if cue.activity.isEmpty {
-                Text("Nothing has run yet.").font(.wf(12)).foregroundStyle(Tok.muted)
+                Text("Nothing has run yet.").font(.wf(11)).foregroundStyle(Tok.muted).wfLine()
             }
-            ForEach(cue.activity.suffix(14)) { line in
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(line.time, format: .dateTime.hour().minute().second()).foregroundStyle(Tok.muted)
-                    Text("\(line.source.label) \(line.text)").foregroundStyle(line.isProblem ? Tok.warning : Tok.text)
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(cue.activity.suffix(14)) { line in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(DateFormatter.cuesClock.string(from: line.time)).foregroundStyle(Tok.muted)
+                        Text("\(line.source.label) \(line.text)").foregroundStyle(line.isProblem ? Tok.warning : Tok.muted)
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.wfMono(11)).lineSpacing(4.6).frame(minHeight: 18, alignment: .topLeading)
                 }
-                .font(.wfMonoData)
             }
+            .wfRect("r.act.lines")
         }
     }
 }

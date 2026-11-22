@@ -199,6 +199,12 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // UI-005g: the Cues design pictures (cues-dark, cues-light) with their rectangle dumps (one added block; the same shape as the others).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_CUESDESIGN"] != nil {
+                await runCuesDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace(); await stopCue(); shutdown(); exit(0)
+            }
             // UI-005a: the five design pictures (Show dark, Quick edit, Show light, components dark and light), at 1440 x 900 points.
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_DESIGN"] != nil {
                 await runDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)

@@ -16,15 +16,16 @@ struct MacroEditor: View {
 
     var body: some View {
         if let macro = cue.macro(macroID) {
-            VStack(alignment: .leading, spacing: Space.s5) {
-                header(macro)
+            CuesPage(leading: { titleBar(macro) }, trailing: { trailingBar(macro) }) {
                 ActionListEditor(app: app, context: .macro, editingMacro: macro.id, actions: macro.steps) { steps in
                     Task { @MainActor in await cue.setSteps(steps, of: macro.id) }
                 }
-                CueNote(text: "Order is fixed and visible. Actions run top to bottom, in the order shown, except that a step that moves the show comes first, then the Look, props and messages, media, sound, timers and MIDI. A wait splits the list in two. A macro never changes which destination a screen is mapped to, and it cannot put speaker notes on an Audience or Broadcast screen.",
-                        systemImage: "exclamationmark.triangle")
+                // The design's "Playback markers" section sits here (a 54 pt timeline and its axis). Markers are not stored or run yet,
+                // so nothing is drawn; its room is kept so the note below stays where the design has it.
+                Color.clear.frame(height: 142)
+                orderNote
             }
-            .onAppear { name = macro.name }
+            .task(id: macro.id) { name = macro.name }
             .alert("Other things still run \u{201C}\(macro.name)\u{201D}", isPresented: Binding(get: { blockedBy != nil }, set: { if !$0 { blockedBy = nil } })) {
                 Button("Delete anyway", role: .destructive) { Task { @MainActor in _ = await cue.deleteMacro(macro.id, force: true) } }
                 Button("Keep it", role: .cancel) {}
@@ -34,30 +35,57 @@ struct MacroEditor: View {
         }
     }
 
-    private func header(_ macro: Macro) -> some View {
-        let triggers = cue.bindings.bindings.filter { $0.command == .macro(macro.id) }.map { MIDIText.pattern($0.pattern) }
-        return HStack(spacing: Space.s4) {
-            TextField("Macro name", text: $name)
-                .textFieldStyle(.plain).font(.wf(22, .bold)).focused($nameFocused)
-                .onSubmit { commitName(macro) }
-                .onChange(of: nameFocused) { _, focused in if !focused { commitName(macro) } }
-                .frame(maxWidth: 360)
-            Badge(text: "MACRO \u{00B7} \(macro.steps.count) ACTION\(macro.steps.count == 1 ? "" : "S")", style: .outline(Tok.muted))
-            Spacer(minLength: 8)
-            if !triggers.isEmpty {
-                Text("Trigger: MIDI \(triggers.joined(separator: ", "))").font(.wf(12))
-                    .padding(.horizontal, 10).frame(height: 30)
-                    .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
-            }
-            Button { cue.submit(.runMacro(macro.id), from: .button) } label: {
-                Label("Run", systemImage: "bolt.fill").frame(minWidth: 56)
-            }
-            .buttonStyle(TransportButtonStyle()).help("Run this macro now").accessibilityLabel("Run macro")
-            Menu {
-                Button("Delete macro…", role: .destructive) { delete(macro) }
-            } label: { Image(systemName: "ellipsis").frame(width: 28, height: 28) }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().accessibilityLabel("More")
+    /// `.card` with a 15 pt warning icon: padding 10 x 12, radius 10, 12 pt on a 17 pt line. The second sentence says what the executor
+    /// really does (CueExecutor: a step that moves the show first, then the Look, props and messages, media, sound, timers and MIDI; a
+    /// wait splits the list), not the design's "top to bottom on one frame boundary".
+    private var orderNote: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle").font(.wf(13)).frame(width: 15, height: 15).accessibilityHidden(true)
+            (Text("Order is fixed and visible.").font(.wf(12, .bold)) + Text(" Actions run top to bottom, in the order shown, except that a step that moves the show comes first, then the Look, props and messages, media, sound, timers and MIDI. A wait splits the list in two. A macro never changes which destination a screen is mapped to, and it cannot put speaker notes on an Audience or Broadcast screen.").font(.wf(12)).foregroundColor(Tok.muted))
+                .lineSpacing(2.5).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 13).padding(.vertical, 11)
+        .background(Tok.surface, in: RoundedRectangle(cornerRadius: Radius.xl))
+        .overlay(RoundedRectangle(cornerRadius: Radius.xl).strokeBorder(Tok.border, lineWidth: 1))
+        .wfRect("main.note", radius: Radius.xl)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private func titleBar(_ macro: Macro) -> some View {
+        // The title is a field so the macro can be renamed; it is as wide as its text, as the design's span is.
+        Text(name.isEmpty ? " " : name).font(.wf(17, .bold)).lineLimit(1).wfLine(22).opacity(0).wfRect("main.title", size: 17, weight: 700)
+            .frame(minWidth: 40, alignment: .leading)
+            .overlay(alignment: .leading) {
+                TextField("Macro name", text: $name)
+                    .textFieldStyle(.plain).font(.wf(17, .bold)).focused($nameFocused)
+                    .onSubmit { commitName(macro) }
+                    .onChange(of: nameFocused) { _, focused in if !focused { commitName(macro) } }
+                    .accessibilityLabel("Macro name")
+            }
+            .fixedSize()
+        let count = macro.steps.count
+        CuesChip(text: "Macro \u{00B7} \(count) action\(count == 1 ? "" : "s")", rectID: "main.pill")
+        // The owner's extra: delete. It sits in the free room between the chip and the trigger.
+        Menu {
+            Button("Delete macro\u{2026}", role: .destructive) { delete(macro) }
+        } label: { Image(systemName: "ellipsis").font(.wf(13)).foregroundStyle(Tok.muted).frame(width: 22, height: 22).contentShape(Rectangle()) }
+            .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize().help("More").accessibilityLabel("More")
+    }
+
+    @ViewBuilder private func trailingBar(_ macro: Macro) -> some View {
+        let triggers = cue.bindings.bindings.filter { $0.command == .macro(macro.id) }.map { MIDIText.pattern($0.pattern) }
+        if !triggers.isEmpty {
+            Text("Trigger: MIDI \(triggers.joined(separator: ", "))").lineLimit(1).wfLine().wfField().wfRect("main.trigger", size: 12, weight: 400, radius: Radius.md)
+        }
+        // The design's "Test in Preview" (126.9 pt wide) belongs here: it needs a dry run that touches Preview only, which does not
+        // exist, so it is not drawn. Its room is kept so the trigger field stays where the design has it.
+        Color.clear.frame(width: 126.9, height: 1)
+        Button { cue.submit(.runMacro(macro.id), from: .button) } label: {
+            HStack(spacing: 6) { Image(systemName: "bolt").font(.wf(13)).frame(width: 15, height: 15); Text("Run").wfLine() }
+        }
+        .buttonStyle(HeaderButtonStyle(kind: .primary)).wfRect("main.run", size: 12, weight: 500, radius: Radius.md)
+        .help("Run this macro now").accessibilityLabel("Run macro")
     }
 
     private func commitName(_ macro: Macro) {
@@ -84,8 +112,8 @@ struct SlideActionsEditor: View {
     @Bindable var workspace: WorkspaceModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.s5) {
-            Text("Slide actions").font(.wf(22, .bold))
+        CuesPage(title: "Slide actions") {
+          VStack(alignment: .leading, spacing: Space.s5) {
             Text("Actions that run when a slide goes live: not when it is only selected, and not for a quick edit. They cannot move the show, so a slide can never advance itself.")
                 .font(.wf(13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if workspace.slides.isEmpty {
@@ -99,6 +127,7 @@ struct SlideActionsEditor: View {
                     }
                 }
             }
+          }
         }
     }
 
@@ -147,17 +176,15 @@ struct ScheduleEditor: View {
     @State private var deleting: ScheduledEvent?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.s5) {
-            HStack {
-                Text("Schedule").font(.wf(22, .bold))
-                Spacer()
-                Button { editing = ScheduleDraft() } label: { Label("New event", systemImage: "plus") }
-                    .buttonStyle(HeaderButtonStyle()).disabled(cue.macros.isEmpty)
-                    .help(cue.macros.isEmpty ? "Make a macro first: an event runs a macro" : "A macro that runs at a set time")
-                    .popover(isPresented: Binding(get: { editing != nil && editing?.id == nil }, set: { if !$0 { editing = nil } }), arrowEdge: .bottom) {
-                        if editing != nil { ScheduleForm(cue: cue, draft: Binding(get: { editing ?? ScheduleDraft() }, set: { editing = $0 })) { editing = nil } }
-                    }
-            }
+        CuesPage(title: "Schedule", trailing: {
+            Button { editing = ScheduleDraft() } label: { Label("New event", systemImage: "plus") }
+                .buttonStyle(HeaderButtonStyle()).disabled(cue.macros.isEmpty)
+                .help(cue.macros.isEmpty ? "Make a macro first: an event runs a macro" : "A macro that runs at a set time")
+                .popover(isPresented: Binding(get: { editing != nil && editing?.id == nil }, set: { if !$0 { editing = nil } }), arrowEdge: .bottom) {
+                    if editing != nil { ScheduleForm(cue: cue, draft: Binding(get: { editing ?? ScheduleDraft() }, set: { editing = $0 })) { editing = nil } }
+                }
+        }) {
+          VStack(alignment: .leading, spacing: Space.s5) {
             Text("While WorshipFlow is open, an event runs a macro at its time. An event more than five minutes late (the Mac was asleep, or the app was closed) is not run late: it is skipped and you are told.")
                 .font(.wf(13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if cue.schedule.events.isEmpty { CueNote(text: "No scheduled events.") }
@@ -172,6 +199,7 @@ struct ScheduleEditor: View {
                     Text(missed.text).font(.wf(13)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
                 }
             }
+          }
         }
         .alert("Delete \u{201C}\(deleting?.name ?? "")\u{201D}?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Delete", role: .destructive) { if let e = deleting { Task { @MainActor in await cue.deleteEvent(e.id) } } }

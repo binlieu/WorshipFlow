@@ -1,0 +1,919 @@
+{
+ "design": "docs/UI/mockups/06-cues.html",
+ "entries": [
+  {
+   "d": "div.tb[0]>span.btn.ghost[0]",
+   "a": "tb.sidebarToggle"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.title[0]",
+   "a": "tb.title",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.sub[1]",
+   "a": "tb.subtitle",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]",
+   "a": "tb.modes",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[0]",
+   "a": "tb.modes.0",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[1]",
+   "a": "tb.modes.1",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[2]",
+   "a": "tb.modes.2",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[3]",
+   "a": "tb.modes.3",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b.on[4]",
+   "a": "tb.modes.4",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[5]",
+   "a": "tb.modes.5",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]",
+   "a": "tb.timers"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[0]",
+   "a": "tb.timer.0.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[0]",
+   "a": "tb.timer.0.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono[0]",
+   "a": "tb.timer.0.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.sep[1]",
+   "a": "tb.timer.1.sep"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[1]",
+   "a": "tb.timer.1.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[2]",
+   "a": "tb.timer.1.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono.c-muted[1]",
+   "a": "tb.timer.1.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.btn[3]",
+   "a": "tb.timer.1.button"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-aud[1]",
+   "a": "tb.pill.aud"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-stg[2]",
+   "a": "tb.pill.stg"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-brd[3]",
+   "a": "tb.pill.brd"
+  },
+  {
+   "d": "div.tp[2]",
+   "a": "tp"
+  },
+  {
+   "d": "div.tp[2]>span.badge.fill[0]",
+   "a": "tp.badge"
+  },
+  {
+   "d": "div.tp[2]>div.col[0]",
+   "a": "tp.text"
+  },
+  {
+   "d": "div.tp[2]>div.col[0]>span[0]",
+   "a": "tp.headline"
+  },
+  {
+   "d": "div.tp[2]>div.col[0]>span.sub.c-muted[1]",
+   "a": "tp.detail"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[1]",
+   "a": "tp.previous"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg.live[2]",
+   "a": "tp.golive"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[3]",
+   "a": "tp.next"
+  },
+  {
+   "d": "div.tp[2]>span[4]",
+   "a": "tp.sep.0"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[5]",
+   "a": "tp.clear"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[6]",
+   "a": "tp.blackout"
+  },
+  {
+   "d": "div.tp[2]>span.btn.lg[7]",
+   "a": "tp.stop"
+  },
+  {
+   "d": "div.tp[2]>div.col.mono.c-muted[2]",
+   "a": "tp.health"
+  },
+  {
+   "d": "div.tp[2]>div.col.mono.c-muted[2]>span[0]",
+   "a": "tp.health.rate"
+  },
+  {
+   "d": "div.tp[2]>div.col.mono.c-muted[2]>span[1]",
+   "a": "tp.health.counts"
+  },
+  {
+   "d": "div.tp[2]>div.row[3]",
+   "a": "tp.meters"
+  },
+  {
+   "d": "div.tp[2]>div.row[3]>div.meter[0]",
+   "a": "tp.meter.0"
+  },
+  {
+   "d": "div.tp[2]>div.row[3]>div.meter[1]",
+   "a": "tp.meter.1"
+  },
+  {
+   "d": "div.tp[2]>span[8]",
+   "a": "tp.sep.1"
+  },
+  {
+   "d": "div.tb[0]",
+   "a": "tb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]",
+   "a": "sb.sec.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[1]",
+   "a": "sb.sec.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]",
+   "a": "sb.sec.2",
+   "skip": "B",
+   "why": "the design's last section fills the column; the app's ends with its content and the Schedule section follows"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.row[0]>span.h[0]",
+   "a": "sb.macros.title"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.row[0]>svg.i.s[0]",
+   "a": "sb.macros.plus"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li.on[1]",
+   "a": "sb.macros.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li.on[1]>span.n[0]",
+   "a": "sb.macros.row.0.n",
+   "skip": "L",
+   "why": "the count is one digit in the design for every row; its right edge is compared (the left follows the digit width)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[2]",
+   "a": "sb.macros.row.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[2]>span.n[0]",
+   "a": "sb.macros.row.1.n",
+   "skip": "L",
+   "why": "the count is one digit in the design for every row; its right edge is compared (the left follows the digit width)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[3]",
+   "a": "sb.macros.row.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[3]>span.n[0]",
+   "a": "sb.macros.row.2.n",
+   "skip": "L",
+   "why": "the count is one digit in the design for every row; its right edge is compared (the left follows the digit width)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[4]",
+   "a": "sb.macros.row.3"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[4]>span.n[0]",
+   "a": "sb.macros.row.3.n",
+   "skip": "L",
+   "why": "the count is one digit in the design for every row; its right edge is compared (the left follows the digit width)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[5]",
+   "a": "sb.macros.row.4"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[0]>div.li[5]>span.n[0]",
+   "a": "sb.macros.row.4.n",
+   "skip": "L",
+   "why": "the count is one digit in the design for every row; its right edge is compared (the left follows the digit width)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[1]>div.h[0]",
+   "a": "sb.slides.title",
+   "skip": "R",
+   "why": "a block in the design (as wide as the column); the label in the app is as wide as its text. Left, top and bottom are compared"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[1]>div.li[1]",
+   "a": "sb.slides.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[1]>div.li[1]>span.n[0]",
+   "a": "sb.slides.row.0.n",
+   "skip": "L",
+   "why": "count width"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.h[0]",
+   "a": "sb.inputs.title",
+   "skip": "R",
+   "why": "a block in the design (as wide as the column); the label in the app is as wide as its text. Left, top and bottom are compared"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.li[1]",
+   "a": "sb.inputs.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.li[1]>span.n.c-ok[0]",
+   "a": "sb.inputs.row.0.n",
+   "skip": "L",
+   "why": "the state word or dot differs in width (the design shows a connected device)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.li[2]",
+   "a": "sb.inputs.row.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.li[2]>span.n.c-muted[0]",
+   "a": "sb.inputs.row.1.n",
+   "skip": "L",
+   "why": "the state word or dot differs in width (the design shows a connected device)"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.li[3]",
+   "a": "sb.inputs.row.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.grow[2]>div.li[3]>span.n.c-muted[0]",
+   "a": "sb.inputs.row.2.n",
+   "skip": "L",
+   "why": "the state word or dot differs in width (the design shows a connected device)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]",
+   "a": "main.bar"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span[0]",
+   "a": "main.title"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.pill.c-muted[1]",
+   "a": "main.pill"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.field[3]",
+   "a": "main.trigger",
+   "skip": "L",
+   "why": "content: the design's trigger names a key and a MIDI note, the app's only the MIDI binding (no keyboard trigger exists); the right edge is compared"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn.primary[5]",
+   "a": "main.run"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]",
+   "a": "act.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]>span.n[0]",
+   "a": "act.0.n"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]>span.row[1]",
+   "a": "act.0.col"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]>span.c-muted[2]",
+   "a": "act.0.detail"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]>span[3]",
+   "a": "act.0.tags"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[1]",
+   "a": "act.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[1]>span.n[0]",
+   "a": "act.1.n"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[1]>span.row[1]",
+   "a": "act.1.col"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[1]>span.c-muted[2]",
+   "a": "act.1.detail"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[1]>span[3]",
+   "a": "act.1.tags"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]",
+   "a": "act.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]>span.n[0]",
+   "a": "act.2.n"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]>span.row[1]",
+   "a": "act.2.col"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]>span.c-muted[2]",
+   "a": "act.2.detail"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]>span[3]",
+   "a": "act.2.tags"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[3]",
+   "a": "act.3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[3]>span.n[0]",
+   "a": "act.3.n"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[3]>span.row[1]",
+   "a": "act.3.col"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[3]>span.c-muted[2]",
+   "a": "act.3.detail"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[3]>span[3]",
+   "a": "act.3.tags"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[4]",
+   "a": "act.4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[4]>span.n[0]",
+   "a": "act.4.n"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[4]>span.row[1]",
+   "a": "act.4.col"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[4]>span.c-muted[2]",
+   "a": "act.4.detail"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[4]>span[3]",
+   "a": "act.4.tags"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]>span[3]>span.pill.c-aud[0]",
+   "a": "act.0.tag.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[0]>span[3]>span.pill.c-brd[1]",
+   "a": "act.0.tag.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[1]>span[3]>span.pill.c-aud[0]",
+   "a": "act.1.tag.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]>span[3]>span.pill.c-aud[0]",
+   "a": "act.2.tag.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[2]>span[3]>span.pill.c-brd[1]",
+   "a": "act.2.tag.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[3]>span[3]>span.pill.c-stg[0]",
+   "a": "act.3.tag.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.act[4]>span[3]>span.pill.c-stg[0]",
+   "a": "act.4.tag.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>span.btn[0]",
+   "a": "main.add"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.card[8]",
+   "a": "main.note",
+   "skip": "B",
+   "why": "content: the app's note says what the executor really does and is longer than the design's two lines"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]",
+   "a": "r.sec.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]",
+   "a": "r.sec.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]",
+   "a": "r.sec.2",
+   "skip": "B",
+   "why": "the design's last section fills the column"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[0]>span.h[0]",
+   "a": "r.midi.title"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.row[0]>span.btn[2]",
+   "a": "r.midi.manage",
+   "skip": "L",
+   "why": "the label differs (\"Manage…\" opens the MIDI page where Learn lives; the design says \"Learn…\")"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[0]",
+   "a": "r.midi.th"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[0]>th[0]",
+   "a": "r.midi.th.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[0]>th[1]",
+   "a": "r.midi.th.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[0]>th[2]",
+   "a": "r.midi.th.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[1]",
+   "a": "r.midi.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[1]>td.mono[0]",
+   "a": "r.midi.row.0.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[1]>td[1]",
+   "a": "r.midi.row.0.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[1]>td.c-muted[2]",
+   "a": "r.midi.row.0.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[2]",
+   "a": "r.midi.row.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[2]>td.mono[0]",
+   "a": "r.midi.row.1.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[2]>td[1]",
+   "a": "r.midi.row.1.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[2]>td.c-muted[2]",
+   "a": "r.midi.row.1.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[3]",
+   "a": "r.midi.row.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[3]>td.mono[0]",
+   "a": "r.midi.row.2.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[3]>td[1]",
+   "a": "r.midi.row.2.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[3]>td.c-muted[2]",
+   "a": "r.midi.row.2.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[4]",
+   "a": "r.midi.row.3"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[4]>td.mono[0]",
+   "a": "r.midi.row.3.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[4]>td[1]",
+   "a": "r.midi.row.3.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[4]>td.c-muted[2]",
+   "a": "r.midi.row.3.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[5]",
+   "a": "r.midi.row.4"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[5]>td.mono[0]",
+   "a": "r.midi.row.4.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[5]>td[1]",
+   "a": "r.midi.row.4.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[5]>td.c-muted[2]",
+   "a": "r.midi.row.4.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[6]",
+   "a": "r.midi.row.5"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[6]>td.mono[0]",
+   "a": "r.midi.row.5.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[6]>td[1]",
+   "a": "r.midi.row.5.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[6]>td.c-muted[2]",
+   "a": "r.midi.row.5.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[7]",
+   "a": "r.midi.row.6"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[7]>td.mono[0]",
+   "a": "r.midi.row.6.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[7]>td[1]",
+   "a": "r.midi.row.6.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>table[0]>tbody[0]>tr[7]>td.c-muted[2]",
+   "a": "r.midi.row.6.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.h[0]",
+   "a": "r.kb.title",
+   "skip": "R",
+   "why": "a block in the design (as wide as the column); the label in the app is as wide as its text. Left, top and bottom are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[0]",
+   "a": "r.kb.row.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[0]>td[0]",
+   "a": "r.kb.row.0.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[0]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.0.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[0]>td[1]",
+   "a": "r.kb.row.0.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[1]",
+   "a": "r.kb.row.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[1]>td[0]",
+   "a": "r.kb.row.1.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[1]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.1.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[1]>td[1]",
+   "a": "r.kb.row.1.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[2]",
+   "a": "r.kb.row.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[2]>td[0]",
+   "a": "r.kb.row.2.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[2]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.2.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[2]>td[1]",
+   "a": "r.kb.row.2.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[3]",
+   "a": "r.kb.row.3"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[3]>td[0]",
+   "a": "r.kb.row.3.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[3]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.3.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[3]>td[1]",
+   "a": "r.kb.row.3.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[4]",
+   "a": "r.kb.row.4"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[4]>td[0]",
+   "a": "r.kb.row.4.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[4]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.4.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[4]>td[1]",
+   "a": "r.kb.row.4.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[5]",
+   "a": "r.kb.row.5"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[5]>td[0]",
+   "a": "r.kb.row.5.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[5]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.5.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[5]>td[1]",
+   "a": "r.kb.row.5.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[6]",
+   "a": "r.kb.row.6"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[6]>td[0]",
+   "a": "r.kb.row.6.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[6]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.6.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[6]>td[1]",
+   "a": "r.kb.row.6.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[7]",
+   "a": "r.kb.row.7"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[7]>td[0]",
+   "a": "r.kb.row.7.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[7]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.7.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[7]>td[1]",
+   "a": "r.kb.row.7.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[8]",
+   "a": "r.kb.row.8"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[8]>td[0]",
+   "a": "r.kb.row.8.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[8]>td[0]>span.kbd[0]",
+   "a": "r.kb.row.8.kbd",
+   "skip": "R",
+   "why": "the key text differs (the app lists its own keys, which the design does not: Escape clears, there is no Stop media key); the left edge and the height are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>table[0]>tbody[0]>tr[8]>td[1]",
+   "a": "r.kb.row.8.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.h[0]",
+   "a": "r.act.title",
+   "skip": "R",
+   "why": "a block in the design (as wide as the column); the label in the app is as wide as its text. Left, top and bottom are compared"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.mono.c-muted[1]",
+   "a": "r.act.lines",
+   "skip": "B",
+   "why": "content: the activity has the lines the run produced"
+  }
+ ],
+ "ignore_design": [
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.lights",
+   "reason": "the window's three controls are the system's, grey because the capture window is not key"
+  },
+  {
+   "match": "(^|>)svg\\.i",
+   "reason": "icon glyph box: SF Symbols draw to their own metrics; the control that contains the icon is compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\.bar\\[0\\]>span\\.field\\[3\\]>b",
+   "reason": "the bold key inside the trigger field: the app has no keyboard trigger"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\.bar\\[0\\]>span\\.btn\\[4\\]",
+   "reason": "left out, needs a feature slice (CU-22): \"Test in Preview\" has no dry-run behind it"
+  },
+  {
+   "match": "div\\.act\\[\\d\\]>span\\.row\\[1\\]>b\\[0\\]",
+   "reason": "the kind's text: its width is the title's; the 150 point column that holds it is compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\[1\\]>div\\.(h|tl|row\\.mono\\.c-muted)(\\[|>)",
+   "reason": "left out, needs a feature slice (CU-33): the playback markers section (header, timeline, markers, axis); markers are not stored or run yet"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\[1\\]>div\\.card\\[8\\]>span",
+   "reason": "the note's text boxes: the card is compared; the text differs (the app says what the executor really does)"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.side\\[0\\]>div\\.sec\\[1\\]>div\\.li\\[2\\]",
+   "reason": "the second Slide actions row (\"Baptism testimony\"): the model keeps actions per slide and only the open presentation's slides can be listed, so the app draws one row, for the open presentation"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.side(\\.r)?\\[\\d\\]>div\\.sec\\[0\\]>div\\.row\\[0\\]$",
+   "reason": "row box holding the label and the button, which are compared"
+  },
+  {
+   "match": "table\\[0\\](>tbody\\[0\\])?$",
+   "reason": "table wrapper: its rows are compared"
+  },
+  {
+   "match": "div\\.sec\\.grow\\[2\\]>div\\.mono\\.c-muted\\[1\\]>span",
+   "reason": "the warning line of the activity: the app's own lines are drawn"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.col\\[1\\]$",
+   "reason": "wrapper of the title and subtitle, which are compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]$|>div\\.side(\\.r)?\\[\\d\\]$|^div\\.body\\[1\\]>div\\.main\\[1\\]$",
+   "reason": "column wrapper: widths come from the window layout (256 / 812 / 372), compared through the rows inside"
+  },
+  {
+   "match": "div\\.sec(\\.grow|\\.mon)?\\[\\d\\]$|div\\.main\\[1\\]>div\\[1\\]$",
+   "reason": "section wrapper: its position follows from the rows and padding inside, which are compared"
+  },
+  {
+   "match": ">div\\.l[12]\\[\\d\\]$|>div\\.thumb[^>]*>div\\[\\d\\]|>div\\.thumb[^>]*>div\\.l[12]|>span\\.tag",
+   "reason": "text and tags inside a slide or monitor picture: drawn by the output renderer from the theme (type size and background are UI-005h's), not by the operator layout"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.side\\[0\\]>div\\.sec\\[0\\]>div\\.row\\[0\\]>svg\\.i\\.s\\[0\\]$",
+   "reason": "the + and the ... of the sidebar are native menu buttons whose label is not a laid-out view that can be tagged; the header rows around them are compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.side\\[0\\]>div\\.sec\\.grow\\[2\\]>div\\.row\\[0\\]>svg\\.i\\[0\\]$",
+   "reason": "the + and the ... of the sidebar are native menu buttons whose label is not a laid-out view that can be tagged; the header rows around them are compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]>div\\.main\\[1\\]>div\\[1\\]>div\\.sl\\[2\\]>span\\.c-muted\\[2\\]$",
+   "reason": "data: the app draws \"× 2\" only when the arrangement plays the section twice in a row; the seed plays it once"
+  },
+  {
+   "match": "span\\.d\\[0\\]$",
+   "reason": "the 7 pt status dot inside a toolbar pill: drawn as a circle inside the pill, whose rectangle is compared"
+  },
+  {
+   "match": "span\\.dot\\[0\\]$",
+   "reason": "the 8 pt LIVE dot inside a playlist marker, whose rectangle is compared"
+  },
+  {
+   "match": "li\\[3\\]>span\\.n\\[0\\]$",
+   "reason": "the design counts 38 verses sets... the Scripture row has no count in the model (the app shows its ⌘J key hint there)"
+  },
+  {
+   "match": "span\\.kbd\\[0\\]$",
+   "reason": "key hint inside a transport button: the button's rectangle is compared (its width includes the hint)"
+  },
+  {
+   "match": "span\\.c-ok\\[0\\]$",
+   "reason": "the \"●\" glyph of the health readout: the app draws a 5 pt circle"
+  },
+  {
+   "match": "div\\.meter\\[\\d\\]>i\\[0\\]$",
+   "reason": "content: the meter fill is the live programme level"
+  }
+ ],
+ "ignore_app": [
+  {
+   "match": "^(sb|r)\\.sec\\.3$|^sb\\.schedule\\.",
+   "reason": "the owner's extra: Schedule, below the designed sections"
+  },
+  {
+   "match": "^r\\.kb\\.row\\.(9|1[0-9])",
+   "reason": "the app's keyboard list has 13 keys; the design draws 9"
+  },
+  {
+   "match": "^tb$|^sidebar$|^main$|^inspector$",
+   "reason": "column and bar boxes (compared through their parts)"
+  }
+ ]
+}
