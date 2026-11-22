@@ -4,6 +4,9 @@ import OperatorCore
 import OutputEngine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// UI-005i: Inter is registered for this process before any window draws; if it cannot be, the log says so once and the system font is used.
+    func applicationWillFinishLaunching(_ notification: Notification) { _ = InterFont.base }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // HWTEST-001: `--hardware-test --output <path>` runs the hardware test with no window and exits.
         if let launch = HardwareTestLaunchMode.launch, launch.isHeadless {

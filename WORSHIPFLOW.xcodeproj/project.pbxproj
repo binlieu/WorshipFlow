@@ -21,6 +21,7 @@
 		2F5F94FA6C2F81A20F953783 /* ScreensMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14ACF4576DE699F2593C66FE /* ScreensMode.swift */; };
 		304DC2408548D72CDAC4B5C8 /* Thumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2031232049BA8C27AA077B2D /* Thumbnails.swift */; };
 		36FF51F147353E7711DB6517 /* UISnapshotRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E554E11A09DC7CCD88E53C /* UISnapshotRun.swift */; };
+		41BFC3488FEE9799D5694D59 /* InterFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = B36AA73E84201C50ABD9A260 /* InterFont.swift */; };
 		451EDECE11B7AE03F6F66257 /* ProgramSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50CC8A593F62AE4E30942E47 /* ProgramSheets.swift */; };
 		49B90133C766C12E9F49E57B /* WFControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3492857FA2C3827B81259408 /* WFControls.swift */; };
 		4A21A2BDC0855B80DC8874D9 /* MediaEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 0A1491D9F0D3D5753C2F3408 /* MediaEngine */; };
@@ -71,6 +72,7 @@
 		D88FB90829B7353CBDD03720 /* CuesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B845A215193778B503237BC /* CuesTab.swift */; };
 		DB57A7075229EB502A101210 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B1B6A1952D317922E741F6 /* Components.swift */; };
 		DBDEC0CEFAF28D0C64DA6052 /* ScriptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8053413ADC834AF5ADB30E /* ScriptureView.swift */; };
+		E410DAE8C113BF1A4C2AE183 /* Inter in Resources */ = {isa = PBXBuildFile; fileRef = BC5BC8D29096E9098B4F7794 /* Inter */; };
 		E54F9651BC00B1031F6E63AE /* ProgramPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 936506800901E9AF4602BD17 /* ProgramPackage */; };
 		E660F8A201CAEDCB2D992F25 /* OperatorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2BB235B612B4475C266D56AE /* OperatorCore */; };
 		E6AC32C651CBFBA1F460BFB0 /* RemoteControl in Frameworks */ = {isa = PBXBuildFile; productRef = 932ADBAD73F2F55585D0BB0A /* RemoteControl */; };
@@ -124,12 +126,14 @@
 		9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShowInspector.swift; sourceTree = "<group>"; };
 		A38CD5DB50486CAC827308DF /* TimersPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimersPanel.swift; sourceTree = "<group>"; };
 		A5A678A91491B09E5E7F46D5 /* WorshipFlowKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WorshipFlowKit; path = Packages/WorshipFlowKit; sourceTree = SOURCE_ROOT; };
+		B36AA73E84201C50ABD9A260 /* InterFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterFont.swift; sourceTree = "<group>"; };
 		B4324BEB75E64640972B783F /* LibrarySidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySidebar.swift; sourceTree = "<group>"; };
 		B80B95B8CAC00288DF7E2713 /* SlideObjectsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideObjectsEditor.swift; sourceTree = "<group>"; };
 		B94C7D2528DCC2560168C824 /* SDIProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDIProviders.swift; sourceTree = "<group>"; };
 		BA39A48FB47B3941FDD8DD43 /* OperatorWindowGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperatorWindowGuard.swift; sourceTree = "<group>"; };
 		BA3E0BA6ED027775B81E509B /* CuesEditors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesEditors.swift; sourceTree = "<group>"; };
 		BB63AA09191D65308E97C971 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		BC5BC8D29096E9098B4F7794 /* Inter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Inter; path = Vendor/Inter; sourceTree = SOURCE_ROOT; };
 		BF31C39E4AC1428C031A16D1 /* MediaItemPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItemPlayer.swift; sourceTree = "<group>"; };
 		C06648FD1853A2071017E9D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C339254CFC75C60002280994 /* AudioPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPanel.swift; sourceTree = "<group>"; };
@@ -189,6 +193,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		5E9D5114BF0D5C33C8C3CEC6 /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				BC5BC8D29096E9098B4F7794 /* Inter */,
+			);
+			path = Vendor;
+			sourceTree = "<group>";
+		};
 		9B300197250B3BEFD63B0797 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
@@ -215,6 +227,7 @@
 				3E51CCF72D532215A6D60BB5 /* HardwareTestView.swift */,
 				EF4F9BFE582616CC8E8F65DD /* HotFolderSupport.swift */,
 				9948423E632AF221937A9EB6 /* ImportSheet.swift */,
+				B36AA73E84201C50ABD9A260 /* InterFont.swift */,
 				B4324BEB75E64640972B783F /* LibrarySidebar.swift */,
 				7904015CE5BD7D12564A3BED /* LiveScenes.swift */,
 				EC10504886ECA9564D6B7B21 /* MediaBinPanel.swift */,
@@ -280,6 +293,7 @@
 			children = (
 				C9800E4121CF93BE41E27BD6 /* App */,
 				E19532425A649262DA3D7AEB /* Packages */,
+				5E9D5114BF0D5C33C8C3CEC6 /* Vendor */,
 				4629B056A2F169B1B788B141 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -372,6 +386,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8131FE6CEDA6419FB54B34CC /* Assets.xcassets in Resources */,
+				E410DAE8C113BF1A4C2AE183 /* Inter in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -427,6 +442,7 @@
 				8CC82D3441846A19C06FEB0E /* HardwareTestView.swift in Sources */,
 				00751B4756B4AD10479B2D6E /* HotFolderSupport.swift in Sources */,
 				988CA75AFFFF73E3AE21C5BE /* ImportSheet.swift in Sources */,
+				41BFC3488FEE9799D5694D59 /* InterFont.swift in Sources */,
 				9275B5E30DC0B915F50D7864 /* LibrarySidebar.swift in Sources */,
 				631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */,
 				290CEB4FB2133C90AC582AEC /* MediaBinPanel.swift in Sources */,

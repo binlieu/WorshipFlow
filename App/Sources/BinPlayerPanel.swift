@@ -29,7 +29,7 @@ struct BinPlayerPanel: View {
         VStack(alignment: .leading, spacing: Space.s3) {
             SectionLabel("Player")
             if let asset = preview.asset, let controls = preview.controls {
-                Text(asset.name).font(.system(size: 14, weight: .semibold)).lineLimit(1).truncationMode(.middle)
+                Text(asset.name).font(.wf(14, .semibold)).lineLimit(1).truncationMode(.middle)
                 picture(asset, controls)
                 if controls.showsTransport { transport(controls) }
                 sendButtons(asset)
@@ -37,7 +37,7 @@ struct BinPlayerPanel: View {
                     .font(.wfCaption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Select a picture, video or sound in the bin to look at it here.")
-                    .font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                    .font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(Space.s4)
@@ -49,7 +49,7 @@ struct BinPlayerPanel: View {
         ZStack {
             Color(white: 0.12)
             if !controls.showsPicture {
-                Image(systemName: "waveform").font(.system(size: 34)).foregroundStyle(Tok.muted)
+                Image(systemName: "waveform").font(.wf(34)).foregroundStyle(Tok.muted)
             } else if asset.kind == .video {
                 PlayerPicture(player: app.binPreviewPlayer.player)
             } else if let image = NSImage(contentsOfFile: asset.path) {
@@ -71,13 +71,13 @@ struct BinPlayerPanel: View {
                     Button { preview.togglePlay() } label: { Image(systemName: preview.isPlaying ? "pause.fill" : "play.fill") }
                         .buttonStyle(HeaderButtonStyle()).help(preview.isPlaying ? "Pause" : "Play")
                         .accessibilityLabel(preview.isPlaying ? "Pause preview" : "Play preview")
-                    Text(MediaTile.clock(position)).font(.system(size: 12, design: .monospaced)).foregroundStyle(Tok.muted)
+                    Text(MediaTile.clock(position)).font(.wfMono(12)).foregroundStyle(Tok.muted)
                     Slider(value: Binding(get: { position }, set: { dragPosition = $0 }), in: 0...max(preview.duration, 0.1)) { editing in
                         if editing { dragPosition = preview.position; dragging = true } else { preview.seek(to: dragPosition); dragging = false }
                     }
                     .tint(Tok.cyan).disabled(preview.duration <= 0).accessibilityLabel("Position in the preview")
                     Text("-" + MediaTile.clock(dragging ? max(0, preview.duration - dragPosition) : preview.remaining))
-                        .font(.system(size: 12, design: .monospaced)).foregroundStyle(Tok.muted)
+                        .font(.wfMono(12)).foregroundStyle(Tok.muted)
                 }
                 HStack(spacing: Space.s3) {
                     Toggle(isOn: Binding(get: { preview.loops }, set: { preview.setLoops($0) })) { Label("Loop", systemImage: "repeat") }

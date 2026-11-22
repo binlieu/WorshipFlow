@@ -20,6 +20,7 @@ struct ContentView: View {
                 SoakView(app: app)
             }
         }
+        .font(.wfBody)          // UI-005i: controls and text without a style of their own are Inter too
         .frame(minWidth: 1100, minHeight: 640)
         .preferredColorScheme(Self.scheme(app.appearance))
         .background(OperatorWindowGuardInstaller())     // R4: the window does not close while the screens are open
@@ -39,9 +40,9 @@ struct LibraryProblemView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("The song library could not be opened", systemImage: "exclamationmark.triangle.fill")
-                .font(.title2.bold()).foregroundStyle(.orange)
+                .font(.wf(17, .bold)).foregroundStyle(.orange)
             Text("WorshipFlow looked for the library here:")
-            Text(problem.path).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+            Text(problem.path).font(.wfMono(13)).textSelection(.enabled)
             Text(problem.message).foregroundStyle(.secondary).textSelection(.enabled)
             Text("The file has not been changed or deleted. Check that the disk is connected and the folder is writable, or move the file aside and restart to begin a new library. Restore a backup copy over it to get your songs back.")
                 .fixedSize(horizontal: false, vertical: true)
@@ -57,7 +58,7 @@ struct SoakView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Soak run").font(.title2.bold())
+            Text("Soak run").font(.wf(17, .bold))
             Text("The screens are driven from the command line. No library is opened in this mode.")
                 .foregroundStyle(.secondary)
             ScreensPanel(model: app)
@@ -173,7 +174,7 @@ struct WorkspaceView: View {
     /// The design's sidebar toggle (a ghost icon button left of the title). Only the Show mode has the sidebar.
     private var sidebarToggle: some View {
         Button { app.ui.sidebarVisible.toggle() } label: {
-            Image(systemName: "sidebar.left").font(.system(size: 14)).foregroundStyle(Tok.muted).frame(width: 28, height: 24)
+            Image(systemName: "sidebar.left").font(.wf(14)).foregroundStyle(Tok.muted).frame(width: 28, height: 24)
         }
         .buttonStyle(.plain)
         .keyboardShortcut("s", modifiers: [.command, .option])
@@ -206,7 +207,7 @@ struct WorkspaceView: View {
             if !workspace.mode.showsTransportBar, app.mode != .stopped { liveChip }
             if let stage = app.stage { ToolbarTimersView(stage: stage) }
             Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
-                Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display").font(.system(size: 13)).frame(width: 28, height: 24)
+                Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display").font(.wf(13)).frame(width: 28, height: 24)
             }
             .buttonStyle(HeaderButtonStyle(kind: .ghost, compact: true))
             .help(app.screensOn ? "Close screens" : "Open screens")
@@ -223,7 +224,7 @@ struct WorkspaceView: View {
             case .blackout: ThumbTag(text: "BLACKOUT", kind: .warning)
             case .stopped: EmptyView()
             }
-            Text(workspace.show.liveSlide.map(LiveSummary.line(for:)) ?? "").font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: 220, alignment: .leading)
+            Text(workspace.show.liveSlide.map(LiveSummary.line(for:)) ?? "").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: 220, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("On the screens: \(workspace.livePositionLine ?? "")")
@@ -285,8 +286,8 @@ struct OutputFaultDetails: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text("\(card.name): what was recorded").font(.headline)
-            Text(card.detail).font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+            Text("\(card.name): what was recorded").font(.wfHeadline)
+            Text(card.detail).font(.wfMono(12)).textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.border, fill: Tok.bg)
             HStack {

@@ -29,19 +29,19 @@ struct AudioPanel: View {
                 .help(audio.isMuted ? "Unmute the sound" : "Mute the sound")
                 WFSlider(value: Binding(get: { audio.volume }, set: { audio.setVolume($0) }), range: 0...1, fill: Tok.blue)
                     .disabled(audio.isMuted).accessibilityLabel("Sound volume")
-                Text("\(Int((audio.volume * 100).rounded()))%").font(.system(size: 11, design: .monospaced)).foregroundStyle(Tok.muted).frame(width: 36, alignment: .trailing)
+                Text("\(Int((audio.volume * 100).rounded()))%").font(.wfMono(11)).foregroundStyle(Tok.muted).frame(width: 36, alignment: .trailing)
             }
             LevelMeter(audio: audio)
             if audio.assets.isEmpty {
                 Text("No sound files yet. Add them to the media bin above with Add… (or drop them there): they appear here.")
-                    .font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                    .font(.wf(11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             } else {
                 VStack(spacing: 2) {
                     ForEach(audio.assets) { asset in AudioRow(audio: audio, asset: asset) }
                 }
             }
             Text("Loop repeats a sound. Overlap lets a sound play together with others, such as a quiet bed under a spoken part. Stopping the show ends all sound; Clear and Clear all do not.")
-                .font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                .font(.wf(11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
         }
         .padding(6)
     }
@@ -56,7 +56,7 @@ private struct DevicePicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Output").font(.system(size: 12))
+                Text("Output").font(.wf(12))
                 WFPopup(title: currentDeviceTitle, accessibilityName: "Sound output device") {
                     Button("System default" + defaultSuffix) { audio.chooseDevice(nil) }
                     ForEach(audio.devices) { device in Button(label(for: device)) { audio.chooseDevice(device.uid) } }
@@ -66,10 +66,10 @@ private struct DevicePicker: View {
                     .help("Look for sound devices again").buttonStyle(HeaderButtonStyle(compact: true))
             }
             if let notice = audio.deviceNotice {
-                Text(notice).font(.system(size: 11)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
+                Text(notice).font(.wf(11)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Sound files and video sound both go to this output, once. Microphones and instruments stay on the mixer.")
-                    .font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                    .font(.wf(11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -113,21 +113,21 @@ private struct AudioRow: View {
                     .buttonStyle(HeaderButtonStyle(compact: true))
                     .help(readout?.isPlaying == true ? "Pause \(asset.name)" : "Play \(asset.name)")
                     .accessibilityLabel(readout?.isPlaying == true ? "Pause \(asset.name)" : "Play \(asset.name)")
-                    Text(asset.name).font(.system(size: 13)).lineLimit(1).truncationMode(.middle)
+                    Text(asset.name).font(.wf(13)).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 4)
-                    Text(asset.duration.map(MediaTile.clock) ?? "—").font(.system(size: 11, design: .monospaced)).foregroundStyle(Tok.muted)
+                    Text(asset.duration.map(MediaTile.clock) ?? "—").font(.wfMono(11)).foregroundStyle(Tok.muted)
                     Toggle(isOn: Binding(get: { audio.loopIDs.contains(asset.id) }, set: { audio.setLoops($0, for: asset.id) })) {
-                        Text("Loop").font(.system(size: 11))
+                        Text("Loop").font(.wf(11))
                     }
                     .toggleStyle(.wfCheckbox).help("Repeat this sound").accessibilityLabel("Loop \(asset.name)")
                     Toggle(isOn: Binding(get: { audio.overlapIDs.contains(asset.id) }, set: { audio.setOverlap($0, for: asset.id) })) {
-                        Text("Overlap").font(.system(size: 11))
+                        Text("Overlap").font(.wf(11))
                     }
                     .toggleStyle(.wfCheckbox).help("Let this sound play together with others").accessibilityLabel("Overlap \(asset.name)")
                 }
                 if let r = readout {
                     HStack(spacing: 6) {
-                        Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.system(size: 11, design: .monospaced)).frame(width: 44, alignment: .trailing)
+                        Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.wfMono(11)).frame(width: 44, alignment: .trailing)
                         WFSlider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
                                  range: 0...max(r.duration, 0.1)) { editing in
                             if editing { dragPosition = r.position; dragging = true }

@@ -11,7 +11,7 @@ struct TransportBar: View {
         HStack(spacing: 10) {
             stateBadge
             VStack(alignment: .leading, spacing: 1) {
-                Text(headline).font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.tail)
+                Text(headline).font(.wf(13, .semibold)).lineLimit(1).truncationMode(.tail)
                     .foregroundStyle(Tok.text)
                 if let detail { Text(detail).font(.wfCaption).lineLimit(1).truncationMode(.tail).foregroundStyle(Tok.muted) }
             }
@@ -47,7 +47,7 @@ struct TransportBar: View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach([ClearControl.Action.clearAll] + ClearControl.layerMenu, id: \.title) { action in
                 HStack { Text(action.title); Spacer(minLength: 16); Text(action.shortcut).foregroundStyle(Tok.muted) }
-                    .font(.system(size: 13))
+                    .font(.wf(13))
             }
         }
         .padding(10).frame(width: 250)
@@ -82,7 +82,7 @@ struct TransportBar: View {
                 Image(systemName: "rectangle.slash")
                 Text("Clear")
                 KeyHint(key: "esc")
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+                Image(systemName: "chevron.down").font(.wf(10, .bold))
             }
             .transportChrome()
         }
@@ -105,7 +105,7 @@ struct TransportBar: View {
 
     @ViewBuilder private var stateBadge: some View {
         switch app.mode {
-        case .live: Text("LIVE").font(.system(size: 11, weight: .bold)).tracking(0.66).foregroundStyle(Tok.onLive)
+        case .live: Text("LIVE").font(.wf(11, .bold)).tracking(0.66).foregroundStyle(Tok.onLive)
             .padding(.horizontal, 8).padding(.vertical, 3).background(Tok.liveFill, in: RoundedRectangle(cornerRadius: Radius.sm))
             .accessibilityLabel("Show state: live")
         case .stopped: badge("STOPPED", Tok.muted)
@@ -115,7 +115,7 @@ struct TransportBar: View {
     }
 
     private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text).font(.system(size: 11, weight: .bold)).tracking(0.66).foregroundStyle(color)
+        Text(text).font(.wf(11, .bold)).tracking(0.66).foregroundStyle(color)
             .padding(.horizontal, 8).padding(.vertical, 3)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: color)
             .accessibilityLabel("Show state: \(text.lowercased())")
@@ -155,14 +155,14 @@ struct TransportBar: View {
                     }
                     Text(h.countsText).foregroundStyle(Tok.muted)
                 }
-                .font(.system(size: 11, design: .monospaced))
+                .font(.wfMono(11))
                 if let audio = app.audio { MiniMeter(audio: audio) }
             }
             .fixedSize()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Output health: \(h.rateText), \(h.countsText)")
         } else {
-            Text("screens closed").font(.system(size: 11, design: .monospaced)).foregroundStyle(Tok.muted).fixedSize()
+            Text("screens closed").font(.wfMono(11)).foregroundStyle(Tok.muted).fixedSize()
         }
     }
 }
@@ -171,7 +171,7 @@ struct SplitLeadingStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold)).padding(.horizontal, 16).frame(height: Space.transportHeight)
+            .font(.wf(13, .semibold)).padding(.horizontal, 16).frame(height: Space.transportHeight)
             .foregroundStyle(Tok.text).background(Tok.surface2)
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .contentShape(Rectangle())
@@ -181,7 +181,7 @@ struct SplitLeadingStyle: ButtonStyle {
 extension View {
     /// The look of a transport button, for controls that are not a plain Button (the Clear menu).
     func transportChrome() -> some View {
-        self.font(.system(size: 13, weight: .semibold)).foregroundStyle(Tok.text)
+        self.font(.wf(13, .semibold)).foregroundStyle(Tok.text)
             .padding(.horizontal, 16).frame(height: Space.transportHeight)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.lg), stroke: Tok.borderStrong, fill: Tok.surface2)
     }
@@ -227,12 +227,12 @@ struct QuickEditView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Quick edit live slide").font(.headline)
+            Text("Quick edit live slide").font(.wfHeadline)
             Text("This changes what the audience sees now, and saves the new words.")
-                .font(.caption).foregroundStyle(.secondary)
-            Text("First language").font(.caption)
+                .font(.wfSmall).foregroundStyle(.secondary)
+            Text("First language").font(.wfSmall)
             editor($primary)
-            Text("Second language").font(.caption)
+            Text("Second language").font(.wfSmall)
             editor($secondary)
             HStack {
                 Spacer()
@@ -254,7 +254,7 @@ struct QuickEditView: View {
     }
 
     private func editor(_ text: Binding<String>) -> some View {
-        TextEditor(text: text).font(.body).frame(height: 76)
+        TextEditor(text: text).font(.wfBody).frame(height: 76)
             .overlay(RoundedRectangle(cornerRadius: 4).stroke(.quaternary))
     }
 }

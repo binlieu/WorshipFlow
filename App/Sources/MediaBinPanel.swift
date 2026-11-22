@@ -20,14 +20,14 @@ struct MediaBinPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(MediaBinCategories.title(for: media.kindFilter)).font(.system(size: 20, weight: .bold))
+                Text(MediaBinCategories.title(for: media.kindFilter)).font(.wf(20, .bold))
                 Spacer()
                 // UI-003: the same choice as the Show dock. It decides what a double-click on a tile does.
                 HStack(spacing: 0) {
                     ForEach(MediaLayerChoice.allCases) { choice in
                         let on = app.ui.dockLayer == choice
                         Button { app.ui.dockLayer = choice } label: {
-                            Text(choice.title).font(.system(size: 12, weight: on ? .semibold : .regular)).fixedSize()
+                            Text(choice.title).font(.wf(12, on ? .semibold : .regular)).fixedSize()
                                 .padding(.horizontal, 9).frame(height: 22).foregroundStyle(on ? Tok.text : Tok.muted)
                                 .background(on ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.sm))
                         }.buttonStyle(.plain).accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
@@ -45,7 +45,7 @@ struct MediaBinPanel: View {
                 Text(media.assets.isEmpty
                      ? "The bin is empty. Add pictures and videos with the button above, or drop files here. The bin keeps a reference to each file; your files are never moved or deleted."
                      : "Nothing of this kind in the bin.")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
             } else {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
@@ -72,7 +72,7 @@ struct MediaBinPanel: View {
                 }
                 if let chosen = selected.flatMap({ media.asset($0) }) {
                     HStack(spacing: 6) {
-                        Text(chosen.name).font(.caption.bold()).lineLimit(1).truncationMode(.middle)
+                        Text(chosen.name).font(.wf(10, .bold)).lineLimit(1).truncationMode(.middle)
                         Spacer()
                         Button("Live background") { media.setBackground(chosen.id) }
                             .disabled(chosen.kind == .audio).controlSize(.small)
@@ -86,14 +86,14 @@ struct MediaBinPanel: View {
                 HStack(spacing: 6) {
                     Image(systemName: "photo.on.rectangle").foregroundStyle(.secondary)
                     Text("Live background from the bin: \(media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "")")
-                        .font(.caption).lineLimit(1)
+                        .font(.wfSmall).lineLimit(1)
                     Spacer()
                     Button("Use the slide's own background") { media.dropBackgroundOverride() }.controlSize(.small)
                         .help("Drop the live override: each slide's own background (or the theme's) shows again")
                 }
             }
             Text("A single click selects an item and shows it in the player. A double click sends it live, as the layer choice above says. Drag a tile onto a slide to give that slide its own background. Right-click for more.")
-                .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                .font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(6)
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(targeted ? Color.accentColor : .clear, lineWidth: 2))
@@ -136,7 +136,7 @@ struct MediaBinPanel: View {
             HStack(spacing: 8) {
                 Image(systemName: state.status == .ok ? "folder" : "exclamationmark.triangle")
                     .foregroundStyle(state.status == .ok ? Tok.muted : Tok.warning)
-                Text(state.folder.path).font(.caption).lineLimit(1).truncationMode(.middle).foregroundStyle(Tok.muted)
+                Text(state.folder.path).font(.wfSmall).lineLimit(1).truncationMode(.middle).foregroundStyle(Tok.muted)
                 Spacer()
                 if state.status == .missing {
                     Button("Point to the folder again…") { app.repointHotFolder(state.id) }.controlSize(.small)
@@ -154,21 +154,21 @@ struct MediaBinPanel: View {
             }
             if state.status == .missing {
                 Text("This folder cannot be found (moved, renamed or its drive is not connected). The show is not affected.")
-                    .font(.caption).foregroundStyle(Tok.warning)
+                    .font(.wfSmall).foregroundStyle(Tok.warning)
             } else if state.status == .unreachable {
                 // FIX-G: the last list stays; the folder could not be read this time.
                 Text("This folder is not answering right now (a drive or network share that is slow or disconnected). The last list is kept and the show is not affected.")
-                    .font(.caption).foregroundStyle(Tok.warning)
+                    .font(.wfSmall).foregroundStyle(Tok.warning)
             }
             if state.status != .missing, !state.heldBack.isEmpty {
                 Text("\(state.heldBack.count) file\(state.heldBack.count == 1 ? "" : "s") still being copied: \(state.heldBack.prefix(3).joined(separator: ", ")). Shown when complete.")
-                    .font(.caption).foregroundStyle(Tok.muted)
+                    .font(.wfSmall).foregroundStyle(Tok.muted)
             }
             if !state.unreadable.isEmpty {
                 Text("\(state.unreadable.count) file\(state.unreadable.count == 1 ? "" : "s") could not be read and \(state.unreadable.count == 1 ? "is" : "are") tried again now and then: \(state.unreadable.prefix(3).joined(separator: ", ")).")
-                    .font(.caption).foregroundStyle(Tok.muted)
+                    .font(.wfSmall).foregroundStyle(Tok.muted)
             }
-            if let notice = state.notice { Text(notice).font(.caption).foregroundStyle(Tok.warning) }
+            if let notice = state.notice { Text(notice).font(.wfSmall).foregroundStyle(Tok.warning) }
         }
     }
 
@@ -210,7 +210,7 @@ struct MediaTile: View {
                     Image(decorative: picture.image, scale: 1).resizable().aspectRatio(contentMode: .fill)
                 case .failed?:
                     Image(systemName: asset.kind == .audio ? "waveform" : "exclamationmark.triangle")
-                        .font(.title2).foregroundStyle(.secondary)
+                        .font(.wfTitle2).foregroundStyle(.secondary)
                 case nil:
                     ProgressView().controlSize(.small)
                 }
@@ -229,7 +229,7 @@ struct MediaTile: View {
                     if isForeground { badge("PLAYING", Tok.liveFill) }
                 }.padding(3)
             }
-            Text(asset.name).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
+            Text(asset.name).font(.wf(12, .medium)).lineLimit(1).truncationMode(.middle)
         }
         .task(id: asset.path) { result = await MediaThumbnails.shared.thumbnail(for: asset) }
         .accessibilityElement(children: .combine)
@@ -237,7 +237,7 @@ struct MediaTile: View {
     }
 
     private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text).font(.system(size: 8, weight: .bold)).padding(.horizontal, 4).padding(.vertical, 1)
+        Text(text).font(.wf(8, .bold)).padding(.horizontal, 4).padding(.vertical, 1)
             .background(color, in: Capsule()).foregroundStyle(.white)
     }
 

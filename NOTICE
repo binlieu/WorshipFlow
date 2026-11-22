@@ -17,3 +17,9 @@ Blackmagic DeckLink SDK include files
 GRDB.swift (https://github.com/groue/GRDB.swift)
   Copyright (C) Gwendal Roué. MIT License. Fetched by the Swift Package
   Manager at build time; not included in this repository.
+
+Inter 4.1 (https://rsms.me/inter/)
+  Copyright (c) 2016 The Inter Project Authors. SIL Open Font License 1.1.
+  Vendor/Inter/ holds InterVariable.ttf and InterVariable-Italic.ttf unmodified,
+  with the licence text; the app bundle carries them under Resources/Inter and
+  registers them for its own process only. Used for the operator interface.

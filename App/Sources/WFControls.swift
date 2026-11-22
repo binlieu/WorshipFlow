@@ -25,8 +25,8 @@ struct WFSegmented<Value: Hashable>: View {
                 let on = item.value == selection
                 Button { selection = item.value } label: {
                     HStack(spacing: 5) {
-                        if let symbol = item.symbol { Image(systemName: symbol).font(.system(size: item.title == nil ? 12 : 11)) }
-                        if let title = item.title { Text(title).font(.system(size: 12, weight: .medium)) }
+                        if let symbol = item.symbol { Image(systemName: symbol).font(.wf(item.title == nil ? 12 : 11)) }
+                        if let title = item.title { Text(title).font(.wf(12, .medium)) }
                     }
                     .padding(.horizontal, 11).padding(.vertical, 4)
                     .frame(minHeight: 24)
@@ -83,7 +83,7 @@ struct WFCheckboxStyle: ToggleStyle {
                     RoundedRectangle(cornerRadius: 3).fill(configuration.isOn ? Tok.blue : .clear)
                     RoundedRectangle(cornerRadius: 3).strokeBorder(configuration.isOn ? Tok.blue : Tok.borderStrong, lineWidth: 1)
                     if configuration.isOn {
-                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(scheme == .light ? Color.white : Tok.onBrand)
+                        Image(systemName: "checkmark").font(.wf(9, .bold)).foregroundStyle(scheme == .light ? Color.white : Tok.onBrand)
                     }
                 }
                 .frame(width: 14, height: 14)
@@ -150,7 +150,7 @@ struct WFFieldChrome: ViewModifier {
     var height: CGFloat = Space.controlHeight
     func body(content: Content) -> some View {
         content
-            .font(.system(size: 12))
+            .font(.wf(12))
             .padding(.horizontal, 8).frame(height: height)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: Tok.bg)
     }
@@ -169,7 +169,7 @@ struct WFPopup<Content: View>: View {
             HStack(spacing: 6) {
                 Text(title).lineLimit(1)
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(Tok.muted)
+                Image(systemName: "chevron.down").font(.wf(9, .semibold)).foregroundStyle(Tok.muted)
             }
             .foregroundStyle(Tok.text)
             .wfField(height: height)
@@ -191,7 +191,7 @@ struct WFTextField<Trailing: View>: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            if let symbol { Image(systemName: symbol).font(.system(size: 12)).foregroundStyle(Tok.muted).accessibilityHidden(true) }
+            if let symbol { Image(systemName: symbol).font(.wf(12)).foregroundStyle(Tok.muted).accessibilityHidden(true) }
             TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Tok.muted)).textFieldStyle(.plain)
             trailing()
         }
@@ -242,8 +242,8 @@ struct WFTabButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 5) {
-                if let symbol { Image(systemName: symbol).font(.system(size: 12)) }
-                Text(title).font(.system(size: 12, weight: .medium)).fixedSize()
+                if let symbol { Image(systemName: symbol).font(.wf(12)) }
+                Text(title).font(.wf(12, .medium)).fixedSize()
                 if dot { Circle().fill(Tok.blue).frame(width: 6, height: 6).accessibilityHidden(true) }
             }
             .foregroundStyle(on ? Tok.text : Tok.muted)
@@ -282,7 +282,7 @@ struct ThumbTag: View {
     let kind: Kind
     @Environment(\.colorScheme) private var scheme
     var body: some View {
-        Text(text).font(.system(size: 9, weight: .heavy)).tracking(0.72)
+        Text(text).font(.wf(9, .heavy)).tracking(0.72)
             .padding(.horizontal, 5).padding(.vertical, 1)
             .foregroundStyle(kind == .live ? Tok.onLive : (kind == .preview ? (scheme == .light ? Color.white : Tok.onBrand) : Tok.onBrand))
             .background(RoundedRectangle(cornerRadius: Radius.xs).fill(kind == .live ? Tok.liveFill : (kind == .preview ? Tok.blue : Tok.warning)))
@@ -304,9 +304,9 @@ struct MessageCard<Trailing: View>: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle").font(.system(size: 15)).foregroundStyle(Tok.text).accessibilityHidden(true)
-            (Text(parts.0).fontWeight(.semibold) + Text(parts.1.isEmpty ? "" : " " + parts.1))
-                .font(.system(size: 13)).foregroundStyle(Tok.text)
+            Image(systemName: "exclamationmark.triangle").font(.wf(15)).foregroundStyle(Tok.text).accessibilityHidden(true)
+            (Text(parts.0).font(.wf(13, .semibold)) + Text(parts.1.isEmpty ? "" : " " + parts.1))
+                .font(.wf(13)).foregroundStyle(Tok.text)
                 .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             Spacer(minLength: 0)
             trailing()

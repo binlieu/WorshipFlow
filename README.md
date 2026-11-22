@@ -41,6 +41,7 @@ This runs the package tests, regenerates the Xcode project from `project.yml`, a
 
 - `Packages/WorshipFlowKit/Sources/DeckLinkC/sdk/` contains unmodified include files from the Blackmagic DeckLink SDK 16.0, each carrying Blackmagic Design's own licence notice. See [docs/adr/0006-decklink-sdk-licence.md](docs/adr/0006-decklink-sdk-licence.md). The Desktop Video driver is not included.
 - [GRDB.swift](https://github.com/groue/GRDB.swift) is used for SQLite access.
+- [Inter](https://rsms.me/inter/) 4.1 (SIL Open Font License 1.1, copyright The Inter Project Authors) sets the operator interface. The unmodified font files and the licence are in `Vendor/Inter/` and are copied into the app.
 - No Bible translation text is included in this repository.
 
 "DeckLink" and "Blackmagic Design" are trademarks of Blackmagic Design Pty. Ltd. This project is not affiliated with or endorsed by Blackmagic Design.

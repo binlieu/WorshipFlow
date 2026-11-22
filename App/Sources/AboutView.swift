@@ -13,8 +13,8 @@ struct AboutView: View {
         VStack(spacing: Space.s4) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 96, height: 96)
                 .accessibilityHidden(true)
-            Text("WorshipFlow").font(.system(size: 24, weight: .bold))
-            Text(AboutInfo.summary).font(.system(size: 13)).foregroundStyle(Tok.muted).multilineTextAlignment(.center)
+            Text("WorshipFlow").font(.wf(24, .bold))
+            Text(AboutInfo.summary).font(.wf(13)).foregroundStyle(Tok.muted).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: Space.s3) {
@@ -32,23 +32,24 @@ struct AboutView: View {
             .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.border, fill: Tok.surface2)
 
             VStack(spacing: Space.s2) {
-                Text(AboutInfo.developerLine).font(.system(size: 13, weight: .semibold))
+                Text(AboutInfo.developerLine).font(.wf(13, .semibold))
                 Link(AboutInfo.developerEmail, destination: AboutInfo.developerMailURL)
                 Link(AboutInfo.projectURL.absoluteString, destination: AboutInfo.projectURL)
-                Text(AboutInfo.licenceLine).font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text(AboutInfo.licenceLine).font(.wf(12)).foregroundStyle(Tok.muted)
             }
-            .font(.system(size: 13))
+            .font(.wf(13))
 
             Divider()
             VStack(alignment: .leading, spacing: Space.s2) {
                 SectionLabel("Third-party notices")
                 ForEach(AboutInfo.thirdPartyNotices, id: \.self) { notice in
-                    Text(notice).font(.system(size: 11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                    Text(notice).font(.wf(11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Space.s6)
+        .font(.wfBody)
         .frame(width: 460)
         .background(Tok.bg)
         .preferredColorScheme(ContentView.scheme(app.appearance))

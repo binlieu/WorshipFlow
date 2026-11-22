@@ -14,7 +14,7 @@ struct MediaTransportStrip: View {
             if let r = media.foregroundReadout() {
                 HStack(spacing: 10) {
                     Image(systemName: "film").foregroundStyle(Tok.muted).accessibilityHidden(true)
-                    Text(r.name).font(.system(size: 13, weight: .semibold)).lineLimit(1).frame(maxWidth: 160, alignment: .leading)
+                    Text(r.name).font(.wf(13, .semibold)).lineLimit(1).frame(maxWidth: 160, alignment: .leading)
                     Button { r.isPlaying ? media.pause() : media.resume() } label: {
                         Label(r.isPlaying ? "Pause" : "Play", systemImage: r.isPlaying ? "pause.fill" : "play.fill")
                             .labelStyle(.iconOnly)
@@ -22,7 +22,7 @@ struct MediaTransportStrip: View {
                     .buttonStyle(HeaderButtonStyle(compact: true))
                     .help(r.isPlaying ? "Pause the clip" : "Resume the clip")
                     .disabled(r.status == .ended)
-                    Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.system(size: 12, design: .monospaced)).frame(width: 52, alignment: .trailing)
+                    Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.wfMono(12)).frame(width: 52, alignment: .trailing)
                     WFSlider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
                              range: 0...max(r.duration, 0.1)) { editing in
                         if editing { dragPosition = r.position; dragging = true }
@@ -30,7 +30,7 @@ struct MediaTransportStrip: View {
                     }
                     .disabled(!r.canSeek).accessibilityLabel("Clip position")
                     Text("-" + MediaTile.clock(dragging ? max(0, r.duration - dragPosition) : r.remaining))
-                        .font(.system(size: 12, design: .monospaced)).foregroundStyle(Tok.muted).frame(width: 56, alignment: .leading)
+                        .font(.wfMono(12)).foregroundStyle(Tok.muted).frame(width: 56, alignment: .leading)
                     Rectangle().fill(Tok.border).frame(width: 1, height: 18)
                     Button { media.setMuted(!media.isMuted) } label: {
                         Label(media.isMuted ? "Unmute" : "Mute", systemImage: media.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")

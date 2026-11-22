@@ -29,11 +29,11 @@ struct ActionListEditor: View {
         let description = CueActionEditing.describe(action, choices: choices)
         let kind = CueActionKind.of(action)
         return HStack(spacing: Space.s4) {
-            Text("\(index + 1)").font(.system(size: 12, weight: .bold).monospacedDigit())
+            Text("\(index + 1)").font(.wf(12, .bold).monospacedDigit())
                 .frame(width: 24, height: 24).background(Tok.surface3, in: Circle()).accessibilityHidden(true)
             Image(systemName: kind?.symbol ?? "questionmark").frame(width: 18).foregroundStyle(Tok.muted).accessibilityHidden(true)
-            Text(description.title).font(.system(size: 14, weight: .semibold)).frame(width: 190, alignment: .leading).lineLimit(1)
-            Text(description.detail).font(.system(size: 13)).foregroundStyle(description.isBroken ? Tok.warning : Tok.muted)
+            Text(description.title).font(.wf(14, .semibold)).frame(width: 190, alignment: .leading).lineLimit(1)
+            Text(description.detail).font(.wf(13)).foregroundStyle(description.isBroken ? Tok.warning : Tok.muted)
                 .lineLimit(1).truncationMode(.tail).frame(maxWidth: .infinity, alignment: .leading)
             ScreenTags(screens: description.screens)
             HStack(spacing: 2) {
@@ -81,8 +81,8 @@ struct ActionListEditor: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) { Image(systemName: "plus"); Text("Add action"); Image(systemName: "chevron.down").font(.system(size: 9)) }
-                .font(.system(size: 13, weight: .medium)).padding(.horizontal, 12).frame(height: 30)
+            HStack(spacing: 6) { Image(systemName: "plus"); Text("Add action"); Image(systemName: "chevron.down").font(.wf(9)) }
+                .font(.wf(13, .medium)).padding(.horizontal, 12).frame(height: 30)
                 .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
@@ -110,7 +110,7 @@ struct ActionEditForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text(CueActionKind.of(action)?.title ?? "Action").font(.system(size: 13, weight: .semibold))
+            Text(CueActionKind.of(action)?.title ?? "Action").font(.wf(13, .semibold))
             form
         }
     }
@@ -124,7 +124,7 @@ struct ActionEditForm: View {
                 Text("On").tag(CueBlackout.on); Text("Off").tag(CueBlackout.off); Text("Toggle").tag(CueBlackout.toggle)
             }.pickerStyle(.segmented)
         case .transport:
-            Text("Nothing to choose.").font(.caption).foregroundStyle(Tok.muted)
+            Text("Nothing to choose.").font(.wfSmall).foregroundStyle(Tok.muted)
         case .selectLook(let id):
             picker("Look", choices.looks, id) { onChange(.selectLook($0)) }
         case .prop(let id, let on):
@@ -134,15 +134,15 @@ struct ActionEditForm: View {
             TextField("Message for the stage screens", text: Binding(get: { fields["text"] ?? "" }, set: { onChange(.showMessage(id: id, fields: ["text": $0])) }))
                 .textFieldStyle(.roundedBorder)
         case .hideMessage:
-            Text("Takes the message off the stage screens.").font(.caption).foregroundStyle(Tok.muted)
+            Text("Takes the message off the stage screens.").font(.wfSmall).foregroundStyle(Tok.muted)
         case .startTimer(let id): picker("Timer", choices.timers, id) { onChange(.startTimer($0)) }
         case .pauseTimer(let id): picker("Timer", choices.timers, id) { onChange(.pauseTimer($0)) }
         case .resetTimer(let id): picker("Timer", choices.timers, id) { onChange(.resetTimer($0)) }
         case .setBackground(let id):
             if let id { picker("Background", choices.pictures, id) { onChange(.setBackground(assetID: $0)) } }
-            else { Text("Takes the background away.").font(.caption).foregroundStyle(Tok.muted) }
+            else { Text("Takes the background away.").font(.wfSmall).foregroundStyle(Tok.muted) }
         case .playForeground(let id): picker("Picture or video", choices.pictures, id) { onChange(.playForeground(assetID: $0)) }
-        case .stopForeground: Text("Stops the clip over the slide.").font(.caption).foregroundStyle(Tok.muted)
+        case .stopForeground: Text("Stops the clip over the slide.").font(.wfSmall).foregroundStyle(Tok.muted)
         case .playAudio(let id): picker("Sound", choices.sounds, id) { onChange(.playAudio(assetID: $0)) }
         case .stopAudio(let id): picker("Sound", choices.sounds, id) { onChange(.stopAudio(assetID: $0)) }
         case .midiOut(let message): MIDIOutForm(message: message, onChange: { onChange(.midiOut($0)) })
@@ -150,7 +150,7 @@ struct ActionEditForm: View {
         case .wait(let seconds):
             Stepper("Wait \(String(format: "%g", seconds)) s", value: Binding(get: { seconds }, set: { onChange(.wait(seconds: max(0, $0))) }), in: 0...3600, step: 0.5)
         case .unknown:
-            Text("This action was written by a newer version. It is skipped when run and kept as it is.").font(.caption).foregroundStyle(Tok.muted)
+            Text("This action was written by a newer version. It is skipped when run and kept as it is.").font(.wfSmall).foregroundStyle(Tok.muted)
         }
     }
 

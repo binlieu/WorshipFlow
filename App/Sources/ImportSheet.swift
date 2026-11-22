@@ -28,10 +28,10 @@ struct ImportSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(isReflow ? "Re-flow lyrics" : "Import lyrics").font(.title2.bold())
+            Text(isReflow ? "Re-flow lyrics" : "Import lyrics").font(.wf(17, .bold))
             if isReflow {
                 Text("The slides are replaced by this split. A slide whose words are unchanged, in the same section, keeps its speaker notes and objects. Sections with the same name keep their section order.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.wfSmall).foregroundStyle(.secondary)
             } else {
                 TextField("Title", text: $title).textFieldStyle(.roundedBorder)
             }
@@ -46,7 +46,7 @@ struct ImportSheet: View {
                 Text("\(plan.slides.count) slide\(plan.slides.count == 1 ? "" : "s")").foregroundStyle(.secondary)
             }
             Text("Start a section with a label line such as Verse 1 or Chorus. Leave a blank line between sections.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.wfSmall).foregroundStyle(.secondary)
             preview
             if !impact.isEmpty { impactList }
             if !losses.isEmpty { lossList }
@@ -76,8 +76,8 @@ struct ImportSheet: View {
 
     private func editor(_ label: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            TextEditor(text: text).font(.body)
+            Text(label).font(.wfSmall).foregroundStyle(.secondary)
+            TextEditor(text: text).font(.wfBody)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(.quaternary))
                 .accessibilityLabel(label)
         }
@@ -102,11 +102,11 @@ struct ImportSheet: View {
         VStack(alignment: .leading, spacing: 3) {
             Label("These section orders will lose sections, because their names are not in the new text:",
                   systemImage: "exclamationmark.triangle.fill")
-                .font(.caption.bold()).foregroundStyle(.orange)
+                .font(.wf(10, .bold)).foregroundStyle(.orange)
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(impact.enumerated()), id: \.offset) { _, loss in
-                        Text(describe(loss)).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(describe(loss)).font(.wfSmall).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }.frame(maxHeight: 64)
@@ -132,11 +132,11 @@ struct ImportSheet: View {
         VStack(alignment: .leading, spacing: 3) {
             Label("These speaker notes and objects will be discarded, because their slide's words changed or moved to another section:",
                   systemImage: "exclamationmark.triangle.fill")
-                .font(.caption.bold()).foregroundStyle(.orange)
+                .font(.wf(10, .bold)).foregroundStyle(.orange)
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(losses.enumerated()), id: \.offset) { _, loss in
-                        Text(describe(loss)).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(describe(loss)).font(.wfSmall).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }.frame(maxHeight: 64)
@@ -151,14 +151,14 @@ struct ImportSheet: View {
         VStack(alignment: .leading, spacing: 3) {
             Label("These slide actions will be dropped, because their slide\u{2019}s words changed or moved to another section:",
                   systemImage: "exclamationmark.triangle.fill")
-                .font(.caption.bold()).foregroundStyle(.orange)
+                .font(.wf(10, .bold)).foregroundStyle(.orange)
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(Array(actionLosses.enumerated()), id: \.offset) { _, loss in
                         let section = loss.sectionName.map { "\($0): " } ?? ""
                         let words = loss.primary.replacingOccurrences(of: "\n", with: " ")
                         Text("\(section)\"\(words)\" had \(loss.actionCount) action\(loss.actionCount == 1 ? "" : "s")")
-                            .font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.wfSmall).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }.frame(maxHeight: 64)
@@ -185,10 +185,10 @@ struct ImportSheet: View {
             ForEach(Array(results.enumerated()), id: \.offset) { i, result in
                 VStack(alignment: .leading, spacing: 3) {
                     if let name = result.sectionName, i == 0 || plan.sectionName(ofSlide: i - 1) != name {
-                        Text(name).font(.caption.bold()).foregroundStyle(.blue)
+                        Text(name).font(.wf(10, .bold)).foregroundStyle(.blue)
                     }
                     HStack(alignment: .top) {
-                        Text("\(i + 1)").font(.caption.monospacedDigit()).frame(width: 24, alignment: .trailing).foregroundStyle(.secondary)
+                        Text("\(i + 1)").font(.wfSmall).frame(width: 24, alignment: .trailing).foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(result.content.primary)
                             if let s = result.content.secondary { Text(s).foregroundStyle(.secondary) }

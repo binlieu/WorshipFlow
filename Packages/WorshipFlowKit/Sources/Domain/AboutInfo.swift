@@ -12,6 +12,7 @@ public enum AboutInfo {
     public static let thirdPartyNotices: [String] = [
         "Blackmagic DeckLink SDK include files: copyright Blackmagic Design, used unmodified under the licence notice in each file. The Desktop Video driver is not included. \"DeckLink\" and \"Blackmagic Design\" are trademarks of Blackmagic Design Pty. Ltd.; this app is not affiliated with or endorsed by Blackmagic Design.",
         "GRDB.swift: copyright Gwendal Roué, MIT License, used for SQLite access.",
+        "Inter 4.1: copyright The Inter Project Authors, SIL Open Font License 1.1, used unmodified for the operator interface. The licence text is in the app bundle (Resources/Inter/LICENSE.txt).",
         "No Bible translation text is included with the app.",
     ]
 }

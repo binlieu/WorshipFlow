@@ -97,7 +97,7 @@ private struct ScreensList: View {
         return HStack(alignment: .top, spacing: Space.s4) {
             LiveScreenPreview(app: app, screenID: profile.id).frame(width: 88)
             VStack(alignment: .leading, spacing: 3) {
-                Text(profile.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                Text(profile.name).font(.wf(14, .semibold)).lineLimit(1)
                 RoleChip(role: profile.role)
                 if simulated { Badge(text: "SIMULATED", style: .outline(Tok.broadcast)) }
                 Text(destinationText(profile)).font(.wfCaption).foregroundStyle(Tok.muted).lineLimit(2)
@@ -135,11 +135,11 @@ private struct ScreensList: View {
         return VStack(alignment: .leading, spacing: Space.s3) {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.shield").foregroundStyle(Tok.muted)
-                Text("Verification").font(.system(size: 13, weight: .semibold))
+                Text("Verification").font(.wf(13, .semibold))
                 Spacer()
                 Badge(text: v.level.uppercased(), style: .outline(device?.isSimulated == true ? Tok.broadcast : Tok.muted))
             }
-            Text(v.text).font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            Text(v.text).font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: Space.s3) {
                 Button(action: openTest) { Text("Run signal test…") }.buttonStyle(HeaderButtonStyle())
                     .help("Opens the Hardware Test window")
@@ -168,7 +168,7 @@ private struct SignalMapSection: View {
         let map = app.signalMap
         VStack(alignment: .leading, spacing: Space.s4) {
             HStack(spacing: Space.s3) {
-                Text("Signal map").font(.system(size: 18, weight: .bold))
+                Text("Signal map").font(.wf(18, .bold))
                 if map.isSimulated { Badge(text: "SIMULATED", style: .outline(Tok.broadcast)) }
                 Spacer()
                 Text("A DeckLink card sends what Desktop Video lists, not the display list.")
@@ -183,7 +183,7 @@ private struct SignalMapSection: View {
                     ForEach(map.devices) { block in deviceBlock(block) }
                     if !map.directPaths.isEmpty { directBlock(map.directPaths) }
                     if map.devices.isEmpty && map.directPaths.isEmpty {
-                        Text("Nothing is routed. Enable a screen to see its path.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Text("Nothing is routed. Enable a screen to see its path.").font(.wf(12)).foregroundStyle(Tok.muted)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -197,9 +197,9 @@ private struct SignalMapSection: View {
 
     private func macTile(_ map: SignalMap) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Image(systemName: "cpu").font(.system(size: 20)).foregroundStyle(Tok.muted)
-            Text(map.hostTitle).font(.system(size: 14, weight: .bold)).lineLimit(2)
-            Text("WorshipFlow render engine").font(.system(size: 12)).foregroundStyle(Tok.muted)
+            Image(systemName: "cpu").font(.wf(20)).foregroundStyle(Tok.muted)
+            Text(map.hostTitle).font(.wf(14, .bold)).lineLimit(2)
+            Text("WorshipFlow render engine").font(.wf(12)).foregroundStyle(Tok.muted)
             Text(map.summary).font(.wfMonoData).foregroundStyle(Tok.muted)
         }
         .padding(Space.s4).frame(width: 190, alignment: .leading)
@@ -211,7 +211,7 @@ private struct SignalMapSection: View {
     private func deviceBlock(_ block: SignalDeviceBlock) -> some View {
         VStack(alignment: .leading, spacing: Space.s3) {
             HStack(spacing: 6) {
-                Text(block.caption).font(.system(size: 12, weight: .semibold))
+                Text(block.caption).font(.wf(12, .semibold))
                 if block.isSimulated { Badge(text: "SIMULATED", style: .outline(Tok.broadcast)) }
             }
             VStack(alignment: .leading, spacing: 6) { ForEach(block.tiles) { tile in tileRow(tile) } }
@@ -221,7 +221,7 @@ private struct SignalMapSection: View {
 
     private func directBlock(_ tiles: [SignalTile]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Displays and windows").font(.system(size: 12, weight: .semibold))
+            Text("Displays and windows").font(.wf(12, .semibold))
             ForEach(tiles) { tile in tileRow(tile) }
         }
     }
@@ -232,15 +232,15 @@ private struct SignalMapSection: View {
         let isSelected = tile.screenID != nil && tile.screenID == selected?.id
         return HStack(spacing: 0) {
             HStack(spacing: Space.s3) {
-                Image(systemName: Self.symbol(tile.kind)).font(.system(size: 14)).foregroundStyle(color).frame(width: 20)
+                Image(systemName: Self.symbol(tile.kind)).font(.wf(14)).foregroundStyle(color).frame(width: 20)
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 5) {
-                        Text(tile.title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                        Text(tile.title).font(.wf(13, .semibold)).lineLimit(1)
                         if tile.isSimulated { Badge(text: "SIMULATED", style: .outline(Tok.broadcast)) }
                     }
-                    Text(tile.subtitle).font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(1)
+                    Text(tile.subtitle).font(.wf(12)).foregroundStyle(Tok.muted).lineLimit(1)
                     if let fault = tile.faultText {
-                        Text(fault).font(.system(size: 11, weight: .medium)).foregroundStyle(Tok.warning).lineLimit(2)
+                        Text(fault).font(.wf(11, .medium)).foregroundStyle(Tok.warning).lineLimit(2)
                     } else if let word = tile.stateWord, word != "Running" {
                         Text(word).font(.wfCaption).foregroundStyle(Tok.muted)
                     }
@@ -256,8 +256,8 @@ private struct SignalMapSection: View {
             if let note = tile.connectedTo {
                 Rectangle().fill(Tok.borderStrong).frame(width: 22, height: 1)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Connected to").font(.system(size: 10, weight: .semibold)).foregroundStyle(Tok.muted)
-                    Text(note).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                    Text("Connected to").font(.wf(10, .semibold)).foregroundStyle(Tok.muted)
+                    Text(note).font(.wf(13, .semibold)).lineLimit(1)
                 }
                 .padding(.horizontal, Space.s4).padding(.vertical, Space.s3)
                 .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.lg))
@@ -293,7 +293,7 @@ private struct SignalMapSection: View {
         if let device {
             VStack(alignment: .leading, spacing: Space.s3) {
                 HStack(spacing: Space.s3) {
-                    Text("Plan for \(device.info.displayName)").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                    Text("Plan for \(device.info.displayName)").font(.wf(12)).foregroundStyle(Tok.muted)
                     Spacer()
                     ForEach(SDIPreset.allCases, id: \.title) { preset in
                         Button { pending = (pending == preset ? nil : preset) } label: { Text(preset.title) }
@@ -310,12 +310,12 @@ private struct SignalMapSection: View {
 
     private func proposal(_ p: PresetProposal) -> some View {
         VStack(alignment: .leading, spacing: Space.s3) {
-            Text(p.preset.title).font(.system(size: 13, weight: .semibold))
-            Text(p.summary).font(.system(size: 12)).foregroundStyle(Tok.muted)
+            Text(p.preset.title).font(.wf(13, .semibold))
+            Text(p.summary).font(.wf(12)).foregroundStyle(Tok.muted)
             ForEach(p.changes) { c in
-                Text("\(c.screenName): \(c.before) → \(c.after)").font(.system(size: 12))
+                Text("\(c.screenName): \(c.before) → \(c.after)").font(.wf(12))
             }
-            ForEach(p.notes, id: \.self) { Text($0).font(.system(size: 12)).foregroundStyle(Tok.warning) }
+            ForEach(p.notes, id: \.self) { Text($0).font(.wf(12)).foregroundStyle(Tok.warning) }
             if p.isAvailable, !p.changes.isEmpty {
                 Text("Changing a card's profile can interrupt its outputs for a few seconds. WorshipFlow asks before it does that.")
                     .font(.wfCaption).foregroundStyle(Tok.muted)
@@ -358,8 +358,8 @@ private struct ScreenDetail: View {
                 leftColumn.frame(maxWidth: .infinity, alignment: .topLeading)
                 rightColumn.frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            if let message { Text(message).font(.system(size: 12)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true) }
-            ForEach(readout.renderProblems, id: \.self) { Text("Left out of this screen: \($0)").font(.system(size: 12)).foregroundStyle(Tok.warning) }
+            if let message { Text(message).font(.wf(12)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true) }
+            ForEach(readout.renderProblems, id: \.self) { Text("Left out of this screen: \($0)").font(.wf(12)).foregroundStyle(Tok.warning) }
             counters
             if let captions = ScreensPresentation.keyedCaptions(destination: profile.destination, device: deviceInfo) { keyedPreviews(captions) }
         }
@@ -370,7 +370,7 @@ private struct ScreenDetail: View {
 
     private var header: some View {
         HStack(spacing: Space.s3) {
-            Text(profile.name).font(.system(size: 18, weight: .bold)).lineLimit(1)
+            Text(profile.name).font(.wf(18, .bold)).lineLimit(1)
             RoleChip(role: profile.role)
             statusPill
             Spacer()
@@ -392,7 +392,7 @@ private struct ScreenDetail: View {
         }
         return HStack(spacing: 5) {
             Circle().fill(color).frame(width: 7, height: 7)
-            Text(text).font(.system(size: 12, weight: .medium)).foregroundStyle(color)
+            Text(text).font(.wf(12, .medium)).foregroundStyle(color)
         }
         .padding(.horizontal, 9).frame(height: 22)
         .wfOutline(Capsule(style: .circular), stroke: color)
@@ -416,7 +416,7 @@ private struct ScreenDetail: View {
 
     private func field<Content: View>(_ label: String, @ViewBuilder _ content: () -> Content) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Space.s4) {
-            Text(label).font(.system(size: 12)).foregroundStyle(Tok.muted).frame(width: 96, alignment: .trailing)
+            Text(label).font(.wf(12)).foregroundStyle(Tok.muted).frame(width: 96, alignment: .trailing)
             content().frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -485,7 +485,7 @@ private struct ScreenDetail: View {
                 }
             }
             field("If output fails") {
-                Text(ScreensPresentation.outputFailureText).font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                Text(ScreensPresentation.outputFailureText).font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             }
             field("Mirrors") { mirrors }
         }
@@ -501,7 +501,7 @@ private struct ScreenDetail: View {
             ForEach(Array(profile.mirrors.enumerated()), id: \.offset) { index, _ in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("Mirror \(index + 1)").font(.system(size: 12, weight: .semibold))
+                        Text("Mirror \(index + 1)").font(.wf(12, .semibold))
                         Spacer()
                         Button { app.updateProfile(ScreenEditing.removingMirror(profile, at: index)) } label: { Text("Remove") }
                             .buttonStyle(HeaderButtonStyle()).accessibilityLabel("Remove mirror \(index + 1) of \(profile.name)")
@@ -536,7 +536,7 @@ private struct ScreenDetail: View {
     private func counter(_ value: String, _ label: String, warn: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value).font(.wfMonoReadout).foregroundStyle(warn ? Tok.warning : Tok.cyan)
-            Text(label).font(.system(size: 12)).foregroundStyle(Tok.muted)
+            Text(label).font(.wf(12)).foregroundStyle(Tok.muted)
         }
         .padding(Space.s4).frame(maxWidth: .infinity, alignment: .leading)
         .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.lg))
@@ -555,8 +555,8 @@ private struct ScreenDetail: View {
             preview(scene, .fill, c.fill, c.fillDetail, straight)
             preview(scene, .key, c.key, c.keyDetail, straight)
             VStack(alignment: .leading, spacing: 4) {
-                Text(ScreensPresentation.blackIsNotTransparency.headline).font(.system(size: 12, weight: .semibold))
-                Text(ScreensPresentation.blackIsNotTransparency.body).font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text(ScreensPresentation.blackIsNotTransparency.headline).font(.wf(12, .semibold))
+                Text(ScreensPresentation.blackIsNotTransparency.body).font(.wf(12)).foregroundStyle(Tok.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -569,8 +569,8 @@ private struct ScreenDetail: View {
                 .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
                 .overlay(RoundedRectangle(cornerRadius: Radius.sm).stroke(Tok.border, lineWidth: 1))
             HStack(spacing: 5) {
-                Text(title).font(.system(size: 12, weight: .semibold))
-                Text(detail).font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(1)
+                Text(title).font(.wf(12, .semibold))
+                Text(detail).font(.wf(12)).foregroundStyle(Tok.muted).lineLimit(1)
             }
         }
         .frame(maxWidth: 230)
@@ -589,15 +589,15 @@ private struct AdvancedSection: View {
         VStack(alignment: .leading, spacing: Space.s5) {
             if !app.unavailableImages.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Images that cannot be read (the rest of the screen still shows):").font(.caption.bold()).foregroundStyle(Tok.warning)
-                    ForEach(app.unavailableImages, id: \.self) { Text($0).font(.caption).foregroundStyle(Tok.warning).lineLimit(1).truncationMode(.middle) }
+                    Text("Images that cannot be read (the rest of the screen still shows):").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
+                    ForEach(app.unavailableImages, id: \.self) { Text($0).font(.wfSmall).foregroundStyle(Tok.warning).lineLimit(1).truncationMode(.middle) }
                 }
             }
             if let environment = app.sdiEnvironment, environment.state == .driverNotInstalled || environment.state == .noCardFound {
                 SDIEnvironmentLine(text: environment.message) { app.rescanSDI() }
             }
             if let notice = app.sdiProfileNotice {
-                Text(notice).font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                Text(notice).font(.wfSmall).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("sdi.profileNotice")
             }
             HStack(alignment: .top, spacing: Space.s6) {

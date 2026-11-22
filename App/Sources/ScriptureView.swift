@@ -67,7 +67,7 @@ struct ScriptureView: View {
         VStack(alignment: .leading, spacing: Space.s3) {
             HStack(spacing: Space.s3) {
                 Image(systemName: "book.closed").foregroundStyle(Tok.muted)
-                Text("Scripture").font(.system(size: 20, weight: .bold))
+                Text("Scripture").font(.wf(20, .bold))
                 Spacer(minLength: 4)
                 Picker("Scripture screen", selection: Binding(get: { screen }, set: { screen = $0 })) {
                     ForEach(ScriptureScreen.allCases) { Text($0.title).tag($0) }
@@ -91,7 +91,7 @@ struct ScriptureView: View {
             HStack(spacing: 6) {
                 Image(systemName: "text.cursor").foregroundStyle(Tok.muted).accessibilityHidden(true)
                 TextField("Type a reference: John 3:16-18, Giăng 3:16, Psalm 23", text: $scripture.referenceText)
-                    .textFieldStyle(.plain).font(.system(size: 15))
+                    .textFieldStyle(.plain).font(.wf(15))
                     .focused($focus, equals: .reference)
                     .onSubmit { show() }
                     .accessibilityLabel("Reference")
@@ -117,7 +117,7 @@ struct ScriptureView: View {
                 translationPickers
                 Stepper(value: Binding(get: { scripture.versesPerSlide }, set: { n in Task { await scripture.setVersesPerSlide(n) } }),
                         in: 1...ScriptureModel.mostVersesPerSlide) {
-                    Text("\(scripture.versesPerSlide) verse\(scripture.versesPerSlide == 1 ? "" : "s") per slide").font(.system(size: 12))
+                    Text("\(scripture.versesPerSlide) verse\(scripture.versesPerSlide == 1 ? "" : "s") per slide").font(.wf(12))
                 }
                 .fixedSize()
                 Spacer(minLength: 0)
@@ -128,7 +128,7 @@ struct ScriptureView: View {
                     .buttonStyle(HeaderButtonStyle()).disabled(scripture.passage == nil)
                     .help("Make an ordinary presentation you can edit, in the selected library")
             }
-            if let message = scripture.choiceMessage { Text(message).font(.caption).foregroundStyle(Tok.warning) }
+            if let message = scripture.choiceMessage { Text(message).font(.wfSmall).foregroundStyle(Tok.warning) }
         }
     }
 
@@ -164,7 +164,7 @@ struct ScriptureView: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Tok.muted).accessibilityHidden(true)
                 TextField("Search the words of the verses", text: $scripture.searchText)
-                    .textFieldStyle(.plain).font(.system(size: 15))
+                    .textFieldStyle(.plain).font(.wf(15))
                     .focused($focus, equals: .search)
                     .onSubmit { Task { await scripture.search(scripture.searchText) } }
                     .onChange(of: scripture.searchText) { _, new in Task { await scripture.search(new) } }
@@ -174,7 +174,7 @@ struct ScriptureView: View {
             .background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(focus == .search ? Tok.cyan : Tok.borderStrong, lineWidth: 1))
             Text("Searches \(scripture.translations.first { $0.code == scripture.primaryCode }?.name ?? "the first translation"). Accents and capital letters do not matter: \"binh an\" finds \"bình an\".")
-                .font(.caption).foregroundStyle(Tok.muted)
+                .font(.wfSmall).foregroundStyle(Tok.muted)
         }
     }
 
@@ -195,8 +195,8 @@ struct ScriptureView: View {
             ScriptureEmptyState(scripture: scripture) { screen = .translations }
         } else if let problem = workspace.openScripture?.problem ?? scripture.problem {
             VStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill").font(.largeTitle).foregroundStyle(Tok.warning)
-                Text(problem).font(.system(size: 14)).multilineTextAlignment(.center).textSelection(.enabled).frame(maxWidth: 520)
+                Image(systemName: "exclamationmark.triangle.fill").font(.wfLargeTitle).foregroundStyle(Tok.warning)
+                Text(problem).font(.wf(14)).multilineTextAlignment(.center).textSelection(.enabled).frame(maxWidth: 520)
                     .accessibilityLabel("Problem: \(problem)")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -204,10 +204,10 @@ struct ScriptureView: View {
             PassageGrid(app: app, workspace: workspace, passage: passage) { scripture.selectSlide($0) }
         } else {
             VStack(spacing: 8) {
-                Image(systemName: "book").font(.largeTitle).foregroundStyle(Tok.muted)
-                Text("Type a reference and press Return").font(.title3)
+                Image(systemName: "book").font(.wfLargeTitle).foregroundStyle(Tok.muted)
+                Text("Type a reference and press Return").font(.wfTitle3)
                 Text("English or Vietnamese book names both work: John 3:16-18, Giăng 3:16, 1 Cor 13, Ps 23. Use the Search tab to find a verse by its words.")
-                    .font(.caption).foregroundStyle(Tok.muted).multilineTextAlignment(.center).frame(maxWidth: 480)
+                    .font(.wfSmall).foregroundStyle(Tok.muted).multilineTextAlignment(.center).frame(maxWidth: 480)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -221,9 +221,9 @@ struct ScriptureEmptyState: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: "books.vertical").font(.largeTitle).foregroundStyle(Tok.muted)
-            Text("No Bible translation is installed").font(.title3)
-            Text(ScriptureModel.emptyHint).font(.caption).foregroundStyle(Tok.muted).multilineTextAlignment(.center).frame(maxWidth: 480)
+            Image(systemName: "books.vertical").font(.wfLargeTitle).foregroundStyle(Tok.muted)
+            Text("No Bible translation is installed").font(.wfTitle3)
+            Text(ScriptureModel.emptyHint).font(.wfSmall).foregroundStyle(Tok.muted).multilineTextAlignment(.center).frame(maxWidth: 480)
             HStack {
                 Button("Import…") { chooseTranslationFile(scripture) }.buttonStyle(HeaderButtonStyle()).disabled(!scripture.canStartImport)
                 Button("Translations") { showTranslations() }.buttonStyle(HeaderButtonStyle())
@@ -250,7 +250,7 @@ struct PassageGrid: View {
         VStack(spacing: 0) {
             if !passage.messages.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(passage.messages, id: \.self) { Text($0).font(.caption).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true) }
+                    ForEach(passage.messages, id: \.self) { Text($0).font(.wfSmall).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true) }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Space.s5).padding(.vertical, Space.s3)
@@ -258,8 +258,8 @@ struct PassageGrid: View {
                 .accessibilityLabel("Notes: \(passage.messages.joined(separator: " "))")
             }
             HStack {
-                Text(passage.title).font(.system(size: 13, weight: .semibold))
-                Text("\(passage.contents.count) slide\(passage.contents.count == 1 ? "" : "s")").font(.caption).foregroundStyle(Tok.muted)
+                Text(passage.title).font(.wf(13, .semibold))
+                Text("\(passage.contents.count) slide\(passage.contents.count == 1 ? "" : "s")").font(.wfSmall).foregroundStyle(Tok.muted)
                 Spacer()
             }
             .padding(.horizontal, Space.s5).padding(.vertical, Space.s2)
@@ -296,8 +296,8 @@ struct PassageGrid: View {
                 .padding(live ? 4 : 0)
                 .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(live ? ringColor : .clear, lineWidth: 3))
             HStack(spacing: 6) {
-                Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit()).foregroundStyle(Tok.text)
-                Text(slide.reference).font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(1)
+                Text("\(i + 1)").font(.wf(12, .bold).monospacedDigit()).foregroundStyle(Tok.text)
+                Text(slide.reference).font(.wf(12)).foregroundStyle(Tok.muted).lineLimit(1)
             }
             .padding(.horizontal, 4)
         }
@@ -330,18 +330,18 @@ struct ScriptureSearchResults: View {
 
     var body: some View {
         if scripture.isEmpty {
-            Text(scripture.emptyMessage).font(.caption).foregroundStyle(Tok.muted).padding(Space.s6).frame(maxWidth: .infinity, maxHeight: .infinity)
+            Text(scripture.emptyMessage).font(.wfSmall).foregroundStyle(Tok.muted).padding(Space.s6).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if scripture.searchResults.isEmpty {
             Text(scripture.searchMessage ?? "Type a word or two. Every word must appear, and \"a quoted phrase\" must appear as written.")
-                .font(.caption).foregroundStyle(Tok.muted).multilineTextAlignment(.center).padding(Space.s6)
+                .font(.wfSmall).foregroundStyle(Tok.muted).multilineTextAlignment(.center).padding(Space.s6)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List {
                 ForEach(scripture.searchResults) { row in
                     Button { open(row) } label: {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(row.reference).font(.system(size: 13, weight: .semibold))
-                            Text(row.snippet).font(.system(size: 12)).foregroundStyle(Tok.muted).lineLimit(2)
+                            Text(row.reference).font(.wf(13, .semibold))
+                            Text(row.snippet).font(.wf(12)).foregroundStyle(Tok.muted).lineLimit(2)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                     }
@@ -350,7 +350,7 @@ struct ScriptureSearchResults: View {
                     .accessibilityHint("Opens this verse in Preview")
                 }
                 if scripture.searchTruncated {
-                    Text("More verses match. Add a word to narrow the list.").font(.caption).foregroundStyle(Tok.muted)
+                    Text("More verses match. Add a word to narrow the list.").font(.wfSmall).foregroundStyle(Tok.muted)
                 }
             }
             .listStyle(.plain).scrollContentBackground(.hidden)

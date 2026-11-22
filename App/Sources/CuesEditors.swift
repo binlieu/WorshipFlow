@@ -38,14 +38,14 @@ struct MacroEditor: View {
         let triggers = cue.bindings.bindings.filter { $0.command == .macro(macro.id) }.map { MIDIText.pattern($0.pattern) }
         return HStack(spacing: Space.s4) {
             TextField("Macro name", text: $name)
-                .textFieldStyle(.plain).font(.system(size: 22, weight: .bold)).focused($nameFocused)
+                .textFieldStyle(.plain).font(.wf(22, .bold)).focused($nameFocused)
                 .onSubmit { commitName(macro) }
                 .onChange(of: nameFocused) { _, focused in if !focused { commitName(macro) } }
                 .frame(maxWidth: 360)
             Badge(text: "MACRO \u{00B7} \(macro.steps.count) ACTION\(macro.steps.count == 1 ? "" : "S")", style: .outline(Tok.muted))
             Spacer(minLength: 8)
             if !triggers.isEmpty {
-                Text("Trigger: MIDI \(triggers.joined(separator: ", "))").font(.system(size: 12))
+                Text("Trigger: MIDI \(triggers.joined(separator: ", "))").font(.wf(12))
                     .padding(.horizontal, 10).frame(height: 30)
                     .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
             }
@@ -85,15 +85,15 @@ struct SlideActionsEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s5) {
-            Text("Slide actions").font(.system(size: 22, weight: .bold))
+            Text("Slide actions").font(.wf(22, .bold))
             Text("Actions that run when a slide goes live: not when it is only selected, and not for a quick edit. They cannot move the show, so a slide can never advance itself.")
-                .font(.system(size: 13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                .font(.wf(13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if workspace.slides.isEmpty {
                 CueNote(text: "Open a song in Show to give its slides actions.")
             } else {
                 slideList
                 if let slide = chosenSlide {
-                    Text("Slide \((workspace.slides.firstIndex { $0.id == slide.id } ?? 0) + 1): \(firstLine(slide))").font(.system(size: 14, weight: .semibold))
+                    Text("Slide \((workspace.slides.firstIndex { $0.id == slide.id } ?? 0) + 1): \(firstLine(slide))").font(.wf(14, .semibold))
                     ActionListEditor(app: app, context: .slide, actions: cue.slideActions.actions(for: slide.id)) { actions in
                         Task { @MainActor in try? await cue.setSlideActions(actions, for: slide.id) }
                     }
@@ -113,8 +113,8 @@ struct SlideActionsEditor: View {
                 let selected = chosenSlide?.id == slide.id
                 Button { app.ui.cuesSlideID = slide.id } label: {
                     HStack(spacing: Space.s3) {
-                        Text("\(index + 1)").font(.system(size: 12, weight: .bold).monospacedDigit()).frame(width: 24)
-                        Text(firstLine(slide)).font(.system(size: 13)).lineLimit(1)
+                        Text("\(index + 1)").font(.wf(12, .bold).monospacedDigit()).frame(width: 24)
+                        Text(firstLine(slide)).font(.wf(13)).lineLimit(1)
                         Spacer()
                         if count > 0 { Badge(text: "\(count) ACTION\(count == 1 ? "" : "S")", style: .outline(Tok.cyan)) }
                     }
@@ -149,7 +149,7 @@ struct ScheduleEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s5) {
             HStack {
-                Text("Schedule").font(.system(size: 22, weight: .bold))
+                Text("Schedule").font(.wf(22, .bold))
                 Spacer()
                 Button { editing = ScheduleDraft() } label: { Label("New event", systemImage: "plus") }
                     .buttonStyle(HeaderButtonStyle()).disabled(cue.macros.isEmpty)
@@ -159,17 +159,17 @@ struct ScheduleEditor: View {
                     }
             }
             Text("While WorshipFlow is open, an event runs a macro at its time. An event more than five minutes late (the Mac was asleep, or the app was closed) is not run late: it is skipped and you are told.")
-                .font(.system(size: 13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                .font(.wf(13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             if cue.schedule.events.isEmpty { CueNote(text: "No scheduled events.") }
             ForEach(cue.schedule.events) { event in row(event) }
             if !cue.missedEvents.isEmpty {
                 HStack {
-                    Text("Not run").font(.system(size: 15, weight: .semibold))
+                    Text("Not run").font(.wf(15, .semibold))
                     Spacer()
                     Button("Dismiss all") { cue.dismissMissedEvents() }.buttonStyle(HeaderButtonStyle())
                 }
                 ForEach(cue.missedEvents) { missed in
-                    Text(missed.text).font(.system(size: 13)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
+                    Text(missed.text).font(.wf(13)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -190,8 +190,8 @@ struct ScheduleEditor: View {
             Toggle("", isOn: Binding(get: { event.isEnabled }, set: { on in Task { @MainActor in await cue.setEventEnabled(on, id: event.id) } }))
                 .toggleStyle(.wfBare).accessibilityLabel("\(event.name) enabled")
             VStack(alignment: .leading, spacing: 2) {
-                Text(event.name).font(.system(size: 14, weight: .semibold))
-                Text("\(ScheduleText.timing(event.timing, calendar: .current)) \u{00B7} runs \(macro)").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text(event.name).font(.wf(14, .semibold))
+                Text("\(ScheduleText.timing(event.timing, calendar: .current)) \u{00B7} runs \(macro)").font(.wf(12)).foregroundStyle(Tok.muted)
             }
             Spacer()
             if let problems = cue.schedule.problems()[event.id] {
@@ -218,7 +218,7 @@ private struct ScheduleForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text(draft.id == nil ? "New event" : "Edit event").font(.system(size: 13, weight: .semibold))
+            Text(draft.id == nil ? "New event" : "Edit event").font(.wf(13, .semibold))
             TextField("Name", text: $draft.name).textFieldStyle(.roundedBorder)
             Picker("Repeats", selection: $draft.repeats) { Text("Every week").tag(ScheduleDraft.Repeat.weekly); Text("Once").tag(ScheduleDraft.Repeat.once) }
                 .pickerStyle(.segmented).labelsHidden()
@@ -239,14 +239,14 @@ private struct ScheduleForm: View {
                 DatePicker("When", selection: $draft.date)
             }
             if draft.keepsActions {
-                Text("This event runs a list of actions written elsewhere. They are kept as they are.").font(.caption).foregroundStyle(Tok.muted)
+                Text("This event runs a list of actions written elsewhere. They are kept as they are.").font(.wfSmall).foregroundStyle(Tok.muted)
             } else {
                 Picker("Runs", selection: $draft.macroID) {
                     Text("Choose a macro").tag(UUID?.none)
                     ForEach(cue.macros) { Text($0.name).tag(UUID?.some($0.id)) }
                 }
             }
-            ForEach(draft.problems, id: \.self) { Text($0).font(.caption).foregroundStyle(Tok.warning) }
+            ForEach(draft.problems, id: \.self) { Text($0).font(.wfSmall).foregroundStyle(Tok.warning) }
             HStack {
                 Spacer()
                 Button("Cancel", action: done).buttonStyle(HeaderButtonStyle())

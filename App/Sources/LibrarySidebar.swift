@@ -149,10 +149,10 @@ struct LibrarySidebar: View {
             .overlay {
                 if workspace.presentations.isEmpty {
                     Text("No presentations yet.\nImport lyrics with Command-I.")
-                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
+                        .multilineTextAlignment(.center).font(.wfSmall).foregroundStyle(Tok.muted)
                 } else if rows.isEmpty {
                     Text("Nothing found. Searching ignores accents and capital letters.")
-                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
+                        .multilineTextAlignment(.center).font(.wfSmall).foregroundStyle(Tok.muted)
                 }
             }
             .accessibilityLabel("Presentations")
@@ -164,13 +164,13 @@ struct LibrarySidebar: View {
         let selected = workspace.openPresentationID == row.id
         return Button { open(row.id) } label: {
             HStack(spacing: 8) {
-                Image(systemName: currentLibrary?.kind.symbol ?? "music.note").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 16)
-                Text(row.title).font(.system(size: 13)).lineLimit(1)
+                Image(systemName: currentLibrary?.kind.symbol ?? "music.note").font(.wf(13)).foregroundStyle(Tok.text).frame(width: 16)
+                Text(row.title).font(.wf(13)).lineLimit(1)
                 Spacer(minLength: 4)
                 if let match = row.match {
-                    Text(match == .title ? "Title" : "Lyrics").font(.system(size: 11)).foregroundStyle(Tok.muted)
+                    Text(match == .title ? "Title" : "Lyrics").font(.wf(11)).foregroundStyle(Tok.muted)
                 } else if workspace.bilingualPresentationIDs.contains(row.id) {
-                    Text("EN · VI").font(.system(size: 11)).foregroundStyle(Tok.muted).accessibilityLabel("Two languages")
+                    Text("EN · VI").font(.wf(11)).foregroundStyle(Tok.muted).accessibilityLabel("Two languages")
                 }
             }
             .padding(.horizontal, 8).frame(height: 26)
@@ -194,7 +194,7 @@ struct LibrarySidebar: View {
     /// and puts keyboard focus back on the slide grid.
     private var searchField: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(Tok.muted).accessibilityHidden(true)
+            Image(systemName: "magnifyingglass").font(.wf(12)).foregroundStyle(Tok.muted).accessibilityHidden(true)
             TextField("", text: $query, prompt: Text("Search titles and lyrics").foregroundStyle(Tok.muted)).textFieldStyle(.plain)
                 .focused(searchFocused)
                 .accessibilityLabel("Search titles and lyrics")
@@ -205,7 +205,7 @@ struct LibrarySidebar: View {
                 KeyHint(key: "⌘F")
             }
         }
-        .font(.system(size: 12))
+        .font(.wf(12))
         .padding(.horizontal, 8).frame(height: Space.controlHeight)
         .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: searchFocused.wrappedValue ? Tok.blue : Tok.borderStrong, fill: Tok.bg)
     }
@@ -226,8 +226,8 @@ struct LibrarySidebar: View {
         let selected = app.ui.scriptureOpen || workspace.centreShowsScripture
         return Button { app.openScripture() } label: {
             HStack(spacing: 8) {
-                Image(systemName: "book.closed").font(.system(size: 13)).frame(width: 16).foregroundStyle(Tok.text)
-                Text("Scripture").font(.system(size: 13)).lineLimit(1)
+                Image(systemName: "book.closed").font(.wf(13)).frame(width: 16).foregroundStyle(Tok.text)
+                Text("Scripture").font(.wf(13)).lineLimit(1)
                 Spacer()
                 KeyHint(key: "⌘J")
             }
@@ -245,11 +245,11 @@ struct LibrarySidebar: View {
         let selected = library.id == workspace.selectedLibraryID && !(app.ui.scriptureOpen || workspace.centreShowsScripture)
         return Button { app.ui.scriptureOpen = false; Task { await workspace.selectLibrary(library.id) } } label: {
             HStack(spacing: 8) {
-                Image(systemName: library.kind.symbol).font(.system(size: 13)).frame(width: 16).foregroundStyle(Tok.text)
-                Text(library.name).font(.system(size: 13)).lineLimit(1)
+                Image(systemName: library.kind.symbol).font(.wf(13)).frame(width: 16).foregroundStyle(Tok.text)
+                Text(library.name).font(.wf(13)).lineLimit(1)
                 Spacer()
                 if let count = workspace.libraryCounts[library.id] {
-                    Text("\(count)").font(.system(size: 11)).foregroundStyle(Tok.muted)
+                    Text("\(count)").font(.wf(11)).foregroundStyle(Tok.muted)
                 }
             }
             .padding(.horizontal, 8).frame(height: 26)
@@ -308,7 +308,7 @@ struct LibrarySidebar: View {
             .overlay {
                 if workspace.playlistItems.isEmpty {
                     Text("Empty playlist.\nRight-click a song, then Add to playlist.")
-                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(Tok.muted)
+                        .multilineTextAlignment(.center).font(.wfSmall).foregroundStyle(Tok.muted)
                 }
             }
             .accessibilityLabel("Playlist items")
@@ -340,7 +340,7 @@ struct LibrarySidebar: View {
     @ViewBuilder private func playlistRow(_ item: PlaylistItem, number: Int) -> some View {
         switch item.kind {
         case .header(let label):
-            Text(label.uppercased()).font(.system(size: 11, weight: .semibold)).tracking(0.44).foregroundStyle(Tok.muted).lineLimit(1)
+            Text(label.uppercased()).font(.wf(11, .semibold)).tracking(0.44).foregroundStyle(Tok.muted).lineLimit(1)
                 .padding(.horizontal, 8).frame(height: 22, alignment: .leading)
                 .listRowInsets(EdgeInsets(top: 0, leading: -9, bottom: 0, trailing: -9)).listRowSeparator(.hidden)
                 .selectionDisabled()
@@ -357,7 +357,7 @@ struct LibrarySidebar: View {
             rowChrome(item, icon: "timer") {
                 Text(spec.label.isEmpty ? "Countdown" : spec.label).lineLimit(1)
                 Spacer()
-                Text(Self.summary(spec)).font(.system(size: 11)).foregroundStyle(Tok.muted)
+                Text(Self.summary(spec)).font(.wf(11)).foregroundStyle(Tok.muted)
                 liveMarker(item)
             }
             .accessibilityLabel("Countdown \(spec.label), \(Self.summary(spec))")
@@ -370,7 +370,7 @@ struct LibrarySidebar: View {
             rowChrome(item, icon: "book.closed") {
                 Text(item.title).lineLimit(1)
                 if let warning = app.scripture?.availability(of: spec) {
-                    Text("not installed").font(.caption2.bold()).foregroundStyle(Tok.warning)
+                    Text("not installed").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
                         .help(warning)
                         .accessibilityLabel(warning)
                 }
@@ -405,7 +405,7 @@ struct LibrarySidebar: View {
             rowChrome(item, icon: "textformat") {
                 Text("Sermon — \(item.title)").lineLimit(1)
                 if workspace.emptyPlaylistItemIDs.contains(item.id) {
-                    Text("empty").font(.caption2.bold()).foregroundStyle(Tok.warning)
+                    Text("empty").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
                 }
                 Spacer()
                 liveMarker(item)
@@ -418,7 +418,7 @@ struct LibrarySidebar: View {
             rowChrome(item, icon: "music.note") {
                 Text(item.title).lineLimit(1)
                 if workspace.emptyPlaylistItemIDs.contains(item.id) {
-                    Text("empty").font(.caption2.bold()).foregroundStyle(Tok.warning)
+                    Text("empty").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
                         .help("This item has no slides to show. Its section order may be empty.")
                         .accessibilityLabel("Empty: no slides to show")
                 }
@@ -442,10 +442,10 @@ struct LibrarySidebar: View {
     /// One playlist row in the design's form: a leading icon by kind (text colour), 13 pt text, 26 pt tall, `surface-3` when selected.
     private func rowChrome<C: View>(_ item: PlaylistItem, icon: String, @ViewBuilder _ content: () -> C) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 16)
+            Image(systemName: icon).font(.wf(13)).foregroundStyle(Tok.text).frame(width: 16)
             content()
         }
-        .font(.system(size: 13))
+        .font(.wf(13))
         .padding(.horizontal, 8).frame(height: 26)
         .tag(item.id)
         .listRowInsets(EdgeInsets(top: 0, leading: -9, bottom: 0, trailing: -9)).listRowSeparator(.hidden)
@@ -456,7 +456,7 @@ struct LibrarySidebar: View {
         if isOnScreen(item) {
             HStack(spacing: 4) {
                 Circle().fill(Tok.live).frame(width: 8, height: 8)
-                Text("LIVE").font(.system(size: 11)).foregroundStyle(Tok.live)
+                Text("LIVE").font(.wf(11)).foregroundStyle(Tok.live)
             }
             .accessibilityLabel("On screen")
         }
@@ -566,10 +566,10 @@ struct LoopSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text("Announcements loop").font(.headline)
+            Text("Announcements loop").font(.wfHeadline)
             TextField("Name", text: $label).textFieldStyle(.roundedBorder)
             if candidates.isEmpty {
-                Text("The media bin has no pictures or videos yet. Add them in the Media tab first.").font(.caption).foregroundStyle(Tok.muted)
+                Text("The media bin has no pictures or videos yet. Add them in the Media tab first.").font(.wfSmall).foregroundStyle(Tok.muted)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 4) {
@@ -584,8 +584,8 @@ struct LoopSheet: View {
                 Stepper("Each picture stays \(seconds) s", value: $seconds, in: AnnouncementsSpec.pictureSeconds)
             }
             Text("It runs until you press Next. It never moves the service on by itself.")
-                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
-            if let problem { Text(problem).font(.caption).foregroundStyle(Tok.warning) }
+                .font(.wfSmall).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            if let problem { Text(problem).font(.wfSmall).foregroundStyle(Tok.warning) }
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
@@ -611,10 +611,10 @@ struct ServiceDateSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text("Service date and time").font(.headline)
+            Text("Service date and time").font(.wfHeadline)
             DatePicker("Service", selection: $date, displayedComponents: [.date, .hourAndMinute])
             Text("The window title reads from it, in your language. Nothing on the screens changes.")
-                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                .font(.wfSmall).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Button("Remove date") { save(nil); dismiss() }.disabled(edit.date == nil)
                 Spacer()
@@ -646,7 +646,7 @@ struct CountdownSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text(edit.itemID == nil ? "Add countdown" : "Edit countdown").font(.headline)
+            Text(edit.itemID == nil ? "Add countdown" : "Edit countdown").font(.wfHeadline)
             TextField("Label (for example Starting soon)", text: $label).textFieldStyle(.roundedBorder)
             Picker("Counts", selection: $useTarget) {
                 Text("A length of time").tag(false)
@@ -661,7 +661,7 @@ struct CountdownSheet: View {
                 }
             }
             Text("It starts when you go live on it, and stays at 0:00 until you move on. It never moves the service on by itself.")
-                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                .font(.wfSmall).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)

@@ -14,6 +14,10 @@ targets:
     sources:
       - App/Sources
       - App/Resources
+      # UI-005i: Inter and its licence, unmodified, copied into the app as the folder Resources/Inter (not duplicated in the repository).
+      - path: Vendor/Inter
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: WorshipFlowKit
         product: Domain

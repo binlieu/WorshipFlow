@@ -18,9 +18,9 @@ struct MIDISection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s5) {
-            Text("MIDI").font(.system(size: 22, weight: .bold))
+            Text("MIDI").font(.wf(22, .bold))
             Toggle(isOn: Binding(get: { cue.midi.isEnabled }, set: { on in Task { @MainActor in await cue.setMIDIEnabled(on) } })) {
-                Text("Use MIDI").font(.system(size: 14, weight: .semibold))
+                Text("Use MIDI").font(.wf(14, .semibold))
             }
             .toggleStyle(.wf)
             if !cue.midi.isEnabled {
@@ -50,7 +50,7 @@ struct MIDISection: View {
             }
             if let error = s.error { Text(error).foregroundStyle(Tok.warning) }
         }
-        .font(.system(size: 13))
+        .font(.wf(13))
     }
 
     private var devices: some View {
@@ -73,7 +73,7 @@ struct MIDISection: View {
             Toggle(isOn: Binding(get: { cue.midi.virtualPorts }, set: { on in Task { @MainActor in await cue.setVirtualPorts(on) } })) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Virtual ports for other programs on this Mac")
-                    Text("\u{201C}\(s.virtualInputName)\u{201D} takes MIDI from them, \u{201C}\(s.virtualOutputName)\u{201D} sends MIDI to them.").font(.caption).foregroundStyle(Tok.muted)
+                    Text("\u{201C}\(s.virtualInputName)\u{201D} takes MIDI from them, \u{201C}\(s.virtualOutputName)\u{201D} sends MIDI to them.").font(.wfSmall).foregroundStyle(Tok.muted)
                 }
             }
             .toggleStyle(.wf)
@@ -87,7 +87,7 @@ struct MIDISection: View {
                 SectionLabel("Bindings")
                 Spacer()
                 if cue.midiStatus.isLearning {
-                    Text("Press a pad or key\u{2026}").font(.system(size: 13, weight: .semibold)).foregroundStyle(Tok.cyan)
+                    Text("Press a pad or key\u{2026}").font(.wf(13, .semibold)).foregroundStyle(Tok.cyan)
                     Button("Cancel") { cue.cancelLearning() }.buttonStyle(HeaderButtonStyle())
                 } else {
                     Button("Learn\u{2026}") { Task { @MainActor in _ = await cue.learnBinding(command: .transport(.next)) } }
@@ -95,7 +95,7 @@ struct MIDISection: View {
                         .help(cue.midiStatus.isEnabled ? "Press a pad or key; it becomes a binding for Next slide, which you can change" : "Turn MIDI on to learn a pad")
                 }
             }
-            if cue.bindings.bindings.isEmpty { Text("No bindings yet.").font(.system(size: 13)).foregroundStyle(Tok.muted) }
+            if cue.bindings.bindings.isEmpty { Text("No bindings yet.").font(.wf(13)).foregroundStyle(Tok.muted) }
             ForEach(cue.bindings.bindings) { binding in row(binding) }
             if !cue.bindingConflicts.isEmpty {
                 CueNote(text: "Two bindings use the same pad. Both would run. Change one so a pad does one thing.", systemImage: "exclamationmark.triangle")
@@ -139,19 +139,19 @@ struct RemoteSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s5) {
-            Text("Remote control").font(.system(size: 22, weight: .bold))
+            Text("Remote control").font(.wf(22, .bold))
             Toggle(isOn: Binding(get: { cue.remote.isEnabled }, set: { on in Task { @MainActor in await cue.setRemoteEnabled(on) } })) {
-                Text("Let a phone on this network control the show").font(.system(size: 14, weight: .semibold))
+                Text("Let a phone on this network control the show").font(.wf(14, .semibold))
             }
             .toggleStyle(.wf)
             Text("The connection is plain HTTP: anyone on the same Wi-Fi can read it and reuse a paired phone\u{2019}s access until you revoke it, so use it only on a network you trust.")
-                .font(.system(size: 13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
-            if let error = cue.remoteStatus.error { Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).font(.system(size: 13)) }
+                .font(.wf(13)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            if let error = cue.remoteStatus.error { Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).font(.wf(13)) }
             HStack {
-                Text("Port").font(.system(size: 13))
+                Text("Port").font(.wf(13))
                 TextField("8765", text: $portText).textFieldStyle(.roundedBorder).frame(width: 90)
                     .onSubmit { if let p = UInt16(portText) { Task { @MainActor in await cue.setRemotePort(p) } } else { portText = String(cue.remote.port) } }
-                Text("1024 to 65535. Press Return to apply.").font(.caption).foregroundStyle(Tok.muted)
+                Text("1024 to 65535. Press Return to apply.").font(.wfSmall).foregroundStyle(Tok.muted)
             }
             .onAppear { portText = String(cue.remote.port) }
             if cue.remoteStatus.isRunning {
@@ -169,19 +169,19 @@ struct RemoteSection: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let pairing = cue.remotePairing()
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(Self.spaced(pairing?.code ?? "")).font(.system(size: 48, weight: .bold, design: .monospaced)).textSelection(.enabled)
+                    Text(Self.spaced(pairing?.code ?? "")).font(.wfMono(48, .bold)).textSelection(.enabled)
                         .accessibilityLabel("Pairing code \(pairing?.code.map(String.init).joined(separator: " ") ?? "")")
                     if let pairing {
                         let left = max(0, Int(pairing.expiresAt.timeIntervalSince(context.date)))
-                        Text("Changes in \(left / 60):\(String(format: "%02d", left % 60)), and after each pairing.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Text("Changes in \(left / 60):\(String(format: "%02d", left % 60)), and after each pairing.").font(.wf(12)).foregroundStyle(Tok.muted)
                     }
                 }
             }
             if cue.remoteStatus.addresses.isEmpty {
-                Text("No network address was found. Connect this Mac to the same Wi-Fi or network as the phone.").font(.system(size: 13)).foregroundStyle(Tok.warning)
+                Text("No network address was found. Connect this Mac to the same Wi-Fi or network as the phone.").font(.wf(13)).foregroundStyle(Tok.warning)
             } else {
-                Text("On the phone, open:").font(.system(size: 13)).foregroundStyle(Tok.muted)
-                ForEach(cue.remoteStatus.addresses, id: \.self) { Text($0).font(.system(size: 15, weight: .semibold, design: .monospaced)).textSelection(.enabled) }
+                Text("On the phone, open:").font(.wf(13)).foregroundStyle(Tok.muted)
+                ForEach(cue.remoteStatus.addresses, id: \.self) { Text($0).font(.wfMono(15, .semibold)).textSelection(.enabled) }
             }
         }
     }
@@ -193,13 +193,13 @@ struct RemoteSection: View {
                 Spacer()
                 Button("Revoke all") { revokeAll = true }.buttonStyle(HeaderButtonStyle()).disabled(cue.remoteStatus.devices.isEmpty)
             }
-            if cue.remoteStatus.devices.isEmpty { Text("No phone is paired.").font(.system(size: 13)).foregroundStyle(Tok.muted) }
+            if cue.remoteStatus.devices.isEmpty { Text("No phone is paired.").font(.wf(13)).foregroundStyle(Tok.muted) }
             ForEach(cue.remoteStatus.devices) { device in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(device.label).font(.system(size: 14, weight: .semibold))
+                        Text(device.label).font(.wf(14, .semibold))
                         Text("Paired \(device.createdAt.formatted(date: .abbreviated, time: .shortened)) \u{00B7} last used \(device.lastUsed.map { $0.formatted(.relative(presentation: .named)) } ?? "never")")
-                            .font(.system(size: 12)).foregroundStyle(Tok.muted)
+                            .font(.wf(12)).foregroundStyle(Tok.muted)
                     }
                     Spacer()
                     Button("Revoke") { Task { @MainActor in await cue.revokeDevice(device.id) } }.buttonStyle(HeaderButtonStyle())

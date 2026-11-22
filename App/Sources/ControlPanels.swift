@@ -11,7 +11,7 @@ struct ScreensPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Screens").font(.headline)
+                Text("Screens").font(.wfHeadline)
                 Spacer()
                 if model.screensOn {
                     Button("Close screens") { model.stopScreens() }
@@ -21,9 +21,9 @@ struct ScreensPanel: View {
             }
             if !model.unavailableImages.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Images that cannot be read (the rest of the screen still shows):").font(.caption.bold()).foregroundStyle(.orange)
+                    Text("Images that cannot be read (the rest of the screen still shows):").font(.wf(10, .bold)).foregroundStyle(.orange)
                     ForEach(model.unavailableImages, id: \.self) { path in
-                        Text(path).font(.caption).foregroundStyle(.orange).lineLimit(1).truncationMode(.middle)
+                        Text(path).font(.wfSmall).foregroundStyle(.orange).lineLimit(1).truncationMode(.middle)
                     }
                 }
             }
@@ -31,7 +31,7 @@ struct ScreensPanel: View {
                 SDIEnvironmentLine(text: environment.message) { model.rescanSDI() }
             }
             if let notice = model.sdiProfileNotice {
-                Text(notice).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(notice).font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("sdi.profileNotice")
             }
             ForEach(model.sdiDevices) { device in
@@ -56,7 +56,7 @@ struct SDIEnvironmentLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: "info.circle").foregroundStyle(.secondary)
-            Text(text).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 4)
             Button("Rescan", action: rescan).controlSize(.small)
         }
@@ -73,18 +73,18 @@ struct ConnectorMapView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 6) {
-                Text("SDI connectors").font(.subheadline.bold())
-                Text(device.label).font(.caption).foregroundStyle(.secondary)
-                if device.isSimulated { Text("Simulated").font(.caption.bold()).padding(.horizontal, 5).padding(.vertical, 1)
+                Text("SDI connectors").font(.wf(11, .bold))
+                Text(device.label).font(.wfSmall).foregroundStyle(.secondary)
+                if device.isSimulated { Text("Simulated").font(.wf(10, .bold)).padding(.horizontal, 5).padding(.vertical, 1)
                     .background(Capsule().fill(Color.purple.opacity(0.25))) }
             }
             if !device.isConnected {
-                Text("This SDI card is not connected.").font(.caption).foregroundStyle(Tok.warning)
+                Text("This SDI card is not connected.").font(.wfSmall).foregroundStyle(Tok.warning)
             }
             ForEach(rows) { row in
                 HStack(spacing: 6) {
                     Image(systemName: symbol(row.kind)).foregroundStyle(color(row.kind)).frame(width: 16)
-                    Text(row.text).font(.system(.caption, design: .monospaced))
+                    Text(row.text).font(.wfMono(10))
                 }
             }
         }
@@ -125,7 +125,7 @@ struct DeveloperSection: View {
                     .toggleStyle(.wfCheckbox)
                     .accessibilityIdentifier("developer.showSimulatedSDI")
                 Text("Adds a simulated four-connector SDI card (no real hardware) to the destinations below.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.wfSmall).foregroundStyle(.secondary)
                 if model.showSimulatedSDIDevice {
                     HStack {
                         Button("Simulate unplug") { model.simulateSDIUnplug() }
@@ -162,7 +162,7 @@ struct ScreenRow: View {
                     ForEach(model.themes) { Text($0.name).tag(UUID?.some($0.id)) }
                 }.frame(maxWidth: 320)
                 HStack {
-                    Text("Layers").font(.caption).foregroundStyle(.secondary)
+                    Text("Layers").font(.wfSmall).foregroundStyle(.secondary)
                     layerToggle("Background", .background)
                     layerToggle("Slide", .slide)
                     layerToggle("Props", .props)
@@ -176,13 +176,13 @@ struct ScreenRow: View {
                     Button("Edit layouts…") { model.workspace?.setMode(.stage) }
                 }
                 Text("The stage screen uses a stage layout: themes, Looks and props do not apply.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.wfSmall).foregroundStyle(.secondary)
             } else {
                 Text("The stage screen uses its own layout: themes, Looks and props do not apply.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.wfSmall).foregroundStyle(.secondary)
             }
             HStack {
-                Text(statusText).font(.subheadline.bold()).foregroundStyle(statusColor)
+                Text(statusText).font(.wf(11, .bold)).foregroundStyle(statusColor)
                 Spacer()
                 if isRunning {
                     Button("Stop") { model.stopScreen(profile.id) }
@@ -192,17 +192,17 @@ struct ScreenRow: View {
             }
             if !readout.renderProblems.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Left out of this screen:").font(.caption.bold()).foregroundStyle(.orange)
+                    Text("Left out of this screen:").font(.wf(10, .bold)).foregroundStyle(.orange)
                     ForEach(readout.renderProblems, id: \.self) { problem in
-                        Text(problem).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                        Text(problem).font(.wfSmall).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
             if let message {
-                Text(message).font(.caption).foregroundStyle(statusColor).fixedSize(horizontal: false, vertical: true)
+                Text(message).font(.wfSmall).foregroundStyle(statusColor).fixedSize(horizontal: false, vertical: true)
             }
             if isRunning {
-                Text(counters).font(.system(.caption, design: .monospaced)).foregroundStyle(readout.state == .hidden ? .secondary : .primary)
+                Text(counters).font(.wfMono(10)).foregroundStyle(readout.state == .hidden ? .secondary : .primary)
             }
             if let sdi = readout.sdi { SDIStatusLines(report: sdi, running: isRunning) }
             mirrorsSection
@@ -233,7 +233,7 @@ struct ScreenRow: View {
             ForEach(Array(profile.mirrors.enumerated()), id: \.offset) { index, _ in
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
-                        Text("Mirror \(index + 1)").font(.caption.bold())
+                        Text("Mirror \(index + 1)").font(.wf(10, .bold))
                         DestinationEditor(model: model, profile: profile, mirror: index)
                         Button("Remove") { model.updateProfile(ScreenEditing.removingMirror(profile, at: index)) }
                             .accessibilityLabel("Remove mirror \(index + 1) of \(profile.name)")
@@ -320,15 +320,15 @@ struct SDIStatusLines: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Text(report.isSimulated ? "SDI output, Simulated" : "SDI output").font(.caption.bold())
-                Text(report.modeName).font(.caption)
+                Text(report.isSimulated ? "SDI output, Simulated" : "SDI output").font(.wf(10, .bold))
+                Text(report.modeName).font(.wfSmall)
                 if running {
-                    Text("health \(healthText)").font(.caption.bold()).foregroundStyle(healthColor)
-                    Text("frames repeated \(report.repeatedFrames)").font(.caption)
+                    Text("health \(healthText)").font(.wf(10, .bold)).foregroundStyle(healthColor)
+                    Text("frames repeated \(report.repeatedFrames)").font(.wfSmall)
                 }
             }
             ForEach(report.warnings, id: \.self) { warning in
-                Text(warning).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                Text(warning).font(.wfSmall).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -347,13 +347,13 @@ struct MirrorStatusLine: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(statusText).font(.caption.bold()).foregroundStyle(color)
+            Text(statusText).font(.wf(10, .bold)).foregroundStyle(color)
             if case .faulted(let message) = mirror.state {
-                Text(message).font(.caption).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
+                Text(message).font(.wfSmall).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
             }
             if mirror.state == .running || mirror.state == .hidden {
                 Text(String(format: "presented %d   dropped %d   late %d", mirror.presented, mirror.dropped, mirror.late))
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.wfMono(10))
             }
             if let sdi = mirror.sdi { SDIStatusLines(report: sdi, running: mirror.state == .running) }
         }
@@ -409,7 +409,7 @@ struct DestinationEditor: View {
                         .disabled(device?.supportsKeying == false)
                         .accessibilityLabel("Fill and key for \(profile.name)")
                     if keying {
-                        Text(ScreenEditing.keyingCaption(connector: connector, device: device)).font(.caption).foregroundStyle(.secondary)
+                        Text(ScreenEditing.keyingCaption(connector: connector, device: device)).font(.wfSmall).foregroundStyle(.secondary)
                     }
                 }
                 if keying {
@@ -482,7 +482,7 @@ struct LookPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Look").font(.headline)
+            Text("Look").font(.wfHeadline)
             HStack {
                 Picker("Look", selection: Binding(get: { model.selectedLookID ?? UUID() }, set: { model.selectLook($0) })) {
                     ForEach(model.looks) { Text($0.name).tag($0.id) }
@@ -495,7 +495,7 @@ struct LookPanel: View {
                                                     set: { if let id = model.selectedLookID { model.renameLook(id, to: $0) } }))
                 .textFieldStyle(.roundedBorder).frame(maxWidth: 260)
             Text("A Look sets the theme and visible layers of each screen below. Switching Look changes every screen at once.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.wfSmall).foregroundStyle(.secondary)
         }
     }
 }
@@ -507,13 +507,13 @@ struct PropsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Props").font(.headline)
+                Text("Props").font(.wfHeadline)
                 Spacer()
                 Button("Add image…") { model.chooseProp() }
             }
             if model.props.isEmpty {
                 Text("No props. Add a logo image to keep it on screen above the slides.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.wfSmall).foregroundStyle(.secondary)
             }
             ForEach(model.props) { prop in
                 HStack {
@@ -521,7 +521,7 @@ struct PropsPanel: View {
                         .toggleStyle(.wf)
                     Spacer()
                     if model.unavailableImages.contains(prop.imagePath) {
-                        Text("File not readable").font(.caption).foregroundStyle(.orange)
+                        Text("File not readable").font(.wfSmall).foregroundStyle(.orange)
                     }
                     Button("Remove") { model.removeProp(prop.id) }
                 }

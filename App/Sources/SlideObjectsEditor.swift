@@ -37,7 +37,7 @@ struct SlideObjectsEditor: View {
                 }
                 toolbar
                 Text("Drag to move, drag the corner square to resize, double-click a text box to type in it.")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             .frame(width: width)
     }
@@ -192,7 +192,7 @@ private struct ObjectBox: View {
             if editing, isText {
                 TextField("Text", text: Binding(get: { text }, set: { editor.setText(object.id, $0) }), axis: .vertical)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.wf(13))
                     .padding(4)
                     .background(Color.black.opacity(0.75))
                     .foregroundStyle(.white)
@@ -253,7 +253,7 @@ struct SlideInspector: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text(slideObjectTitle(o)).font(.headline)
+                        Text(slideObjectTitle(o)).font(.wfHeadline)
                         Spacer()
                         orderButtons(o)
                     }
@@ -264,27 +264,27 @@ struct SlideInspector: View {
                     }
                     Divider()
                     HStack {
-                        Text("Opacity").font(.caption).frame(width: 52, alignment: .leading)
+                        Text("Opacity").font(.wfSmall).frame(width: 52, alignment: .leading)
                         Slider(value: Binding(get: { o.opacity }, set: { editor.setOpacity(o.id, $0) }), in: 0...1)
                             .accessibilityLabel("Opacity")
-                        Text("\(Int((o.opacity * 100).rounded()))%").font(.caption.monospacedDigit()).frame(width: 40, alignment: .trailing)
+                        Text("\(Int((o.opacity * 100).rounded()))%").font(.wfSmall).frame(width: 40, alignment: .trailing)
                     }
-                    Text("Position and size, in percent of the slide").font(.caption).foregroundStyle(.secondary)
+                    Text("Position and size, in percent of the slide").font(.wfSmall).foregroundStyle(.secondary)
                     Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
                         GridRow { percent("Left", o, \.x); percent("Top", o, \.y) }
                         GridRow { percent("Width", o, \.width); percent("Height", o, \.height) }
                     }
                     Divider()
-                    Text("Add another").font(.caption).foregroundStyle(.secondary)
+                    Text("Add another").font(.wfSmall).foregroundStyle(.secondary)
                     insertButtons
                 }
                 .padding(.trailing, 8)
             }
         } else {
             VStack(spacing: 6) {
-                Text("No object selected").font(.headline)
+                Text("No object selected").font(.wfHeadline)
                 Text("Choose an object on the slide, or add one:")
-                    .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    .font(.wfSmall).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 insertButtons
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -333,11 +333,11 @@ struct SlideInspector: View {
                 .textFieldStyle(.roundedBorder).accessibilityLabel("Font")
             Stepper(value: Binding(get: { t.style.fontSize }, set: { editor.setFontSize(id, $0) }),
                     in: SlideEditing.fontSizeRange, step: 4) {
-                Text("Size \(Int(t.style.fontSize))").font(.caption.monospacedDigit())
+                Text("Size \(Int(t.style.fontSize))").font(.wfSmall)
             }.accessibilityLabel("Font size")
         }
         if NSFont(name: t.style.fontName, size: 12) == nil {
-            Text("No font with that name is installed, so the default font is used.").font(.caption).foregroundStyle(.orange)
+            Text("No font with that name is installed, so the default font is used.").font(.wfSmall).foregroundStyle(.orange)
         }
         colorRow("Colour", color: t.style.color) { editor.setTextColor(id, $0) }
         HStack {
@@ -355,7 +355,7 @@ struct SlideInspector: View {
         HStack {
             Stepper(value: Binding(get: { t.style.outlineWidth }, set: { editor.setOutline(id, width: $0) }),
                     in: SlideEditing.outlineRange, step: 1) {
-                Text("Outline \(Int(t.style.outlineWidth))").font(.caption.monospacedDigit())
+                Text("Outline \(Int(t.style.outlineWidth))").font(.wfSmall)
             }.accessibilityLabel("Outline width")
             ColorPicker("Outline colour", selection: Binding(get: { Color(t.style.outlineColor) },
                                                               set: { editor.setOutline(id, color: $0.rgba) }))
@@ -374,7 +374,7 @@ struct SlideInspector: View {
                 })).labelsHidden().accessibilityLabel("Shadow colour")
             }
         }
-        Text("Size, outline and shadow are in points on a 1080-line screen.").font(.caption).foregroundStyle(.secondary)
+        Text("Size, outline and shadow are in points on a 1080-line screen.").font(.wfSmall).foregroundStyle(.secondary)
     }
 
     // MARK: Shape
@@ -397,12 +397,12 @@ struct SlideInspector: View {
             colorRow("Outline colour", color: s.strokeColor ?? .white) { editor.setStrokeColor(id, $0) }
             Stepper(value: Binding(get: { s.strokeWidth }, set: { editor.setStrokeWidth(id, $0) }),
                     in: SlideEditing.strokeRange, step: 1) {
-                Text("Outline width \(Int(s.strokeWidth))").font(.caption.monospacedDigit())
+                Text("Outline width \(Int(s.strokeWidth))").font(.wfSmall)
             }.accessibilityLabel("Outline width")
         }
         if case .roundedRectangle(let radius) = s.shape {
             HStack {
-                Text("Corners").font(.caption).frame(width: 52, alignment: .leading)
+                Text("Corners").font(.wfSmall).frame(width: 52, alignment: .leading)
                 Slider(value: Binding(get: { radius }, set: { editor.setCornerRadius(id, $0) }), in: 0...0.5)
                     .accessibilityLabel("Corner radius")
             }
@@ -412,10 +412,10 @@ struct SlideInspector: View {
     // MARK: Image
 
     @ViewBuilder private func imageControls(_ o: SlideObject, _ i: ImageObject) -> some View {
-        Text(i.path).font(.caption).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
+        Text(i.path).font(.wfSmall).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
         if !FileManager.default.isReadableFile(atPath: i.path) {
             Text("That file cannot be read, so nothing is drawn. Delete this object and insert the image again.")
-                .font(.caption).foregroundStyle(.orange)
+                .font(.wfSmall).foregroundStyle(.orange)
         }
         Picker("Show", selection: Binding(get: { i.contentMode }, set: { editor.setImageContentMode(o.id, $0) })) {
             Text("Fit (whole picture)").tag(ImageContentMode.fit)
@@ -427,7 +427,7 @@ struct SlideInspector: View {
 
     private func colorRow(_ label: String, color: ColorRGBA, set: @escaping (ColorRGBA) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(label).font(.wfSmall).foregroundStyle(.secondary)
             HStack(spacing: 5) {
                 ForEach(swatches, id: \.name) { swatch in
                     Button { set(swatch.color) } label: {
@@ -447,7 +447,7 @@ struct SlideInspector: View {
 
     private func number(_ label: String, _ value: Double, set: @escaping (Double) -> Void) -> some View {
         HStack(spacing: 3) {
-            Text(label).font(.caption)
+            Text(label).font(.wfSmall)
             TextField(label, value: Binding(get: { value }, set: { set($0) }), format: .number.precision(.fractionLength(0...1)))
                 .textFieldStyle(.roundedBorder).frame(width: 46).accessibilityLabel("Shadow \(label.lowercased())")
         }
@@ -455,7 +455,7 @@ struct SlideInspector: View {
 
     private func percent(_ label: String, _ o: SlideObject, _ keyPath: WritableKeyPath<NormalizedRect, Double>) -> some View {
         HStack(spacing: 4) {
-            Text(label).font(.caption).frame(width: 44, alignment: .leading)
+            Text(label).font(.wfSmall).frame(width: 44, alignment: .leading)
             TextField(label, value: Binding(get: { o.frame[keyPath: keyPath] * 100 }, set: { value in
                 var f = o.frame
                 f[keyPath: keyPath] = value / 100

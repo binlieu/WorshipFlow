@@ -31,7 +31,7 @@ struct TimersPanel: View {
             if adding { addForm }
             if stage.timers.isEmpty && !adding {
                 Text("No timers. Add a countdown, an elapsed timer or a countdown to a time, then show it with a Timer element in a stage layout.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.wfSmall).foregroundStyle(.secondary)
             }
             if stage.timers.contains(where: \.isRunning) {
                 TimelineView(.periodic(from: .now, by: 1)) { _ in rows }
@@ -39,7 +39,7 @@ struct TimersPanel: View {
                 rows
             }
             Divider()
-            Text("Stage clock").font(.subheadline.bold())
+            Text("Stage clock").font(.wf(11, .bold))
             HStack {
                 Picker("", selection: Binding(get: { stage.clockStyle.twentyFourHour },
                                                    set: { stage.setClockStyle(twentyFourHour: $0) })) {
@@ -49,7 +49,7 @@ struct TimersPanel: View {
                 Toggle("Seconds", isOn: Binding(get: { stage.clockStyle.showsSeconds }, set: { stage.setClockStyle(showsSeconds: $0) }))
                     .toggleStyle(.wfCheckbox)
             }
-            Text("Now: \(stage.timeOfDayText(at: stage.now))").font(.caption).foregroundStyle(.secondary)
+            Text("Now: \(stage.timeOfDayText(at: stage.now))").font(.wfSmall).foregroundStyle(.secondary)
         }
     }
 
@@ -64,16 +64,16 @@ struct TimersPanel: View {
                                 .onSubmit { commitRename(row.id) }
                             Button("Save") { commitRename(row.id) }
                         } else {
-                            Text(row.name).font(.subheadline.bold()).lineLimit(1)
+                            Text(row.name).font(.wf(11, .bold)).lineLimit(1)
                             Spacer()
                             Text(row.text)
-                                .font(.system(.title3, design: .monospaced))
+                                .font(.wfMono(15))
                                 .foregroundStyle(row.isOverrun ? Color(StageLayout.standard.warningColor) : Color.primary)
                                 .accessibilityLabel("\(row.name) value \(row.text)\(row.isOverrun ? ", over time" : "")")
                         }
                     }
                     HStack(spacing: 6) {
-                        Text(row.kindLabel).font(.caption).foregroundStyle(.secondary)
+                        Text(row.kindLabel).font(.wfSmall).foregroundStyle(.secondary)
                         Toggle(isOn: Binding(get: { stage.isShownInToolbar(row.id) }, set: { stage.setShownInToolbar(row.id, $0) })) {
                             Image(systemName: "menubar.rectangle")
                         }
@@ -120,7 +120,7 @@ struct TimersPanel: View {
             case .toTime:
                 DatePicker("Time today", selection: $targetTime, displayedComponents: .hourAndMinute)
             case .elapsed:
-                Text("Counts up from zero when you start it.").font(.caption).foregroundStyle(.secondary)
+                Text("Counts up from zero when you start it.").font(.wfSmall).foregroundStyle(.secondary)
             }
             Button("Add") {
                 let made: ShowTimer?

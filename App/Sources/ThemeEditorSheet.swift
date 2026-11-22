@@ -25,7 +25,7 @@ struct ThemeEditorSheet: View {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
             HStack {
-                Text("Themes").font(.title3.bold())
+                Text("Themes").font(.wf(15, .bold))
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
@@ -69,7 +69,7 @@ struct ThemeEditorSheet: View {
                 Section("Yours") {
                     ForEach(app.customThemes) { Text($0.name).tag($0.id) }
                     if app.customThemes.isEmpty {
-                        Text("None yet").font(.caption).foregroundStyle(.secondary)
+                        Text("None yet").font(.wfSmall).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -104,11 +104,11 @@ struct ThemeEditorSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(.quaternary))
                 .accessibilityHidden(true)
             Text("Preview with sample words. A video background shows as its fallback colour here.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.wfSmall).foregroundStyle(.secondary)
 
             if isCustom {
                 HStack {
-                    Text("Name").font(.caption).foregroundStyle(.secondary)
+                    Text("Name").font(.wfSmall).foregroundStyle(.secondary)
                     TextField("Name", text: $nameText).textFieldStyle(.roundedBorder).frame(maxWidth: 260)
                         .onSubmit { commitName(id) }
                     Button("Rename") { commitName(id) }.disabled(nameText == theme.name)
@@ -118,12 +118,12 @@ struct ThemeEditorSheet: View {
                 secondEditor(theme)
             } else {
                 Text("\"\(theme.name)\" is built in and cannot be changed. Duplicate it to make your own version.")
-                    .font(.callout)
+                    .font(.wfCallout)
             }
             if let title = openTitle {
                 Button("Use for \"\(title)\"") { if let open = workspace.openPresentationID { app.setPresentationTheme(id, forPresentation: open) } }
                     .disabled(workspace.openThemeID == id)
-                if workspace.openThemeID == id { Text("This song uses this theme.").font(.caption).foregroundStyle(.secondary) }
+                if workspace.openThemeID == id { Text("This song uses this theme.").font(.wfSmall).foregroundStyle(.secondary) }
             }
         }
     }
@@ -153,7 +153,7 @@ struct ThemeEditorSheet: View {
     private func backgroundEditor(_ theme: Theme) -> some View {
         let id = theme.id
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Background").font(.headline)
+            Text("Background").font(.wfHeadline)
             Picker("Background", selection: Binding(get: { kind(of: theme.background) }, set: { new in
                 app.updateTheme(id) { t in
                     switch new {
@@ -182,12 +182,12 @@ struct ThemeEditorSheet: View {
                 }
                 if !path.isEmpty, !FileManager.default.isReadableFile(atPath: path) {
                     Text("That file cannot be read. The screen shows black behind the words.")
-                        .font(.caption).foregroundStyle(.orange)
+                        .font(.wfSmall).foregroundStyle(.orange)
                 }
             case .media:
-                Text("The looping background video chosen in the Background video panel.").font(.caption).foregroundStyle(.secondary)
+                Text("The looping background video chosen in the Background video panel.").font(.wfSmall).foregroundStyle(.secondary)
             case .transparent:
-                Text("Nothing behind the words. For a broadcast overlay.").font(.caption).foregroundStyle(.secondary)
+                Text("Nothing behind the words. For a broadcast overlay.").font(.wfSmall).foregroundStyle(.secondary)
             }
         }
     }
@@ -230,7 +230,7 @@ private struct BlockEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.headline)
+            Text(title).font(.wfHeadline)
             HStack {
                 TextField("Font", text: binding(\.style.fontName)).textFieldStyle(.roundedBorder).frame(maxWidth: 220)
                     .accessibilityLabel("\(title) font")
@@ -240,16 +240,16 @@ private struct BlockEditor: View {
             }
             if NSFont(name: block.style.fontName, size: 12) == nil {
                 Text("No font with that name is installed, so the default font is used. Use a name such as \"Helvetica Neue\" or \"Georgia-Bold\".")
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.wfSmall).foregroundStyle(.orange)
             }
             HStack {
                 number("Outline", binding(\.style.outlineWidth), width: 56)
                 ColorPicker("Outline colour", selection: colorBinding(\.style.outlineColor)).labelsHidden()
                     .accessibilityLabel("\(title) outline colour")
-                Text("Size and outline are in points on a 1080-line screen.").font(.caption).foregroundStyle(.secondary)
+                Text("Size and outline are in points on a 1080-line screen.").font(.wfSmall).foregroundStyle(.secondary)
             }
             HStack {
-                Text("Frame (0 to 1 of the screen)").font(.caption).foregroundStyle(.secondary)
+                Text("Frame (0 to 1 of the screen)").font(.wfSmall).foregroundStyle(.secondary)
                 number("Left", binding(\.frame.x), width: 56)
                 number("Top", binding(\.frame.y), width: 56)
                 number("Width", binding(\.frame.width), width: 56)
@@ -272,7 +272,7 @@ private struct BlockEditor: View {
 
     private func number(_ label: String, _ value: Binding<Double>, width: CGFloat) -> some View {
         HStack(spacing: 4) {
-            Text(label).font(.caption)
+            Text(label).font(.wfSmall)
             TextField(label, value: value, format: .number.precision(.fractionLength(0...3)))
                 .textFieldStyle(.roundedBorder).frame(width: width)
                 .accessibilityLabel("\(title) \(label.lowercased())")

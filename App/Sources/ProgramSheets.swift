@@ -35,17 +35,17 @@ struct ExportProgramSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text("Export program").font(.title2.bold())
+            Text("Export program").font(.wf(17, .bold))
             Text("Saves one playlist, its songs and a copy of every picture and clip it uses as a single file you can carry to another Mac.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.wfSmall).foregroundStyle(.secondary)
             Picker("Playlist", selection: $model.exportPlaylistID) {
                 ForEach(workspace.playlists) { Text($0.name).tag(Optional($0.id)) }
             }
             .disabled(model.exportWork.isRunning)
             .onChange(of: model.exportPlaylistID) { _, _ in model.planExport(app: app) }
             summary
-            if case .failed(let message) = model.exportWork { Text(message).foregroundStyle(Tok.warning).font(.callout).textSelection(.enabled) }
-            if case .done(let message) = model.exportWork { Text(message).font(.callout).textSelection(.enabled) }
+            if case .failed(let message) = model.exportWork { Text(message).foregroundStyle(Tok.warning).font(.wfCallout).textSelection(.enabled) }
+            if case .done(let message) = model.exportWork { Text(message).font(.wfCallout).textSelection(.enabled) }
             ProgressRow(work: model.exportWork) { model.cancelWork() }
             HStack {
                 Spacer()
@@ -74,7 +74,7 @@ struct ExportProgramSheet: View {
 
     @ViewBuilder private var summary: some View {
         if model.exportPlanning {
-            HStack { ProgressView().controlSize(.small); Text("Reading the playlist and its media…").font(.callout) }
+            HStack { ProgressView().controlSize(.small); Text("Reading the playlist and its media…").font(.wfCallout) }
         } else if let plan = model.exportPlan {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(plan.itemCount) item\(plan.itemCount == 1 ? "" : "s") in the playlist, \(plan.presentationCount) presentation\(plan.presentationCount == 1 ? "" : "s")")
@@ -82,17 +82,17 @@ struct ExportProgramSheet: View {
                 if !plan.document.themes.isEmpty || !plan.document.looks.isEmpty {
                     Text("\(plan.document.themes.count) theme\(plan.document.themes.count == 1 ? "" : "s") and \(plan.document.looks.count) Look\(plan.document.looks.count == 1 ? "" : "s")")
                 }
-            }.font(.callout)
+            }.font(.wfCallout)
             if !plan.missing.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     Label("\(plan.missing.count) file\(plan.missing.count == 1 ? " cannot" : "s cannot") be read and will not be included:", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(Tok.warning).font(.callout)
-                    ForEach(plan.missing, id: \.name) { Text("• \($0.name)").font(.caption).foregroundStyle(.secondary) }
+                        .foregroundStyle(Tok.warning).font(.wfCallout)
+                    ForEach(plan.missing, id: \.name) { Text("• \($0.name)").font(.wfSmall).foregroundStyle(.secondary) }
                     Text("They are recorded as missing in the program. Connect the drive and export again to include them.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.wfSmall).foregroundStyle(.secondary)
                 }
             }
-            ForEach(plan.warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
+            ForEach(plan.warnings, id: \.self) { Text($0).font(.wfSmall).foregroundStyle(.secondary) }
         }
     }
 }
@@ -103,16 +103,16 @@ struct ImportProgramSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text("Import program").font(.title2.bold())
+            Text("Import program").font(.wf(17, .bold))
             if let problem = model.importProblem {
                 Text(problem).foregroundStyle(Tok.warning).textSelection(.enabled)
             } else if let summary = model.importSummary {
                 ScrollView { details(summary).frame(maxWidth: .infinity, alignment: .leading) }.frame(maxHeight: 360)
             } else {
-                HStack { ProgressView().controlSize(.small); Text("Reading the program…").font(.callout) }
+                HStack { ProgressView().controlSize(.small); Text("Reading the program…").font(.wfCallout) }
             }
-            if case .failed(let message) = model.importWork { Text(message).foregroundStyle(Tok.warning).font(.callout).textSelection(.enabled) }
-            if case .done(let message) = model.importWork { Text(message).font(.callout).textSelection(.enabled) }
+            if case .failed(let message) = model.importWork { Text(message).foregroundStyle(Tok.warning).font(.wfCallout).textSelection(.enabled) }
+            if case .done(let message) = model.importWork { Text(message).font(.wfCallout).textSelection(.enabled) }
             ProgressRow(work: model.importWork) { model.cancelWork() }
             HStack {
                 Spacer()
@@ -139,17 +139,17 @@ struct ImportProgramSheet: View {
 
     @ViewBuilder private func details(_ s: ProgramImportSummary) -> some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text("Playlist “\(s.playlistName)”: " + playlistWords(s.playlist)).font(.callout.bold())
+            Text("Playlist “\(s.playlistName)”: " + playlistWords(s.playlist)).font(.wf(12, .bold))
             group("New in this library", s.newPresentations)
             group("Already in this library, unchanged", s.alreadyPresent)
             group("In this library with different content", s.conflicting)
             if s.newThemes + s.newLooks + s.newMediaAssets > 0 {
                 Text("Also new: \(s.newThemes) theme\(s.newThemes == 1 ? "" : "s"), \(s.newLooks) Look\(s.newLooks == 1 ? "" : "s"), \(s.newMediaAssets) media bin item\(s.newMediaAssets == 1 ? "" : "s").")
-                    .font(.callout)
+                    .font(.wfCallout)
             }
             if s.hasConflicts {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Where something has the same id but different content:").font(.callout.bold())
+                    Text("Where something has the same id but different content:").font(.wf(12, .bold))
                     Picker("", selection: $model.importChoice) {
                         Text("Keep both (the imported copy is marked “(imported)”)").tag(ProgramConflictChoice.keepBoth)
                         Text("Keep mine").tag(ProgramConflictChoice.keepMine)
@@ -158,45 +158,45 @@ struct ImportProgramSheet: View {
                     if model.importChoice == .useImported {
                         // FIX-G: what protects the replace.
                         Text("Before anything is replaced the whole library is copied to the Backups folder next to it. A presentation that is live right now, and a theme or Look the live show uses, are not replaced: both are kept.")
-                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            .font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
             if s.mediaFilesToCopy > 0 || s.mediaFilesAlreadyThere > 0 {
                 Text("Media: \(s.mediaFilesToCopy) file\(s.mediaFilesToCopy == 1 ? "" : "s") to copy (\(sizeText(s.mediaBytesToCopy)))" +
                      (s.mediaFilesAlreadyThere > 0 ? ", \(s.mediaFilesAlreadyThere) already here" : "") +
-                     ". They are kept next to the library, so they go with it.").font(.callout)
+                     ". They are kept next to the library, so they go with it.").font(.wfCallout)
             }
             if !s.slideActionKinds.isEmpty {
                 // FIX-G: slide actions run things (media, Looks, ...) when a slide goes live; they are listed before anything is imported.
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Slide actions that come with these slides (they run when the slide goes live):").font(.callout)
+                    Text("Slide actions that come with these slides (they run when the slide goes live):").font(.wfCallout)
                     ForEach(s.slideActionKinds.sorted { $0.key < $1.key }, id: \.key) { kind, count in
-                        Text("• \(kind): \(count)").font(.caption).foregroundStyle(.secondary)
+                        Text("• \(kind): \(count)").font(.wfSmall).foregroundStyle(.secondary)
                     }
                 }
             }
             if !s.missingMedia.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Label("Missing when the program was saved:", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).font(.callout)
-                    ForEach(s.missingMedia, id: \.self) { Text("• \($0)").font(.caption).foregroundStyle(.secondary) }
+                    Label("Missing when the program was saved:", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).font(.wfCallout)
+                    ForEach(s.missingMedia, id: \.self) { Text("• \($0)").font(.wfSmall).foregroundStyle(.secondary) }
                 }
             }
             if !s.scriptureNotInstalled.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Bible passages whose translation is not installed here (they import and show that until it is):").font(.callout)
-                    ForEach(s.scriptureNotInstalled, id: \.self) { Text("• \($0)").font(.caption).foregroundStyle(.secondary) }
+                    Text("Bible passages whose translation is not installed here (they import and show that until it is):").font(.wfCallout)
+                    ForEach(s.scriptureNotInstalled, id: \.self) { Text("• \($0)").font(.wfSmall).foregroundStyle(.secondary) }
                 }
             }
-            if s.isNothingToImport { Text("Everything in this program is already in the library. Nothing to import.").font(.callout) }
+            if s.isNothingToImport { Text("Everything in this program is already in the library. Nothing to import.").font(.wfCallout) }
         }
     }
 
     @ViewBuilder private func group(_ title: String, _ names: [String]) -> some View {
         if !names.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(title) (\(names.count))").font(.callout.bold())
-                ForEach(names, id: \.self) { Text("• \($0)").font(.caption).foregroundStyle(.secondary) }
+                Text("\(title) (\(names.count))").font(.wf(12, .bold))
+                ForEach(names, id: \.self) { Text("• \($0)").font(.wfSmall).foregroundStyle(.secondary) }
             }
         }
     }

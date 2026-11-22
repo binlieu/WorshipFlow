@@ -47,14 +47,14 @@ struct ShowInspector: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         Badge(text: "PREVIEW", style: .preview)
-                        if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.system(size: 11)).foregroundStyle(Tok.muted) }
+                        if !workspace.slides.isEmpty { Text("slide \(workspace.show.selectedIndex + 1)").font(.wf(11)).foregroundStyle(Tok.muted) }
                     }
                     preview
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         liveBadge
-                        Text(live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience").font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1)
+                        Text(live.map { "\($0.role.rawValue.capitalized) · \(connectorText($0))" } ?? "Audience").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
                     }
                     liveMonitor
                 }
@@ -90,7 +90,7 @@ struct ShowInspector: View {
             }
             overrideChip
             Spacer(minLength: 4)
-            if app.profiles.filter(\.isEnabled).isEmpty { Text("No screens enabled").font(.system(size: 11)).foregroundStyle(Tok.muted) }
+            if app.profiles.filter(\.isEnabled).isEmpty { Text("No screens enabled").font(.wf(11)).foregroundStyle(Tok.muted) }
             Button("Configure…") { workspace.setMode(.screens) }.buttonStyle(HeaderButtonStyle(kind: .ghost))
                 .help("Screen settings are in the Screens mode (Command-6)")
         }
@@ -102,8 +102,8 @@ struct ShowInspector: View {
         if let media = app.media, media.hasLiveBackgroundOverride {
             let name = media.layers.background.flatMap { media.asset($0.selection.assetID)?.name } ?? "a background"
             HStack(spacing: 5) {
-                Image(systemName: "film").font(.system(size: 11)).foregroundStyle(Tok.muted).accessibilityHidden(true)
-                Text("Override: \(name)").font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1).truncationMode(.middle)
+                Image(systemName: "film").font(.wf(11)).foregroundStyle(Tok.muted).accessibilityHidden(true)
+                Text("Override: \(name)").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).truncationMode(.middle)
                 Button("Drop") { media.dropBackgroundOverride() }.buttonStyle(HeaderButtonStyle(compact: true))
                     .help("Drop the live background override and go back to each slide's own background")
                     .accessibilityLabel("Drop the live background override")
@@ -157,10 +157,10 @@ struct ShowInspector: View {
                 .wfThumbState(radius: 6)
             HStack(spacing: 6) {
                 Circle().fill(profile.role.tokenColor).frame(width: 8, height: 8).accessibilityHidden(true)
-                Text(profile.role.rawValue.capitalized).font(.system(size: 11, weight: .semibold)).foregroundStyle(Tok.text).lineLimit(1)
-                Text(connectorText(profile)).font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1)
+                Text(profile.role.rawValue.capitalized).font(.wf(11, .semibold)).foregroundStyle(Tok.text).lineLimit(1)
+                Text(connectorText(profile)).font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
                 Spacer(minLength: 0)
-                if simulated { Text("SIM").font(.system(size: 9, weight: .bold)).tracking(0.54).foregroundStyle(Tok.broadcast).padding(.horizontal, 6).padding(.vertical, 1)
+                if simulated { Text("SIM").font(.wf(9, .bold)).tracking(0.54).foregroundStyle(Tok.broadcast).padding(.horizontal, 6).padding(.vertical, 1)
                     .wfOutline(RoundedRectangle(cornerRadius: Radius.sm), stroke: Tok.broadcast).fixedSize() }
             }
         }
@@ -184,7 +184,7 @@ struct ShowInspector: View {
             ForEach(split.visible) { look in
                 let selected = look.id == app.selectedLookID
                 Button { app.selectLook(look.id) } label: {
-                    Text(look.name).font(.system(size: 11, weight: .medium)).lineLimit(1).fixedSize().frame(maxWidth: .infinity, minHeight: 24)
+                    Text(look.name).font(.wf(11, .medium)).lineLimit(1).fixedSize().frame(maxWidth: .infinity, minHeight: 24)
                 }
                 .buttonStyle(LookButtonStyle(selected: selected))
                 .accessibilityAddTraits(selected ? .isSelected : [])
@@ -192,11 +192,11 @@ struct ShowInspector: View {
             if !split.overflow.isEmpty {
                 Menu {
                     ForEach(split.overflow) { look in Button(look.name) { app.selectLook(look.id) } }
-                } label: { Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Tok.muted).frame(width: 24, height: 24) }
+                } label: { Image(systemName: "chevron.down").font(.wf(10, .semibold)).foregroundStyle(Tok.muted).frame(width: 24, height: 24) }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("More Looks")
                     .accessibilityLabel("More Looks")
             }
-            if app.looks.isEmpty { Text("No Looks yet.").font(.system(size: 11)).foregroundStyle(Tok.muted) }
+            if app.looks.isEmpty { Text("No Looks yet.").font(.wf(11)).foregroundStyle(Tok.muted) }
         }
     }
 
@@ -222,11 +222,11 @@ struct ShowInspector: View {
     private var props: some View {
         return VStack(alignment: .leading, spacing: 0) {
             if app.props.isEmpty {
-                Text("No props. Add a logo image in Screens, or a text prop below, to keep it above the slides.").font(.system(size: 11)).foregroundStyle(Tok.muted)
+                Text("No props. Add a logo image in Screens, or a text prop below, to keep it above the slides.").font(.wf(11)).foregroundStyle(Tok.muted)
             }
             ForEach(app.props) { prop in propRow(prop) }
             ForEach(Array(app.messages.enumerated()), id: \.offset) { _, m in
-                Text(m).font(.system(size: 11)).foregroundStyle(Tok.warning)
+                Text(m).font(.wf(11)).foregroundStyle(Tok.warning)
             }
             Button { textPropEditing = TextPropEdit(propID: nil) } label: { Label("Add text prop…", systemImage: "plus") }
                 .buttonStyle(HeaderButtonStyle(kind: .ghost)).padding(.top, 6)
@@ -239,11 +239,11 @@ struct ShowInspector: View {
     /// say where the prop is drawn when it is on and the screen's Look shows props: what is true, not decoration.
     private func propRow(_ prop: Prop) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: prop.kind == .text ? "textformat" : "photo").font(.system(size: 13)).foregroundStyle(Tok.text).frame(width: 15)
-            Text(prop.name).font(.system(size: 13)).lineLimit(1)
+            Image(systemName: prop.kind == .text ? "textformat" : "photo").font(.wf(13)).foregroundStyle(Tok.text).frame(width: 15)
+            Text(prop.name).font(.wf(13)).lineLimit(1)
             Spacer()
             if prop.kind == .image, app.unavailableImages.contains(prop.imagePath) {
-                Text("File not readable").font(.system(size: 11)).foregroundStyle(Tok.warning)
+                Text("File not readable").font(.wf(11)).foregroundStyle(Tok.warning)
             }
             ForEach(ScreenRole.allCases.filter { prop.targets.contains($0) }, id: \.self) { role in
                 Button { app.setProp(prop.id, target: role, isOn: false) } label: { PillTag(text: Self.abbreviation(role), color: role.tokenColor, height: 16) }
@@ -294,7 +294,7 @@ struct TextPropSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s4) {
-            Text(edit.propID == nil ? "Add text prop" : "Edit text prop").font(.headline)
+            Text(edit.propID == nil ? "Add text prop" : "Edit text prop").font(.wfHeadline)
             TextField("Name (for example Service title strap)", text: $name).textFieldStyle(.roundedBorder)
             TextField("Words", text: $words).textFieldStyle(.roundedBorder)
             HStack {
@@ -303,14 +303,14 @@ struct TextPropSheet: View {
             }
             Picker("Position", selection: $anchor) { ForEach(PropAnchor.allCases, id: \.self) { Text($0.title).tag($0) } }
             HStack(spacing: Space.s4) {
-                Text("Show on").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text("Show on").font(.wf(12)).foregroundStyle(Tok.muted)
                 ForEach(ScreenRole.allCases, id: \.self) { role in
                     Toggle(role.rawValue.capitalized, isOn: Binding(get: { targets.contains(role) },
                         set: { on in if on { targets.insert(role) } else { targets.remove(role) } })).toggleStyle(.wfCheckbox)
                 }
             }
             Text("Speaker notes never go to the audience or broadcast screens, and this prop does not change that.")
-                .font(.caption).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                .font(.wfSmall).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
@@ -377,8 +377,8 @@ struct QuickEditTab: View {
             if workspace.slides.indices.contains(index) {
                 let slide = workspace.slides[index]
                 HStack(spacing: 8) {
-                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.system(size: 13, weight: .bold))
-                    if let section = sectionName(slide) { Text(section).font(.system(size: 11)).foregroundStyle(Tok.muted) }
+                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.wf(13, .bold))
+                    if let section = sectionName(slide) { Text(section).font(.wf(11)).foregroundStyle(Tok.muted) }
                     Spacer(minLength: 4)
                     PillTag(text: QuickEditLabels.previewChip, color: Tok.blue, height: 18)
                         .accessibilityLabel("Preview only. The screens do not change until this slide goes live.")
@@ -392,7 +392,7 @@ struct QuickEditTab: View {
                     // The note counts from the last real write; it redraws each second only while this tab is open.
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
                         Text(workspace.hasUnsavedDrafts ? "Saving…" : workspace.quickEditSavedNote())
-                            .font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                            .font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 4)
                     Button { app.closeQuickEdit() } label: { HStack(spacing: 5) { Text("Done"); KeyHint(key: "esc") } }

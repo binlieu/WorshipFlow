@@ -73,7 +73,7 @@ struct CueNote: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: systemImage).foregroundStyle(Tok.muted).accessibilityHidden(true)
-            Text(text).font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .padding(Space.s4)

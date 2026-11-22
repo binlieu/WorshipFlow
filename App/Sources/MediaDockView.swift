@@ -83,11 +83,11 @@ struct MediaDockView: View {
                     .help("What a click on a picture or video does: put it behind the words, or play it over them")
                     .padding(.vertical, 4)
             }
-            Button { app.chooseMedia() } label: { Image(systemName: "plus").font(.system(size: 12)).frame(width: 22, height: 22) }
+            Button { app.chooseMedia() } label: { Image(systemName: "plus").font(.wf(12)).frame(width: 22, height: 22) }
                 .buttonStyle(.plain).foregroundStyle(Tok.muted)
                 .help("Add pictures, videos and sound to the media bin (or drop files here)")
                 .accessibilityLabel("Add media files")
-            Button { app.setMediaDock(collapsed: !collapsed) } label: { Image(systemName: collapsed ? "chevron.up" : "chevron.down").font(.system(size: 12)).frame(width: 22, height: 22) }
+            Button { app.setMediaDock(collapsed: !collapsed) } label: { Image(systemName: collapsed ? "chevron.up" : "chevron.down").font(.wf(12)).frame(width: 22, height: 22) }
                 .buttonStyle(.plain).foregroundStyle(Tok.muted)
                 .help(collapsed ? "Show the media bin" : "Fold the media bin away")
                 .accessibilityLabel(collapsed ? "Show the media bin" : "Fold the media bin away")
@@ -107,7 +107,7 @@ struct MediaDockView: View {
             Text(media.assets.isEmpty
                  ? "The bin is empty. Add pictures, videos and sound with +, or drop files here. Your files are never moved or deleted."
                  : "Nothing of this kind in the bin.")
-                .font(.system(size: 12)).foregroundStyle(Tok.muted)
+                .font(.wf(12)).foregroundStyle(Tok.muted)
                 .frame(maxWidth: .infinity, minHeight: 90, alignment: .center)
                 .padding(.horizontal, Space.s5)
         } else {
@@ -175,9 +175,9 @@ private struct DockTile: View {
                     Image(decorative: picture.image, scale: 1).resizable().aspectRatio(contentMode: .fill)
                 case .failed?:
                     Image(systemName: asset.kind == .audio ? "waveform" : "exclamationmark.triangle")
-                        .font(.title2).foregroundStyle(Tok.muted)
+                        .font(.wfTitle2).foregroundStyle(Tok.muted)
                 case nil:
-                    if asset.kind == .audio { Image(systemName: "waveform").font(.title2).foregroundStyle(Tok.muted) }
+                    if asset.kind == .audio { Image(systemName: "waveform").font(.wfTitle2).foregroundStyle(Tok.muted) }
                     else { ProgressView().controlSize(.small) }
                 }
             }
@@ -185,13 +185,13 @@ private struct DockTile: View {
             .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
             .overlay(alignment: .bottomTrailing) {
                 if let d = asset.duration, asset.kind != .image {
-                    Text(MediaTile.clock(d)).font(.system(size: 9, weight: .semibold, design: .monospaced)).padding(.horizontal, 3).frame(height: 13)
+                    Text(MediaTile.clock(d)).font(.wfMono(9, .semibold)).padding(.horizontal, 3).frame(height: 13)
                         .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.xs)).foregroundStyle(.white).padding(4)
                 }
             }
             .overlay(alignment: .topLeading) { tag.padding(5) }
             .wfThumbState(radius: 4, preview: mark == .preview, live: mark == .live)
-            Text(asset.name).font(.system(size: 11, weight: .medium)).lineLimit(1).truncationMode(.tail)
+            Text(asset.name).font(.wf(11, .medium)).lineLimit(1).truncationMode(.tail)
                 .foregroundStyle(Tok.text).frame(width: width, alignment: .leading)
         }
         .contentShape(Rectangle())
@@ -301,18 +301,18 @@ struct MediaControllerRow: View {
                 .buttonStyle(ControllerButtonStyle())
                 .help(f.kind == "Background" ? "Remove the background" : "Stop and bring the words back")
                 .accessibilityLabel("Stop \(f.name)")
-            Text(f.name).font(.system(size: 12, weight: .bold)).lineLimit(1).truncationMode(.middle)
+            Text(f.name).font(.wf(12, .bold)).lineLimit(1).truncationMode(.middle)
                 .frame(minWidth: 60, maxWidth: 170, alignment: .leading)
                 .help(f.kind)
                 .accessibilityLabel("\(f.name), \(f.kind)")
-            Text(Self.tenths(dragging ? dragPosition : f.position)).font(.system(size: 11, weight: .medium, design: .monospaced))
+            Text(Self.tenths(dragging ? dragPosition : f.position)).font(.wfMono(11, .medium))
             WFSlider(value: Binding(get: { dragging ? dragPosition : f.position }, set: { dragPosition = $0 }),
                      range: 0...max(f.duration, 0.1), fill: Tok.cyan) { editing in
                 if editing { dragPosition = f.position; dragging = true } else { f.seek(dragPosition); dragging = false }
             }
             .disabled(!f.canSeek).accessibilityLabel("Position in \(f.name)")
             Text("\u{2212}" + Self.tenths(dragging ? max(0, f.duration - dragPosition) : f.remaining))
-                .font(.system(size: 11, weight: .medium, design: .monospaced)).foregroundStyle(Tok.muted)
+                .font(.wfMono(11, .medium)).foregroundStyle(Tok.muted)
             loopControl(f)
             soundControl(f)
             ForEach(f.chips, id: \.self) { chip in
@@ -326,7 +326,7 @@ struct MediaControllerRow: View {
         switch f.loops {
         case .toggle(let on, let set):
             Button { set(!on) } label: {
-                HStack(spacing: 5) { Image(systemName: "repeat").font(.system(size: 11)); Text("Loop").font(.system(size: 11, weight: .semibold)) }
+                HStack(spacing: 5) { Image(systemName: "repeat").font(.wf(11)); Text("Loop").font(.wf(11, .semibold)) }
                     .foregroundStyle(on ? Tok.cyan : Tok.muted).padding(.horizontal, 8).frame(height: 22)
                     .wfOutline(Capsule(style: .circular), stroke: Tok.borderStrong)
                     .contentShape(Capsule())
@@ -376,7 +376,7 @@ private struct ControllerButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12, weight: .medium)).frame(width: 28, height: 24)
+            .font(.wf(12, .medium)).frame(width: 28, height: 24)
             .foregroundStyle(Tok.text)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: selected ? Tok.surface3 : Tok.surface2)
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.45)

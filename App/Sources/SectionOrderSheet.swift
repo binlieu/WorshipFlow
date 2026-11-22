@@ -22,12 +22,12 @@ struct SectionOrderSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             if let error = workspace.lastError { ErrorBar(message: error) { workspace.dismissError() } }
             HStack {
-                Text("Section orders for \"\(presentationTitle)\"").font(.title3.bold())
+                Text("Section orders for \"\(presentationTitle)\"").font(.wf(15, .bold))
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             Text("A section order is the sequence the sections are sung in. A playlist item can play its song in natural order or in one of these.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.wfSmall).foregroundStyle(.secondary)
             HStack(alignment: .top, spacing: 16) {
                 orderList.frame(width: 220)
                 Divider()
@@ -57,7 +57,7 @@ struct SectionOrderSheet: View {
 
     private var orderList: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Orders").font(.headline)
+            Text("Orders").font(.wfHeadline)
             List(selection: $selectedID) {
                 ForEach(workspace.arrangements) { order in
                     Text(order.name).tag(order.id)
@@ -67,7 +67,7 @@ struct SectionOrderSheet: View {
             .overlay {
                 if workspace.arrangements.isEmpty {
                     Text("No section orders yet.\nNew order starts with every section once.")
-                        .multilineTextAlignment(.center).font(.caption).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center).font(.wfSmall).foregroundStyle(.secondary)
                 }
             }
             HStack {
@@ -85,16 +85,16 @@ struct SectionOrderSheet: View {
         if let order = selected {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Name").font(.caption).foregroundStyle(.secondary)
+                    Text("Name").font(.wfSmall).foregroundStyle(.secondary)
                     TextField("Name", text: $nameText)
                         .textFieldStyle(.roundedBorder).frame(maxWidth: 260)
                         .onSubmit { commitName(order) }
                     Button("Rename") { commitName(order) }.disabled(nameText == order.name)
                 }
-                Text("Add a section").font(.headline)
+                Text("Add a section").font(.wfHeadline)
                 if workspace.groups.isEmpty {
                     Text("This song has no named sections. Import lyrics with section names such as Verse 1 and Chorus.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.wfSmall).foregroundStyle(.secondary)
                 }
                 FlowLayout(spacing: 6) {
                     ForEach(workspace.groups) { group in
@@ -105,9 +105,9 @@ struct SectionOrderSheet: View {
                     }
                 }
                 HStack {
-                    Text("Plays in this order").font(.headline)
+                    Text("Plays in this order").font(.wfHeadline)
                     Spacer()
-                    Text(summary(order)).font(.caption).foregroundStyle(.secondary)
+                    Text(summary(order)).font(.wfSmall).foregroundStyle(.secondary)
                 }
                 entries(order)
             }
@@ -125,7 +125,7 @@ struct SectionOrderSheet: View {
         List {
             ForEach(Array(order.groupIDs.enumerated()), id: \.offset) { index, groupID in
                 HStack(spacing: 8) {
-                    Text("\(index + 1)").font(.caption.monospacedDigit()).foregroundStyle(.secondary).frame(width: 24)
+                    Text("\(index + 1)").font(.wfSmall).foregroundStyle(.secondary).frame(width: 24)
                     Text(workspace.groups.first { $0.id == groupID }?.name ?? "Missing section").frame(maxWidth: .infinity, alignment: .leading)
                     Button { Task { await workspace.moveSection(from: index, to: index - 1, inSectionOrder: order.id) } } label: {
                         Image(systemName: "arrow.up")
@@ -166,7 +166,7 @@ struct SectionOrderSheet: View {
         if let itemID = workspace.selectedPlaylistItemID, let item = workspace.playlistItems.first(where: { $0.id == itemID }) {
             Divider()
             HStack {
-                Text("In the playlist, \"\(item.title)\" plays").font(.subheadline)
+                Text("In the playlist, \"\(item.title)\" plays").font(.wfSubheadline)
                 Picker("Plays", selection: Binding(get: { item.arrangementID },
                                                     set: { id in Task { await workspace.setArrangement(id, forPlaylistItem: itemID) } })) {
                     Text("Natural order").tag(UUID?.none)
@@ -175,7 +175,7 @@ struct SectionOrderSheet: View {
                 Spacer()
             }
         } else {
-            Text("Open a song from the playlist to choose which order it plays.").font(.caption).foregroundStyle(.secondary)
+            Text("Open a song from the playlist to choose which order it plays.").font(.wfSmall).foregroundStyle(.secondary)
         }
     }
 }

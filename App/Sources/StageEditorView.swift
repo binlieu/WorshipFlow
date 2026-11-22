@@ -100,8 +100,8 @@ struct StageEditorView: View {
                 ScenePreview(scene: stage.sampleScene(for: l), width: 320, cached: true)
                     .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
                 HStack(spacing: 6) {
-                    Text(l.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                    Text(caption).font(.system(size: 12)).foregroundStyle(Tok.muted)
+                    Text(l.name).font(.wf(13, .semibold)).lineLimit(1)
+                    Text(caption).font(.wf(12)).foregroundStyle(Tok.muted)
                 }
             }
             .padding(Space.s3)
@@ -117,7 +117,7 @@ struct StageEditorView: View {
     /// The layout name with its role chip, and the element buttons (the design's header).
     private var topBar: some View {
         HStack(spacing: Space.s3) {
-            Text(layout.name).font(.system(size: 18, weight: .bold)).lineLimit(1)
+            Text(layout.name).font(.wf(18, .bold)).lineLimit(1)
             Badge(text: "STAGE", style: .outline(Tok.roleStage))
             Spacer()
             ForEach(NewStageElement.allCases) { template in
@@ -152,7 +152,7 @@ struct StageEditorView: View {
                     SectionLabel("Elements")
                     ForEach(layout.elements) { e in
                         Button { elementID = e.id } label: {
-                            Text(StageCanvas.title(of: e, in: stage)).font(.system(size: 13)).frame(maxWidth: .infinity, alignment: .leading)
+                            Text(StageCanvas.title(of: e, in: stage)).font(.wf(13)).frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, Space.s3).frame(height: 28)
                                 .background(e.id == elementID ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
                                 .contentShape(Rectangle())
@@ -166,16 +166,16 @@ struct StageEditorView: View {
                     SectionLabel("Assigned to")
                     let assigned = app.profiles.filter { $0.role == .stage && stage.layoutID(forScreen: $0.id) == layoutID }
                     if assigned.isEmpty {
-                        Text("No stage screen uses this layout. Choose it for a stage screen in Screens.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Text("No stage screen uses this layout. Choose it for a stage screen in Screens.").font(.wf(12)).foregroundStyle(Tok.muted)
                     }
                     ForEach(assigned) { p in
                         HStack(spacing: 6) {
                             Circle().fill(Tok.roleStage).frame(width: 8, height: 8)
-                            Text("\(p.name) · \(app.destinationName(p.destination))").font(.system(size: 13)).lineLimit(2)
+                            Text("\(p.name) · \(app.destinationName(p.destination))").font(.wf(13)).lineLimit(2)
                         }
                     }
                     Text("Speaker notes and stage messages never appear on Audience or Broadcast screens. Themes, Looks and props do not apply to stage layouts.")
-                        .font(.system(size: 12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+                        .font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
                 }.padding(Space.s5)
                 Rectangle().fill(Tok.border).frame(height: 1)
                 TimersPanel(app: app, stage: stage).padding(Space.s5)
@@ -195,7 +195,7 @@ struct StageEditorView: View {
     @ViewBuilder private var header: some View {
         if editable {
             HStack {
-                Text("Name").font(.caption).foregroundStyle(.secondary)
+                Text("Name").font(.wfSmall).foregroundStyle(.secondary)
                 TextField("Name", text: $nameText).textFieldStyle(.roundedBorder).frame(maxWidth: 260)
                     .onSubmit { stage.renameLayout(layoutID, to: nameText) }
                 Button("Rename") { stage.renameLayout(layoutID, to: nameText) }.disabled(nameText == layout.name)
@@ -214,7 +214,7 @@ struct StageEditorView: View {
         if let e = element {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(StageCanvas.title(of: e, in: stage)).font(.headline)
+                    Text(StageCanvas.title(of: e, in: stage)).font(.wfHeadline)
                     if case .timer(let current) = e.kind {
                         Picker("Timer", selection: Binding(get: { current }, set: { stage.setTimer($0, for: e.id, in: layoutID) })) {
                             ForEach(stage.timers) { Text($0.name).tag($0.id) }
@@ -237,7 +237,7 @@ struct StageEditorView: View {
                                                                      set: { stage.setShowsSecondLanguage($0, for: e.id, in: layoutID) }))
                             .toggleStyle(.wfCheckbox)
                     }
-                    Text("Position and size, in percent of the screen").font(.caption).foregroundStyle(.secondary)
+                    Text("Position and size, in percent of the screen").font(.wfSmall).foregroundStyle(.secondary)
                     Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
                         GridRow { percent("Left", e, \.x); percent("Top", e, \.y) }
                         GridRow { percent("Width", e, \.width); percent("Height", e, \.height) }
@@ -258,7 +258,7 @@ struct StageEditorView: View {
 
     private func percent(_ label: String, _ e: StageElement, _ keyPath: WritableKeyPath<NormalizedRect, Double>) -> some View {
         HStack(spacing: 4) {
-            Text(label).font(.caption).frame(width: 44, alignment: .leading)
+            Text(label).font(.wfSmall).frame(width: 44, alignment: .leading)
             TextField(label, value: Binding(get: { e.frame[keyPath: keyPath] * 100 }, set: { value in
                 var f = e.frame
                 f[keyPath: keyPath] = value / 100

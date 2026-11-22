@@ -238,3 +238,4 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] A new library starts with Full, Notes, Lower 3rd and BG only; an existing library keeps its own Looks.
 - [ ] Unplug a screen while the show runs: the card says which output stopped; Retry output after plugging it back; Details shows the recorded text and Copy copies it.
 
+- [ ] UI-005i: the interface text is Inter (rounded "G", flat-topped "1"); menus and the title bar stay the system font. About lists Inter. A song titled in Vietnamese, Chinese, Thai or Burmese shows no boxes in the library list, and rows keep their height.

@@ -13,7 +13,7 @@ struct StageMessageView: View {
             HStack {
                 SectionLabel("Stage message")
                 Spacer()
-                Text("Stage screens only").font(.system(size: 11)).foregroundStyle(Tok.muted)
+                Text("Stage screens only").font(.wf(11)).foregroundStyle(Tok.muted)
             }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) { field; recents; sendButton }
@@ -25,7 +25,7 @@ struct StageMessageView: View {
             if let current = stage.stageMessage {
                 HStack(spacing: 6) {
                     Image(systemName: "text.bubble.fill").foregroundStyle(Tok.warning).accessibilityHidden(true)
-                    Text("On stage now: \(current)").font(.system(size: 12)).lineLimit(2).foregroundStyle(Tok.text)
+                    Text("On stage now: \(current)").font(.wf(12)).lineLimit(2).foregroundStyle(Tok.text)
                     Spacer(minLength: 4)
                     Button("Clear") { stage.clearStageMessage() }.buttonStyle(HeaderButtonStyle())
                         .help("Take the message off the stage screens")
@@ -54,7 +54,7 @@ struct StageMessageView: View {
 
     private var sendButton: some View {
         // The design draws Send always enabled; with nothing typed it does nothing (and says so to VoiceOver).
-        Button(action: submit) { HStack(spacing: 6) { Image(systemName: "text.bubble").font(.system(size: 12)); Text("Send") }.fixedSize() }
+        Button(action: submit) { HStack(spacing: 6) { Image(systemName: "text.bubble").font(.wf(12)); Text("Send") }.fixedSize() }
             .buttonStyle(HeaderButtonStyle())
             .help("Show this message on the stage screens")
             .accessibilityHint(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Type a message first" : "")

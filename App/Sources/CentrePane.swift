@@ -11,10 +11,10 @@ struct CentrePane: View {
         // Search lives at the top of the sidebar's Libraries section (UI-003); this pane is the open presentation only.
         if workspace.openPresentationID == nil {
             VStack(spacing: 8) {
-                Image(systemName: "music.note.list").font(.largeTitle).foregroundStyle(Tok.muted)
-                Text("Choose a song from the library or the playlist").font(.title3)
+                Image(systemName: "music.note.list").font(.wfLargeTitle).foregroundStyle(Tok.muted)
+                Text("Choose a song from the library or the playlist").font(.wfTitle3)
                 Text("Command-N makes a new presentation. Command-I imports lyrics. Command-F searches.")
-                    .font(.caption).foregroundStyle(Tok.muted)
+                    .font(.wfSmall).foregroundStyle(Tok.muted)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -49,10 +49,10 @@ struct ShowHeader: View {
         HStack(spacing: Space.s3) {
             // The design's 17 / 22 bold title. It is still the field that renames the presentation: a hidden copy of the text
             // gives the field the width of its words.
-            Text(title.isEmpty ? "Title" : title).font(.system(size: 17, weight: .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, maxWidth: 300).layoutPriority(1)
+            Text(title.isEmpty ? "Title" : title).font(.wf(17, .bold)).lineLimit(1).opacity(0).frame(minWidth: 100, maxWidth: 300).layoutPriority(1)
                 .overlay {
                     TextField("Title", text: $title)
-                        .textFieldStyle(.plain).font(.system(size: 17, weight: .bold))
+                        .textFieldStyle(.plain).font(.wf(17, .bold))
                         .focused($titleFocused)
                         .onSubmit { commitTitle() }
                         .onChange(of: titleFocused) { _, focused in if !focused { commitTitle() } }
@@ -122,8 +122,8 @@ private struct SectionHeader: View {
         if let name = run.name {
             HStack(spacing: 6) {
                 Circle().fill(run.tone.color).frame(width: 8, height: 8)
-                Text(name).font(.system(size: 11, weight: .semibold)).foregroundStyle(run.tone.color)
-                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.system(size: 11)).foregroundStyle(Tok.muted) }
+                Text(name).font(.wf(11, .semibold)).foregroundStyle(run.tone.color)
+                if run.repeatCount > 1 { Text("× \(run.repeatCount)").font(.wf(11)).foregroundStyle(Tok.muted) }
             }
             .padding(.bottom, 5)
             .accessibilityElement(children: .combine)
@@ -204,10 +204,10 @@ struct SlideGrid: View {
                 .padding(5)    // room for the outer ring inside the cell
                 .padding(-5)
             HStack(spacing: 6) {
-                Text("\(i + 1)").font(.system(size: 11, weight: .semibold).monospacedDigit()).foregroundStyle(Tok.text)
+                Text("\(i + 1)").font(.wf(11, .semibold).monospacedDigit()).foregroundStyle(Tok.text)
                 let first = slide.content.primary.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
                 Text(first.isEmpty ? "Blank · background only" : first)
-                    .font(.system(size: 11)).foregroundStyle(Tok.muted).lineLimit(1)
+                    .font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
             }
             .padding(.top, 2)
         }
@@ -289,7 +289,7 @@ struct SlideList: View {
         let live = liveIndex(app, workspace) == i
         return HStack(spacing: 8) {
             Rectangle().fill(color).frame(width: 3, height: 16)
-            Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit()).frame(width: 24, alignment: .trailing)
+            Text("\(i + 1)").font(.wf(12, .bold).monospacedDigit()).frame(width: 24, alignment: .trailing)
             Text(slide.content.primary.replacingOccurrences(of: "\n", with: " ")).lineLimit(1)
             Spacer()
             if live { Badge(text: app.mode == .live ? "LIVE" : app.mode == .blackout ? "BLACKOUT" : "CLEARED", style: app.mode == .live ? .live : .warning) }
@@ -351,14 +351,14 @@ struct WordsEditorField: View {
     var placeholder: String? = nil
 
     var body: some View {
-        TextEditor(text: $text).font(.system(size: 12)).scrollContentBackground(.hidden)
+        TextEditor(text: $text).font(.wf(12)).scrollContentBackground(.hidden)
             .padding(4)
             .frame(minHeight: minHeight)
             .background(Tok.bg, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
             .overlay(alignment: .topLeading) {
                 if text.isEmpty {
-                    Text(placeholder ?? label).font(.system(size: 12)).foregroundStyle(Tok.muted).padding(.horizontal, 9).padding(.vertical, 12)
+                    Text(placeholder ?? label).font(.wf(12)).foregroundStyle(Tok.muted).padding(.horizontal, 9).padding(.vertical, 12)
                         .allowsHitTesting(false)
                 }
             }
@@ -376,10 +376,10 @@ struct SlideEditor: View {
         VStack(alignment: .leading, spacing: 8) {
             if workspace.slides.indices.contains(index) {
                 HStack {
-                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.headline)
+                    Text("Slide \(index + 1) of \(workspace.slides.count)").font(.wfHeadline)
                     Spacer()
                     Text("Editing here changes the preview only. The audience sees the change when you go live again.")
-                        .font(.caption).foregroundStyle(Tok.muted).lineLimit(2)
+                        .font(.wfSmall).foregroundStyle(Tok.muted).lineLimit(2)
                 }
                 WordsFields(workspace: workspace, slide: workspace.slides[index], minHeight: 64)
                     .frame(height: 96)

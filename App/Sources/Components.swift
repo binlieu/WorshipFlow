@@ -34,9 +34,9 @@ struct PillTag: View {
             switch lead {
             case .none: EmptyView()
             case .dot: Circle().fill(color).frame(width: 7, height: 7).accessibilityHidden(true)
-            case .symbol(let name): Image(systemName: name).font(.system(size: 10)).accessibilityHidden(true)
+            case .symbol(let name): Image(systemName: name).font(.wf(10)).accessibilityHidden(true)
             }
-            Text(text).font(.system(size: size, weight: weight)).tracking(tracking).lineLimit(1).truncationMode(.tail)
+            Text(text).font(.wf(size, weight)).tracking(tracking).lineLimit(1).truncationMode(.tail)
         }
         .foregroundStyle(color)
         .padding(.horizontal, 8).frame(height: height)
@@ -108,9 +108,9 @@ struct RolePillView: View {
             switch pill.status {
             case .on: Circle().fill(pill.role.tokenColor).frame(width: 7, height: 7)
             case .off: Circle().stroke(Tok.muted, lineWidth: 1).frame(width: 7, height: 7)
-            case .fault: Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 9)).foregroundStyle(Tok.warning)
+            case .fault: Image(systemName: "exclamationmark.triangle.fill").font(.wf(9)).foregroundStyle(Tok.warning)
             }
-            Text(pill.abbreviation).font(.system(size: 11, weight: .semibold))
+            Text(pill.abbreviation).font(.wf(11, .semibold))
                 .foregroundStyle(pill.status == .off ? Tok.muted : pill.role.tokenColor)
         }
         .padding(.horizontal, 8).frame(height: 20)
@@ -129,7 +129,7 @@ struct KeyHint: View {
     var onFill = false
     var body: some View {
         // The design's `.kbd`: mono 10/14 medium, padding 0 4, radius 3, the border and the text in the label colour at 75 %.
-        Text(key).font(.system(size: 10, weight: .medium, design: .monospaced))
+        Text(key).font(.wfMono(10, .medium))
             .padding(.horizontal, 4).frame(height: 14)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.xs), stroke: (onFill ? Tok.onLive : Tok.text).opacity(0.75))
             .foregroundStyle((onFill ? Tok.onLive : Tok.text).opacity(0.75))
@@ -154,7 +154,7 @@ struct TransportButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold))
+            .font(.wf(13, .semibold))
             .padding(.horizontal, 16)
             .frame(height: Space.transportHeight)
             .foregroundStyle(prominent ? Tok.onLive : Tok.text)
@@ -180,7 +180,7 @@ struct HeaderButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: Radius.md)
         configuration.label
-            .font(.system(size: 12, weight: .medium))
+            .font(.wf(12, .medium))
             .padding(.horizontal, compact ? 4 : 10).frame(height: Space.controlHeight)
             .foregroundStyle(kind == .primary ? Tok.onBrand : (kind == .ghost ? Tok.muted : Tok.text))
             .background {

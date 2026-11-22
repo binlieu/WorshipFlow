@@ -22,7 +22,7 @@ struct ComponentsBoard: View {
     var body: some View {
         let col: CGFloat = (1440 - 64 - 36) / 3
         VStack(alignment: .leading, spacing: 0) {
-            Text(light ? "Components — light" : "Components").font(.system(size: 26, weight: .bold)).frame(height: 32).padding(.bottom, 20)
+            Text(light ? "Components — light" : "Components").font(.wf(26, .bold)).frame(height: 32).padding(.bottom, 20)
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top, spacing: 18) {
                     card("Buttons", width: col, height: 213) {
@@ -38,7 +38,7 @@ struct ComponentsBoard: View {
                             Button { } label: { HStack(spacing: 6) { Image(systemName: "forward.fill"); Text("Next"); KeyHint(key: "→") } }.buttonStyle(TransportButtonStyle())
                         }
                         Text("Go Live is the only filled red control in the app. Transport buttons are 36 pt tall; everything else is the 26 pt macOS regular control size.")
-                            .font(.system(size: 12)).foregroundStyle(Tok.muted).lineSpacing(1)
+                            .font(.wf(12)).foregroundStyle(Tok.muted).lineSpacing(1)
                     }
                     card("Selection controls", width: col, height: 213) {
                         HStack(spacing: 8) {
@@ -61,7 +61,7 @@ struct ComponentsBoard: View {
                         HStack(spacing: 8) { PillTag(text: "AUD", color: Tok.blue, lead: .dot); PillTag(text: "STG", color: Tok.warning, lead: .dot); PillTag(text: "BRD", color: Tok.broadcast, lead: .dot); PillTag(text: "Running", color: Tok.cyan, lead: .dot); PillTag(text: "Signal lost", color: Tok.warning, lead: .symbol("exclamationmark.triangle")); PillTag(text: "Off", color: Tok.muted) }
                         HStack(spacing: 8) { Badge(text: "LIVE", style: .live); Badge(text: "PREVIEW", style: .preview); Badge(text: "SIMULATED", style: .outline(Tok.broadcast)); Badge(text: "HARDWARE VERIFIED", style: .outline(Tok.cyan)) }
                         Badge(text: "NOT VERIFIED", style: .outline(Tok.muted))
-                        Text("A role or state is never colour alone: every chip carries its word, and offline states add an icon.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Text("A role or state is never colour alone: every chip carries its word, and offline states add an icon.").font(.wf(12)).foregroundStyle(Tok.muted)
                     }
                 }
                 HStack(alignment: .top, spacing: 18) {
@@ -72,9 +72,9 @@ struct ComponentsBoard: View {
                                     ZStack {
                                         if n == 3 { CheckerboardView() } else { LinearGradient(colors: [Color(red: 0.18, green: 0.49, blue: 0.42), Color(red: 0.02, green: 0.06, blue: 0.11)], startPoint: .bottomTrailing, endPoint: .topLeading) }
                                         VStack(spacing: 4) {
-                                            Text("My chains are gone").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                                            Text("My chains are gone").font(.wf(13, .semibold)).foregroundStyle(.white)
                                                 .padding(.horizontal, 6).background(n == 3 ? Color(red: 0.03, green: 0.075, blue: 0.13).opacity(0.86) : .clear)
-                                            Text("Xiềng xích đã tan").font(.system(size: 10.5, weight: .medium)).foregroundStyle(Color(red: 1, green: 0.82, blue: 0.48))
+                                            Text("Xiềng xích đã tan").font(.wf(10.5, .medium)).foregroundStyle(Color(red: 1, green: 0.82, blue: 0.48))
                                                 .padding(.horizontal, 6).background(n == 3 ? Color(red: 0.03, green: 0.075, blue: 0.13).opacity(0.86) : .clear)
                                         }
                                     }
@@ -85,7 +85,7 @@ struct ComponentsBoard: View {
                                         if n == 2 { ThumbTag(text: "LIVE", kind: .live).padding(5) }
                                     }
                                     .wfThumbState(preview: n == 1, live: n == 2)
-                                    Text(name).font(.system(size: 11, weight: .semibold)).padding(.top, 3)
+                                    Text(name).font(.wf(11, .semibold)).padding(.top, 3)
                                 }
                                 .frame(maxWidth: .infinity)
                             }
@@ -95,7 +95,7 @@ struct ComponentsBoard: View {
                     card("Messages", width: col, height: 199) {
                         MessageCard(message: "SDI 3 stopped sending. The show is still running on the other screens.")
                         HStack(spacing: 8) { Button("Retry output") { }.buttonStyle(HeaderButtonStyle()); Button("Details") { }.buttonStyle(HeaderButtonStyle(kind: .ghost)) }
-                        Text("Errors appear in the operator window only, never on an output. Say what happened, what still works, and the next action.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Text("Errors appear in the operator window only, never on an output. Say what happened, what still works, and the next action.").font(.wf(12)).foregroundStyle(Tok.muted)
                     }
                 }
                 HStack(alignment: .top, spacing: 18) {
@@ -106,14 +106,14 @@ struct ComponentsBoard: View {
                             ForEach(names, id: \.0) { n in
                                 VStack(alignment: .leading, spacing: 2) {
                                     RoundedRectangle(cornerRadius: 6).fill(n.1).frame(height: 44).overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Tok.border))
-                                    Text(n.0).font(.system(size: 10)).foregroundStyle(Tok.muted)
+                                    Text(n.0).font(.wf(10)).foregroundStyle(Tok.muted)
                                 }
                             }
                         }
                     }
                     card("Brand", width: col, height: 187) {
                         RoundedRectangle(cornerRadius: 6).fill(Tok.brandGradient).frame(height: 44)
-                        Text("WorshipFlow").font(.system(size: 22, weight: .heavy)).foregroundStyle(Tok.text)
+                        Text("WorshipFlow").font(.wf(22, .heavy)).foregroundStyle(Tok.text)
                     }
                 }
             }

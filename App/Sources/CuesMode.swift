@@ -62,7 +62,7 @@ private struct CuesSidebar: View {
                         }
                     }
                     if cue.macros.isEmpty {
-                        Text("No macros yet. Press + to make one.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Text("No macros yet. Press + to make one.").font(.wf(12)).foregroundStyle(Tok.muted)
                             .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, Space.s3)
                     }
                 }
@@ -81,7 +81,7 @@ private struct CuesSidebar: View {
                 VStack(spacing: 2) {
                     row(symbol: "pianokeys", title: "MIDI", trailingView: AnyView(midiDot), selected: selection == .midi) { app.ui.cuesSelection = .midi }
                     row(symbol: "dot.radiowaves.left.and.right", title: "Remote control",
-                        trailingView: AnyView(Text(cue.remoteStatus.isRunning ? "on" : "off").font(.system(size: 12)).foregroundStyle(Tok.muted)),
+                        trailingView: AnyView(Text(cue.remoteStatus.isRunning ? "on" : "off").font(.wf(12)).foregroundStyle(Tok.muted)),
                         selected: selection == .remote) { app.ui.cuesSelection = .remote }
                 }
             }
@@ -95,8 +95,8 @@ private struct CuesSidebar: View {
     @ViewBuilder private var midiDot: some View {
         switch cue.midiStatus.source {
         case .connected: Circle().fill(Tok.statusOK).frame(width: 8, height: 8).accessibilityLabel("MIDI device connected")
-        case .waiting, .failed: Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10)).foregroundStyle(Tok.warning).accessibilityLabel("MIDI device offline")
-        case .none: Text(cue.midiStatus.isEnabled ? "on" : "off").font(.system(size: 12)).foregroundStyle(Tok.muted)
+        case .waiting, .failed: Image(systemName: "exclamationmark.triangle.fill").font(.wf(10)).foregroundStyle(Tok.warning).accessibilityLabel("MIDI device offline")
+        case .none: Text(cue.midiStatus.isEnabled ? "on" : "off").font(.wf(12)).foregroundStyle(Tok.muted)
         }
     }
 
@@ -110,9 +110,9 @@ private struct CuesSidebar: View {
         Button(action: action) {
             HStack(spacing: Space.s3) {
                 Image(systemName: symbol).frame(width: 18).foregroundStyle(Tok.muted)
-                Text(title).font(.system(size: 14)).lineLimit(1)
+                Text(title).font(.wf(14)).lineLimit(1)
                 Spacer(minLength: 4)
-                if let trailing { Text(trailing).font(.system(size: 12)).foregroundStyle(Tok.muted) }
+                if let trailing { Text(trailing).font(.wf(12)).foregroundStyle(Tok.muted) }
                 if let trailingView { trailingView }
             }
             .padding(.horizontal, Space.s3).frame(height: 32)
@@ -176,12 +176,12 @@ private struct CuesInfoColumn: View {
                 Button("Manage…") { app.ui.cuesSelection = .midi }.buttonStyle(HeaderButtonStyle())
             }
             if cue.bindings.bindings.isEmpty {
-                Text("No MIDI bindings. Turn MIDI on and press Learn to bind a pad.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text("No MIDI bindings. Turn MIDI on and press Learn to bind a pad.").font(.wf(12)).foregroundStyle(Tok.muted)
             } else {
                 ForEach(cue.bindings.bindings) { binding in
                     HStack {
                         Text(MIDIText.pattern(binding.pattern)).font(.wfMonoData).frame(width: 120, alignment: .leading).lineLimit(1)
-                        Text(MIDIText.command(binding.command, macros: cue.macros)).font(.system(size: 13)).lineLimit(1)
+                        Text(MIDIText.command(binding.command, macros: cue.macros)).font(.wf(13)).lineLimit(1)
                         Spacer(minLength: 0)
                         if cue.conflictingBindingIDs.contains(binding.id) {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Tok.warning).help("Another binding uses the same pad").accessibilityLabel("Conflict")
@@ -197,7 +197,7 @@ private struct CuesInfoColumn: View {
         VStack(alignment: .leading, spacing: Space.s3) {
             SectionLabel("Keyboard")
             ForEach(Self.keys, id: \.1) { key, command in
-                HStack { KeyHint(key: key).frame(width: 96, alignment: .leading); Text(command).font(.system(size: 13)); Spacer() }
+                HStack { KeyHint(key: key).frame(width: 96, alignment: .leading); Text(command).font(.wf(13)); Spacer() }
                 Divider()
             }
         }
@@ -210,7 +210,7 @@ private struct CuesInfoColumn: View {
         VStack(alignment: .leading, spacing: Space.s3) {
             SectionLabel("Activity")
             if cue.activity.isEmpty {
-                Text("Nothing has run yet.").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text("Nothing has run yet.").font(.wf(12)).foregroundStyle(Tok.muted)
             }
             ForEach(cue.activity.suffix(14)) { line in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {

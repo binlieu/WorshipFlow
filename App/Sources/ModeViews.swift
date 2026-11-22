@@ -13,10 +13,10 @@ struct EditModeView: View {
     var body: some View {
         if workspace.openPresentationID == nil {
             VStack(spacing: 8) {
-                Image(systemName: "pencil.and.list.clipboard").font(.largeTitle).foregroundStyle(Tok.muted)
-                Text("Open a song to edit it").font(.title3)
+                Image(systemName: "pencil.and.list.clipboard").font(.wfLargeTitle).foregroundStyle(Tok.muted)
+                Text("Open a song to edit it").font(.wfTitle3)
                 Text("Choose one in Show (Command-1), or press Command-N for a new presentation.")
-                    .font(.caption).foregroundStyle(Tok.muted)
+                    .font(.wfSmall).foregroundStyle(Tok.muted)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -69,7 +69,7 @@ struct EditModeView: View {
         let selected = workspace.show.selectedIndex == i
         let live = app.show.liveDeck?.presentationID == workspace.openPresentationID && app.show.liveIndex == i
         return VStack(alignment: .leading, spacing: 3) {
-            Text("\(i + 1)").font(.system(size: 12, weight: .bold).monospacedDigit())
+            Text("\(i + 1)").font(.wf(12, .bold).monospacedDigit())
             SlideThumbnail(app: app, slide: slide.content)
                 .overlay(alignment: .bottomTrailing) { OwnBackgroundMark(content: slide.content, available: app.media.map { Set($0.allAssets.map(\.id)) }).padding(4) }
                 .padding(3)
@@ -156,15 +156,15 @@ struct EditModeView: View {
         return HStack(spacing: 6) {
             Image(systemName: "lock").foregroundStyle(Tok.muted)
             if liveSame, let live = app.show.liveIndex {
-                Text("Slide \(live + 1) is live.").fontWeight(.semibold)
+                Text("Slide \(live + 1) is live.").font(.wf(12, .semibold))
                 Text("You are editing slide \(editing). Nothing on the screens changes until it is triggered again.").foregroundStyle(Tok.muted)
             } else {
-                Text("Nothing from this song is live.").fontWeight(.semibold)
+                Text("Nothing from this song is live.").font(.wf(12, .semibold))
                 Text("Editing changes the preview only.").foregroundStyle(Tok.muted)
             }
             Spacer()
         }
-        .font(.system(size: 12)).lineLimit(1)
+        .font(.wf(12)).lineLimit(1)
         .padding(.horizontal, Space.s5).frame(height: 30)
         .background(Tok.surface2)
     }
@@ -219,9 +219,9 @@ struct MediaModeView: View {
         return Button { media.kindFilter = entry.kind; app.ui.binFolderID = nil } label: {
             HStack(spacing: Space.s3) {
                 Image(systemName: Self.symbol(entry.kind)).frame(width: 18).foregroundStyle(Tok.muted)
-                Text(entry.title).font(.system(size: 14))
+                Text(entry.title).font(.wf(14))
                 Spacer()
-                Text("\(entry.count)").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                Text("\(entry.count)").font(.wf(12)).foregroundStyle(Tok.muted)
             }
             .padding(.horizontal, Space.s3).frame(height: 30)
             .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
@@ -249,9 +249,9 @@ struct MediaModeView: View {
                     HStack(spacing: Space.s3) {
                         Image(systemName: state.status == .ok ? "folder" : "exclamationmark.triangle")
                             .frame(width: 18).foregroundStyle(state.status == .ok ? Tok.muted : Tok.warning)
-                        Text(state.folder.name).font(.system(size: 14)).lineLimit(1)
+                        Text(state.folder.name).font(.wf(14)).lineLimit(1)
                         Spacer()
-                        Text(state.status == .missing ? "missing" : (state.status == .unreachable ? "not answering" : "\(state.items.count)")).font(.system(size: 12))
+                        Text(state.status == .missing ? "missing" : (state.status == .unreachable ? "not answering" : "\(state.items.count)")).font(.wf(12))
                             .foregroundStyle(state.status == .ok ? Tok.muted : Tok.warning)
                     }
                     .padding(.horizontal, Space.s3).frame(height: 30)
@@ -263,7 +263,7 @@ struct MediaModeView: View {
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         } else {
-            Text("No folders. Add one with +.").font(.caption).foregroundStyle(Tok.muted)
+            Text("No folders. Add one with +.").font(.wfSmall).foregroundStyle(Tok.muted)
         }
     }
 

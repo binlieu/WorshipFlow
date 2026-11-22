@@ -277,7 +277,7 @@ struct OwnBackgroundMark: View {
         if SlideBackgroundDrop.hasOwnBackground(content) {
             let missing = available.map { SlideBackgroundDrop.isMissing(content, available: $0) } ?? false
             Image(systemName: missing ? "exclamationmark.triangle.fill" : (content.background?.kind == .video ? "film" : "photo"))
-                .font(.system(size: 10, weight: .bold)).foregroundStyle(missing ? Tok.warning : .white)
+                .font(.wf(10, .bold)).foregroundStyle(missing ? Tok.warning : .white)
                 .padding(4).background(.black.opacity(0.65), in: Circle())
                 .help(missing ? "This slide's own background is no longer in the media bin. The slide shows its words on the theme's own background. Drop another item on it, or right-click to use the presentation's background."
                               : "This slide has its own background. Right-click the slide to use the presentation's background again.")

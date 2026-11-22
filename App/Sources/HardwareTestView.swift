@@ -23,6 +23,7 @@ struct HardwareTestView: View {
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .font(.wfBody)
         .frame(minWidth: 680, minHeight: 640)
     }
 
@@ -30,7 +31,7 @@ struct HardwareTestView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Hardware Test").font(.largeTitle.bold())
+            Text("Hardware Test").font(.wf(26, .bold))
             Text("This checks how your Blackmagic DeckLink card works with WorshipFlow and makes one file to send back. You do not need to understand the results: just run it and send the file.")
                 .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
@@ -54,9 +55,9 @@ struct HardwareTestView: View {
                     Text("Usually:   SDI 1  ──────▶  SDI 3")
                     Text("            SDI 2  ──────▶  SDI 4")
                     Text("SDI means the round BNC sockets on the card, numbered 1 to 4. Push each end in until it clicks. The app tells you exactly which sockets to join each time it asks, and may ask you to move the cables to check every socket.")
-                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        .font(.wfCallout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
-                .font(.system(.body, design: .monospaced)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
+                .font(.wfMono(13)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
             }
             GroupBox("How long") {
                 VStack(alignment: .leading, spacing: 8) {
@@ -70,7 +71,7 @@ struct HardwareTestView: View {
             }
             HStack(spacing: 14) {
                 Button { controller.start(simulated: false) } label: {
-                    Text(controller.realRunTitle).font(.title2.bold()).frame(minWidth: 240, minHeight: 36)
+                    Text(controller.realRunTitle).font(.wf(17, .bold)).frame(minWidth: 240, minHeight: 36)
                 }
                 .buttonStyle(.borderedProminent).controlSize(.extraLarge).disabled(!controller.canStartReal)
                 .accessibilityIdentifier("hwtest.start")
@@ -78,7 +79,7 @@ struct HardwareTestView: View {
                     .disabled(!controller.canStartSimulated).accessibilityIdentifier("hwtest.simulated")
             }
             Text("The simulated card is a demonstration only: it uses no real card, and its report is marked SIMULATED in its file name and its first line.")
-                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                .font(.wfCallout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -92,10 +93,10 @@ struct HardwareTestView: View {
                        systemImage: "exclamationmark.arrow.triangle.2.circlepath", tint: .orange)
                 HStack {
                     Button("Save its report…") { saveUnfinished() }.buttonStyle(.borderedProminent).accessibilityIdentifier("hwtest.saveUnfinished")
-                    if let problem = saveProblem { Text(problem).font(.callout).foregroundStyle(.red) }
+                    if let problem = saveProblem { Text(problem).font(.wfCallout).foregroundStyle(.red) }
                 }
                 Text("Its files are in the folder \"\(run.folder.lastPathComponent)\" on your Desktop. Saving the report here puts them in one file to send back, then removes that folder.")
-                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.wfCallout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -113,7 +114,7 @@ struct HardwareTestView: View {
             }
             if card.state != .cardFound {
                 Text("You can still press \"Create a report anyway\": a report that says no card was found is useful too. Or run the simulated card to see how the test works.")
-                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.wfCallout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Button("Rescan") { Task { await controller.rescan() } }.controlSize(.small).accessibilityIdentifier("hwtest.rescan")
         }
@@ -130,10 +131,10 @@ struct HardwareTestView: View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(controller.currentStepTitle.map { "Step \(controller.stepPosition) of \(controller.stepTotal): \($0)" } ?? "Finishing…")
-                    .font(.title2.bold())
+                    .font(.wf(17, .bold))
                 ProgressView(value: controller.stepProgress)
                 Text(controller.runWasSimulated ? "Running against the SIMULATED card. This is a demonstration." : "Please keep this window open and leave the card alone unless asked.")
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.wfCallout).foregroundStyle(.secondary)
             }
             if let prompt = controller.pendingPrompt { promptCard(prompt) }
             stepList
@@ -144,7 +145,7 @@ struct HardwareTestView: View {
 
     private func promptCard(_ prompt: HardwarePrompt) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(prompt.title).font(.title3.bold())
+            Text(prompt.title).font(.wf(15, .bold))
             Text(prompt.message).fixedSize(horizontal: false, vertical: true)
             HStack {
                 switch prompt.kind {
@@ -175,7 +176,7 @@ struct HardwareTestView: View {
             ForEach(controller.results, id: \.number) { r in
                 HStack(alignment: .firstTextBaseline) {
                     Image(systemName: icon(r.outcome)).foregroundStyle(color(r.outcome))
-                    Text("\(r.number). \(r.title)").bold()
+                    Text("\(r.number). \(r.title)").font(.wf(13, .bold))
                     Text(r.outcome.label.lowercased()).foregroundStyle(.secondary)
                 }
             }
@@ -188,7 +189,7 @@ struct HardwareTestView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(Array(controller.logLines.enumerated()), id: \.offset) { i, line in
-                            Text(line).font(.system(.caption, design: .monospaced)).textSelection(.enabled).id(i)
+                            Text(line).font(.wfMono(10)).textSelection(.enabled).id(i)
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -207,7 +208,7 @@ struct HardwareTestView: View {
                 let clean = verdict.hasPrefix("REAL DEVICE TESTED") && !verdict.contains("NOT RESTORED") && !verdict.contains("DID NOT FINISH")
                 notice(verdict, systemImage: clean ? "checkmark.seal.fill" : "exclamationmark.triangle.fill", tint: clean ? .green : .orange)
             }
-            Text("The test is finished.").font(.title2.bold())
+            Text("The test is finished.").font(.wf(17, .bold))
             if let problem = controller.errorMessage { notice(problem, systemImage: "xmark.octagon.fill", tint: .red) }
             stepList
             HStack(spacing: 12) {
@@ -221,7 +222,7 @@ struct HardwareTestView: View {
             if let problem = saveProblem { notice(problem, systemImage: "xmark.octagon.fill", tint: .red) }
             if let text = controller.summaryText {
                 GroupBox("What the report says") {
-                    Text(text).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                    Text(text).font(.wfMono(10)).textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
                 }
             }

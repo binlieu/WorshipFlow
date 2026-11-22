@@ -25,15 +25,15 @@ struct ToolbarTimersView: View {
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     if index > 0 { Rectangle().fill(Tok.border).frame(width: 1, height: 16).padding(.horizontal, 2) }
                     HStack(spacing: 6) {
-                        Image(systemName: row.kindLabel == "Elapsed" ? "clock" : "timer").font(.system(size: 12)).foregroundStyle(Tok.muted)
+                        Image(systemName: row.kindLabel == "Elapsed" ? "clock" : "timer").font(.wf(12)).foregroundStyle(Tok.muted)
                             .accessibilityHidden(true)
-                        Text(row.name).font(.system(size: 11)).lineLimit(1).frame(maxWidth: 90, alignment: .leading)
+                        Text(row.name).font(.wf(11)).lineLimit(1).frame(maxWidth: 90, alignment: .leading)
                         // The picture: the value in the text colour (muted while it is not running, warning on overrun, never red).
-                        Text(row.toolbarText).font(.system(size: 13, weight: .bold, design: .monospaced))
+                        Text(row.toolbarText).font(.wfMono(13, .bold))
                             .foregroundStyle(row.isOverrun ? Tok.warning : (row.isRunning || row.canToggle == false ? Tok.text : Tok.text))
                         if row.canToggle {
                             Button { stage.toggleToolbarTimer(row.id) } label: {
-                                Image(systemName: row.isRunning ? "pause.fill" : "play.fill").font(.system(size: 10))
+                                Image(systemName: row.isRunning ? "pause.fill" : "play.fill").font(.wf(10))
                                     .frame(width: 20, height: 20)
                             }
                             .buttonStyle(.plain).foregroundStyle(Tok.text)
