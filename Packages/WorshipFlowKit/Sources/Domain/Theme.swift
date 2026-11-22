@@ -42,9 +42,18 @@ public struct Theme: Sendable, Equatable, Codable, Hashable, Identifiable {
     /// UI-005h: a plate behind the text, with its accent bar. Nil: none, as before. With a plate the text blocks' frames are not used: the
     /// plated lines are stacked inside the plate, which is sized to them (their alignment, style and order still come from the blocks).
     public var plate: TextPlate?
+    /// FIX-J: when on, the slide's words are shrunk, both languages by the same factor, until they fit the theme's text blocks (never below
+    /// `fitFloor`). On for the built-in looks; off for the Classic themes and for every theme saved before this field, so none of them changes.
+    public var fitsText: Bool
+
+    /// FIX-J item 6: the font the built-in output looks name (the bundled Inter, which the app registers at launch).
+    public static let outputFontName = OutputLooks.font
+
+    /// FIX-J: the smallest first-language size fitting will go to, in points at 1080 lines (the design's "never below 56 px").
+    public static let fitFloor = 56.0
 
     public init(id: UUID, name: String, background: ThemeBackground, primary: TextBlock, secondary: TextBlock?,
-                mediaFallback: GradientBackground? = nil, plate: TextPlate? = nil) {
+                mediaFallback: GradientBackground? = nil, plate: TextPlate? = nil, fitsText: Bool = false) {
         self.id = id
         self.name = name
         self.background = background
@@ -52,6 +61,32 @@ public struct Theme: Sendable, Equatable, Codable, Hashable, Identifiable {
         self.secondary = secondary
         self.mediaFallback = mediaFallback
         self.plate = plate
+        self.fitsText = fitsText
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, name, background, primary, secondary, mediaFallback, plate, fitsText }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try c.decode(UUID.self, forKey: .id), name: try c.decode(String.self, forKey: .name),
+                  background: try c.decode(ThemeBackground.self, forKey: .background),
+                  primary: try c.decode(TextBlock.self, forKey: .primary), secondary: try c.decodeIfPresent(TextBlock.self, forKey: .secondary),
+                  mediaFallback: try c.decodeIfPresent(GradientBackground.self, forKey: .mediaFallback),
+                  plate: try c.decodeIfPresent(TextPlate.self, forKey: .plate),
+                  fitsText: try c.decodeIfPresent(Bool.self, forKey: .fitsText) ?? false)
+    }
+
+    /// `fitsText` is written only when it is on, so a theme that does not fit its text encodes as it did before.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(background, forKey: .background)
+        try c.encode(primary, forKey: .primary)
+        try c.encodeIfPresent(secondary, forKey: .secondary)
+        try c.encodeIfPresent(mediaFallback, forKey: .mediaFallback)
+        try c.encodeIfPresent(plate, forKey: .plate)
+        if fitsText { try c.encode(true, forKey: .fitsText) }
     }
 
     /// Colour under the background video (and behind it while no video is loaded).

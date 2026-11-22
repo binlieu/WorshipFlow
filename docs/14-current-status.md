@@ -47,3 +47,5 @@ Every other slice in `AI/TASK-BREAKDOWN.md` is Todo.
 - Development Mac: Mac mini M4, 16 GB, macOS 27.2, Xcode 26.6, Swift 6.3.3. Two 1920 × 1080 displays at 100 Hz.
 - Tools added: XcodeGen 2.48.0 (Homebrew).
 - No DeckLink, enclosure or ATEM. Desktop Video is not installed.
+
+FIX-J (review fixes of UI-005h: fit to block, text cache, clamped decoding, tolerant loading, stage parts, font check, scripture limits, opaque-key and plate opacity, fill and key tests): Implemented, Unit Tested (see `AI/reports/FIX-J-report.md` for the count); Simulated only for the SDI readback test; Hardware Verified: Not Verified; Live-Service Verified: Not Verified.

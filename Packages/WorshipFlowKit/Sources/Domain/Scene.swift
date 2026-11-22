@@ -16,6 +16,14 @@ public struct ColorRGBA: Sendable, Equatable, Codable, Hashable {
         self.alpha = clamp(alpha)
     }
 
+    /// FIX-J: a stored colour is clamped like a constructed one.
+    private enum CodingKeys: String, CodingKey { case red, green, blue, alpha }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(red: try c.decode(Double.self, forKey: .red), green: try c.decode(Double.self, forKey: .green),
+                  blue: try c.decode(Double.self, forKey: .blue), alpha: try c.decode(Double.self, forKey: .alpha))
+    }
+
     public static let white = ColorRGBA(red: 1, green: 1, blue: 1)
     public static let black = ColorRGBA(red: 0, green: 0, blue: 0)
     public static let clear = ColorRGBA(red: 0, green: 0, blue: 0, alpha: 0)
@@ -36,6 +44,15 @@ public struct NormalizedRect: Sendable, Equatable, Codable, Hashable {
     }
 
     public static let full = NormalizedRect(x: 0, y: 0, width: 1, height: 1)
+
+    /// FIX-J: a stored frame is kept within a hundred screens of the origin: a hostile number cannot overflow a pixel rectangle.
+    private enum CodingKeys: String, CodingKey { case x, y, width, height }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func bounded(_ v: Double) -> Double { v.isFinite ? min(100, max(-100, v)) : 0 }
+        self.init(x: bounded(try c.decode(Double.self, forKey: .x)), y: bounded(try c.decode(Double.self, forKey: .y)),
+                  width: bounded(try c.decode(Double.self, forKey: .width)), height: bounded(try c.decode(Double.self, forKey: .height)))
+    }
 
     public struct PixelRect: Sendable, Equatable {
         public let x: Int
@@ -77,9 +94,17 @@ public struct TextShadow: Sendable, Equatable, Codable, Hashable {
     public init(color: ColorRGBA = ColorRGBA(red: 0, green: 0, blue: 0, alpha: 0.6),
                 offsetX: Double = 0, offsetY: Double = 0, blur: Double = 0) {
         self.color = color
-        self.offsetX = offsetX.isFinite ? offsetX : 0
-        self.offsetY = offsetY.isFinite ? offsetY : 0
-        self.blur = blur.isFinite ? max(0, blur) : 0
+        self.offsetX = offsetX.isFinite ? min(2000, max(-2000, offsetX)) : 0
+        self.offsetY = offsetY.isFinite ? min(2000, max(-2000, offsetY)) : 0
+        self.blur = blur.isFinite ? min(1000, max(0, blur)) : 0
+    }
+
+    /// FIX-J: a stored shadow goes through the initialiser's limits.
+    private enum CodingKeys: String, CodingKey { case color, offsetX, offsetY, blur }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(color: try c.decode(ColorRGBA.self, forKey: .color), offsetX: try c.decode(Double.self, forKey: .offsetX),
+                  offsetY: try c.decode(Double.self, forKey: .offsetY), blur: try c.decode(Double.self, forKey: .blur))
     }
 }
 
@@ -117,10 +142,26 @@ public struct TextStyle: Sendable, Equatable, Codable, Hashable {
         self.outlineColor = outlineColor
         self.shadow = shadow
         self.weight = weight.map { min(900, max(100, $0)) }
-        self.letterSpacing = letterSpacing.flatMap { $0.isFinite ? $0 : nil }
-        self.lineHeight = lineHeight.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
-        self.opticalSize = opticalSize.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        // FIX-J: sane ranges. A value that cannot be valid (not a number, zero or negative line height or optical size) is dropped.
+        self.letterSpacing = letterSpacing.flatMap { $0.isFinite ? min(2, max(-0.5, $0)) : nil }
+        self.lineHeight = lineHeight.flatMap { $0.isFinite && $0 > 0 ? min(4, max(0.5, $0)) : nil }
+        self.opticalSize = opticalSize.flatMap { $0.isFinite && $0 > 0 ? min(144, max(6, $0)) : nil }
         self.fontFeatures = fontFeatures
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case fontName, fontSize, color, outlineWidth, outlineColor, shadow, weight, letterSpacing, lineHeight, opticalSize, fontFeatures
+    }
+
+    /// FIX-J: a stored style goes through the initialiser, so a hostile value is clamped as a constructed one is.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(fontName: try c.decode(String.self, forKey: .fontName), fontSize: try c.decode(Double.self, forKey: .fontSize),
+                  color: try c.decode(ColorRGBA.self, forKey: .color), outlineWidth: try c.decode(Double.self, forKey: .outlineWidth),
+                  outlineColor: try c.decode(ColorRGBA.self, forKey: .outlineColor), shadow: try c.decodeIfPresent(TextShadow.self, forKey: .shadow),
+                  weight: try c.decodeIfPresent(Int.self, forKey: .weight), letterSpacing: try c.decodeIfPresent(Double.self, forKey: .letterSpacing),
+                  lineHeight: try c.decodeIfPresent(Double.self, forKey: .lineHeight), opticalSize: try c.decodeIfPresent(Double.self, forKey: .opticalSize),
+                  fontFeatures: try c.decodeIfPresent([String].self, forKey: .fontFeatures))
     }
 }
 
@@ -135,10 +176,16 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
     /// UI-005h: the text sits on the scene's plate. Its frame is not used: the compositor stacks the plated layers, in order, inside the
     /// plate's padding (and beside its bar), and sizes the plate to them.
     public var inPlate: Bool
+    /// FIX-J: set, the compositor shrinks this layer (with the other layers that have it) until the words fit their block; this is the smallest
+    /// size it goes to for the first such layer, in points at 1080 lines. Nil: drawn at its size, as always.
+    public var fitFloor: Double?
+    /// FIX-J: the text changes every second (the clock, a timer, a countdown). The compositor keeps such bitmaps in a small cache of their own,
+    /// so they cannot push the lyrics out of the main one.
+    public var ticks: Bool
 
     public init(text: String, style: TextStyle, frame: NormalizedRect,
                 alignment: TextAlignment = .center, verticalAlignment: VerticalAlignment = .center,
-                opacity: Double = 1, inPlate: Bool = false) {
+                opacity: Double = 1, inPlate: Bool = false, fitFloor: Double? = nil, ticks: Bool = false) {
         self.text = text
         self.style = style
         self.frame = frame
@@ -146,9 +193,11 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
         self.verticalAlignment = verticalAlignment
         self.opacity = opacity.isNaN ? 1 : min(1, max(0, opacity))
         self.inPlate = inPlate
+        self.fitFloor = fitFloor.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        self.ticks = ticks
     }
 
-    private enum CodingKeys: String, CodingKey { case text, style, frame, alignment, verticalAlignment, opacity, inPlate }
+    private enum CodingKeys: String, CodingKey { case text, style, frame, alignment, verticalAlignment, opacity, inPlate, fitFloor, ticks }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -157,7 +206,9 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
                   alignment: try c.decode(TextAlignment.self, forKey: .alignment),
                   verticalAlignment: try c.decode(VerticalAlignment.self, forKey: .verticalAlignment),
                   opacity: try c.decodeIfPresent(Double.self, forKey: .opacity) ?? 1,
-                  inPlate: try c.decodeIfPresent(Bool.self, forKey: .inPlate) ?? false)
+                  inPlate: try c.decodeIfPresent(Bool.self, forKey: .inPlate) ?? false,
+                  fitFloor: try c.decodeIfPresent(Double.self, forKey: .fitFloor),
+                  ticks: try c.decodeIfPresent(Bool.self, forKey: .ticks) ?? false)
     }
 
     /// `inPlate` is written only when it is set, so a layer that is not on a plate encodes as it did before.
@@ -170,6 +221,8 @@ public struct TextLayer: Sendable, Equatable, Codable, Hashable {
         try c.encode(verticalAlignment, forKey: .verticalAlignment)
         try c.encode(opacity, forKey: .opacity)
         if inPlate { try c.encode(true, forKey: .inPlate) }
+        try c.encodeIfPresent(fitFloor, forKey: .fitFloor)
+        if ticks { try c.encode(true, forKey: .ticks) }
     }
 }
 

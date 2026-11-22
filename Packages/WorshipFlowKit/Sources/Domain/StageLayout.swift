@@ -8,6 +8,14 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
         case message, notes
         /// UI-005h: the first countdown timer (else the first timer). Draws nothing when there are no timers.
         case firstCountdown
+
+        /// FIX-J: the text of this element changes every second (the clock and the timers).
+        public var ticks: Bool {
+            switch self {
+            case .timeOfDay, .timer, .firstCountdown: return true
+            case .currentSlide, .nextSlide, .message, .notes: return false
+            }
+        }
     }
 
     /// Smallest width or height of a frame, as a fraction of the screen.
@@ -41,6 +49,29 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
         self.label = label
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, frame, style, alignment, verticalAlignment, showsSecondLanguage, secondLanguage, label
+    }
+
+    /// FIX-J item 5: the second-language line and the label are stored relative to this element. A layout saved before that stored their frames
+    /// as frames of the screen (`frame`); those are converted here, in memory, so they are drawn where they always were. Nothing is rewritten
+    /// until the layout is saved again.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let frame = try c.decode(NormalizedRect.self, forKey: .frame)
+        self.init(id: try c.decode(UUID.self, forKey: .id), kind: try c.decode(Kind.self, forKey: .kind), frame: frame,
+                  style: try c.decode(TextStyle.self, forKey: .style), alignment: try c.decode(TextAlignment.self, forKey: .alignment),
+                  verticalAlignment: try c.decode(VerticalAlignment.self, forKey: .verticalAlignment),
+                  showsSecondLanguage: try c.decode(Bool.self, forKey: .showsSecondLanguage),
+                  secondLanguage: try c.decodeIfPresent(StageSecondLanguage.Stored.self, forKey: .secondLanguage)?.resolved(in: frame),
+                  label: try c.decodeIfPresent(StageLabel.Stored.self, forKey: .label)?.resolved(in: frame))
+    }
+
+    /// The frame of the second-language line on the screen (nil when the element has none).
+    public var secondLanguageFrame: NormalizedRect? { secondLanguage.map { $0.relativeFrame.placed(in: frame) } }
+    /// The frame of the label on the screen (nil when the element has none).
+    public var labelFrame: NormalizedRect? { label.map { $0.relativeFrame.placed(in: frame) } }
+
     /// Moves the frame, keeping it on screen.
     public mutating func move(dx: Double, dy: Double) {
         frame.x = Self.clamp(frame.x + dx, 0, 1 - frame.width)
@@ -64,19 +95,55 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
 /// UI-005h: a current slide's second language drawn as its own line.
 public struct StageSecondLanguage: Sendable, Equatable, Codable, Hashable {
     public var style: TextStyle
-    public var frame: NormalizedRect
+    /// FIX-J: relative to the element it belongs to (see `NormalizedRect.relative(to:)`): so it moves and scales with it.
+    public var relativeFrame: NormalizedRect
     public var alignment: TextAlignment
     public var verticalAlignment: VerticalAlignment
     /// Put between the second language's lines (" \u{00B7} " joins "Tan" and "Do" as "Tan \u{00B7} Do").
     public var separator: String
 
-    public init(style: TextStyle, frame: NormalizedRect, alignment: TextAlignment = .leading,
+    public init(style: TextStyle, relativeFrame: NormalizedRect, alignment: TextAlignment = .leading,
                 verticalAlignment: VerticalAlignment = .top, separator: String = " \u{00B7} ") {
         self.style = style
-        self.frame = frame
+        self.relativeFrame = relativeFrame
         self.alignment = alignment
         self.verticalAlignment = verticalAlignment
         self.separator = separator
+    }
+
+    /// A line given by its frame on the screen, for the element frame it belongs to.
+    public init(style: TextStyle, frame: NormalizedRect, onElement element: NormalizedRect, alignment: TextAlignment = .leading,
+                verticalAlignment: VerticalAlignment = .top, separator: String = " \u{00B7} ") {
+        self.init(style: style, relativeFrame: frame.relative(to: element), alignment: alignment, verticalAlignment: verticalAlignment, separator: separator)
+    }
+
+    /// What is stored: `relativeFrame`, or (a layout saved before FIX-J) `frame`, a frame of the screen.
+    struct Stored: Decodable {
+        var style: TextStyle
+        var frame: NormalizedRect?
+        var relativeFrame: NormalizedRect?
+        var alignment: TextAlignment
+        var verticalAlignment: VerticalAlignment
+        var separator: String
+
+        func resolved(in element: NormalizedRect) -> StageSecondLanguage {
+            StageSecondLanguage(style: style, relativeFrame: relativeFrame ?? (frame ?? .full).relative(to: element), alignment: alignment,
+                                verticalAlignment: verticalAlignment, separator: separator)
+        }
+    }
+}
+
+extension NormalizedRect {
+    /// This frame (of the screen) as a frame relative to `element`: its offset from the element's corner and its size, as fractions of the
+    /// element's width and height.
+    public func relative(to element: NormalizedRect) -> NormalizedRect {
+        let w = element.width > 1e-9 ? element.width : 1, h = element.height > 1e-9 ? element.height : 1
+        return NormalizedRect(x: (x - element.x) / w, y: (y - element.y) / h, width: width / w, height: height / h)
+    }
+
+    /// A frame relative to `element`, as a frame of the screen.
+    public func placed(in element: NormalizedRect) -> NormalizedRect {
+        NormalizedRect(x: element.x + x * element.width, y: element.y + y * element.height, width: width * element.width, height: height * element.height)
     }
 }
 
@@ -84,17 +151,39 @@ public struct StageSecondLanguage: Sendable, Equatable, Codable, Hashable {
 public struct StageLabel: Sendable, Equatable, Codable, Hashable {
     public var text: String
     public var style: TextStyle
-    public var frame: NormalizedRect
+    /// FIX-J: relative to the element it belongs to, so it moves and scales with it.
+    public var relativeFrame: NormalizedRect
     public var alignment: TextAlignment
     public var verticalAlignment: VerticalAlignment
 
-    public init(text: String, style: TextStyle, frame: NormalizedRect, alignment: TextAlignment = .leading,
+    public init(text: String, style: TextStyle, relativeFrame: NormalizedRect, alignment: TextAlignment = .leading,
                 verticalAlignment: VerticalAlignment = .top) {
         self.text = text
         self.style = style
-        self.frame = frame
+        self.relativeFrame = relativeFrame
         self.alignment = alignment
         self.verticalAlignment = verticalAlignment
+    }
+
+    /// A label given by its frame on the screen, for the element frame it belongs to.
+    public init(text: String, style: TextStyle, frame: NormalizedRect, onElement element: NormalizedRect, alignment: TextAlignment = .leading,
+                verticalAlignment: VerticalAlignment = .top) {
+        self.init(text: text, style: style, relativeFrame: frame.relative(to: element), alignment: alignment, verticalAlignment: verticalAlignment)
+    }
+
+    /// What is stored: `relativeFrame`, or (a layout saved before FIX-J) `frame`, a frame of the screen.
+    struct Stored: Decodable {
+        var text: String
+        var style: TextStyle
+        var frame: NormalizedRect?
+        var relativeFrame: NormalizedRect?
+        var alignment: TextAlignment
+        var verticalAlignment: VerticalAlignment
+
+        func resolved(in element: NormalizedRect) -> StageLabel {
+            StageLabel(text: text, style: style, relativeFrame: relativeFrame ?? (frame ?? .full).relative(to: element), alignment: alignment,
+                       verticalAlignment: verticalAlignment)
+        }
     }
 }
 
@@ -175,7 +264,7 @@ public enum StageComposer {
                         // UI-005h: the second language is its own line, its lines joined, in its own style.
                         layers.append(layer(t, style, element))
                         if element.showsSecondLanguage, let line = joined(slide.secondary, separator: second.separator) {
-                            layers.append(TextLayer(text: line, style: second.style, frame: second.frame, alignment: second.alignment,
+                            layers.append(TextLayer(text: line, style: second.style, frame: second.relativeFrame.placed(in: element.frame), alignment: second.alignment,
                                                     verticalAlignment: second.verticalAlignment))
                         }
                         text = nil
@@ -188,7 +277,7 @@ public enum StageComposer {
                 if let slide = context.state.nextSlide, var t = visible(slide.primary) {
                     if element.showsSecondLanguage, let second = visible(slide.secondary) { t += "\n" + second }
                     if let label = element.label {
-                        layers.append(TextLayer(text: label.text, style: label.style, frame: label.frame, alignment: label.alignment,
+                        layers.append(TextLayer(text: label.text, style: label.style, frame: label.relativeFrame.placed(in: element.frame), alignment: label.alignment,
                                                 verticalAlignment: label.verticalAlignment))
                     }
                     text = t
@@ -209,7 +298,7 @@ public enum StageComposer {
             case .message: text = visible(context.message)
             case .notes: text = visible(context.notes)
             }
-            if let text { layers.append(layer(text, style, element)) }
+            if let text { layers.append(layer(text, style, element, ticks: element.kind.ticks)) }
         }
         var plate: TextPlate?
         // UI-003 (LIVE-03): a layout that has no message element still shows a message that was sent, as a banner along
@@ -227,8 +316,8 @@ public enum StageComposer {
         return SceneDescription(backgroundColor: layout.background, showsVideo: false, textLayers: layers, plate: plate)
     }
 
-    private static func layer(_ text: String, _ style: TextStyle, _ element: StageElement) -> TextLayer {
-        TextLayer(text: text, style: style, frame: element.frame, alignment: element.alignment, verticalAlignment: element.verticalAlignment)
+    private static func layer(_ text: String, _ style: TextStyle, _ element: StageElement, ticks: Bool = false) -> TextLayer {
+        TextLayer(text: text, style: style, frame: element.frame, alignment: element.alignment, verticalAlignment: element.verticalAlignment, ticks: ticks)
     }
 
     /// The non-blank lines of `text` joined by `separator`; nil when there are none.

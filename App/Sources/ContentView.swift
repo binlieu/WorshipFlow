@@ -109,6 +109,7 @@ struct WorkspaceView: View {
             if let error = workspace.lastError ?? app.settingsError {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
+            if let notice = app.fontNotice { ErrorBar(message: notice) { app.dismissFontNotice() } }
             ForEach(app.shownFaultCards) { card in OutputFaultBar(app: app, card: card).transition(.opacity) }
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }
             if let cue = app.cue {

@@ -406,14 +406,17 @@ public struct HardwareEnvironmentSource: Sendable {
     public var appBuild: String
     /// UI-004: which commit and date made this build.
     public var buildDetail: String?
+    /// FIX-J item 6: which font the output looks resolve to (`OutputFont.check().environmentLine`), for the report's environment section.
+    public var outputFont: String?
     public var displays: @Sendable () -> [HardwareDisplayInfo]
     public var system: @Sendable () -> HardwareSystemInfo
     public var now: @Sendable () -> Date
 
     public init(appVersion: String, appBuild: String, displays: @escaping @Sendable () -> [HardwareDisplayInfo],
                 system: @escaping @Sendable () -> HardwareSystemInfo, now: @escaping @Sendable () -> Date = { Date() },
-                buildDetail: String? = nil) {
+                buildDetail: String? = nil, outputFont: String? = nil) {
         self.buildDetail = buildDetail
+        self.outputFont = outputFont
         self.appVersion = appVersion
         self.appBuild = appBuild
         self.displays = displays
@@ -422,8 +425,10 @@ public struct HardwareEnvironmentSource: Sendable {
     }
 
     /// The real machine. `displays` comes from the app, because listing screens needs AppKit.
-    public static func system(appVersion: String, appBuild: String, buildDetail: String? = nil, displays: @escaping @Sendable () -> [HardwareDisplayInfo]) -> HardwareEnvironmentSource {
-        HardwareEnvironmentSource(appVersion: appVersion, appBuild: appBuild, displays: displays, system: { readSystem() }, buildDetail: buildDetail)
+    public static func system(appVersion: String, appBuild: String, buildDetail: String? = nil, outputFont: String? = nil,
+                              displays: @escaping @Sendable () -> [HardwareDisplayInfo]) -> HardwareEnvironmentSource {
+        HardwareEnvironmentSource(appVersion: appVersion, appBuild: appBuild, displays: displays, system: { readSystem() }, buildDetail: buildDetail,
+                                  outputFont: outputFont)
     }
 
     static func readSystem() -> HardwareSystemInfo {

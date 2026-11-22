@@ -80,15 +80,50 @@ enum SettingsJSON {
 
 private let builtInThemeIDs: Set<UUID> = Set(Theme.builtIn.map(\.id))
 
+/// FIX-J item 4: a stored theme, Look or stage layout that could not be decoded and was left out of the load.
+public struct SkippedRow: Sendable, Equatable {
+    public enum Kind: String, Sendable { case theme, look, stageLayout }
+    public let kind: Kind
+    /// The row's name, when it could be read.
+    public let name: String?
+    public let id: String
+
+    public init(kind: Kind, name: String?, id: String) { self.kind = kind; self.name = name; self.id = id }
+}
+
+extension Array where Element == SkippedRow {
+    /// One sentence for the operator, once per load: what was skipped (by name where readable) and that everything else is as it was. Nil when empty.
+    public var operatorNotice: String? {
+        guard !isEmpty else { return nil }
+        func noun(_ kind: SkippedRow.Kind) -> String {
+            switch kind { case .theme: return "theme"; case .look: return "Look"; case .stageLayout: return "stage layout" }
+        }
+        let parts = Dictionary(grouping: self, by: \.kind).sorted { $0.key.rawValue < $1.key.rawValue }.map { kind, rows -> String in
+            let names = rows.map { $0.name.map { "\"\($0)\"" } ?? "one with no readable name" }.joined(separator: ", ")
+            return rows.count == 1 ? "a \(noun(kind)) (\(names)) could not be read" : "\(rows.count) \(noun(kind))s (\(names)) could not be read"
+        }
+        return parts.joined(separator: "; ").prefix(1).uppercased() + parts.joined(separator: "; ").dropFirst()
+            + " and \(count == 1 ? "was" : "were") skipped. Everything else loaded as it was; the saved \(count == 1 ? "row is" : "rows are") left untouched."
+    }
+}
+
 extension LibraryStore {
     // MARK: Themes (PRES-06)
 
-    /// Custom themes only, by folded name. Built-in themes live in code (`Theme.builtIn`).
-    public func themes() async throws -> [Theme] {
+    /// Custom themes only, by folded name. Built-in themes live in code (`Theme.builtIn`). A row that cannot be decoded is left out (FIX-J item 4).
+    public func themes() async throws -> [Theme] { try await themesAndSkipped().themes }
+
+    /// The themes that could be read, and the rows that could not (an unknown background kind, a value of the wrong shape). A bad row is left
+    /// in the table untouched; it never hides the others.
+    public func themesAndSkipped() async throws -> (themes: [Theme], skipped: [SkippedRow]) {
         let store = self
         return try await writer.read { db in
-            try String.fetchAll(db, sql: "SELECT definition FROM theme ORDER BY nameFolded, rowid")
-                .map { store.runtimeTheme(try SettingsJSON.decode(Theme.self, from: $0)) }
+            var themes: [Theme] = [], skipped: [SkippedRow] = []
+            for row in try Row.fetchAll(db, sql: "SELECT id, name, definition FROM theme ORDER BY nameFolded, rowid") {
+                do { themes.append(store.runtimeTheme(try SettingsJSON.decode(Theme.self, from: row["definition"] as String))) }
+                catch { skipped.append(SkippedRow(kind: .theme, name: row["name"], id: row["id"])) }
+            }
+            return (themes, skipped)
         }
     }
 
@@ -135,13 +170,19 @@ extension LibraryStore {
 
     // MARK: Looks (SCRN-08)
 
-    /// In creation order.
-    public func looks() async throws -> [Look] {
+    /// In creation order. A row that cannot be decoded is left out (FIX-J item 4).
+    public func looks() async throws -> [Look] { try await looksAndSkipped().looks }
+
+    public func looksAndSkipped() async throws -> (looks: [Look], skipped: [SkippedRow]) {
         try await writer.read { db in
-            try Row.fetchAll(db, sql: "SELECT id, name, screens FROM look ORDER BY createdAt, rowid").map { row in
-                guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("look id") }
-                return Look(id: id, name: row["name"], screens: try SettingsJSON.decodeScreens(row["screens"]))
+            var looks: [Look] = [], skipped: [SkippedRow] = []
+            for row in try Row.fetchAll(db, sql: "SELECT id, name, screens FROM look ORDER BY createdAt, rowid") {
+                do {
+                    guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("look id") }
+                    looks.append(Look(id: id, name: row["name"], screens: try SettingsJSON.decodeScreens(row["screens"])))
+                } catch { skipped.append(SkippedRow(kind: .look, name: row["name"], id: row["id"])) }
             }
+            return (looks, skipped)
         }
     }
 

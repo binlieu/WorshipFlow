@@ -54,6 +54,13 @@ final class AppModel {
     private(set) var sdiEnvironment: SDIEnvironmentStatus?
     /// What happened the last time the app was asked to change a card's profile for fill and key (KI-054).
     private(set) var sdiProfileNotice: String?
+    /// FIX-J item 6: set at launch, once, when the font the output looks name does not resolve to the bundled Inter (it could not be registered).
+    private(set) var fontNotice: String? = AppModel.fontCheckAtLaunch()
+    func dismissFontNotice() { fontNotice = nil }
+    private static func fontCheckAtLaunch() -> String? {
+        _ = InterFont.base      // registration comes first, so the check sees what the screens will see
+        return OutputFont.check().operatorNotice
+    }
     private(set) var connectorRows: [String: [ConnectorRow]] = [:]
     /// UI-002: what the signal map is drawn from (cached by `updateReadouts`, so drawing never asks a device).
     private(set) var sdiStatuses: [SDIDeviceStatus] = []
@@ -486,7 +493,10 @@ final class AppModel {
             try? await Task.sleep(for: .milliseconds(300))
             guard let self, !Task.isCancelled else { return }
             let scenes = self.previewScenes()
-            let missing = await ImageWarmer.warm(scenes: scenes)
+            let missing = await ImageWarmer.warm(scenes: scenes.map(\.scene))
+            guard !Task.isCancelled else { return }
+            // FIX-J item 2: the text of the selected slide is rasterised too, off the main thread, at each screen's size, so the first live frame draws it warm.
+            await TextWarmer.warm(scenes: scenes.flatMap { entry in entry.sizes.map { (entry.scene, $0.width, $0.height) } })
             guard !Task.isCancelled else { return }
             if missing != self.warmedUnreadable {
                 self.warmedUnreadable = missing
@@ -496,7 +506,7 @@ final class AppModel {
     }
 
     /// What each enabled audience and broadcast screen would show if the selected preview slide went live now.
-    private func previewScenes() -> [SceneDescription] {
+    private func previewScenes() -> [(scene: SceneDescription, sizes: [(width: Int, height: Int)])] {
         guard let deck = show.previewDeck, deck.slides.indices.contains(show.selectedIndex) else { return [] }
         var state = ShowState()
         state.apply(.load(deck))
@@ -504,7 +514,13 @@ final class AppModel {
         let screens = profiles.filter { $0.isEnabled && $0.role != .stage }
         let snapshot = PublishedScenes(state: state, clockText: nil, profiles: screens, themes: themes, look: currentLook,
                                        props: props, presentationThemeID: workspace?.openThemeID)
-        return screens.map { snapshot.scene(forScreen: $0.id) }
+        return screens.map { profile in
+            // An SDI screen draws at its card mode's size; a window or display at its own (not known here): the 1080-line frame most are.
+            var sizes: [(width: Int, height: Int)] = profile.destination.isSDI || profile.mirrors.contains(where: \.isSDI)
+                ? [(profile.videoMode.width, profile.videoMode.height)] : []
+            if !profile.destination.isSDI || profile.mirrors.contains(where: { !$0.isSDI }) { sizes.append((1920, 1080)) }
+            return (snapshot.scene(forScreen: profile.id), sizes)
+        }
     }
 
     private func makeCoordinator() -> OutputCoordinator {

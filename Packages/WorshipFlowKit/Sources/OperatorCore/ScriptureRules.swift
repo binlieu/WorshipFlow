@@ -2,14 +2,18 @@
 // typed, how a verse slide becomes a slide on the screens, and how a translation is described in the list. No UI, no storage.
 import Foundation
 import Domain
+import RenderEngine
 import ScriptureEngine
 import ScriptureStore
 
 /// How many characters of verse text one slide may hold, from the theme's text boxes (item 3: "the current theme's limits").
 ///
 /// The theme says where the words go and how big they are; this turns that into a character budget for `VerseSlides`. It is an
-/// estimate (an average letter is about half as wide as the type is tall, lines are 1.15 times the type size, the canvas is
-/// 1920 by 1080), kept a little under the full box, and one line is always left for the reference.
+/// estimate, kept a little under the full box, and one line is always left for the reference. A style with a line height of its own (the
+/// design's looks) is estimated from its own metrics: that line height, and the measured average advance of its font and weight
+/// (FIX-J item 7). A style without one (the Classic themes and every theme an operator made before) keeps the earlier estimate (an average
+/// letter about half as wide as the type is tall, lines 1.15 times the type size, the canvas 1920 by 1080), so a saved passage splits as it did.
+/// The size used is the theme's design size: with Fit on, a passage is split to fit at that size, and the floor is only the safety net.
 public enum ScriptureSlideLimits {
     static let canvasWidth = 1920.0
     static let canvasHeight = 1080.0
@@ -28,9 +32,12 @@ public enum ScriptureSlideLimits {
     /// Characters of verse text that fit in the block, after one line for the reference.
     static func capacity(of block: TextBlock) -> Int {
         let size = max(block.style.fontSize, 1)
-        let lines = Int((block.frame.height * canvasHeight) / (size * lineHeight))
+        let ownLineHeight = block.style.lineHeight
+        let pitch = ownLineHeight ?? lineHeight
+        let advance = ownLineHeight == nil ? letterWidth : TextMetrics.averageAdvance(of: block.style)
+        let lines = Int((block.frame.height * canvasHeight) / (size * pitch))
         let verseLines = max(lines - 1, 1)
-        let perLine = max(Int((block.frame.width * canvasWidth) / (size * letterWidth)), 1)
+        let perLine = max(Int((block.frame.width * canvasWidth) / (size * advance)), 1)
         return max(Int(Double(verseLines * perLine) * fill), smallest)
     }
 }

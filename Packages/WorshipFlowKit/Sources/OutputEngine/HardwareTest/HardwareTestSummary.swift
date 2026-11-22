@@ -106,6 +106,7 @@ public enum HardwareTestSummary {
             lines.append("")
             lines.append("MACHINE")
             lines.append("  WorshipFlow \(env.appVersion) (\(env.appBuild))\(env.appBuildDetail.map { ", \($0)" } ?? ""), macOS \(env.osVersion) (\(env.osBuild)), \(env.macModel), \(env.chip), \(String(format: "%.0f", env.memoryGB)) GB")
+            if let font = env.outputFont { lines.append("  Output font: \(font)") }
         }
         lines.append("")
         return lines.joined(separator: "\n")

@@ -116,6 +116,9 @@ struct ThemeEditorSheet: View {
                 backgroundEditor(theme)
                 BlockEditor(app: app, themeID: id, isPrimary: true, title: "First language", block: theme.primary)
                 secondEditor(theme)
+                Toggle("Shrink the words to fit their boxes", isOn: Binding(get: { theme.fitsText }, set: { on in app.updateTheme(id) { $0.fitsText = on } }))
+                    .toggleStyle(.wfCheckbox)
+                    .help("When the words of a slide are bigger than the boxes above, both languages get smaller together, down to 56 pixels on a 1080-line screen.")
             } else {
                 Text("\"\(theme.name)\" is built in and cannot be changed. Duplicate it to make your own version.")
                     .font(.wfCallout)

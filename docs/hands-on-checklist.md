@@ -280,3 +280,13 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Put a bin picture live as the background, press Clear background (or Control-Option-B), then Next and Previous: the bin tile is no longer LIVE, the inspector row is gone, and the slides show their own or the theme's background. Clear foreground and Clear all drop their bin choices too. Blackout twice changes nothing.
 - [ ] Every slide thumbnail (grid, list, Edit, Preview monitor) shows the background the slide will have; a video shows one still with a small film mark; remove a file from disk and its thumbnail shows the missing mark. The Live monitor still shows the real picture including a bin choice.
 - [ ] Unplug an output (or use the simulated card's unplug): the red message fades after about 5 seconds, the toolbar pill and the monitor keep the fault, a click on the pill shows the card again with Retry output and Details. Keep the pointer over the card (or Tab onto its buttons): it stays until you leave.
+
+## FIX-J fit, cache, loading and stage parts (by hand)
+
+- [ ] Open a song with a long English line and a Vietnamese translation on the built-in theme: the audience screen shows every line inside the picture (the text is a little smaller than a short slide's, both languages by the same amount); nothing is cut off at the top. The Preview thumbnail and the Live monitor agree.
+- [ ] Type a very long first line (a paragraph): the words stay inside the title-safe frame at the smallest size, the thumbnail has a small warning triangle and the editor shows "These words do not fit this theme at its smallest size". Shorten the line and both go away.
+- [ ] A Classic theme and a theme you made: a long line is not shrunk (it behaves as before). In the theme editor turn on "Shrink the words to fit their boxes": it shrinks now.
+- [ ] Select a slide (Preview), then Go Live: the words appear at once (no half-second pause on the first slide after a long idle). Stage clock and timers tick all service without the lyrics flickering.
+- [ ] Stage editor: duplicate the built-in layout, drag the current-slide box: its second-language line goes with it; resize it: the line scales with it. Same for the next-slide box and the word NEXT.
+- [ ] Damaged data (only if you have a copy of a library to spare): a theme or stage layout the app cannot read is skipped, the others still list, and one message names the skipped one.
+- [ ] If the bundled font is ever missing (a damaged app), one red bar says screens are using a system font. A hardware-test report's machine section has an "Output font" line.

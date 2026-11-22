@@ -6,11 +6,17 @@ import Domain
 extension LibraryStore {
     // MARK: Stage layouts (LIVE-01)
 
-    /// Custom layouts in creation order. `StageLayout.standard` is not included.
-    public func stageLayouts() async throws -> [StageLayout] {
+    /// Custom layouts in creation order. `StageLayout.standard` is not included. A row that cannot be decoded is left out (FIX-J item 4).
+    public func stageLayouts() async throws -> [StageLayout] { try await stageLayoutsAndSkipped().layouts }
+
+    public func stageLayoutsAndSkipped() async throws -> (layouts: [StageLayout], skipped: [SkippedRow]) {
         try await writer.read { db in
-            try String.fetchAll(db, sql: "SELECT definition FROM stageLayout ORDER BY createdAt, rowid")
-                .map { try SettingsJSON.decode(StageLayout.self, from: $0) }
+            var layouts: [StageLayout] = [], skipped: [SkippedRow] = []
+            for row in try Row.fetchAll(db, sql: "SELECT id, name, definition FROM stageLayout ORDER BY createdAt, rowid") {
+                do { layouts.append(try SettingsJSON.decode(StageLayout.self, from: row["definition"] as String)) }
+                catch { skipped.append(SkippedRow(kind: .stageLayout, name: row["name"], id: row["id"])) }
+            }
+            return (layouts, skipped)
         }
     }
 

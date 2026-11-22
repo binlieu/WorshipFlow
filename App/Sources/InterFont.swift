@@ -1,7 +1,8 @@
 // UI-005i: the operator interface is set in Inter (SIL Open Font License 1.1, bundled under Resources/Inter, unmodified).
 // The files are registered for this process only (nothing is installed on the Mac). If registration fails the interface uses the
 // system font and the log says so once. Scripts Inter lacks (CJK, Hmong, Thai, ...) fall back through CoreText's cascade to the
-// system fonts. This file is for the operator interface only: the projected outputs follow each theme's own font and never use it.
+// system fonts. The operator interface is what this file sets; the output themes name the same bundled font through the same registration
+// (`Theme.outputFontName`), and `OutputFont.check()` says at launch whether that font resolved (FIX-J item 6).
 import SwiftUI
 import AppKit
 import CoreText

@@ -187,12 +187,14 @@ public enum HardwareTestSteps {
         let info = HardwareEnvironmentInfo(
             appVersion: src.appVersion, appBuild: src.appBuild, osVersion: sys.osVersion, osBuild: sys.osBuild, macModel: sys.macModel,
             chip: sys.chip, memoryGB: (Double(sys.memoryBytes) / 1_073_741_824 * 10).rounded() / 10, processorCount: sys.processorCount,
-            displays: displays, driver: driver, collectedAt: HardwareTestClockText.iso(src.now()), appBuildDetail: src.buildDetail)
+            displays: displays, driver: driver, collectedAt: HardwareTestClockText.iso(src.now()), appBuildDetail: src.buildDetail,
+            outputFont: src.outputFont)
         ctx.environmentInfo = info
         var ms = [
             m("WorshipFlow", "\(src.appVersion) (build \(src.appBuild))" + (src.buildDetail.map { ", \($0)" } ?? "")),
             m("macOS", "\(sys.osVersion) (\(sys.osBuild))"),
             m("Mac model", sys.macModel),
+            m("Output font", src.outputFont ?? "not recorded"),
             m("Chip", sys.chip),
             m("Memory", "\(Int(info.memoryGB.rounded())) GB"),
             m("Processor cores", "\(sys.processorCount)"),

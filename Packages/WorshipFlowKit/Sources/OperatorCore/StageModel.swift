@@ -81,7 +81,10 @@ public final class StageModel {
 
     /// Reads layouts, timers, the screens' choices and the clock style. A failure is reported and the rest still loads.
     public func load() async {
-        customLayouts = await attempt("read the stage layouts") { try await self.store.stageLayouts() } ?? []
+        // FIX-J item 4: a layout that cannot be decoded is skipped (and named once); the others load.
+        let loaded = await attempt("read the stage layouts") { try await self.store.stageLayoutsAndSkipped() }
+        customLayouts = loaded?.layouts ?? []
+        if let notice = loaded?.skipped.operatorNotice { lastError = notice }
         timers = await attempt("read the timers") { try await self.store.timers() } ?? []
         // A damaged or missing value is ignored: the built-in layout and a 12-hour clock are always safe.
         if let text = try? await store.state(for: Self.choicesKey), let data = text.data(using: .utf8),

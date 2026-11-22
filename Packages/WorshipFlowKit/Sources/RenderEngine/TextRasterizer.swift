@@ -103,6 +103,59 @@ public struct TextRasterizer: Sendable {
         }
     }
 
+    // A typeset line: a line box taller than the font's own pitch when the style has a line height; the glyphs sit in it as in a web page.
+    fileprivate struct Line { let line: CTLine; let width: CGFloat; let ascent: CGFloat; let descent: CGFloat; let leading: CGFloat; let pitch: CGFloat; let baselineInset: CGFloat }
+
+    /// Breaks `text` into lines of at most `layoutWidth` and measures them. A line height replaces the font's own pitch (ascent + descent +
+    /// leading) with `lineHeight * size`: half of the room the line box has beyond the font's ascent + descent goes above the glyphs, half below.
+    /// Nil when the attributed string cannot be made.
+    fileprivate static func layoutLines(_ text: String, style: TextStyle, font: CTFont, size: CGFloat, layoutWidth: Double) -> [Line]? {
+        var attributes: [CFString: Any] = [
+            kCTFontAttributeName: font,
+            kCTForegroundColorFromContextAttributeName: true,
+        ]
+        if let spacing = style.letterSpacing, spacing != 0 { attributes[kCTKernAttributeName] = spacing * Double(size) }
+        guard let attributed = CFAttributedStringCreate(kCFAllocatorDefault, text as CFString, attributes as CFDictionary) else { return nil }
+        let typesetter = CTTypesetterCreateWithAttributedString(attributed)
+        let length = CFAttributedStringGetLength(attributed)
+        let fixedPitch: CGFloat? = style.lineHeight.map { CGFloat($0) * size }
+        var lines: [Line] = []
+        var start = 0
+        while start < length {
+            var count = CTTypesetterSuggestLineBreak(typesetter, start, layoutWidth)
+            if count <= 0 { count = 1 }
+            let line = CTTypesetterCreateLine(typesetter, CFRange(location: start, length: count))
+            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+            let full = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            let width = CGFloat(full) - CGFloat(CTLineGetTrailingWhitespaceWidth(line))
+            let pitch = fixedPitch ?? (ascent + descent + leading)
+            let inset = fixedPitch.map { ($0 - (ascent + descent)) / 2 + ascent } ?? ascent
+            lines.append(Line(line: line, width: max(0, width), ascent: ascent, descent: descent, leading: leading, pitch: pitch, baselineInset: inset))
+            start += count
+        }
+        return lines
+    }
+
+    /// FIX-J: how big `text` is laid out in `style` at `maxWidth` (the same measure `rasterize` uses), without drawing it. Pixels at the style's
+    /// own size. `blockWidth` is the widest line, `blockHeight` the lines' pitch times their count; `padX` and `padY` are the bitmap padding.
+    public struct Measure: Sendable, Equatable {
+        public var blockWidth: Double
+        public var blockHeight: Double
+        public var lineCount: Int
+        public var padX: Int
+        public var padY: Int
+    }
+
+    public func measure(_ text: String, style: TextStyle, maxWidth: Int) -> Measure? {
+        guard style.fontSize > 0, maxWidth > 8 else { return nil }
+        let size = CGFloat(style.fontSize)
+        let (padX, padY) = Self.padding(for: style)
+        let font = Self.font(for: style, size: size)
+        guard let lines = Self.layoutLines(text, style: style, font: font, size: size, layoutWidth: Double(max(1, maxWidth - 2 * padX))) else { return nil }
+        return Measure(blockWidth: Double(lines.map(\.width).max() ?? 0), blockHeight: Double(lines.reduce(CGFloat(0)) { $0 + $1.pitch }),
+                       lineCount: lines.count, padX: padX, padY: padY)
+    }
+
     /// Largest bitmap side, in pixels (also the largest Metal texture side on Apple GPUs).
     public static let maxDimension = 16384
     /// Largest bitmap, in bytes. A frame-wide block of text at the dimension limit would otherwise be about 1 GB.
@@ -125,34 +178,8 @@ public struct TextRasterizer: Sendable {
         let (padX, padY) = Self.padding(for: style)
         let layoutWidth = Double(max(1, maxWidth - 2 * padX))
 
-        var attributes: [CFString: Any] = [
-            kCTFontAttributeName: font,
-            kCTForegroundColorFromContextAttributeName: true,
-        ]
-        if let spacing = style.letterSpacing, spacing != 0 { attributes[kCTKernAttributeName] = spacing * Double(size) }
-        guard let attributed = CFAttributedStringCreate(kCFAllocatorDefault, text as CFString, attributes as CFDictionary) else {
+        guard let lines = Self.layoutLines(text, style: style, font: font, size: size, layoutWidth: layoutWidth) else {
             throw RenderError.rasterization("attributed string")
-        }
-        let typesetter = CTTypesetterCreateWithAttributedString(attributed)
-        let length = CFAttributedStringGetLength(attributed)
-
-        // A line height replaces the font's own pitch (ascent + descent + leading) with `lineHeight * size`; the glyphs sit in it as in a web
-        // page: half of the room the line box has beyond the font's ascent + descent goes above the glyphs, half below.
-        struct Line { let line: CTLine; let width: CGFloat; let ascent: CGFloat; let descent: CGFloat; let leading: CGFloat; let pitch: CGFloat; let baselineInset: CGFloat }
-        let fixedPitch: CGFloat? = style.lineHeight.map { CGFloat($0) * size }
-        var lines: [Line] = []
-        var start = 0
-        while start < length {
-            var count = CTTypesetterSuggestLineBreak(typesetter, start, layoutWidth)
-            if count <= 0 { count = 1 }
-            let line = CTTypesetterCreateLine(typesetter, CFRange(location: start, length: count))
-            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
-            let full = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
-            let width = CGFloat(full) - CGFloat(CTLineGetTrailingWhitespaceWidth(line))
-            let pitch = fixedPitch ?? (ascent + descent + leading)
-            let inset = fixedPitch.map { ($0 - (ascent + descent)) / 2 + ascent } ?? ascent
-            lines.append(Line(line: line, width: max(0, width), ascent: ascent, descent: descent, leading: leading, pitch: pitch, baselineInset: inset))
-            start += count
         }
 
         guard !lines.isEmpty else {

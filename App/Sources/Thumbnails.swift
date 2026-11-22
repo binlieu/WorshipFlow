@@ -82,6 +82,20 @@ final class PreviewRenderer: @unchecked Sendable {
 
     private let followTickets = FollowTickets()
 
+    /// FIX-J item 1: whether the words of `scene` do not fit their theme's text blocks even at the smallest size (they are drawn at that size,
+    /// clipped). Measured on the render queue, once per slide and theme (the compositor keeps the answer), never on the main thread.
+    func doesNotFit(_ scene: SceneDescription) async -> Bool {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                if self.compositor == nil, self.failure == nil {
+                    do { self.compositor = try Compositor() } catch { self.failure = "\(error)" }
+                }
+                let status = try? self.compositor?.fitStatus(scene: scene, width: 1920, height: 1080)
+                continuation.resume(returning: status.map { !$0.fits } ?? false)
+            }
+        }
+    }
+
     #if DEBUG
     /// UI-004: how many renders were asked for (hits included), for the drag exercise in the ui-snapshots hook.
     nonisolated(unsafe) private(set) var requestCount = 0
@@ -251,6 +265,7 @@ struct SlideThumbnail: View {
     /// The design's thumbnails are radius 4; the monitors in the inspector are radius 6.
     var cornerRadius: CGFloat = Radius.sm
     @State private var stillsLoaded = 0
+    @State private var doesNotFit = false
 
     var body: some View {
         // Reading `appearanceRevision` makes the thumbnail follow Look, theme and prop changes, and nothing else:
@@ -269,10 +284,46 @@ struct SlideThumbnail: View {
                         .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 3)).padding(4).accessibilityHidden(true)
                 }
             }
+            .overlay(alignment: .topLeading) {
+                if doesNotFit { FitWarningMark().padding(4) }
+            }
             .task(id: resolved.stillToLoad) {
                 guard let own = resolved.stillToLoad, let asset = app.media?.asset(own.assetID) else { return }
                 if await app.thumbnailStills.ensure(asset) { stillsLoaded += 1 }
             }
+            .task(id: scene) { doesNotFit = await PreviewRenderer.shared.doesNotFit(scene) }
+    }
+}
+
+/// FIX-J item 1: the mark on a slide whose words do not fit the theme at its smallest size.
+struct FitWarningMark: View {
+    var body: some View {
+        Image(systemName: "exclamationmark.triangle.fill").font(.wf(10, .bold)).foregroundStyle(Tok.warning)
+            .padding(4).background(.black.opacity(0.65), in: Circle())
+            .help(FitWarning.line)
+            .accessibilityLabel(FitWarning.line)
+    }
+}
+
+enum FitWarning {
+    static let line = "These words do not fit this theme at its smallest size"
+}
+
+/// FIX-J item 1: the editor's line under the words when they do not fit the theme at its smallest size.
+struct FitWarningLine: View {
+    let app: AppModel
+    let slide: SlideContent
+    @State private var doesNotFit = false
+
+    var body: some View {
+        let _ = app.appearanceRevision
+        let scene = app.thumbnailScene(for: slide)
+        Group {
+            if doesNotFit {
+                Label(FitWarning.line, systemImage: "exclamationmark.triangle.fill").font(.wfSmall).foregroundStyle(Tok.warning)
+            }
+        }
+        .task(id: scene) { doesNotFit = await PreviewRenderer.shared.doesNotFit(scene) }
     }
 }
 

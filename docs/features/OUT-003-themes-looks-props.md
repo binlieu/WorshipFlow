@@ -17,3 +17,5 @@ Satisfies: PRES-06 (themes), SCRN-08 (Looks), SCRN-09 (alternate themes), MEDIA-
 | `CompositionTests` and `ImageLayerTests` pass | Unit Tested |
 | Operator can pick a Look and a theme per screen, add a logo prop and toggle it | Implemented; seen running when the interface pass happens (KI-011) |
 | Themes, Looks and props persist in SQLite | Follow-up after schema v2 lands |
+
+FIX-J (UI-005h review): themes gain `fitsText` (shrink the words to fit their boxes, off unless switched on; on for the built-in looks); stored theme values are clamped when read; a row that cannot be read is skipped and named once. Details in `docs/features/UI-005h-output-looks.md`.

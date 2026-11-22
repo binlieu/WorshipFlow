@@ -6,6 +6,7 @@ import CoreGraphics
 import DeckLinkSDI
 import Domain
 import OutputEngine
+import RenderEngine
 import SDIEngine
 
 enum HardwareTestLaunchMode {
@@ -22,6 +23,7 @@ enum AppHardwareTest {
         return .system(appVersion: info?["CFBundleShortVersionString"] as? String ?? "unknown",
                        appBuild: info?["CFBundleVersion"] as? String ?? "unknown",
                        buildDetail: BuildInfo.current.detail,
+                       outputFont: { _ = InterFont.base; return OutputFont.check().environmentLine }(),
                        displays: { displays() })
     }
 

@@ -424,6 +424,7 @@ struct SlideEditor: View {
                 }
                 WordsFields(workspace: workspace, slide: workspace.slides[index], minHeight: 64)
                     .frame(height: 96)
+                FitWarningLine(app: app, slide: workspace.slides[index].content)
                 if let editor = app.slideEditor {
                     SlideObjectsEditor(app: app, editor: editor)
                         .frame(maxHeight: .infinity)

@@ -82,7 +82,7 @@ let package = Package(
         // Operator workspace logic (view models). SwiftUI views stay in the app target.
         // CUE-002b: OperatorCore also wires the cue rules, their storage, MIDI and the remote server into the app.
         // LIB-004c: and the scripture engine and store (the Scripture view's model).
-        .target(name: "OperatorCore", dependencies: ["Domain", "Persistence", "CueEngine", "CueStore", "MIDIIO", "RemoteControl", "ScriptureEngine", "ScriptureStore"]),
+        .target(name: "OperatorCore", dependencies: ["Domain", "RenderEngine", "Persistence", "CueEngine", "CueStore", "MIDIIO", "RemoteControl", "ScriptureEngine", "ScriptureStore"]),
         .testTarget(name: "OperatorCoreTests", dependencies: ["OperatorCore", "Domain", "Persistence", "CueEngine", "CueStore", "MIDIIO", "RemoteControl", "ScriptureEngine", "ScriptureStore"]),
         // Themes, Looks and props. Separate from DomainTests so slices built in parallel do not block each other.
         .testTarget(name: "CompositionTests", dependencies: ["Domain"]),
@@ -90,7 +90,7 @@ let package = Package(
         .testTarget(name: "RenderEngineTests", dependencies: ["RenderEngine", "Domain"]),
         .testTarget(name: "OutputEngineTests", dependencies: ["OutputEngine"]),
         // UI-005h: the output looks across model, rasteriser, compositor, fill and key matte, and migration v13.
-        .testTarget(name: "UI005hTests", dependencies: ["Domain", "RenderEngine", "SDIEngine", "Persistence", .product(name: "GRDB", package: "GRDB.swift")]),
+        .testTarget(name: "UI005hTests", dependencies: ["Domain", "RenderEngine", "SDIEngine", "OutputEngine", "Persistence", "OperatorCore", "ProgramPackage", "ScriptureEngine", .product(name: "GRDB", package: "GRDB.swift")]),
     ],
     cxxLanguageStandard: .cxx17
 )

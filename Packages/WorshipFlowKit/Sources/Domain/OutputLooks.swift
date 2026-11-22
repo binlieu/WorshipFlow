@@ -44,7 +44,8 @@ enum OutputLooks {
     static func audienceTheme() -> Theme {
         // 6.2cqw / 600 / 1.2 and 4.1cqw / 500 / 1.3 (the second language is `lyric-secondary`). The two blocks are one group centred on the frame: the
         // primary's line boxes end at 547.87 px, the second language's start 3.4cqw (65.28 px) below, inside the 90 % title-safe width. The
-        // primary's frame reaches up to the title-safe top (5 %) so a third line grows upwards inside it, and scripture slides are sized by it.
+        // primary's frame reaches up to the title-safe top (5 %) so a third line grows upwards inside it, and the second language's frame reaches down to the title-safe
+        // bottom (95 %) so a third line grows downwards inside it (FIX-J: fitting and the scripture slide limits are measured against these frames).
         let primaryBottom = 547.872 / 1080.0
         return Theme(
             id: Theme.fullScreenID, name: "Full screen", background: .media,
@@ -52,9 +53,9 @@ enum OutputLooks {
                                frame: NormalizedRect(x: 0.05, y: 0.05, width: 0.9, height: primaryBottom - 0.05),
                                alignment: .center, verticalAlignment: .bottom),
             secondary: TextBlock(style: text(78.72, 500, yellow, lineHeight: 1.3, shadow: lyricShadow),
-                                 frame: NormalizedRect(x: 0.05, y: 613.152 / 1080.0, width: 0.9, height: 0.28),
+                                 frame: NormalizedRect(x: 0.05, y: 613.152 / 1080.0, width: 0.9, height: 0.95 - 613.152 / 1080.0),
                                  alignment: .center, verticalAlignment: .top),
-            mediaFallback: audienceGradient)
+            mediaFallback: audienceGradient, fitsText: true)
     }
 
     // MARK: Broadcast: lower third
@@ -71,7 +72,7 @@ enum OutputLooks {
                                frame: rect(211.2, 804.4, 1548, 84), alignment: .leading, verticalAlignment: .top),
             secondary: TextBlock(style: text(49.92, 500, yellow, lineHeight: 1.3),
                                  frame: rect(211.2, 888.4, 1548, 64.9), alignment: .leading, verticalAlignment: .top),
-            plate: plate)
+            plate: plate, fitsText: true)
     }
 
     // MARK: Stage: confidence monitor
@@ -83,22 +84,24 @@ enum OutputLooks {
         // The stage panel has 4 % padding, so its cqw is 17.664 px: current 6.6cqw / 700 / 1.15, second language 3.6cqw / 600, NEXT 1.5cqw /
         // .08em tracking, next line 3.8cqw / 700 in `muted`, clock 4cqw, timer 6cqw in `cyan`, message band 2.6cqw / 700 on `warning`.
         let current = text(116.5824, 700, white, lineHeight: 1.15)
+        let currentFrame = rect(76.8, 76.8, 1766.4, 268.14)
         let second = StageSecondLanguage(
             style: text(63.5904, 600, yellow, lineHeight: 1.3),
             // The mockup's own line box for this line is 16 px tall (the page's fixed line height) centred on y = 377.6, which puts a normal 1.3 line
             // at y = 336.27; the picture draws the line 12 px lower than that (ink 355 to 425 against 343 to 413), and the picture wins.
-            frame: rect(76.8, 348.27, 1766.4, 82.67))
+            frame: rect(76.8, 348.27, 1766.4, 82.67), onElement: currentFrame)
+        let nextFrame = rect(76.8, 837.5, 1766.4, 80.55)
         let nextLabel = StageLabel(text: "NEXT", style: text(26.496, 700, muted, lineHeight: 1.3, spacing: 0.08),
-                                   frame: rect(76.8, 796, 1766.4, 34.44))
+                                   frame: rect(76.8, 796, 1766.4, 34.44), onElement: nextFrame)
         let clockFrame = rect(1843.2 - 400, 64.8, 400, 81.254)
         let timerFrame = rect(1843.2 - 600, 163.72, 600, 121.88)
         let band = StageMessageBand(
             plate: TextPlate(x: 0, width: 1, bottomMargin: 0, fill: yellow, cornerRadius: 0, paddingX: 76.8, paddingY: 17.664),
             style: text(45.9264, 700, onBrand, lineHeight: 1.3))
         return StageLayout(id: StageLayout.standardID, name: "Standard", background: stageBackground, elements: [
-            StageElement(id: id(1), kind: .currentSlide, frame: rect(76.8, 76.8, 1766.4, 268.14), style: current, alignment: .leading,
+            StageElement(id: id(1), kind: .currentSlide, frame: currentFrame, style: current, alignment: .leading,
                          showsSecondLanguage: true, secondLanguage: second),
-            StageElement(id: id(2), kind: .nextSlide, frame: rect(76.8, 837.5, 1766.4, 80.55),
+            StageElement(id: id(2), kind: .nextSlide, frame: nextFrame,
                          style: text(67.1232, 700, muted, lineHeight: 1.2),
                          alignment: .leading, showsSecondLanguage: false, label: nextLabel),
             StageElement(id: id(3), kind: .timeOfDay, frame: clockFrame,

@@ -162,9 +162,12 @@ public final class SDIOutput: OutputTarget {
 
     /// True when a keyed output of this scene would send a key that is white everywhere, so nothing would be keyed out.
     /// Conservative: a background colour with any transparency, and no video, image or media layer behind the text, is not opaque.
+    /// FIX-J item 8: a gradient background (drawn over the whole frame, its last colour continuing past the last stop) whose stops are all fully
+    /// opaque makes the frame opaque, whatever the colour under it; one with any transparent stop does not.
     public nonisolated static func isOpaque(_ scene: SceneDescription) -> Bool {
         scene.backgroundColor.alpha >= 1 || scene.showsVideo || scene.backgroundImage != nil
             || scene.backgroundMedia != nil || scene.foregroundMedia != nil
+            || (scene.backgroundGradient.map { !$0.stops.isEmpty && $0.stops.allSatisfy { $0.color.alpha >= 1 } } ?? false)
     }
 
     public let name: String

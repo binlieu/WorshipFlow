@@ -72,9 +72,9 @@ public enum SceneComposer {
         return text
     }
 
-    private static func layer(_ text: String, _ block: TextBlock, inPlate: Bool = false) -> TextLayer {
+    private static func layer(_ text: String, _ block: TextBlock, inPlate: Bool = false, fits: Bool = false) -> TextLayer {
         TextLayer(text: text, style: block.style, frame: block.frame, alignment: block.alignment,
-                  verticalAlignment: block.verticalAlignment, inPlate: inPlate)
+                  verticalAlignment: block.verticalAlignment, inPlate: inPlate, fitFloor: fits ? Theme.fitFloor : nil)
     }
 
     private static func themed(_ state: ShowState, theme: Theme, look: ScreenLook, props: [Prop], media: MediaLayers?,
@@ -127,8 +127,8 @@ public enum SceneComposer {
         scene.foregroundMedia = foreground
         if foreground == nil, look.visibleLayers.contains(.slide), let slide = state.liveSlide {
             let plated = theme.plate != nil
-            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary, inPlate: plated)) }
-            if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block, inPlate: plated)) }
+            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary, inPlate: plated, fits: theme.fitsText)) }
+            if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block, inPlate: plated, fits: theme.fitsText)) }
             if plated, !scene.textLayers.isEmpty { scene.plate = theme.plate }     // no words, no plate
             // Slide objects (SLIDE-001a) follow the slide layer. A keyed (transparent) screen leaves them out, so
             // full-frame artwork cannot cover a lower third.
@@ -169,7 +169,7 @@ public enum SceneComposer {
         }
         if let clock = visible(clock) {
             layers.append(TextLayer(text: clock, style: s.stageClock, frame: s.stageClockFrame,
-                                    alignment: .trailing, verticalAlignment: .top))
+                                    alignment: .trailing, verticalAlignment: .top, ticks: true))
         }
         if state.isBlackedOut { layers.append(StageComposer.blackoutLayer(warning: StageLayout.standard.warningColor)) }
         return SceneDescription(backgroundColor: s.stageBackground, showsVideo: false, textLayers: layers)

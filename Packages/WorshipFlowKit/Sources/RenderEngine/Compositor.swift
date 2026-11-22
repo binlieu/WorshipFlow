@@ -28,12 +28,6 @@ public final class Compositor {
     /// One opaque black pixel, stretched behind a foreground clip to letterbox it (MEDIA-03).
     private let blackTexture: MTLTexture
 
-    private struct TextKey: Hashable {
-        let text: String
-        let style: TextStyle
-        let maxWidth: Int
-        let alignment: TextAlignment
-    }
     private struct CachedText {
         let texture: MTLTexture
         let width: Int
@@ -48,10 +42,25 @@ public final class Compositor {
         /// Pixels with ink, bitmap coordinates (empty when there is none).
         var ink = CGRect.zero
     }
-    private var textCache: [TextKey: CachedText] = [:]
-    private let textCacheLimit = 64
+    /// FIX-J item 2: the lyrics' bitmaps, and (apart) those of text that changes every second. Each gives up its least recently used entry one
+    /// at a time, so a full cache never loses the whole slide, and a ticking clock never pushes a lyric out.
+    private var lyricCache = LRUCache<TextRasterKey, CachedText>(limit: Compositor.lyricCacheLimit)
+    private var tickingCache = LRUCache<TextRasterKey, CachedText>(limit: Compositor.tickingCacheLimit)
+    static let lyricCacheLimit = 64
+    static let tickingCacheLimit = 16
+    /// Entries in the lyric cache and in the ticking-text cache (for tests and diagnostics).
+    var textCacheCount: Int { lyricCache.count }
+    var tickingCacheCount: Int { tickingCache.count }
+    /// Set by `TextWarmer`: bitmaps and fit decisions made here are also put in the shared store for the outputs' compositors.
+    var publishesRasters = false
     /// Number of Core Text rasterisations performed (for tests and diagnostics).
     public private(set) var rasterizationCount = 0
+
+    // FIX-J item 1: fitting. One status per slide's words, theme blocks and aspect, computed on the first frame that needs it.
+    private var fitCache = LRUCache<FitKey, TextFitStatus>(limit: 128)
+    private var lastFit: (layers: [TextLayer], plate: TextPlate?, width: Int, height: Int, status: TextFitStatus)?
+    /// Fitting computations made so far (for tests and diagnostics): one per distinct slide and theme, never one per frame.
+    public private(set) var fitComputationCount = 0
 
     // UI-005h: gradient backgrounds (one frame-sized bitmap per gradient and output size) and plates (one per size, radius, colours and bar).
     // Both are built on the first frame that needs them and reused; `looksCacheLimit` of each are kept.
@@ -240,6 +249,40 @@ public final class Compositor {
     /// A command buffer on the compositor's queue, for the live path.
     public func makeCommandBuffer() -> MTLCommandBuffer? { queue.makeCommandBuffer() }
 
+    // MARK: Fitting (FIX-J)
+
+    /// What fitting decides for `scene`'s text at an output of `width` x `height`: the factor and whether the words fit. The measure is made at
+    /// the reference size, so every output size of one slide gives the same answer. Computed once per slide and theme and kept; a scene whose
+    /// text has no fit floor is `.unchanged`.
+    public func fitStatus(scene: SceneDescription, width: Int, height: Int) throws -> TextFitStatus {
+        guard width > 0, height > 0 else { throw RenderError.invalidSize }
+        // The frame loop asks every frame: no allocation unless the words changed (an array compare, and the answer of the frame before).
+        guard scene.textLayers.contains(where: { $0.fitFloor != nil }) else { return .unchanged }
+        if let last = lastFit, last.width == width, last.height == height, last.plate == scene.plate, last.layers == scene.textLayers { return last.status }
+        let platePresent = scene.plate != nil
+        let group = TextFitter.group(scene.textLayers)
+        guard !group.isEmpty else { return .unchanged }
+        let refW = TextFitter.referenceWidth(width: width, height: height)
+        let key = FitKey(layers: group.map { FitLayerKey(text: $0.text, style: $0.style, frame: $0.frame, alignment: $0.alignment,
+                                                          inPlate: platePresent && $0.inPlate, floor: $0.fitFloor ?? 0) },
+                         plate: scene.plate, referenceWidth: refW)
+        func remember(_ status: TextFitStatus) -> TextFitStatus {
+            lastFit = (scene.textLayers, scene.plate, width, height, status)
+            return status
+        }
+        if let hit = fitCache.value(for: key) { return remember(hit) }
+        if let shared = SharedTextStore.shared.fit(for: key) {      // prepared ahead of Go Live
+            fitCache.insert(shared, for: key)
+            return remember(shared)
+        }
+        let status = TextFitter.status(layers: group.map { var l = $0; l.inPlate = platePresent && l.inPlate; return l }, plate: scene.plate,
+                                       referenceWidth: refW, rasterizer: rasterizer)
+        fitComputationCount += 1
+        fitCache.insert(status, for: key)
+        if publishesRasters { SharedTextStore.shared.put(status, for: key) }
+        return remember(status)
+    }
+
     // MARK: Offscreen rendering
 
     /// Renders to a new offscreen BGRA texture and reads it back. Used by tests and snapshots, not the live path.
@@ -296,12 +339,13 @@ public final class Compositor {
         var placed: [QuadDraw] = []
         var plateDraws: [QuadDraw] = []
         let platedLayers = scene.plate == nil ? [] : scene.textLayers.filter(\.inPlate)
+        let fit = (try? fitStatus(scene: scene, width: width, height: height)) ?? .unchanged
         for layer in scene.textLayers where scene.plate == nil || !layer.inPlate {
-            if let draw = safeTextDraw(layer, width: width, height: height) { placed.append(draw) }
+            if let draw = safeTextDraw(layer, width: width, height: height, fit: fit) { placed.append(draw) }
         }
         if let plate = scene.plate, !platedLayers.isEmpty {
             do {
-                if let result = try placePlate(plate, layers: platedLayers, width: width, height: height) {
+                if let result = try placePlate(plate, layers: platedLayers, width: width, height: height, fit: fit) {
                     plateDraws = [result.draw].compactMap { $0 } + result.texts.map(\.draw)
                 }
             } catch {
@@ -432,17 +476,17 @@ public final class Compositor {
     }
 
     /// `textDraw`, with a failure turned into a skipped layer and a reported problem.
-    private func safeTextDraw(_ layer: TextLayer, width: Int, height: Int) -> QuadDraw? {
+    private func safeTextDraw(_ layer: TextLayer, width: Int, height: Int, fit: TextFitStatus = .unchanged) -> QuadDraw? {
         do {
-            return try textDraw(layer, width: width, height: height)
+            return try textDraw(layer, width: width, height: height, fit: fit)
         } catch {
             note(problem: "Text layer skipped (\"\(Self.snippet(layer.text))\"): \(error)")
             return nil
         }
     }
 
-    private func textDraw(_ layer: TextLayer, width: Int, height: Int) throws -> QuadDraw? {
-        try placeText(layer, width: width, height: height)?.draw
+    private func textDraw(_ layer: TextLayer, width: Int, height: Int, fit: TextFitStatus = .unchanged) throws -> QuadDraw? {
+        try placeText(layer, width: width, height: height, fit: fit)?.draw
     }
 
     private struct PlacedText {
@@ -466,9 +510,9 @@ public final class Compositor {
     }
 
     /// The style at the output's size: sizes, outline and shadow are points at the 1080-line reference height.
-    private func scaled(_ style: TextStyle, height: Int) -> TextStyle {
+    private func scaled(_ style: TextStyle, height: Int, factor: Double = 1) -> TextStyle {
         let scale = Double(height) / Self.referenceHeight
-        var scaled = style
+        var scaled = TextFitter.scaled(style, by: factor)
         scaled.fontSize *= scale
         scaled.outlineWidth *= scale
         if var shadow = scaled.shadow {
@@ -485,16 +529,18 @@ public final class Compositor {
     /// A style without a line height is placed by its padded bitmap, as it always was. A style with one is placed by its line boxes, like a
     /// web page: the block's edges (the widest line, the lines' pitch times their count) sit on the frame's edge or centre, the text wraps at
     /// the frame's width, and the bitmap's padding (for outline, shadow and marks) hangs outside it.
-    private func placeText(_ layer: TextLayer, width: Int, height: Int) throws -> PlacedText? {
+    private func placeText(_ layer: TextLayer, width: Int, height: Int, fit: TextFitStatus = .unchanged) throws -> PlacedText? {
         guard !layer.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let frame = layer.frame.pixelRect(width: width, height: height)
         guard frame.width > 8, frame.height > 0 else { return nil }
         let opacity = Float(min(1, max(0, layer.opacity)))
         guard opacity > 0 else { return nil }
-        let style = scaled(layer.style, height: height)
+        // FIX-J: a layer with a fit floor is drawn at the group's factor, and, when it cannot fit even at the floor, clipped to the title-safe frame.
+        let fitted = layer.fitFloor != nil
+        let style = scaled(layer.style, height: height, factor: fitted ? fit.factor : 1)
         let lineBoxMode = layer.style.lineHeight != nil
         let pad = TextRasterizer.padding(for: style)
-        let cached = try cachedText(layer.text, style: style, maxWidth: lineBoxMode ? frame.width + 2 * pad.x : frame.width, alignment: layer.alignment)
+        let cached = try cachedText(layer.text, style: style, maxWidth: lineBoxMode ? frame.width + 2 * pad.x : frame.width, alignment: layer.alignment, ticks: layer.ticks)
         if cached.clipped { note(problem: "Text taller than the limit was clipped (\"\(Self.snippet(layer.text))\")") }
         let item: (box: LayoutBox, origin: SIMD2<Float>, clip: NormalizedRect.PixelRect)
         if lineBoxMode {
@@ -514,8 +560,10 @@ public final class Compositor {
             }
             // Whole pixels, so glyph edges are sampled exactly and stay as sharp as they were rasterised.
             let origin = SIMD2(Float((bx - cached.lineBoxLeft).rounded()), Float((by - cached.lineBoxTop).rounded()))
-            item = (LayoutBox(x: bx, y: by, width: cached.blockWidth, height: cached.blockHeight), origin,
-                    NormalizedRect.PixelRect(x: frame.x - pad.x, y: frame.y - pad.y, width: frame.width + 2 * pad.x, height: frame.height + 2 * pad.y))
+            let clip = fitted && !fit.fits
+                ? frame      // exactly the block's frame: no room for padding, the words that do not fit are cut at the title-safe edge
+                : NormalizedRect.PixelRect(x: frame.x - pad.x, y: frame.y - pad.y, width: frame.width + 2 * pad.x, height: frame.height + 2 * pad.y)
+            item = (LayoutBox(x: bx, y: by, width: cached.blockWidth, height: cached.blockHeight), origin, clip)
         } else {
             let x: Int
             switch layer.alignment {
@@ -551,7 +599,7 @@ public final class Compositor {
 
     /// Stacks the plated layers inside the plate's padding (beside its bar), sizes the plate to them, sits it `bottomMargin` above the bottom
     /// of the frame and fetches its bitmap. Nil when no plated layer has anything to show: no words, no plate.
-    private func placePlate(_ plate: TextPlate, layers: [TextLayer], width: Int, height: Int) throws -> PlateResult? {
+    private func placePlate(_ plate: TextPlate, layers: [TextLayer], width: Int, height: Int, fit: TextFitStatus = .unchanged) throws -> PlateResult? {
         let scale = Double(height) / Self.referenceHeight
         let shown = layers.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.opacity > 0 }
         guard !shown.isEmpty else { return nil }
@@ -564,9 +612,9 @@ public final class Compositor {
 
         var blocks: [(layer: TextLayer, style: TextStyle, cached: CachedText)] = []
         for layer in shown {
-            let style = scaled(layer.style, height: height)
+            let style = scaled(layer.style, height: height, factor: layer.fitFloor != nil ? fit.factor : 1)
             let pad = TextRasterizer.padding(for: style)
-            let cached = try cachedText(layer.text, style: style, maxWidth: Int(textWidth.rounded()) + 2 * pad.x, alignment: layer.alignment)
+            let cached = try cachedText(layer.text, style: style, maxWidth: Int(textWidth.rounded()) + 2 * pad.x, alignment: layer.alignment, ticks: layer.ticks)
             if cached.clipped { note(problem: "Text taller than the limit was clipped (\"\(Self.snippet(layer.text))\")") }
             blocks.append((layer, style, cached))
         }
@@ -575,6 +623,9 @@ public final class Compositor {
         let plateBottom = Double(height) - plate.bottomMargin * scale
         let plateTop = plateBottom - plateHeight
 
+        // FIX-J: words that cannot fit even at the floor are clipped, with their plate, to the title-safe frame.
+        let unfit = !fit.fits && shown.contains { $0.fitFloor != nil }
+        let safe = TextFitter.titleSafe.pixelRect(width: width, height: height)
         var texts: [PlacedText] = []
         var y = plateTop + padY
         for block in blocks {
@@ -586,7 +637,7 @@ public final class Compositor {
             case .trailing: bx = textLeft + textWidth - c.blockWidth
             }
             let origin = SIMD2(Float((bx - c.lineBoxLeft).rounded()), Float((y - c.lineBoxTop).rounded()))
-            let draw = inkQuad(c, origin: origin, opacity: Float(block.layer.opacity), clip: nil)
+            let draw = inkQuad(c, origin: origin, opacity: Float(block.layer.opacity), clip: unfit ? safe : nil)
             texts.append(PlacedText(draw: draw, item: TextLayoutItem(text: block.layer.text, box: LayoutBox(x: bx, y: y, width: c.blockWidth, height: c.blockHeight),
                                                                     fontSize: block.style.fontSize, weight: block.layer.style.weight ?? 400,
                                                                     lineCount: c.lineCount, inPlate: true)))
@@ -613,8 +664,10 @@ public final class Compositor {
             note(problem: "A plate could not be drawn (\(key.width)x\(key.height) px)")
             return PlateResult(plate: box, bar: barBox, draw: nil, texts: texts)
         }
+        // FIX-J item 8: the plate is as opaque as the most opaque of the layers on it (all fading out, it fades too).
+        let plateOpacity = Float(shown.map(\.opacity).max() ?? 1)
         let draw = QuadDraw(texture: texture, origin: SIMD2(Float(left), Float(top)), size: SIMD2(Float(key.width), Float(key.height)),
-                            uvOrigin: .zero, uvSize: SIMD2(1, 1), opacity: 1, clip: nil)
+                            uvOrigin: .zero, uvSize: SIMD2(1, 1), opacity: plateOpacity, clip: unfit ? safe : nil)
         return PlateResult(plate: box, bar: barBox, draw: draw, texts: texts)
     }
 
@@ -664,10 +717,11 @@ public final class Compositor {
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         var report = SceneLayoutReport()
         let platedLayers = scene.plate == nil ? [] : scene.textLayers.filter(\.inPlate)
+        let fit = try fitStatus(scene: scene, width: width, height: height)
         for layer in scene.textLayers where scene.plate == nil || !layer.inPlate {
-            if let placed = try placeText(layer, width: width, height: height) { report.texts.append(placed.item) }
+            if let placed = try placeText(layer, width: width, height: height, fit: fit) { report.texts.append(placed.item) }
         }
-        if let plate = scene.plate, let result = try placePlate(plate, layers: platedLayers, width: width, height: height) {
+        if let plate = scene.plate, let result = try placePlate(plate, layers: platedLayers, width: width, height: height, fit: fit) {
             report.plate = result.plate
             report.bar = result.bar
             report.texts = result.texts.map(\.item) + report.texts
@@ -888,11 +942,17 @@ public final class Compositor {
 
     // MARK: Text cache
 
-    private func cachedText(_ text: String, style: TextStyle, maxWidth: Int, alignment: TextAlignment) throws -> CachedText {
-        let key = TextKey(text: text, style: style, maxWidth: maxWidth, alignment: alignment)
-        if let hit = textCache[key] { return hit }
-        let raster = try rasterizer.rasterize(text, style: style, maxWidth: maxWidth, alignment: alignment)
-        rasterizationCount += 1
+    private func cachedText(_ text: String, style: TextStyle, maxWidth: Int, alignment: TextAlignment, ticks: Bool = false) throws -> CachedText {
+        let key = TextRasterKey(text: text, style: style, maxWidth: maxWidth, alignment: alignment)
+        if let hit = ticks ? tickingCache.value(for: key) : lyricCache.value(for: key) { return hit }
+        let raster: RasterizedText
+        if let prepared = SharedTextStore.shared.raster(for: key) {      // rasterised ahead of Go Live (TextWarmer): no Core Text on this frame
+            raster = prepared
+        } else {
+            raster = try rasterizer.rasterize(text, style: style, maxWidth: maxWidth, alignment: alignment)
+            rasterizationCount += 1
+            if publishesRasters { SharedTextStore.shared.put(raster, for: key) }
+        }
         let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: raster.width, height: raster.height, mipmapped: false)
         td.usage = .shaderRead
         td.storageMode = .shared
@@ -903,11 +963,10 @@ public final class Compositor {
                             withBytes: base, bytesPerRow: raster.width * 4)
             }
         }
-        if textCache.count >= textCacheLimit { textCache.removeAll(keepingCapacity: true) }
         let entry = CachedText(texture: tex, width: raster.width, height: raster.height, clipped: raster.clipped,
                                lineBoxLeft: raster.lineBoxLeft, lineBoxTop: raster.lineBoxTop, blockWidth: raster.blockWidth,
                                blockHeight: raster.blockHeight, lineCount: raster.lineCount, ink: raster.inkBounds)
-        textCache[key] = entry
+        if ticks { tickingCache.insert(entry, for: key) } else { lyricCache.insert(entry, for: key) }
         return entry
     }
 }

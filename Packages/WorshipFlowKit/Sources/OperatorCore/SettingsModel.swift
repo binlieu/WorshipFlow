@@ -100,9 +100,16 @@ public final class SettingsModel {
             persistProfiles()
         }
 
-        customThemes = Self.sorted((await attempt("read the themes") { try await self.store.themes() }) ?? [])
+        // FIX-J item 4: a row that cannot be decoded is skipped (and named once); the others load.
+        var skipped: [SkippedRow] = []
+        let loadedThemes = await attempt("read the themes") { try await self.store.themesAndSkipped() }
+        customThemes = Self.sorted(loadedThemes?.themes ?? [])
+        skipped += loadedThemes?.skipped ?? []
         props = await attempt("read the props") { try await self.store.props() } ?? []
-        var stored = await attempt("read the Looks") { try await self.store.looks() } ?? []
+        let loadedLooks = await attempt("read the Looks") { try await self.store.looksAndSkipped() }
+        var stored = loadedLooks?.looks ?? []
+        skipped += loadedLooks?.skipped ?? []
+        if let notice = skipped.operatorNotice { lastError = [lastError, notice].compactMap { $0 }.joined(separator: " ") }
         if stored.isEmpty {
             let standard = Look(id: UUID(), name: "Standard")
             stored = [standard]

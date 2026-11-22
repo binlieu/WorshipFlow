@@ -191,10 +191,13 @@ public struct HardwareEnvironmentInfo: Codable, Equatable, Sendable {
     public var collectedAt: String
     /// UI-004: `commit 71d344d, built 2026-11-21` or `development build`. Absent in a report written by an older build.
     public var appBuildDetail: String?
+    /// FIX-J item 6: the font the output looks were drawn in ("Inter (bundled)", or the system font that stood in for it). Absent in a report
+    /// written by an older build.
+    public var outputFont: String?
 
     public init(appVersion: String, appBuild: String, osVersion: String, osBuild: String, macModel: String, chip: String,
                 memoryGB: Double, processorCount: Int, displays: [HardwareDisplayInfo], driver: HardwareDriverStatus, collectedAt: String,
-                appBuildDetail: String? = nil) {
+                appBuildDetail: String? = nil, outputFont: String? = nil) {
         self.appVersion = appVersion
         self.appBuild = appBuild
         self.osVersion = osVersion
@@ -207,6 +210,7 @@ public struct HardwareEnvironmentInfo: Codable, Equatable, Sendable {
         self.driver = driver
         self.collectedAt = collectedAt
         self.appBuildDetail = appBuildDetail
+        self.outputFont = outputFont
     }
 }
 

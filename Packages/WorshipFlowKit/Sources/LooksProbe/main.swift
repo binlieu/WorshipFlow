@@ -3,7 +3,8 @@
 //       renders the three role compositions of the design's sample slide at 1920 x 1080 (audience; stage with timer and message band; the
 //       broadcast lower third as fill, key and composite over a checkerboard) into PNGs, and writes looks.rects.json: the rectangles of text,
 //       plate and bar in the page coordinates of the design dump, for scripts/compare-rects.py with scripts/design-map-looks.json.
-//   wf-looks-probe perf | compare | gpu | readback: frame time numbers.
+//   wf-looks-probe perf | perf-long | compare | gpu | readback: frame time numbers (FIX-J: perf-long uses a long bilingual slide that needs fitting).
+//   wf-looks-probe long-pictures <out dir>: that slide on the audience and lower-third looks, as PNGs.
 // `wf-looks-probe perf` measures the time to render the three role compositions of
 // one slide at 1920 x 1080 into offscreen textures, cold (first frame: shaders, text rasterisation) and warm (steady state), and
 // prints the numbers. It asserts nothing: wall-clock time never decides a test.
@@ -27,8 +28,27 @@ func samples() -> ShowState {
     return state
 }
 
-func perf() throws {
-    let state = samples()
+/// FIX-J: a bilingual slide long enough to need fitting on the audience screen (invented words).
+func longSample() -> ShowState {
+    var state = ShowState()
+    state.apply(.load(ShowDeck(presentationID: UUID(), slides: [
+        SlideContent(primary: "Every morning brings a song of new beginnings and a hope that never fades away, and we sing it again together",
+                     secondary: "M\u{1ED7}i s\u{00E1}ng mai l\u{00E0} m\u{1ED9}t b\u{00E0}i ca m\u{1EDB}i v\u{00E0} m\u{1ED9}t ni\u{1EC1}m hy v\u{1ECD}ng kh\u{00F4}ng bao gi\u{1EDD} t\u{1EAF}t"),
+    ])))
+    state.apply(.trigger(index: 0))
+    return state
+}
+
+/// Registers the bundled Inter from ./Vendor/Inter (run from the repository root) so the looks are timed in their own font.
+func registerInterIfPresent() {
+    let url = URL(fileURLWithPath: "Vendor/Inter/InterVariable.ttf")
+    guard FileManager.default.fileExists(atPath: url.path) else { print("(Inter not found: timing with a system font)"); return }
+    CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+}
+
+func perf(long: Bool) throws {
+    registerInterIfPresent()
+    let state = long ? longSample() : samples()
     let compositor = try Compositor()
     let scenes: [SceneDescription] = [
         SceneComposer.scene(for: .audience, state: state, theme: Theme.fullScreen, look: .standard, props: [], clockText: "9:14"),
@@ -47,6 +67,20 @@ func perf() throws {
         return Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000
     }
     let cold = try frame()
+    // WARMED-BEGIN (FIX-J: only builds with the text warmer)
+    let preparedAt = DispatchTime.now().uptimeNanoseconds
+    TextWarmer.warmNow(scenes: scenes.map { ($0, 1920, 1080) })
+    let prepared = Double(DispatchTime.now().uptimeNanoseconds - preparedAt) / 1_000_000
+    let warmCompositor = try Compositor()
+    let warmTargets = try scenes.map { _ in try { guard let t = warmCompositor.device.makeTexture(descriptor: td) else { throw RenderError.invalidSize }; return t }() }
+    do {
+        let start = DispatchTime.now().uptimeNanoseconds
+        guard let cb = warmCompositor.makeCommandBuffer() else { throw RenderError.invalidSize }
+        for (scene, target) in zip(scenes, warmTargets) { try warmCompositor.encode(scene: scene, into: target, video: nil, commandBuffer: cb) }
+        cb.commit(); cb.waitUntilCompleted()
+        print(String(format: "text prepared ahead (background): %.3f ms; first frame of a compositor after that: %.3f ms", prepared, Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000))
+    }
+    // WARMED-END
     for _ in 0..<20 { _ = try frame() }
     var times: [Double] = []
     for _ in 0..<600 { times.append(try frame()) }
@@ -260,6 +294,29 @@ func looks(out: String, designPath: String, fontPath: String?) throws {
     print("wrote \(rects.count) rectangles and four pictures to \(dir.path)")
 }
 
+/// FIX-J: the long bilingual slide on the audience look and on the lower-third look (over a checkerboard), 1280 x 720, for the report's pictures.
+func longPictures(out: String) throws {
+    registerInterIfPresent()
+    let dir = URL(fileURLWithPath: out, isDirectory: true)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let compositor = try Compositor()
+    let state = longSample()
+    let audience = SceneComposer.scene(for: .audience, state: state, theme: Theme.fullScreen, look: .standard, props: [])
+    try png(try compositor.renderImage(scene: audience, width: 1280, height: 720), to: dir.appendingPathComponent("audience-long.png"))
+    let lower = SceneComposer.scene(for: .broadcast, state: state, theme: Theme.lowerThird, look: .standard, props: [])
+    let frame = try compositor.renderImage(scene: lower, width: 1280, height: 720)
+    try png(frame, to: dir.appendingPathComponent("lowerthird-long.png")) { bytes in
+        for y in 0..<720 { for x in 0..<1280 {
+            let i = (y * 1280 + x) * 4
+            let base: Double = ((x / 27 + y / 27) % 2 == 0) ? 150 : 110
+            let a = Double(bytes[i + 3]) / 255
+            for c in 0..<3 { bytes[i + c] = UInt8(min(255, Double(bytes[i + c]) + base * (1 - a))) }
+            bytes[i + 3] = 255
+        } }
+    }
+    print("wrote the long bilingual slide on the audience and lower-third looks to \(dir.path)")
+}
+
 func UI_lowerThirdState() -> ShowState {
     var state = ShowState()
     state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "My chains are gone, I\u{2019}ve been set free",
@@ -274,9 +331,13 @@ case "looks":
     let args = Array(CommandLine.arguments.dropFirst(2))
     guard args.count >= 2 else { FileHandle.standardError.write(Data("usage: wf-looks-probe looks <out dir> <design rects json> [InterVariable.ttf]\n".utf8)); exit(2) }
     try looks(out: args[0], designPath: args[1], fontPath: args.count > 2 ? args[2] : nil)
+case "long-pictures":
+    guard CommandLine.arguments.count > 2 else { FileHandle.standardError.write(Data("usage: wf-looks-probe long-pictures <out dir>\n".utf8)); exit(2) }
+    try longPictures(out: CommandLine.arguments[2])
 case "readback": try perfReadback()
 case "gpu": try perfGPU()
-case "perf": try perf()
+case "perf": try perf(long: false)
+case "perf-long": try perf(long: true)
 case "compare": try perfCompare()
 default: FileHandle.standardError.write(Data("usage: wf-looks-probe perf\n".utf8)); exit(2)
 }

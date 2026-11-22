@@ -14,6 +14,12 @@ public struct GradientBackground: Sendable, Equatable, Codable, Hashable {
             self.position = position.isFinite ? min(1, max(0, position)) : 0
             self.color = color
         }
+
+        private enum CodingKeys: String, CodingKey { case position, color }
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            self.init(position: try c.decode(Double.self, forKey: .position), color: try c.decode(ColorRGBA.self, forKey: .color))
+        }
     }
 
     /// At least two, in increasing position. Past the last stop the last colour continues.
@@ -26,11 +32,24 @@ public struct GradientBackground: Sendable, Equatable, Codable, Hashable {
     public var radiusY: Double
 
     public init(stops: [Stop], centerX: Double, centerY: Double, radiusX: Double, radiusY: Double) {
-        self.stops = stops.sorted { $0.position < $1.position }
-        self.centerX = centerX.isFinite ? centerX : 0.5
-        self.centerY = centerY.isFinite ? centerY : 0.5
-        self.radiusX = radiusX.isFinite && radiusX > 0 ? radiusX : 1
-        self.radiusY = radiusY.isFinite && radiusY > 0 ? radiusY : 1
+        // FIX-J: at least two stops in increasing position (none: black; one: that colour to the end), a centre within a few frames of the
+        // picture and radii that are neither zero nor huge, whether the gradient is built or read from a stored row.
+        var sorted = stops.sorted { $0.position < $1.position }
+        if sorted.isEmpty { sorted = [Stop(position: 0, color: .black), Stop(position: 1, color: .black)] }
+        if sorted.count == 1, let only = sorted.first { sorted.append(Stop(position: 1, color: only.color)) }
+        self.stops = sorted
+        self.centerX = centerX.isFinite ? min(8, max(-8, centerX)) : 0.5
+        self.centerY = centerY.isFinite ? min(8, max(-8, centerY)) : 0.5
+        self.radiusX = radiusX.isFinite && radiusX > 0 ? min(16, radiusX) : 1
+        self.radiusY = radiusY.isFinite && radiusY > 0 ? min(16, radiusY) : 1
+    }
+
+    private enum CodingKeys: String, CodingKey { case stops, centerX, centerY, radiusX, radiusY }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(stops: try c.decode([Stop].self, forKey: .stops), centerX: try c.decode(Double.self, forKey: .centerX),
+                  centerY: try c.decode(Double.self, forKey: .centerY), radiusX: try c.decode(Double.self, forKey: .radiusX),
+                  radiusY: try c.decode(Double.self, forKey: .radiusY))
     }
 }
 
@@ -43,10 +62,18 @@ public struct AccentBar: Sendable, Equatable, Codable, Hashable {
     public var bottom: ColorRGBA
 
     public init(width: Double, gap: Double, top: ColorRGBA, bottom: ColorRGBA) {
-        self.width = width.isFinite ? max(0, width) : 0
-        self.gap = gap.isFinite ? max(0, gap) : 0
+        self.width = width.isFinite ? min(1000, max(0, width)) : 0
+        self.gap = gap.isFinite ? min(1000, max(0, gap)) : 0
         self.top = top
         self.bottom = bottom
+    }
+
+    private enum CodingKeys: String, CodingKey { case width, gap, top, bottom }
+    /// FIX-J: a stored bar goes through the initialiser.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(width: try c.decode(Double.self, forKey: .width), gap: try c.decode(Double.self, forKey: .gap),
+                  top: try c.decode(ColorRGBA.self, forKey: .top), bottom: try c.decode(ColorRGBA.self, forKey: .bottom))
     }
 }
 
@@ -66,14 +93,24 @@ public struct TextPlate: Sendable, Equatable, Codable, Hashable {
 
     public init(x: Double, width: Double, bottomMargin: Double, fill: ColorRGBA, cornerRadius: Double,
                 paddingX: Double, paddingY: Double, bar: AccentBar? = nil) {
-        func finite(_ v: Double, _ low: Double, _ fallback: Double) -> Double { v.isFinite ? max(low, v) : fallback }
+        func finite(_ v: Double, _ high: Double) -> Double { v.isFinite ? min(high, max(0, v)) : 0 }
         self.x = x.isFinite ? min(1, max(0, x)) : 0
         self.width = width.isFinite ? min(1, max(0, width)) : 1
-        self.bottomMargin = finite(bottomMargin, 0, 0)
+        self.bottomMargin = finite(bottomMargin, 2000)
         self.fill = fill
-        self.cornerRadius = finite(cornerRadius, 0, 0)
-        self.paddingX = finite(paddingX, 0, 0)
-        self.paddingY = finite(paddingY, 0, 0)
+        self.cornerRadius = finite(cornerRadius, 1000)
+        self.paddingX = finite(paddingX, 1000)
+        self.paddingY = finite(paddingY, 1000)
         self.bar = bar
+    }
+
+    private enum CodingKeys: String, CodingKey { case x, width, bottomMargin, fill, cornerRadius, paddingX, paddingY, bar }
+    /// FIX-J: a stored plate goes through the initialiser, so its radius, padding, margin and opacity are clamped as a constructed one's are.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(x: try c.decode(Double.self, forKey: .x), width: try c.decode(Double.self, forKey: .width),
+                  bottomMargin: try c.decode(Double.self, forKey: .bottomMargin), fill: try c.decode(ColorRGBA.self, forKey: .fill),
+                  cornerRadius: try c.decode(Double.self, forKey: .cornerRadius), paddingX: try c.decode(Double.self, forKey: .paddingX),
+                  paddingY: try c.decode(Double.self, forKey: .paddingY), bar: try c.decodeIfPresent(AccentBar.self, forKey: .bar))
     }
 }
