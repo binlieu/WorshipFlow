@@ -185,7 +185,10 @@ extension WorkspaceModel {
     /// Re-reads the open presentation (after a structural change), keeping the selection where it makes sense.
     func reloadOpen() async {
         guard let id = openPresentationID else { return }
-        guard let loaded = await loadContent(of: id, itemID: openPlaylistItemID) else { return }
+        let item = openPlaylistItemID
+        guard let loaded = await loadContent(of: id, itemID: item) else { return }
+        // FIX-T (M1 audit): the open presentation was read before the suspension. If another was opened meanwhile, this older read is dropped.
+        guard openPresentationID == id, openPlaylistItemID == item else { return }
         slides = loaded.slides
         groups = loaded.groups
         arrangements = loaded.arrangements

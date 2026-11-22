@@ -67,11 +67,15 @@ public struct NormalizedRect: Sendable, Equatable, Codable, Hashable {
 
     /// Integer pixel rectangle for a frame of the given size (edges rounded to the nearest pixel).
     public func pixelRect(width frameWidth: Int, height frameHeight: Int) -> PixelRect {
+        // FIX-T: total. A frame with an absurd or non-finite value (a hand-edited file) is held to a bound that still leaves `width * height * 4`
+        // room in an Int, instead of trapping in the conversion.
+        func pixels(_ v: Double) -> Int { Int(saturating: max(-1_073_741_824, min(1_073_741_824, v.isNaN ? 0 : v))) }
         let left = (x * Double(frameWidth)).rounded()
         let top = (y * Double(frameHeight)).rounded()
         let right = ((x + width) * Double(frameWidth)).rounded()
         let bottom = ((y + height) * Double(frameHeight)).rounded()
-        return PixelRect(x: Int(left), y: Int(top), width: Int(right - left), height: Int(bottom - top))
+        let l = pixels(left), t = pixels(top)
+        return PixelRect(x: l, y: t, width: pixels(right) - l, height: pixels(bottom) - t)
     }
 }
 

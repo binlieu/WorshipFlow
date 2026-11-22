@@ -199,23 +199,28 @@ extension WorkspaceModel {
         stepping = true
         defer { stepping = false }
         // UI-002: headers are skipped; a countdown starts instead of opening slides.
-        guard var j = PlaylistStepping.target(kinds: playlistKinds, from: here, direction: direction) else { return false }
+        guard let first = PlaylistStepping.target(kinds: playlistKinds, from: here, direction: direction) else { return false }
         let what = direction > 0 ? "Next" : "Previous"
+        // FIX-T item 3 (M1): the step follows its target by item id. A position taken before the passage read (an await) means another item,
+        // or nothing, once the playlist was edited or switched during it. The id is looked up again each time it is needed.
+        var targetID = playlistItems[first].id
+        let changedNote = "\(what) stopped: the playlist changed while it was being read. Press \(what) again."
+        func index(of id: UUID) -> Int? { playlistItems.firstIndex(where: { $0.id == id }) }
         // FIX-F item 8: a passage whose translation is missing stops the step the first time; a second step onto it in the same stay
         // skips it (and any further such passage) and says so.
-        let firstTarget = playlistItems[j].id
-        let skipping = blockedStep == BlockedStep(epoch: transportEpoch, from: current, target: firstTarget, direction: direction)
+        let skipping = blockedStep == BlockedStep(epoch: transportEpoch, from: current, target: targetID, direction: direction)
         var skipped: [String] = []
-        while case .scripture(let spec) = playlistItems[j].kind {
+        while let at = index(of: targetID), case .scripture(let spec) = playlistItems[at].kind {
             _ = beginPreviewRequest()               // the step is the newest request: an older one still reading must not land after it
             // LIB-004c: a passage item is read from the Bible library; a missing translation stops the step with a message.
             let resolution = await scripture?.resolve(spec) ?? .failed("Scripture is not available in this session.")
             guard epoch == transportEpoch else { return false }
+            guard let j = index(of: targetID) else { lastError = changedNote; return false }     // the item was removed while it was being read
             switch resolution {
             case .ready(let passage):
                 endLiveMediaItem()
                 blockedStep = nil
-                openScripturePassage(passage, itemID: playlistItems[j].id)
+                openScripturePassage(passage, itemID: targetID)
                 liveCountdown = nil
                 apply(.trigger(index: direction > 0 ? 0 : passage.contents.count - 1))
                 recordLiveSource()
@@ -229,15 +234,16 @@ extension WorkspaceModel {
                         lastError = "\(what) skipped \(skipped.joined(separator: ", ")), but there is nothing playable after it. \(text)"
                         return false
                     }
-                    j = next
+                    targetID = playlistItems[next].id
                     continue
                 }
-                blockedStep = BlockedStep(epoch: transportEpoch, from: current, target: playlistItems[j].id, direction: direction)
+                blockedStep = BlockedStep(epoch: transportEpoch, from: current, target: targetID, direction: direction)
                 lastError = "\(what) stopped: \(text) Press \(what) again to skip it."
                 return false
             }
         }
-        let item = playlistItems[j]
+        guard let last = index(of: targetID) else { lastError = changedNote; return false }
+        let item = playlistItems[last]
         if item.kind.isMediaPlayback {                // UI-005b: a file or a loop is taken live like a countdown is
             guard epoch == transportEpoch else { return false }
             blockedStep = nil

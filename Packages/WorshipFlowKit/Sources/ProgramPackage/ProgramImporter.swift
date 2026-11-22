@@ -85,7 +85,7 @@ public enum ProgramImporter {
                                   hooks: ProgramImportHooks, isCancelled: @Sendable () -> Bool, progress: @Sendable (ProgramProgress) -> Void) throws {
         guard !plan.copies.isEmpty else { return }
         let fm = FileManager.default
-        let total = plan.copies.reduce(Int64(0)) { $0 + ($1.entry.size ?? 0) }
+        let total = plan.copies.reduce(Int64(0)) { $0.saturatingAdding(max(0, $1.entry.size ?? 0)) }
         var done: Int64 = 0
         var filesDone = 0
         progress(ProgramProgress(bytesDone: 0, bytesTotal: total, filesDone: 0, filesTotal: plan.copies.count))
@@ -110,7 +110,7 @@ public enum ProgramImporter {
                     throw ProgramPackageError.mediaNameTaken(entry.name)
                 }
                 log.reused += 1
-                done += size
+                done = done.saturatingAdding(max(0, size))
             } else {
                 let partial = target.appendingPathExtension("partial")
                 try? fm.removeItem(at: partial)

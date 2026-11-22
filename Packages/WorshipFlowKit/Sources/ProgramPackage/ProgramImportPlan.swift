@@ -342,7 +342,7 @@ enum ProgramImportPlanner {
                 plan.summary.mediaFilesAlreadyThere += 1
             } else {
                 plan.summary.mediaFilesToCopy += 1
-                plan.summary.mediaBytesToCopy += entry.size ?? 0
+                plan.summary.mediaBytesToCopy = plan.summary.mediaBytesToCopy.saturatingAdding(max(0, entry.size ?? 0))
             }
         }
         plan.summary.missingMedia = missing

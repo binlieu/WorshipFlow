@@ -205,14 +205,14 @@ public struct CountdownRun: Equatable, Sendable {
             let target = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: startedAt) ?? startedAt
             endsAt = max(target, startedAt) == target ? target : startedAt
         }
-        total = max(0, Int(endsAt.timeIntervalSince(startedAt).rounded(.up)))
+        total = max(0, Int(saturating: endsAt.timeIntervalSince(startedAt).rounded(.up)))
     }
 
     private let total: Int
 
     /// Whole seconds left, never below zero and never above the starting value.
     public func remaining(at now: Date) -> Int {
-        min(total, max(0, Int(endsAt.timeIntervalSince(now).rounded(.up))))
+        min(total, max(0, Int(saturating: endsAt.timeIntervalSince(now).rounded(.up))))
     }
     public func isFinished(at now: Date) -> Bool { remaining(at: now) == 0 }
 }

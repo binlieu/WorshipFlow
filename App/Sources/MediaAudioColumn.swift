@@ -116,8 +116,7 @@ struct MediaAudioColumn: View {
     }
 
     private static func clock(_ seconds: Double) -> String {
-        let s = Int(max(0, seconds).rounded())
-        return String(format: "%02d:%02d", s / 60, s % 60)
+        MediaClock.cue(seconds)   // FIX-T: total
     }
 
     // MARK: Output (the design's Routing section: the matrix is left out, its room kept)
@@ -200,7 +199,7 @@ struct MediaAudioColumn: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Sound level")
             .accessibilityValue(String(format: "left %d percent, right %d percent",
-                                       Int(((levels.peak.first ?? 0) * 100).rounded()), Int(((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
+                                       Int(saturating: ((levels.peak.first ?? 0) * 100).rounded()), Int(saturating: ((levels.peak.dropFirst().first ?? levels.peak.first ?? 0) * 100).rounded())))
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(width: 339, alignment: .topLeading)

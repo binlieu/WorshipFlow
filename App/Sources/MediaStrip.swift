@@ -76,9 +76,7 @@ struct MediaStrip: View {
 
     /// "00:11.4": minutes, seconds and tenths, as the design draws the readout.
     static func tenths(_ seconds: Double) -> String {
-        let t = max(0, seconds)
-        let whole = Int(t)
-        return String(format: "%02d:%02d.%d", whole / 60, whole % 60, Int((t - Double(whole)) * 10))
+        MediaClock.tenths(seconds)   // FIX-T: total
     }
 
     var body: some View {

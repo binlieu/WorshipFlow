@@ -312,6 +312,8 @@ public final class SettingsModel {
     public func seedDesignLooks(isNewLibrary: Bool) async {
         guard isNewLibrary, isLoaded, looks.count == 1, let standard = looks.first, standard.name == "Standard", standard.screens.isEmpty else { return }
         await writes.flush()                       // the first-launch Standard Look is written before it is replaced
+        // FIX-T (M1 audit): the guard above was read before that suspension; the Looks are checked again, so an edit made meanwhile is not replaced.
+        guard looks.count == 1, looks[0].id == standard.id, looks[0].name == "Standard", looks[0].screens.isEmpty else { return }
         let made = DesignLooks.make(profiles: profiles)
         looks = made
         selectedLookID = made[0].id

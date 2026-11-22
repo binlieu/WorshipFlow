@@ -35,10 +35,11 @@ public enum ScriptureSlideLimits {
         let ownLineHeight = block.style.lineHeight
         let pitch = ownLineHeight ?? lineHeight
         let advance = ownLineHeight == nil ? letterWidth : TextMetrics.averageAdvance(of: block.style)
-        let lines = Int((block.frame.height * canvasHeight) / (size * pitch))
+        // FIX-T: total. A frame or size that is not a sane number gives the smallest capacity instead of trapping in the conversion.
+        let lines = min(1_000_000, Int(saturating: (block.frame.height * canvasHeight) / (size * pitch)))
         let verseLines = max(lines - 1, 1)
-        let perLine = max(Int((block.frame.width * canvasWidth) / (size * advance)), 1)
-        return max(Int(Double(verseLines * perLine) * fill), smallest)
+        let perLine = min(1_000_000, max(Int(saturating: (block.frame.width * canvasWidth) / (size * advance)), 1))
+        return max(Int(saturating: Double(verseLines * perLine) * fill), smallest)
     }
 }
 

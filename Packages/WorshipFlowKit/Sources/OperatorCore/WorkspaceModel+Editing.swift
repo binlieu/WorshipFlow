@@ -111,10 +111,21 @@ extension WorkspaceModel {
         apply(.restore(deck: previewDeck(), selectedIndex: keep))
     }
 
+    /// FIX-T item 4 (M2): the position is turned into the slide's id before anything suspends; the delete itself is by id.
     public func deleteSlide(at index: Int) async {
-        guard slides.indices.contains(index), requireNaturalOrder("delete the slide") else { return }
+        guard slides.indices.contains(index) else { return }
+        await deleteSlide(id: slides[index].id)
+    }
+
+    /// FIX-T item 4 (M2): deletes the slide with this id. The confirmation dialog keeps the id, not a position, so a reorder, an insert or a
+    /// reload while it is open cannot make it delete another slide. A slide that is no longer in the open presentation (checked again after
+    /// the drafts are flushed, which suspends) is a no-op with a message.
+    public func deleteSlide(id: UUID) async {
+        guard requireNaturalOrder("delete the slide") else { return }
+        let gone = "That slide is no longer in this presentation, so nothing was deleted."
+        guard slides.contains(where: { $0.id == id }) else { lastError = gone; return }
         await flushDrafts()
-        let id = slides[index].id
+        guard slides.contains(where: { $0.id == id }) else { lastError = gone; return }
         guard await attempt("delete the slide", { try await self.store.deleteSlide(id: id) }) != nil else { return }
         await reloadOpen()
     }

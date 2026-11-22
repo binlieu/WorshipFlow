@@ -199,13 +199,19 @@ public final class HotFolderModel {
     /// Points a folder that went missing (moved, renamed, drive gone) at its new place. The folder keeps its identity, so a
     /// cue that names its files keeps working.
     public func relocate(_ id: UUID, to path: String, bookmark: Data?) async {
-        guard let i = folders.firstIndex(where: { $0.id == id }) else { return }
-        var folder = folders[i].folder
+        guard let before = folders.firstIndex(where: { $0.id == id }) else { return }
+        var folder = folders[before].folder
         folder.path = path
         folder.bookmark = bookmark
         folder.name = (path as NSString).lastPathComponent
         do { try await store.saveMediaFolder(folder) } catch {
             lastError = WorkspaceModel.message(for: error, doing: "point the folder at its new place")
+            return
+        }
+        // FIX-T (M1 audit): the position was found before the save suspended. The list may have changed meanwhile (a folder removed): find it again.
+        guard let i = folders.firstIndex(where: { $0.id == id }) else {
+            // It was removed during the save, which stored it again. Take the stored row away again so it does not come back at the next launch.
+            try? await store.removeMediaFolder(id: id)
             return
         }
         folders[i].folder = folder

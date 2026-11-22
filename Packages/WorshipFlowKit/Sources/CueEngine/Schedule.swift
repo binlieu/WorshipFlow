@@ -189,8 +189,8 @@ public struct SkippedOccurrence: Sendable, Equatable {
         let when = f.string(from: occurrence)
         switch reason {
         case .missed(let late):
-            let minutes = Int(late / 60)
-            let by = minutes >= 1 ? "\(minutes) min" : "\(Int(late)) s"
+            let minutes = Int(saturating: late / 60)
+            let by = minutes >= 1 ? "\(minutes) min" : "\(Int(saturating: late)) s"
             return "\u{201C}\(eventName)\u{201D} (\(when)) was missed by \(by) and was not run."
         case .supersededByLater:
             return "\u{201C}\(eventName)\u{201D} (\(when)) was skipped because a later run of it was also due."

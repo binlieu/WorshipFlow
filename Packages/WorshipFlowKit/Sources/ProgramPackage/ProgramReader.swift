@@ -79,6 +79,7 @@ extension ProgramPackageContents {
                 }
             }
         }
+        try validateNumbers(document)
         // FIX-G: a custom theme may not take the identity of a built-in one (an import would otherwise write a row that shadows it).
         let builtInIDs = Set(Theme.builtIn.map(\.id))
         if let clash = document.themes.first(where: { builtInIDs.contains($0.id) }) {
@@ -93,6 +94,53 @@ extension ProgramPackageContents {
         for path in referenced {
             guard ProgramPathRules.isSafePackagePath(path) else { throw ProgramPackageError.unsafePath(describe(path)) }
             guard listed.contains(path) else { throw ProgramPackageError.packageFileMissing(describe(path)) }
+        }
+    }
+
+    /// FIX-T item 1: every number the manifest carries is finite and in a sane range, so none can reach a conversion, a sum or a stored row
+    /// that traps later (a length of 1e300 once crashed the Media bin every time it was drawn). A package that breaks a bound is refused.
+    private static func validateNumbers(_ document: ProgramDocument) throws {
+        func duration(_ value: Double?, _ what: String) throws {
+            guard let value else { return }
+            guard value.isFinite, value >= 0, value <= ProgramFormat.maxDurationSeconds else {
+                throw ProgramPackageError.manifestUnreadable("\(what) has a length that is not a real length. A clip is between 0 seconds and 100 hours long, so the program was not opened.")
+            }
+        }
+        func pixels(_ value: Int?, _ what: String) throws {
+            guard let value else { return }
+            guard value >= 0, value <= ProgramFormat.maxPixels else {
+                throw ProgramPackageError.manifestUnreadable("\(what) has a picture size that is not a real size, so the program was not opened.")
+            }
+        }
+        for asset in document.mediaAssets {
+            try duration(asset.duration, "The media item \"\(describe(asset.name))\"")
+            try pixels(asset.pixelWidth, "The media item \"\(describe(asset.name))\"")
+            try pixels(asset.pixelHeight, "The media item \"\(describe(asset.name))\"")
+        }
+        let limit = ProgramFormat.maxFrameFraction
+        for slide in document.presentations.flatMap(\.slides) {
+            try duration(slide.background?.duration, "A slide background")
+            for object in slide.objects {
+                let f = object.frame
+                guard [f.x, f.y, f.width, f.height].allSatisfy({ $0.isFinite && abs($0) <= limit }) else {
+                    throw ProgramPackageError.manifestUnreadable("A slide has an object with a position or size that is not real, so the program was not opened.")
+                }
+                if case .shape(let shape) = object.content, !(shape.strokeWidth.isFinite && shape.strokeWidth <= 10_000) {
+                    throw ProgramPackageError.manifestUnreadable("A slide has a shape with a line width that is not real, so the program was not opened.")
+                }
+            }
+        }
+        var total: Int64 = 0
+        for entry in document.media {
+            guard let size = entry.size else { continue }
+            guard size >= 0, size <= ProgramFormat.maxFileBytes else {
+                throw ProgramPackageError.manifestUnreadable("The media file \"\(describe(entry.name))\" is listed with a size that is not real, so the program was not opened.")
+            }
+            let (sum, overflow) = total.addingReportingOverflow(size)
+            guard !overflow, sum <= ProgramFormat.maxTotalBytes else {
+                throw ProgramPackageError.manifestUnreadable("The media files together are listed as larger than any real program, so it was not opened.")
+            }
+            total = sum
         }
     }
 

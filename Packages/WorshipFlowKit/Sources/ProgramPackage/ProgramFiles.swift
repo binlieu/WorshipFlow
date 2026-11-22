@@ -83,3 +83,11 @@ enum ProgramFiles {
         clonefile(source.path, destination.path, 0) == 0
     }
 }
+
+extension Int64 {
+    /// FIX-T: the sum, held to `Int64.max` instead of trapping on overflow (sizes from a manifest are untrusted).
+    func saturatingAdding(_ other: Int64) -> Int64 {
+        let (sum, overflow) = addingReportingOverflow(other)
+        return overflow ? (other < 0 ? Int64.min : Int64.max) : sum
+    }
+}
