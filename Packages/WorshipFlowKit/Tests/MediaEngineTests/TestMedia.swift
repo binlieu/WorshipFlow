@@ -14,8 +14,28 @@ enum TestMedia {
     }
 
     /// A silent H.264 movie, 10 frames a second. Each segment is a flat colour: (seconds, BGRA).
+    /// FIX-L: the hardware H.264 encoder is shared with every other suite's writer and with the machine, and now and then refuses a session
+    /// ("The file couldn't be saved", seen once in a full run, in a test that only needed a clip). A refused write is tried again, up to three times,
+    /// from a clean file; the movie that comes out is the same.
     static func writeMovie(to url: URL, width: Int = 64, height: Int = 48,
                            segments: [(seconds: Double, bgra: (UInt8, UInt8, UInt8, UInt8))]) async throws {
+        var lastError: Error?
+        for attempt in 0..<3 {
+            if attempt > 0 { try? FileManager.default.removeItem(at: url); try? await Task.sleep(nanoseconds: 200_000_000) }
+            do { try await writeMovieOnce(to: url, width: width, height: height, segments: segments); return } catch { lastError = error }
+        }
+        throw lastError ?? CocoaError(.fileWriteUnknown)
+    }
+
+    /// One line about a movie on disk: its duration and size, for a failure message.
+    static func describeMovie(_ url: URL) async -> String {
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? nil
+        let duration = try? await AVURLAsset(url: url).load(.duration).seconds
+        return "\(size.map(String.init) ?? "?") bytes, \(duration.map { String(format: "%.2f s", $0) } ?? "duration unknown")"
+    }
+
+    private static func writeMovieOnce(to url: URL, width: Int, height: Int,
+                                       segments: [(seconds: Double, bgra: (UInt8, UInt8, UInt8, UInt8))]) async throws {
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: width, AVVideoHeightKey: height,

@@ -24,6 +24,15 @@ func redThenBlue(in dir: URL) async throws -> URL {
 func isRed(_ b: CVPixelBuffer?) -> Bool { b.flatMap(TestMedia.centre(of:)).map { $0.r > 150 && $0.b < 110 } ?? false }
 func isBlue(_ b: CVPixelBuffer?) -> Bool { b.flatMap(TestMedia.centre(of:)).map { $0.b > 150 && $0.r < 110 } ?? false }
 
+/// A clock the test moves by hand.
+final class ManualClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var t: Double
+    init(_ start: Double) { t = start }
+    var now: Double { lock.lock(); defer { lock.unlock() }; return t }
+    func advance(_ seconds: Double) { lock.lock(); t += seconds; lock.unlock() }
+}
+
 @Suite(.serialized) struct VideoPlayerSourceTests {
     @Test func missingFileThrows() {
         #expect(throws: MediaError.self) { try VideoPlayerSource(url: URL(fileURLWithPath: "/nonexistent/clip.mov"), loops: false) }
@@ -43,19 +52,27 @@ func isBlue(_ b: CVPixelBuffer?) -> Bool { b.flatMap(TestMedia.centre(of:)).map 
 
     @Test func pauseHoldsAndSeekMovesTheFrame() async throws {
         let url = try await redThenBlue(in: TestMedia.tempDirectory())
-        let source = try VideoPlayerSource(url: url, loops: false, duration: 2)
+        // FIX-L: the transport runs on the clock it is given. On the wall clock, a Mac so busy that the first frame took two seconds to appear
+        // had a two-second clip over before `pause()` ran (status `.ended`, not `.paused`); this test is about pausing, so the clock is the test's.
+        let clock = ManualClock(100)
+        let source = try VideoPlayerSource(url: url, loops: false, duration: 2, clock: { clock.now })
         source.play()
         #expect(await TestMedia.wait { isRed(source.latestPixelBuffer()) })
         source.pause()
         let held = source.position()
+        clock.advance(0.3)                                       // time passes while paused; the position must not
         try await Task.sleep(nanoseconds: 300_000_000)
         #expect(source.status() == .paused && source.position() == held)
         // Seeking while paused stays paused and shows the frame at the new position.
         source.seek(to: 1.6)
         #expect(source.status() == .paused && abs(source.position() - 1.6) < 1e-9)
-        #expect(await TestMedia.wait { isBlue(source.latestPixelBuffer()) })
+        // FIX-L: when this fails the message says what the player and the file were doing (it once waited 62 s and said nothing).
+        let seenBlue = await TestMedia.wait { isBlue(source.latestPixelBuffer()) }
+        let file = seenBlue ? "" : await TestMedia.describeMovie(url)
+        #expect(seenBlue, "no blue frame after a seek to 1.6 while paused: \(source.diagnostics), delivered \(source.deliveredFrameCount), centre \(String(describing: source.latestPixelBuffer().flatMap(TestMedia.centre(of:)))), file \(file)")
         source.seek(to: 0.2)
-        #expect(await TestMedia.wait { isRed(source.latestPixelBuffer()) })
+        let seenRed = await TestMedia.wait { isRed(source.latestPixelBuffer()) }
+        #expect(seenRed, "no red frame after a seek back to 0.2 while paused: \(source.diagnostics)")
     }
 
     @Test func aClipThatDoesNotLoopReportsItsEnd() async throws {

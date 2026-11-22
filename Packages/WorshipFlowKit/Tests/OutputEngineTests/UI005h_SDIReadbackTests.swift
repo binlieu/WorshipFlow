@@ -15,17 +15,21 @@ import RenderEngine
     }
 
     @Test func theFrameTheCardGetsIsTheFrameTheCompositorDraws() throws {
+        // The built-in looks name Inter, which the app registers before any screen draws; register it before the first picture, not at some
+        // point between the two (FIX-L: that was the intermittent failure).
+        #expect(OutputTestFonts.registerInter(), "the bundled Inter could not be registered, so the looks would be drawn in the system font")
         let compositor = try Compositor()
         for scene in scenes() {
             let renderer = SDIFrameRenderer(width: 1280, height: 720, ringSize: 4, sceneProvider: { scene }, videoSource: nil, mediaSource: nil)
             let frame = try #require(renderer.frame())
             let expected = try compositor.renderImage(scene: scene, width: 1280, height: 720)
             #expect(frame.width == 1280 && frame.height == 720)
-            #expect(frame.bgra == expected.bgra)
+            #expect(PixelDiff.describe(frame.bgra, expected.bgra, width: 1280) == nil, "the frame the card gets is not the frame the compositor draws")
             #expect(renderer.lastError == nil && renderer.bufferReallocations == 0)
             // The next frames reuse the ring and stay equal: the copy does not leak an earlier frame into a later one.
             let again = try #require(renderer.frame())
-            #expect(again.bgra == expected.bgra && renderer.bufferReallocations == 0)
+            #expect(PixelDiff.describe(again.bgra, expected.bgra, width: 1280) == nil, "the next frame is not the frame the compositor draws")
+            #expect(renderer.bufferReallocations == 0)
         }
     }
 }
