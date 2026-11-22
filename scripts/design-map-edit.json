@@ -1,0 +1,557 @@
+{
+ "design": "docs/UI/mockups/02-editor.html",
+ "entries": [
+  {
+   "d": "div.tb[0]>span.btn.ghost[0]",
+   "a": "tb.sidebarToggle"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.title[0]",
+   "a": "tb.title",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.col[1]>span.sub[1]",
+   "a": "tb.subtitle",
+   "skip": "R",
+   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]",
+   "a": "tb.modes",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[0]",
+   "a": "tb.modes.0",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b.on[1]",
+   "a": "tb.modes.1",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[2]",
+   "a": "tb.modes.2",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[3]",
+   "a": "tb.modes.3",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[4]",
+   "a": "tb.modes.4",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.seg[3]>b[5]",
+   "a": "tb.modes.5",
+   "skip": "LR",
+   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]",
+   "a": "tb.timers"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[0]",
+   "a": "tb.timer.0.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[0]",
+   "a": "tb.timer.0.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono[0]",
+   "a": "tb.timer.0.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.sep[1]",
+   "a": "tb.timer.1.sep"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>svg.i.s[1]",
+   "a": "tb.timer.1.icon"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.c-muted[2]",
+   "a": "tb.timer.1.name"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>b.mono.c-muted[1]",
+   "a": "tb.timer.1.value"
+  },
+  {
+   "d": "div.tb[0]>div.tm[5]>span.btn[3]",
+   "a": "tb.timer.1.button"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-aud[1]",
+   "a": "tb.pill.aud"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-stg[2]",
+   "a": "tb.pill.stg"
+  },
+  {
+   "d": "div.tb[0]>span.pill.c-brd[3]",
+   "a": "tb.pill.brd"
+  },
+  {
+   "d": "div.tb[0]",
+   "a": "tb"
+  },
+  {
+   "d": "div.body[1]>div.side[0]",
+   "a": "ed.fs"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]",
+   "a": "ed.fs.head"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]>span.h[0]",
+   "a": "ed.fs.title"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]>svg.i.s[0]",
+   "a": "ed.fs.plus"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div.h.c-aud[0]",
+   "a": "ed.fs.sec.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div.h[3]",
+   "a": "ed.fs.sec.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[1]",
+   "a": "ed.fs.cell.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[1]>div.cap[0]>b[0]",
+   "a": "ed.fs.num.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[1]>div.thumb.bg1[1]",
+   "a": "ed.fs.thumb.0"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[2]",
+   "a": "ed.fs.cell.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[2]>div.cap[0]>b[0]",
+   "a": "ed.fs.num.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[2]>div.thumb.bg1[1]",
+   "a": "ed.fs.thumb.1"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[4]",
+   "a": "ed.fs.cell.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[4]>div.cap[0]>b[0]",
+   "a": "ed.fs.num.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[4]>div.thumb.bg2.live[1]",
+   "a": "ed.fs.thumb.2"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[5]",
+   "a": "ed.fs.cell.3"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[5]>div.cap[0]>b[0]",
+   "a": "ed.fs.num.3"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[5]>div.thumb.bg2.sel[1]",
+   "a": "ed.fs.thumb.3"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[6]",
+   "a": "ed.fs.cell.4"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[6]>div.cap[0]>b[0]",
+   "a": "ed.fs.num.4"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.strip[1]>div[6]>div.thumb.bg2[1]",
+   "a": "ed.fs.thumb.4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]",
+   "a": "ed.main"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]",
+   "a": "ed.bar"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[0]",
+   "a": "ed.bar.text"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[1]",
+   "a": "ed.bar.shape"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[2]",
+   "a": "ed.bar.image"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[6]",
+   "a": "ed.bar.arrange"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[1]",
+   "a": "ed.strip"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[1]>svg.i.s[0]",
+   "a": "ed.strip.lock"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[1]>b[0]",
+   "a": "ed.strip.live"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.row[1]>span.c-muted[0]",
+   "a": "ed.strip.note"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]",
+   "a": "ed.wrap"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]",
+   "a": "ed.canvas"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.safe[0]",
+   "a": "ed.safe"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div[3]",
+   "a": "ed.safeLabel"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]",
+   "a": "ed.box"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[0]",
+   "a": "ed.handle.0"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[1]",
+   "a": "ed.handle.1"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[2]",
+   "a": "ed.handle.2"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[3]",
+   "a": "ed.handle.3"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[4]",
+   "a": "ed.handle.4"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[5]",
+   "a": "ed.handle.5"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[6]",
+   "a": "ed.handle.6"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.cv[0]>div.box[1]>u[7]",
+   "a": "ed.handle.7"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.canvaswrap[2]>div.row.mono.c-muted[1]",
+   "a": "ed.caption",
+   "skip": "R",
+   "why": "content: the design names its theme \"Worship — full\", the seed's song uses the Default theme; the line is as wide as its text"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]",
+   "a": "ed.insp"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.seg[0]",
+   "a": "ed.insp.tabs"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.seg[0]>b.on[0]",
+   "a": "ed.insp.tabs.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.seg[0]>b[1]",
+   "a": "ed.insp.tabs.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.seg[0]>b[2]",
+   "a": "ed.insp.tabs.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]",
+   "a": "ed.insp.text"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.h[0]",
+   "a": "ed.insp.text.h"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[1]",
+   "a": "ed.insp.font"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[1]>label.k[0]",
+   "a": "ed.insp.font.k"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[1]>span.field[0]",
+   "a": "ed.insp.font.field"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[2]",
+   "a": "ed.insp.style"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[2]>label.k[0]",
+   "a": "ed.insp.style.k"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[2]>span.field[0]",
+   "a": "ed.insp.style.field"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[2]>span.field.mono[1]",
+   "a": "ed.insp.size"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]",
+   "a": "ed.insp.alignrow"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>label.k[0]",
+   "a": "ed.insp.alignrow.k"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[0]",
+   "a": "ed.insp.align"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[0]>b[0]",
+   "a": "ed.insp.align.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[0]>b.on[1]",
+   "a": "ed.insp.align.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[0]>b[2]",
+   "a": "ed.insp.align.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[1]",
+   "a": "ed.insp.valign"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[1]>b[0]",
+   "a": "ed.insp.valign.0"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[1]>b.on[1]",
+   "a": "ed.insp.valign.1"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[3]>div.seg[1]>b[2]",
+   "a": "ed.insp.valign.2"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[4]",
+   "a": "ed.insp.colourrow"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[4]>label.k[0]",
+   "a": "ed.insp.colourrow.k"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[4]>span.sw[0]",
+   "a": "ed.insp.colour.sw"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[4]>span.field.mono[1]",
+   "a": "ed.insp.colour.hex"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]",
+   "a": "ed.insp.effects"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.h[0]",
+   "a": "ed.insp.effects.h"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[1]",
+   "a": "ed.insp.shadowrow"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[1]>span.chk.on[0]",
+   "a": "ed.insp.shadow.chk"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[1]>span.sw[2]",
+   "a": "ed.insp.shadow.sw"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[1]>span.field.mono[3]",
+   "a": "ed.insp.shadow.field"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[2]",
+   "a": "ed.insp.outlinerow"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[2]>span.chk[0]",
+   "a": "ed.insp.outline.chk"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[2]>span.sw[2]",
+   "a": "ed.insp.outline.sw"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[2]>span.field.mono[3]",
+   "a": "ed.insp.outline.field"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]",
+   "a": "ed.insp.pos"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]>div.h[0]",
+   "a": "ed.insp.pos.head"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]>div[1]",
+   "a": "ed.insp.pos.grid"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]>div[1]>span.field.mono[0]",
+   "a": "ed.insp.pos.x"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]>div[1]>span.field.mono[1]",
+   "a": "ed.insp.pos.y"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]>div[1]>span.field.mono[2]",
+   "a": "ed.insp.pos.w"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[3]>div[1]>span.field.mono[3]",
+   "a": "ed.insp.pos.h"
+  }
+ ],
+ "ignore_design": [
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.lights",
+   "reason": "the window's three controls are the system's (grey in the capture: the window is not key)"
+  },
+  {
+   "match": "(^|>)svg\\.i",
+   "reason": "icon glyph box: SF Symbols draw to their own metrics; the control that contains the icon is compared"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>div\\.col\\[1\\]$",
+   "reason": "wrapper of the title and subtitle, which are compared"
+  },
+  {
+   "match": "^div\\.body\\[1\\]$|^div\\.body\\[1\\]>div\\.side\\.r\\[2\\]>div\\.sec(\\.grow)?\\[\\d\\]$|>div\\.strip\\[1\\]$|>div\\.sec\\[0\\]$",
+   "reason": "column or section wrapper: its position follows from the rows and paddings inside, which are compared (the filmstrip's strip is as tall as its content, the app's scrolls)"
+  },
+  {
+   "match": "div\\.cap\\[0\\]$",
+   "reason": "the number line of a filmstrip cell: its number is compared, the line has no drawn edge"
+  },
+  {
+   "match": "div\\.thumb[^>]*\\[1\\]>div\\.l[12]",
+   "reason": "slide picture content (the words in a thumbnail) is drawn by the output renderer, not by the interface (UI-005h)"
+  },
+  {
+   "match": "div\\.bar\\[0\\]>(span\\.btn\\[3\\]|span\\[4\\]|span\\.btn\\[5\\]|div\\.seg\\[0\\]|span\\.field\\[8\\])",
+   "reason": "LEFT OUT, feature missing (L/M rows E12, E14, E16, E17): Video object, Align, the Audience / Stage / Broadcast preview switch and Zoom; their room is kept in the bar"
+  },
+  {
+   "match": "div\\.row\\[1\\]>span\\.c-muted\\[2\\]$",
+   "reason": "LEFT OUT (E19): 'Saved 2 s ago' needs a last-saved time on the editor model (not observed, so not drawn)"
+  },
+  {
+   "match": "div\\.cv\\[0\\]>div\\.box\\[2\\]",
+   "reason": "LEFT OUT: the design's second lyric box; the words are the theme's, not objects, so only the selected object's box is drawn"
+  },
+  {
+   "match": "div\\.cv\\[0\\]>div\\.box\\[1\\]>div\\[0\\]$",
+   "reason": "picture content: the box's text is drawn by the compositor"
+  },
+  {
+   "match": "div\\.fr\\[5\\]",
+   "reason": "LEFT OUT, feature missing (L row E35): Fit ('Shrink to fit box'); the row's room is kept"
+  },
+  {
+   "match": "div\\.sec\\[2\\]>div\\.fr\\[3\\]",
+   "reason": "LEFT OUT, feature missing (L row E38): Background fill for text; the row's room is kept"
+  },
+  {
+   "match": "div\\.sec\\.grow\\[4\\]",
+   "reason": "LEFT OUT, feature missing (L row E40): the Layers list (objects have no names, hidden flag or roles; props and background are not objects)"
+  },
+  {
+   "match": "div\\.sec\\[3\\]>div\\[1\\]>span\\.field\\.mono\\[\\d\\]>span\\.c-muted",
+   "reason": "the X, Y, W, H prefix inside a compared field"
+  },
+  {
+   "match": "div\\.sec\\[1\\]>div\\.fr\\[\\d\\]>span\\.field\\[0\\]>span\\.car",
+   "reason": "the field's chevron wrapper; the field is compared"
+  },
+  {
+   "match": "^div\\.tb\\[0\\]>span\\.pill[^>]*>span\\.d\\[0\\]$",
+   "reason": "the status dot inside a toolbar pill: the pill is compared"
+  }
+ ],
+ "ignore_app": [
+  {
+   "match": "^tb$",
+   "reason": "toolbar box (compared through its parts)"
+  },
+  {
+   "match": "^ed\\.fs\\.(num|thumb|cell)\\.([5-9]|\\d\\d)$",
+   "reason": "filmstrip slides 6 to 9: the design's strip draws five"
+  },
+  {
+   "match": "^ed\\.insp\\.(shadow|outline)\\.chk\\.label$",
+   "reason": "the checkbox's word: the design's row holds it as a bare text node (no box to compare); the row is compared"
+  }
+ ]
+}

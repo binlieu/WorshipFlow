@@ -1,74 +1,59 @@
-// SLIDE-001b (PRES-01, MEDIA-07): the objects editor under the slide grid: a canvas drawn by the same compositor as
-// the audience screen, selection outlines and handles over it, and an inspector. The rules (clamping, undo, saving,
-// free space) live in `SlideEditorModel`; this file only draws and forwards gestures.
+// SLIDE-001b (PRES-01, MEDIA-07) and UI-005c: the Edit mode's canvas area: the slide drawn by the same compositor as the audience screen,
+// 800 points wide and centred in the `bg` area, with the title-safe guide, a selection box with eight handles over it, and the caption.
+// The rules (clamping, undo, saving, free space) live in `SlideEditorModel`; this file only draws and forwards gestures. The inspector
+// is `EditInspector.swift`.
 import SwiftUI
 import AppKit
 import Domain
 import OperatorCore
 
-private typealias HorizontalAlign = Domain.TextAlignment
-
+/// The legacy entry point (still named by `SlideEditor` in CentrePane.swift, which Edit no longer uses): the canvas area.
 struct SlideObjectsEditor: View {
     let app: AppModel
+    @Bindable var editor: SlideEditorModel
+
+    var body: some View {
+        if let workspace = app.workspace { EditCanvasArea(app: app, workspace: workspace, editor: editor) }
+    }
+}
+
+// MARK: Canvas area (`.canvaswrap`)
+
+struct EditCanvasArea: View {
+    let app: AppModel
+    @Bindable var workspace: WorkspaceModel
     @Bindable var editor: SlideEditorModel
     @State private var editingTextID: UUID?
 
     var body: some View {
         GeometryReader { geo in
-            // The canvas takes about half the width (at most 440 points) and the inspector the rest.
-            let canvasWidth = max(220, min(860, geo.size.width * 0.58, (geo.size.height - 90) * 16 / 9))
-            HStack(alignment: .top, spacing: 12) {
-                canvasColumn(width: canvasWidth)
-                Divider()
-                SlideInspector(app: app, editor: editor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // 02-editor: an 800 pt canvas centred in the area; smaller windows scale it down.
+            let width = max(220, min(800, geo.size.width - 80, (geo.size.height - 120) * 16 / 9))
+            ZStack(alignment: .bottomLeading) {
+                Tok.bg
+                    .contentShape(Rectangle())
+                    .onTapGesture { editor.select(nil); editingTextID = nil }
+                    .wfRect("ed.wrap")
+                if let slide = editor.slide {
+                    SlideCanvas(app: app, editor: editor, content: slide.content, editingTextID: $editingTextID)
+                        .frame(width: width)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    Text("Select a slide to edit its objects.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                caption.padding(.leading, 14).padding(.bottom, 10)
             }
             .onChange(of: editor.selectedObjectID) { _, new in if new != editingTextID { editingTextID = nil } }
         }
     }
 
-    private func canvasColumn(width: CGFloat) -> some View {
-            VStack(alignment: .leading, spacing: 6) {
-                if let slide = editor.slide {
-                    SlideCanvas(app: app, editor: editor, content: slide.content, editingTextID: $editingTextID)
-                        .frame(width: width)
-                } else {
-                    Text("Select a slide to edit its objects.").foregroundStyle(.secondary)
-                }
-                toolbar
-                Text("Drag to move, drag the corner square to resize, double-click a text box to type in it.")
-                    .font(.wfSmall).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(width: width)
-    }
-
-    private var toolbar: some View {
-        HStack(spacing: 8) {
-            Menu {
-                Button("Text box") { app.insertObject(.textBox) }
-                Button("Rectangle") { app.insertObject(.rectangle) }
-                Button("Ellipse") { app.insertObject(.ellipse) }
-                Button("Rounded rectangle") { app.insertObject(.roundedRectangle) }
-                Button("Image…") { app.insertImage() }
-            } label: { Label("Insert", systemImage: "plus.square") }
-                .menuStyle(.borderlessButton).fixedSize()
-                .disabled(editor.slide == nil)
-                .accessibilityLabel("Insert object")
-            Button { editor.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
-                .disabled(!editor.canUndo)
-                .help("Undo (Command-Z)")
-            Button { editor.redo() } label: { Label("Redo", systemImage: "arrow.uturn.forward") }
-                .disabled(!editor.canRedo)
-                .help("Redo (Shift-Command-Z)")
-            Button { editor.duplicateSelected() } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-                .disabled(editor.selectedObjectID == nil)
-                .help("Duplicate (Command-D)")
-            Button(role: .destructive) { editor.deleteSelected() } label: { Label("Delete", systemImage: "trash") }
-                .disabled(editor.selectedObjectID == nil)
-                .help("Delete the selected object (Delete key)")
-        }
-        .labelStyle(.iconOnly)           // titles were clipped at this width; help text and accessibility labels keep the names
-        .controlSize(.small)
+    /// 1920 x 1080 · theme "..." · slide n of m: what the app knows (the output size is the compositor's fixed canvas).
+    private var caption: some View {
+        let theme = workspace.openThemeID.flatMap { id in app.themes.first { $0.id == id }?.name } ?? "Default"
+        let text = "1920 × 1080 · theme “\(theme)” · slide \(workspace.show.selectedIndex + 1) of \(workspace.slides.count)"
+        return Text(text).font(.wfMono(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
+            .wfRect("ed.caption", size: 11, weight: 400)
+            .allowsHitTesting(false)
     }
 }
 
@@ -80,6 +65,7 @@ struct SlideCanvas: View {
     let editor: SlideEditorModel
     let content: SlideContent
     @Binding var editingTextID: UUID?
+    @Environment(\.colorScheme) private var scheme
 
     /// UI-004: while an object is dragged the scene is drawn from the editor's transient frames, at once and as fast as the pointer moves.
     /// The presentation, the grid's thumbnails and the live output are not involved: they change once, when the pointer is released.
@@ -97,6 +83,16 @@ struct SlideCanvas: View {
                 GeometryReader { geo in
                     ZStack(alignment: .topLeading) {
                         Color.clear.contentShape(Rectangle()).onTapGesture { editor.select(nil); editingTextID = nil }
+                        // The title-safe guide (`.safe`): a dashed line 5 % in from every edge, with its label above the top left corner.
+                        Rectangle().strokeBorder(Color.white.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .frame(width: geo.size.width * 0.9, height: geo.size.height * 0.9)
+                            .wfRect("ed.safe")
+                            .offset(x: geo.size.width * 0.05, y: geo.size.height * 0.05)
+                            .allowsHitTesting(false).accessibilityHidden(true)
+                        Text("Title-safe 90%").font(.wf(10)).foregroundStyle(Tok.muted).wfLine()
+                            .wfRect("ed.safeLabel", size: 10, weight: 400)
+                            .offset(x: geo.size.width * 0.05, y: geo.size.height * 0.05 - 16 * 1.3)
+                            .allowsHitTesting(false).accessibilityHidden(true)
                         ForEach(content.objects) { object in
                             ObjectBox(editor: editor, object: object, canvas: geo.size,
                                       selected: editor.selectedObjectID == object.id,
@@ -108,8 +104,10 @@ struct SlideCanvas: View {
                     .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(.quaternary))
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+            .wfRect("ed.canvas", radius: 2)
+            // `--shadow`: 0 12 40, 50 % black (18 % of the ink in light); the only shadow the design allows beside sheets and popovers.
+            .shadow(color: scheme == .light ? Color(red: 0.075, green: 0.157, blue: 0.239).opacity(0.18) : .black.opacity(0.5), radius: 20, y: 12)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Slide canvas")
     }
@@ -139,28 +137,35 @@ private struct ObjectBox: View {
     /// The frame when the current drag began, so a drag is measured from there and clamped by the model.
     @State private var dragStart: NormalizedRect?
     @State private var resizeStart: NormalizedRect?
+    /// UI-005c: the seven handles that are not the bottom right one resize from a local frame (the model's drag only knows the corner that
+    /// does not move) and write it once when the pointer is released.
+    @State private var handleStart: NormalizedRect?
+    @State private var handleFrame: NormalizedRect?
     /// True from the press until the release, so the object is selected on the press and not only on the release.
     @State private var pressed = false
     @FocusState private var textFocused: Bool
 
-    private let handle: CGFloat = 12
-    private var handleHit: CGFloat { CGFloat(SlideEditing.handleHitSize) }
+    private var handleHit: CGFloat { 16 }
 
     private var isText: Bool { if case .text = object.content { true } else { false } }
     private var text: String { if case .text(let t) = object.content { t.text } else { "" } }
 
+    /// `u` order of the mockup: corners and edge midpoints, row by row.
+    private static let handles: [(px: Double, py: Double)] = [(0, 0), (0.5, 0), (1, 0), (0, 0.5), (1, 0.5), (0, 1), (0.5, 1), (1, 1)]
+
     var body: some View {
         // UI-004: while the pointer is down the model keeps the dragged frame apart (nothing is saved or redrawn per event), and this
         // box follows it at once; the picture under it is redrawn once, when the pointer is released.
-        let f = editor.dragFrames[object.id] ?? object.frame
+        let f = handleFrame ?? editor.dragFrames[object.id] ?? object.frame
         let size = CGSize(width: f.width * canvas.width, height: f.height * canvas.height)
         ZStack(alignment: .bottomTrailing) {
             Rectangle()
-                .fill(selected ? Color.accentColor.opacity(0.10) : Color.clear)
-                .overlay(Rectangle().stroke(selected ? Color.accentColor : Color.white.opacity(0.35),
-                                            style: StrokeStyle(lineWidth: selected ? 2 : 1, dash: selected ? [] : [4, 3])))
-                .overlay(Rectangle().fill(Color.accentColor.opacity(dragStart == nil ? 0 : 0.18)))
+                .fill(Color.clear)
+                .overlay(Rectangle().strokeBorder(selected ? Tok.blue : Color.white.opacity(0.25),
+                                                  style: StrokeStyle(lineWidth: selected ? 1.5 : 1, dash: selected ? [] : [4, 3])))
+                .overlay(Rectangle().fill(Tok.blue.opacity(dragStart == nil ? 0 : 0.12)))
                 .contentShape(Rectangle())
+                .wfRect(selected ? "ed.box" : "")
                 // One gesture does the press, the click and the drag. Separate single- and double-tap gestures on the same view made
                 // the drag wait for them to fail, so it started late or not at all. The press selects at once; the drag starts on the
                 // first movement past a few points; a press that does not move is a click.
@@ -204,27 +209,13 @@ private struct ObjectBox: View {
                     .accessibilityLabel("Text of the text box")
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            if selected {
-                Rectangle().fill(Color.accentColor).frame(width: handle, height: handle)
-                    .overlay(Rectangle().strokeBorder(Color.white, lineWidth: 1))
-                    .frame(width: handleHit, height: handleHit, alignment: .bottomTrailing)     // a bigger area than the square to grab it by
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 1).onChanged { value in
-                        if resizeStart == nil {
-                            resizeStart = object.frame
-                            editor.beginInteraction()
-                        }
-                        editor.resize(object.id, from: resizeStart ?? object.frame,
-                                      dWidth: value.translation.width / canvas.width,
-                                      dHeight: value.translation.height / canvas.height)
-                    }.onEnded { _ in
-                        resizeStart = nil
-                        editor.endInteraction()
-                    })
-                    .accessibilityHidden(true)
-            }
         }
         .frame(width: size.width, height: size.height)
+        .overlay(alignment: .topLeading) {
+            if selected {
+                ForEach(Array(Self.handles.enumerated()), id: \.offset) { index, h in handle(index, h.px, h.py, size: size) }
+            }
+        }
         .offset(x: f.x * canvas.width, y: f.y * canvas.height)
         .accessibilityElement(children: editing ? .contain : .ignore)
         .accessibilityLabel("Object: \(slideObjectTitle(object))")
@@ -233,236 +224,52 @@ private struct ObjectBox: View {
         .accessibilityAction(named: "Delete") { editor.delete(object.id) }
         .accessibilityAction(named: "Duplicate") { editor.duplicate(object.id) }
     }
-}
 
-// MARK: Inspector
-
-/// Colours the inspector offers as buttons, so a colour can be chosen without opening the colour panel.
-private let swatches: [(name: String, color: ColorRGBA)] = [
-    ("Blue", ColorRGBA(red: 0.2, green: 0.5, blue: 0.95)), ("Red", ColorRGBA(red: 0.9, green: 0.2, blue: 0.2)),
-    ("Green", ColorRGBA(red: 0.2, green: 0.7, blue: 0.3)), ("Gold", ColorRGBA(red: 0.95, green: 0.75, blue: 0.2)),
-    ("White", .white), ("Black", .black),
-]
-
-struct SlideInspector: View {
-    let app: AppModel
-    @Bindable var editor: SlideEditorModel
-
-    var body: some View {
-        if let o = editor.selectedObject {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text(slideObjectTitle(o)).font(.wfHeadline)
-                        Spacer()
-                        orderButtons(o)
-                    }
-                    switch o.content {
-                    case .text(let t): textControls(o, t)
-                    case .shape(let s): shapeControls(o, s)
-                    case .image(let i): imageControls(o, i)
-                    }
-                    Divider()
-                    HStack {
-                        Text("Opacity").font(.wfSmall).frame(width: 52, alignment: .leading)
-                        Slider(value: Binding(get: { o.opacity }, set: { editor.setOpacity(o.id, $0) }), in: 0...1)
-                            .accessibilityLabel("Opacity")
-                        Text("\(Int((o.opacity * 100).rounded()))%").font(.wfSmall).frame(width: 40, alignment: .trailing)
-                    }
-                    Text("Position and size, in percent of the slide").font(.wfSmall).foregroundStyle(.secondary)
-                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                        GridRow { percent("Left", o, \.x); percent("Top", o, \.y) }
-                        GridRow { percent("Width", o, \.width); percent("Height", o, \.height) }
-                    }
-                    Divider()
-                    Text("Add another").font(.wfSmall).foregroundStyle(.secondary)
-                    insertButtons
-                }
-                .padding(.trailing, 8)
-            }
-        } else {
-            VStack(spacing: 6) {
-                Text("No object selected").font(.wfHeadline)
-                Text("Choose an object on the slide, or add one:")
-                    .font(.wfSmall).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                insertButtons
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
+    /// One of the eight 8 pt handles (white, 1.5 pt selection-blue edge, radius 1), centred 1 pt inside the box's own edge at the
+    /// corners and midpoints; the grab area is 16 pt.
+    private func handle(_ index: Int, _ px: Double, _ py: Double, size: CGSize) -> some View {
+        let cx = 1 + px * (Double(size.width) - 2), cy = 1 + py * (Double(size.height) - 2)
+        return Rectangle().fill(Color.white)
+            .overlay(Rectangle().strokeBorder(Tok.blue, lineWidth: 1.5))
+            .clipShape(RoundedRectangle(cornerRadius: 1))
+            .frame(width: 8, height: 8)
+            .wfRect("ed.handle.\(index)", radius: 1)
+            .frame(width: handleHit, height: handleHit)
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 1).onChanged { value in
+                resizeFromHandle(px: px, py: py, value.translation)
+            }.onEnded { _ in finishHandleDrag(px: px, py: py) })
+            .offset(x: cx - handleHit / 2, y: cy - handleHit / 2)
+            .accessibilityHidden(true)
     }
 
-    /// Add-an-object buttons, so objects can be added whatever is selected.
-    private var insertButtons: some View {
-        VStack(spacing: 4) {
-            HStack {
-                Button("Text box") { app.insertObject(.textBox) }
-                Button("Rectangle") { app.insertObject(.rectangle) }
-                Button("Ellipse") { app.insertObject(.ellipse) }
-            }
-            HStack {
-                Button("Rounded rectangle") { app.insertObject(.roundedRectangle) }
-                Button("Image…") { app.insertImage() }
-            }
+    private func resizeFromHandle(px: Double, py: Double, _ translation: CGSize) {
+        let dx = Double(translation.width / canvas.width), dy = Double(translation.height / canvas.height)
+        if px == 1, py == 1 {
+            // The bottom right corner is the model's own resize, which redraws the picture while the pointer moves.
+            if resizeStart == nil { resizeStart = object.frame; editor.beginInteraction() }
+            editor.resize(object.id, from: resizeStart ?? object.frame, dWidth: dx, dHeight: dy)
+            return
         }
-        .controlSize(.small)
+        if handleStart == nil { handleStart = object.frame }
+        guard let s = handleStart else { return }
+        let minimum = SlideObject.minimumSize
+        var x = s.x, y = s.y, w = s.width, h = s.height
+        if px == 0 { let right = s.x + s.width; x = min(s.x + dx, right - minimum); w = right - x }
+        if px == 1 { w = max(s.width + dx, minimum) }
+        if py == 0 { let bottom = s.y + s.height; y = min(s.y + dy, bottom - minimum); h = bottom - y }
+        if py == 1 { h = max(s.height + dy, minimum) }
+        handleFrame = NormalizedRect(x: x, y: y, width: w, height: h)
     }
 
-    private func orderButtons(_ o: SlideObject) -> some View {
-        HStack(spacing: 2) {
-            Button { editor.bringToFront(o.id) } label: { Image(systemName: "square.3.layers.3d.top.filled") }
-                .help("Bring to front").accessibilityLabel("Bring to front")
-            Button { editor.bringForward(o.id) } label: { Image(systemName: "square.2.layers.3d.top.filled") }
-                .help("Bring forward").accessibilityLabel("Bring forward")
-            Button { editor.sendBackward(o.id) } label: { Image(systemName: "square.2.layers.3d.bottom.filled") }
-                .help("Send backward").accessibilityLabel("Send backward")
-            Button { editor.sendToBack(o.id) } label: { Image(systemName: "square.3.layers.3d.bottom.filled") }
-                .help("Send to back").accessibilityLabel("Send to back")
+    private func finishHandleDrag(px: Double, py: Double) {
+        if px == 1, py == 1 {
+            resizeStart = nil
+            editor.endInteraction()
+            return
         }
-        .controlSize(.small)
-    }
-
-    // MARK: Text
-
-    @ViewBuilder private func textControls(_ o: SlideObject, _ t: TextObject) -> some View {
-        let id = o.id
-        TextField("Text", text: Binding(get: { t.text }, set: { editor.setText(id, $0) }), axis: .vertical)
-            .lineLimit(1...4).textFieldStyle(.roundedBorder)
-            .accessibilityLabel("Text")
-        VStack(alignment: .leading, spacing: 6) {
-            TextField("Font", text: Binding(get: { t.style.fontName }, set: { editor.setFontName(id, $0) }))
-                .textFieldStyle(.roundedBorder).accessibilityLabel("Font")
-            Stepper(value: Binding(get: { t.style.fontSize }, set: { editor.setFontSize(id, $0) }),
-                    in: SlideEditing.fontSizeRange, step: 4) {
-                Text("Size \(Int(t.style.fontSize))").font(.wfSmall)
-            }.accessibilityLabel("Font size")
-        }
-        if NSFont(name: t.style.fontName, size: 12) == nil {
-            Text("No font with that name is installed, so the default font is used.").font(.wfSmall).foregroundStyle(.orange)
-        }
-        colorRow("Colour", color: t.style.color) { editor.setTextColor(id, $0) }
-        HStack {
-            Picker("Across", selection: Binding(get: { t.alignment }, set: { editor.setAlignment(id, $0) })) {
-                Text("Left").tag(HorizontalAlign.leading)
-                Text("Centre").tag(HorizontalAlign.center)
-                Text("Right").tag(HorizontalAlign.trailing)
-            }.pickerStyle(.menu).fixedSize().accessibilityLabel("Alignment")
-            Picker("Down", selection: Binding(get: { t.verticalAlignment }, set: { editor.setVerticalAlignment(id, $0) })) {
-                Text("Top").tag(VerticalAlignment.top)
-                Text("Middle").tag(VerticalAlignment.center)
-                Text("Bottom").tag(VerticalAlignment.bottom)
-            }.pickerStyle(.menu).fixedSize().accessibilityLabel("Vertical alignment")
-        }
-        HStack {
-            Stepper(value: Binding(get: { t.style.outlineWidth }, set: { editor.setOutline(id, width: $0) }),
-                    in: SlideEditing.outlineRange, step: 1) {
-                Text("Outline \(Int(t.style.outlineWidth))").font(.wfSmall)
-            }.accessibilityLabel("Outline width")
-            ColorPicker("Outline colour", selection: Binding(get: { Color(t.style.outlineColor) },
-                                                              set: { editor.setOutline(id, color: $0.rgba) }))
-                .labelsHidden().accessibilityLabel("Outline colour")
-        }
-        Toggle("Shadow", isOn: Binding(get: { t.style.shadow != nil }, set: { on in
-            editor.setShadow(id, on ? TextShadow(offsetX: 4, offsetY: 4, blur: 8) : nil)
-        })).toggleStyle(.wfCheckbox)
-        if let shadow = t.style.shadow {
-            VStack(alignment: .leading, spacing: 4) {
-                number("Across", shadow.offsetX) { editor.setShadow(id, TextShadow(color: shadow.color, offsetX: $0, offsetY: shadow.offsetY, blur: shadow.blur)) }
-                number("Down", shadow.offsetY) { editor.setShadow(id, TextShadow(color: shadow.color, offsetX: shadow.offsetX, offsetY: $0, blur: shadow.blur)) }
-                number("Blur", shadow.blur) { editor.setShadow(id, TextShadow(color: shadow.color, offsetX: shadow.offsetX, offsetY: shadow.offsetY, blur: $0)) }
-                ColorPicker("Shadow colour", selection: Binding(get: { Color(shadow.color) }, set: {
-                    editor.setShadow(id, TextShadow(color: $0.rgba, offsetX: shadow.offsetX, offsetY: shadow.offsetY, blur: shadow.blur))
-                })).labelsHidden().accessibilityLabel("Shadow colour")
-            }
-        }
-        Text("Size, outline and shadow are in points on a 1080-line screen.").font(.wfSmall).foregroundStyle(.secondary)
-    }
-
-    // MARK: Shape
-
-    @ViewBuilder private func shapeControls(_ o: SlideObject, _ s: ShapeObject) -> some View {
-        let id = o.id
-        Toggle("Fill", isOn: Binding(get: { s.fill != nil }, set: { on in
-            editor.setFill(id, on ? SlideEditing.defaultShapeFill : nil)
-        })).toggleStyle(.wfCheckbox)
-        if let fill = s.fill { colorRow("Fill colour", color: fill) { editor.setFill(id, $0) } }
-        Toggle("Outline", isOn: Binding(get: { s.strokeColor != nil && s.strokeWidth > 0 }, set: { on in
-            if on {
-                editor.setStrokeColor(id, s.strokeColor ?? .white)
-                editor.setStrokeWidth(id, max(s.strokeWidth, 6))
-            } else {
-                editor.setStrokeWidth(id, 0)
-            }
-        })).toggleStyle(.wfCheckbox)
-        if s.strokeColor != nil, s.strokeWidth > 0 {
-            colorRow("Outline colour", color: s.strokeColor ?? .white) { editor.setStrokeColor(id, $0) }
-            Stepper(value: Binding(get: { s.strokeWidth }, set: { editor.setStrokeWidth(id, $0) }),
-                    in: SlideEditing.strokeRange, step: 1) {
-                Text("Outline width \(Int(s.strokeWidth))").font(.wfSmall)
-            }.accessibilityLabel("Outline width")
-        }
-        if case .roundedRectangle(let radius) = s.shape {
-            HStack {
-                Text("Corners").font(.wfSmall).frame(width: 52, alignment: .leading)
-                Slider(value: Binding(get: { radius }, set: { editor.setCornerRadius(id, $0) }), in: 0...0.5)
-                    .accessibilityLabel("Corner radius")
-            }
-        }
-    }
-
-    // MARK: Image
-
-    @ViewBuilder private func imageControls(_ o: SlideObject, _ i: ImageObject) -> some View {
-        Text(i.path).font(.wfSmall).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
-        if !FileManager.default.isReadableFile(atPath: i.path) {
-            Text("That file cannot be read, so nothing is drawn. Delete this object and insert the image again.")
-                .font(.wfSmall).foregroundStyle(.orange)
-        }
-        Picker("Show", selection: Binding(get: { i.contentMode }, set: { editor.setImageContentMode(o.id, $0) })) {
-            Text("Fit (whole picture)").tag(ImageContentMode.fit)
-            Text("Fill (crop to the box)").tag(ImageContentMode.fill)
-        }.pickerStyle(.menu).fixedSize().accessibilityLabel("Image mode")
-    }
-
-    // MARK: Pieces
-
-    private func colorRow(_ label: String, color: ColorRGBA, set: @escaping (ColorRGBA) -> Void) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label).font(.wfSmall).foregroundStyle(.secondary)
-            HStack(spacing: 5) {
-                ForEach(swatches, id: \.name) { swatch in
-                    Button { set(swatch.color) } label: {
-                        RoundedRectangle(cornerRadius: 3).fill(Color(swatch.color)).frame(width: 18, height: 18)
-                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(color == swatch.color ? Color.accentColor : Color.gray.opacity(0.6),
-                                                                              lineWidth: color == swatch.color ? 2 : 1))
-                    }
-                    .buttonStyle(.plain)
-                    .help(swatch.name)
-                    .accessibilityLabel("\(label) \(swatch.name)")
-                }
-                ColorPicker(label, selection: Binding(get: { Color(color) }, set: { set($0.rgba) }))
-                    .labelsHidden().accessibilityLabel("\(label) custom")
-            }
-        }
-    }
-
-    private func number(_ label: String, _ value: Double, set: @escaping (Double) -> Void) -> some View {
-        HStack(spacing: 3) {
-            Text(label).font(.wfSmall)
-            TextField(label, value: Binding(get: { value }, set: { set($0) }), format: .number.precision(.fractionLength(0...1)))
-                .textFieldStyle(.roundedBorder).frame(width: 46).accessibilityLabel("Shadow \(label.lowercased())")
-        }
-    }
-
-    private func percent(_ label: String, _ o: SlideObject, _ keyPath: WritableKeyPath<NormalizedRect, Double>) -> some View {
-        HStack(spacing: 4) {
-            Text(label).font(.wfSmall).frame(width: 44, alignment: .leading)
-            TextField(label, value: Binding(get: { o.frame[keyPath: keyPath] * 100 }, set: { value in
-                var f = o.frame
-                f[keyPath: keyPath] = value / 100
-                editor.setFrame(o.id, x: f.x, y: f.y, width: f.width, height: f.height)
-            }), format: .number.precision(.fractionLength(0...1)))
-                .textFieldStyle(.roundedBorder).frame(width: 58)
-                .accessibilityLabel("\(label) percent")
-        }
+        if let f = handleFrame { editor.setFrame(object.id, x: f.x, y: f.y, width: f.width, height: f.height) }
+        handleFrame = nil
+        handleStart = nil
     }
 }
