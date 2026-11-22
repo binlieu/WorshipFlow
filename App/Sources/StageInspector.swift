@@ -1,6 +1,6 @@
 // UI-005e: the Stage mode's right column, as `04-stage.png` draws it: the selected element's settings (Shows, Size, Weight, Colour), the
-// element list, and the stage screens that use the layout. Left out because the feature does not exist: Auto-fit, the second-language colour,
-// the Section element and the per-element eye. The owner's extras that the design has no row for (alignment, position and size in percent,
+// element list, and the stage screens that use the layout. UI-006e added Auto-fit, the second-language colour and the per-element eye; the
+// Section element is still left out (no section name reaches the stage). The owner's extras that the design has no row for (alignment, position and size in percent,
 // delete) follow the designed sections, so none of them moves. Every change goes through `StageModel` and is refused for the built-in layout.
 import SwiftUI
 import AppKit
@@ -53,7 +53,13 @@ struct StageInspector: View {
                     row("Size", rectID: "st.insp.size") { sizeControl(e) }
                     row("Weight", rectID: "st.insp.weight") { weightControl(e) }
                     row("Colour", rectID: "st.insp.colour") { colourControl(e) }
-                    Color.clear.frame(height: 30)      // the design's "2nd lang." row: the second-language colour is not a setting yet
+                    row("2nd lang.", rectID: "st.insp.second") { secondLanguageControl(e) }      // UI-006e
+                    if StageAutoFit.isBelowLyricMinimum(e) {
+                        // UI-006e: the design's caption names a 64 px minimum lyric size; this says so only when the layout is below it.
+                        Text("Below the \(Int(StageAutoFit.lyricMinimum)) px minimum for lyrics at 1080p: hard to read from the back of the room.")
+                            .font(.wf(11)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
+                    }
                 }
             } else {
                 Text(editable ? "Choose an element on the canvas, or add one." : "Choose an element to see its settings.")
@@ -91,7 +97,7 @@ struct StageInspector: View {
         }
     }
 
-    /// The design's Size row also holds Auto-fit (not built); the field keeps the width it has beside it, and the stepper takes that place.
+    /// The design's Size row: the size field (its stepper sits inside the field, at the right) and the Auto-fit checkbox. UI-006e.
     private func sizeControl(_ e: StageElement) -> some View {
         HStack(spacing: 8) {
             HStack(spacing: 4) {
@@ -99,11 +105,41 @@ struct StageInspector: View {
                           format: .number.precision(.fractionLength(0)))
                     .textFieldStyle(.plain).font(.wfMono(11)).accessibilityLabel("Font size")
                 Text("px").font(.wfMono(11)).foregroundStyle(Tok.muted)
+                Stepper("Font size", value: Binding(get: { e.style.fontSize }, set: { stage.setFontSize($0, for: e.id, in: layoutID) }),
+                        in: StageEditing.fontSizeRange, step: 4).labelsHidden().accessibilityLabel("Font size step")
+                    .scaleEffect(0.8).frame(width: 14)
             }
             .wfField().frame(width: 120.5).wfRect("st.insp.size", size: 11, weight: 400, radius: Radius.md)
-            Stepper("Font size", value: Binding(get: { e.style.fontSize }, set: { stage.setFontSize($0, for: e.id, in: layoutID) }),
-                    in: StageEditing.fontSizeRange, step: 4).labelsHidden().accessibilityLabel("Font size step")
+            Toggle(isOn: Binding(get: { e.autoFit }, set: { stage.setAutoFit($0, for: e.id, in: layoutID) })) {
+                Text("Auto-fit").font(.wf(12)).foregroundStyle(Tok.text).wfLine()
+            }
+            .toggleStyle(.wfCheckbox).fixedSize()
+            .help("Shrink the text until it fits the box. The lyric stops at \(Int(StageAutoFit.lyricMinimum)) px at 1080p; other text at half its size. Elements with Auto-fit shrink together.")
+            .accessibilityLabel("Auto-fit")
+            .wfRect("st.insp.autofit", size: 12, weight: 400)
             Spacer(minLength: 0)
+        }
+    }
+
+    /// UI-006e: the colour of the second-language line, for an element that draws it as its own line.
+    @ViewBuilder private func secondLanguageControl(_ e: StageElement) -> some View {
+        if let second = e.secondLanguage {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 5).fill(Color(second.style.color)).frame(width: 22, height: 22)
+                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Tok.borderStrong, lineWidth: 1))
+                    .overlay {
+                        ColorPicker("Second language colour", selection: Binding(get: { Color(second.style.color) },
+                                                                                set: { stage.setSecondLanguageColor($0.rgba, for: e.id, in: layoutID) }))
+                            .labelsHidden().opacity(0.015).accessibilityLabel("Second language colour")
+                    }
+                    .wfRect("st.insp.second.swatch", radius: 5)
+                HexField(color: second.style.color, label: "Second language colour as hex") { stage.setSecondLanguageColor($0, for: e.id, in: layoutID) }
+                    .wfRect("st.insp.second.hex", size: 11, weight: 400, radius: Radius.md)
+            }
+        } else if e.kind == .currentSlide {
+            Text("Same colour as the first language").font(.wf(12)).foregroundStyle(Tok.muted).wfLine().frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            Color.clear.frame(height: 30)
         }
     }
 
@@ -141,25 +177,45 @@ struct StageInspector: View {
             VStack(spacing: 0) {
                 ForEach(Array(layout.elements.enumerated()), id: \.element.id) { index, e in
                     let selected = e.id == elementID
-                    Button { elementID = e.id } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: StageElementNames.symbol(of: e)).font(.wf(12)).foregroundStyle(Tok.text).frame(width: 15, height: 15)
-                            Text(StageElementNames.title(of: e, in: stage)).font(.wf(13)).lineLimit(1).wfLine()
-                            Spacer(minLength: 0)
+                    HStack(spacing: 0) {
+                        Button { elementID = e.id } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: StageElementNames.symbol(of: e)).font(.wf(12)).foregroundStyle(Tok.text).frame(width: 15, height: 15)
+                                Text(StageElementNames.title(of: e, in: stage)).font(.wf(13)).lineLimit(1).wfLine()
+                                Spacer(minLength: 0)
+                            }
+                            .opacity(e.isHidden ? 0.45 : 1)
+                            .padding(.leading, 8).frame(height: 26).frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.horizontal, 8).frame(height: 26).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
-                        .contentShape(Rectangle())
-                        .wfRect("st.insp.el.\(index)", size: 13, weight: 400, radius: Radius.md)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(StageElementNames.title(of: e, in: stage) + (e.isHidden ? ", hidden" : ""))
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                        eyeButton(e, index: index)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(StageElementNames.title(of: e, in: stage))
-                    .accessibilityAddTraits(selected ? .isSelected : [])
+                    .background(selected ? Tok.surface3 : .clear, in: RoundedRectangle(cornerRadius: Radius.md))
+                    .wfRect("st.insp.el.\(index)", size: 13, weight: 400, radius: Radius.md)
                 }
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// UI-006e: the eye at the right of an element's row: hides the element on the stage screens without removing it. Not drawn as a button when the
+    /// layout is the built-in one (nothing to change there); the row is still selectable.
+    private func eyeButton(_ e: StageElement, index: Int) -> some View {
+        Button { stage.setHidden(!e.isHidden, for: e.id, in: layoutID) } label: {
+            Image(systemName: e.isHidden ? "eye.slash" : "eye").font(.wf(11)).foregroundStyle(e.isHidden ? Tok.muted : Tok.text)
+                .frame(width: 26, height: 26).contentShape(Rectangle())
+                .wfFocusReport(.button)
+        }
+        .buttonStyle(.plain)
+        .disabled(!editable)
+        .opacity(editable ? 1 : 0.5)
+        .help(editable ? (e.isHidden ? "Show this element on the stage screens" : "Hide this element on the stage screens") : StageModel.readOnlyMessage)
+        .accessibilityLabel(e.isHidden ? "Show \(StageElementNames.title(of: e, in: stage))" : "Hide \(StageElementNames.title(of: e, in: stage))")
+        .wfRect("st.insp.el.\(index).eye")
     }
 
     // MARK: Assigned to
@@ -237,6 +293,7 @@ struct StageInspector: View {
 /// A `#RRGGBB` field in the design's mono look; it applies when the text is a valid colour and goes back to the colour's own text otherwise.
 private struct HexField: View {
     let color: ColorRGBA
+    var label = "Colour as hex"
     let apply: (ColorRGBA) -> Void
     @State private var text = ""
     @FocusState private var focused: Bool
@@ -253,7 +310,7 @@ private struct HexField: View {
             .onChange(of: color) { _, _ in if !focused { text = current } }
             .onSubmit(commit)
             .onChange(of: focused) { _, now in if !now { commit() } }
-            .accessibilityLabel("Colour as hex")
+            .accessibilityLabel(label)
     }
 
     private func commit() {

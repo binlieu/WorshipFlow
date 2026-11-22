@@ -80,10 +80,21 @@ struct StageEditorView: View {
             HStack {
                 SectionLabel("Stage layouts", rectID: "st.side.h")
                 Spacer()
-                Button { if let made = stage.createLayout(name: nextName("My layout")) { layoutID = made.id } } label: {
+                // UI-006e: the design's Band, Speaker and Clock only layouts are made here; the first item is the plus's old action.
+                Menu {
+                    Button("New layout (a copy of Standard)") { if let made = stage.createLayout(name: nextName("My layout")) { layoutID = made.id } }
+                    Divider()
+                    ForEach(StagePreset.allCases) { preset in
+                        Button("\(preset.title) · \(preset.summary)") {
+                            if let made = stage.addPreset(preset, named: nextName(preset.title)) { layoutID = made.id }
+                        }
+                    }
+                } label: {
                     Image(systemName: "plus").font(.wf(11, .medium)).foregroundStyle(Tok.muted).frame(width: 12, height: 12)
                 }
-                .buttonStyle(.plain).help("A new layout that starts as a copy of Standard").accessibilityLabel("New layout")
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+                .wfFocusReport(.popUp)
+                .help("A new layout: a copy of Standard, or one of the presets Band, Speaker, Clock only").accessibilityLabel("New layout")
                 .wfRect("st.side.plus")
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
@@ -238,6 +249,7 @@ struct StageEditorView: View {
     }
     /// The small label over the element on the canvas.
     static func canvasLabel(of element: StageElement, in stage: StageModel) -> String {
+        if element.isHidden { return title(of: element, in: stage) + " · hidden" }      // UI-006e
         if element.kind == .currentSlide { return "Current slide" + (element.showsSecondLanguage ? " · both languages" : "") }
         return title(of: element, in: stage)
     }

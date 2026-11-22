@@ -193,7 +193,7 @@ private struct StageElementOutline: View {
         let f = element.frame
         let size = CGSize(width: f.width * canvas.width, height: f.height * canvas.height)
         Rectangle().fill(Color.clear)
-            .overlay(Rectangle().strokeBorder(selected ? Tok.blue : Color.white.opacity(0.22),
+            .overlay(Rectangle().strokeBorder(selected ? Tok.blue : Color.white.opacity(element.isHidden ? 0.1 : 0.22),
                                               style: StrokeStyle(lineWidth: selected ? 1.5 : 1, dash: selected ? [] : [4, 3])))
             .frame(width: size.width, height: size.height)
             .wfRect("st.cv.el.\(index)")
