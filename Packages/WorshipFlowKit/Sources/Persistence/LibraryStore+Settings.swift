@@ -323,20 +323,56 @@ extension LibraryStore {
         let store = self
         let path = storedPath(path)
         return try await writer.write { db in
-            if let existing = try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE path = ?", arguments: [path]).first {
-                return store.runtimeAsset(existing)
-            }
-            let id = UUID()
-            try db.execute(sql: """
-                INSERT INTO mediaAsset (id, name, kind, path, bookmark, duration, pixelWidth, pixelHeight, addedAt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, arguments: [id.dbText, name, kind.rawValue, path, bookmark, duration, pixelWidth, pixelHeight, Date()])
-            // Re-read so the returned value is exactly what the store holds (dates are stored to the millisecond).
-            guard let stored = try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE id = ?", arguments: [id.dbText]).first else {
-                throw StoreError.notFound
-            }
-            return store.runtimeAsset(stored)
+            try Self.addMediaAsset(db, store: store, name: name, kind: kind, path: path, bookmark: bookmark, duration: duration,
+                                   pixelWidth: pixelWidth, pixelHeight: pixelHeight).asset
         }
+    }
+
+    /// TESTDATA-001: one file for `addMediaAssets`.
+    public struct MediaAssetSpec: Sendable, Equatable {
+        public var name: String
+        public var kind: MediaKind
+        public var path: String
+        public var pixelWidth: Int?
+        public var pixelHeight: Int?
+        public init(name: String, kind: MediaKind, path: String, pixelWidth: Int? = nil, pixelHeight: Int? = nil) {
+            self.name = name; self.kind = kind; self.path = path; self.pixelWidth = pixelWidth; self.pixelHeight = pixelHeight
+        }
+    }
+
+    /// TESTDATA-001: adds many references in ONE transaction (all or none). A path already in the bin is left as it is and reported
+    /// in `existing`, so running the same list twice adds nothing the second time. No bookmark is stored: the path is what the
+    /// bin keeps, so the files must stay where they are.
+    public func addMediaAssets(_ specs: [MediaAssetSpec]) async throws -> (added: [MediaAsset], existing: [MediaAsset]) {
+        let named = try specs.map { (spec: $0, name: try Self.validName($0.name)) }
+        let store = self
+        return try await writer.write { db in
+            var added: [MediaAsset] = [], existing: [MediaAsset] = []
+            for (spec, name) in named {
+                let result = try Self.addMediaAsset(db, store: store, name: name, kind: spec.kind, path: store.storedPath(spec.path), bookmark: nil,
+                                                    duration: nil, pixelWidth: spec.pixelWidth, pixelHeight: spec.pixelHeight)
+                if result.isNew { added.append(result.asset) } else { existing.append(result.asset) }
+            }
+            return (added, existing)
+        }
+    }
+
+    /// The insert shared by `addMediaAsset` and `addMediaAssets`; `path` is already in its stored spelling.
+    private static func addMediaAsset(_ db: Database, store: LibraryStore, name: String, kind: MediaKind, path: String, bookmark: Data?,
+                                      duration: Double?, pixelWidth: Int?, pixelHeight: Int?) throws -> (asset: MediaAsset, isNew: Bool) {
+        if let existing = try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE path = ?", arguments: [path]).first {
+            return (store.runtimeAsset(existing), false)
+        }
+        let id = UUID()
+        try db.execute(sql: """
+            INSERT INTO mediaAsset (id, name, kind, path, bookmark, duration, pixelWidth, pixelHeight, addedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, arguments: [id.dbText, name, kind.rawValue, path, bookmark, duration, pixelWidth, pixelHeight, Date()])
+        // Re-read so the returned value is exactly what the store holds (dates are stored to the millisecond).
+        guard let stored = try Self.mediaAssetRow(db, sql: "SELECT * FROM mediaAsset WHERE id = ?", arguments: [id.dbText]).first else {
+            throw StoreError.notFound
+        }
+        return (store.runtimeAsset(stored), true)
     }
 
     /// In the order added; `nil` means every kind.

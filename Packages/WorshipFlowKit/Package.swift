@@ -22,6 +22,7 @@ let package = Package(
         .library(name: "ProgramPackage", targets: ["ProgramPackage"]),
         .executable(name: "wf-bible-import", targets: ["BibleImportTool"]),
         .executable(name: "wf-looks-probe", targets: ["LooksProbe"]),
+        .executable(name: "wf-test-data-import", targets: ["TestDataImportTool"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.12.0"),
@@ -67,6 +68,10 @@ let package = Package(
         // UI-005h: measures the output looks (rectangles, pictures, frame time); run by hand.
         .executableTarget(name: "LooksProbe", dependencies: ["Domain", "RenderEngine", "SDIEngine"]),
         .executableTarget(name: "BibleImportTool", dependencies: ["ScriptureStore", "ScriptureEngine", "Persistence"]),
+        // TESTDATA-001: loads the synthetic songs and pictures of scripts/make-test-data.sh into a library through the Persistence API.
+        .target(name: "TestDataKit", dependencies: ["Domain", "Persistence"]),
+        .executableTarget(name: "TestDataImportTool", dependencies: ["TestDataKit"]),
+        .testTarget(name: "TestDataTests", dependencies: ["TestDataKit", "Persistence", "Domain"]),
         // CUE-002a: storage of macros, slide actions, schedule and MIDI bindings in the church library.
         .target(name: "CueStore", dependencies: ["CueEngine", "Persistence", "Domain", .product(name: "GRDB", package: "GRDB.swift")]),
         .testTarget(name: "CueStoreTests", dependencies: ["CueStore", "CueEngine", "Persistence"]),

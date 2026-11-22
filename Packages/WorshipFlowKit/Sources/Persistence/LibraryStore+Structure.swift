@@ -21,61 +21,66 @@ extension LibraryStore {
     public func replaceContent(of presentationID: UUID, with results: [ReflowResult]) async throws {
         let backend = searchBackend
         try await writer.write { db in
-            try Self.requireExists(db, table: "presentation", id: presentationID)
-            let existing = try Self.fetchGroups(db, presentationID: presentationID)
-            var idByName: [String: UUID] = [:]
-            for group in existing where idByName[group.name] == nil { idByName[group.name] = group.id }
-
-            var names: [String] = []
-            for name in results.compactMap(\.sectionName) where !names.contains(name) { names.append(name) }
-            var keptIDs: [String: UUID] = [:]
-            for name in names { keptIDs[name] = idByName[name] ?? UUID() }
-            let keep = Set(keptIDs.values)
-
-            let carry = try Self.carryOver(db, presentationID: presentationID, groups: existing, results: results)
-            // CUE-002a: slide actions are deleted with their slide, so take the ones that stay out first and write them back
-            // against the new slide ids.
-            let actionCarry = try Self.slideActionCarry(db, presentationID: presentationID, groups: existing, results: results)
-
-            // Slides first, so nothing references a group that is about to go.
-            try db.execute(sql: "DELETE FROM slide WHERE presentationID = ?", arguments: [presentationID.dbText])
-            var arrangementsToClose = Set<String>()
-            for group in existing where !keep.contains(group.id) {
-                arrangementsToClose.formUnion(try String.fetchAll(
-                    db, sql: "SELECT DISTINCT arrangementID FROM arrangementItem WHERE groupID = ?",
-                    arguments: [group.id.dbText]))
-                try db.execute(sql: "DELETE FROM arrangementItem WHERE groupID = ?", arguments: [group.id.dbText])
-                try db.execute(sql: "DELETE FROM slideGroup WHERE id = ?", arguments: [group.id.dbText])
-            }
-            for arrangementID in arrangementsToClose { try Self.closeArrangementGaps(db, arrangementID: arrangementID) }
-
-            let known = Set(existing.map(\.id))
-            for (order, name) in names.enumerated() {
-                guard let id = keptIDs[name] else { continue }
-                if known.contains(id) {
-                    try db.execute(sql: "UPDATE slideGroup SET sortOrder = ? WHERE id = ?", arguments: [order, id.dbText])
-                } else {
-                    try db.execute(sql: "INSERT INTO slideGroup (id, presentationID, name, sortOrder) VALUES (?, ?, ?, ?)",
-                                   arguments: [id.dbText, presentationID.dbText, name, order])
-                }
-            }
-
-            let now = Date()
-            var newSlideIDs: [UUID] = []
-            for (order, result) in results.enumerated() {
-                let groupID = result.sectionName.flatMap { keptIDs[$0] }
-                let slideID = UUID()
-                newSlideIDs.append(slideID)
-                try SlideRecord(id: slideID, presentationID: presentationID, sortOrder: order,
-                                primaryText: result.content.primary, secondaryText: result.content.secondary,
-                                notes: carry.notes[order], createdAt: now, updatedAt: now, groupID: groupID,
-                                objects: SlideObjectsJSON.encode(carry.objects[order]),
-                                background: SlideBackgroundJSON.encode(carry.backgrounds[order]),
-                                textFrames: SlideTextFramesJSON.encode(carry.textFrames[order])).insert(db)
-            }
-            try Self.restoreSlideActions(db, actionCarry, newSlideIDs: newSlideIDs)
-            try Self.touch(db, presentationID: presentationID, backend: backend)
+            try Self.replaceContent(db, backend: backend, presentationID: presentationID, results: results)
         }
+    }
+
+    /// The body of `replaceContent`, for a caller that already holds a transaction (TESTDATA-001). Same rules.
+    static func replaceContent(_ db: Database, backend: SearchBackend, presentationID: UUID, results: [ReflowResult]) throws {
+        try Self.requireExists(db, table: "presentation", id: presentationID)
+        let existing = try Self.fetchGroups(db, presentationID: presentationID)
+        var idByName: [String: UUID] = [:]
+        for group in existing where idByName[group.name] == nil { idByName[group.name] = group.id }
+
+        var names: [String] = []
+        for name in results.compactMap(\.sectionName) where !names.contains(name) { names.append(name) }
+        var keptIDs: [String: UUID] = [:]
+        for name in names { keptIDs[name] = idByName[name] ?? UUID() }
+        let keep = Set(keptIDs.values)
+
+        let carry = try Self.carryOver(db, presentationID: presentationID, groups: existing, results: results)
+        // CUE-002a: slide actions are deleted with their slide, so take the ones that stay out first and write them back
+        // against the new slide ids.
+        let actionCarry = try Self.slideActionCarry(db, presentationID: presentationID, groups: existing, results: results)
+
+        // Slides first, so nothing references a group that is about to go.
+        try db.execute(sql: "DELETE FROM slide WHERE presentationID = ?", arguments: [presentationID.dbText])
+        var arrangementsToClose = Set<String>()
+        for group in existing where !keep.contains(group.id) {
+            arrangementsToClose.formUnion(try String.fetchAll(
+                db, sql: "SELECT DISTINCT arrangementID FROM arrangementItem WHERE groupID = ?",
+                arguments: [group.id.dbText]))
+            try db.execute(sql: "DELETE FROM arrangementItem WHERE groupID = ?", arguments: [group.id.dbText])
+            try db.execute(sql: "DELETE FROM slideGroup WHERE id = ?", arguments: [group.id.dbText])
+        }
+        for arrangementID in arrangementsToClose { try Self.closeArrangementGaps(db, arrangementID: arrangementID) }
+
+        let known = Set(existing.map(\.id))
+        for (order, name) in names.enumerated() {
+            guard let id = keptIDs[name] else { continue }
+            if known.contains(id) {
+                try db.execute(sql: "UPDATE slideGroup SET sortOrder = ? WHERE id = ?", arguments: [order, id.dbText])
+            } else {
+                try db.execute(sql: "INSERT INTO slideGroup (id, presentationID, name, sortOrder) VALUES (?, ?, ?, ?)",
+                               arguments: [id.dbText, presentationID.dbText, name, order])
+            }
+        }
+
+        let now = Date()
+        var newSlideIDs: [UUID] = []
+        for (order, result) in results.enumerated() {
+            let groupID = result.sectionName.flatMap { keptIDs[$0] }
+            let slideID = UUID()
+            newSlideIDs.append(slideID)
+            try SlideRecord(id: slideID, presentationID: presentationID, sortOrder: order,
+                            primaryText: result.content.primary, secondaryText: result.content.secondary,
+                            notes: carry.notes[order], createdAt: now, updatedAt: now, groupID: groupID,
+                            objects: SlideObjectsJSON.encode(carry.objects[order]),
+                            background: SlideBackgroundJSON.encode(carry.backgrounds[order]),
+                            textFrames: SlideTextFramesJSON.encode(carry.textFrames[order])).insert(db)
+        }
+        try Self.restoreSlideActions(db, actionCarry, newSlideIDs: newSlideIDs)
+        try Self.touch(db, presentationID: presentationID, backend: backend)
     }
 
     /// Speaker notes and objects that re-flowing with `results` would discard, so the operator can be told before saving.

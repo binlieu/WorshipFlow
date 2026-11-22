@@ -25,3 +25,6 @@ dist/
 
 # Agent working copies
 .claude/worktrees/
+
+# Performance-test data produced by scripts/make-test-data.sh (200 images, 100 songs)
+TestData/
