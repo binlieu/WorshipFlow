@@ -305,3 +305,13 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Cues: rename a macro in the bar's title (Return or leaving the field); delete from the ellipsis menu in the bar; "..." on a MIDI row deletes that binding.
 - [ ] Cues: the left column's Stream Deck row cannot be clicked; Schedule sits below Control inputs.
 - [ ] Cues: dark and light, a window narrower than 1440: the bar's Run button stays at the right.
+
+## FIX-K (build after 115)
+
+- [ ] Edit: click a lyric box (the dashed rectangles over the words), drag it, drag each of its eight handles, press the arrow keys (Shift for 10): only that slide's words move; Command-Z undoes the whole drag in one step; the other slides and the screens do not change.
+- [ ] Edit: select a lyric box: Position fields, "Reset to theme position" and "Apply to all slides in this song" in the inspector; the same two in the box's right-click menu.
+- [ ] Edit: add a text box, a shape and an image; drag, resize from every handle and nudge each.
+- [ ] Media: click a video tile: no clear icon lights; send it live as the background: only the background icon lights, with a film glyph and a tooltip naming the clip; as a picture: a photo glyph.
+- [ ] Transport bar: Clear has no arrow and no menu; Escape, the icons and the Show menu still clear.
+- [ ] Edit, Stage, Screens: no red LIVE chip at the top right; the mode tabs sit at the left next to the title.
+- [ ] Show with a long song and a full bin: drag the sidebar and inspector edges (a blue line follows, the columns move on release); reorder slides, playlist items, drop a tile on a slide and a file on the bin: nothing hitches.

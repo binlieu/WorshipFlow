@@ -21,7 +21,7 @@
    "d": "div.tb[0]>div.seg[3]",
    "a": "tb.modes",
    "skip": "LR",
-   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+   "why": "owner override, 2026-11-21 (\"align all top tabs to the left\"): the mode switcher sits directly after the title block in every mode, not centred; its left edge follows the title block's text"
   },
   {
    "d": "div.tb[0]>div.seg[3]>b[0]",
@@ -129,23 +129,33 @@
   },
   {
    "d": "div.tp[2]>span.btn.lg[1]",
-   "a": "tp.previous"
+   "a": "tp.previous",
+   "skip": "LR",
+   "why": "owner override, 2026-11-21 (\"Clear menu no need anymore since we have all clear icons\"): Clear has no chevron, so it is 17.6 pt narrower and the buttons before it sit 17.6 pt further right"
   },
   {
    "d": "div.tp[2]>span.btn.lg.live[2]",
-   "a": "tp.golive"
+   "a": "tp.golive",
+   "skip": "LR",
+   "why": "owner override, 2026-11-21 (\"Clear menu no need anymore since we have all clear icons\"): Clear has no chevron, so it is 17.6 pt narrower and the buttons before it sit 17.6 pt further right"
   },
   {
    "d": "div.tp[2]>span.btn.lg[3]",
-   "a": "tp.next"
+   "a": "tp.next",
+   "skip": "LR",
+   "why": "owner override, 2026-11-21 (\"Clear menu no need anymore since we have all clear icons\"): Clear has no chevron, so it is 17.6 pt narrower and the buttons before it sit 17.6 pt further right"
   },
   {
    "d": "div.tp[2]>span[4]",
-   "a": "tp.sep.0"
+   "a": "tp.sep.0",
+   "skip": "LR",
+   "why": "owner override, 2026-11-21 (\"Clear menu no need anymore since we have all clear icons\"): Clear has no chevron, so it is 17.6 pt narrower and the buttons before it sit 17.6 pt further right"
   },
   {
    "d": "div.tp[2]>span.btn.lg[5]",
-   "a": "tp.clear"
+   "a": "tp.clear",
+   "skip": "LR",
+   "why": "owner override, 2026-11-21 (\"Clear menu no need anymore since we have all clear icons\"): Clear has no chevron, so it is 17.6 pt narrower and the buttons before it sit 17.6 pt further right"
   },
   {
    "d": "div.tp[2]>span.btn.lg[6]",

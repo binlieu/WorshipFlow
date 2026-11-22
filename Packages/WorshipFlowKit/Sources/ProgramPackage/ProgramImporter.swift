@@ -239,10 +239,10 @@ enum ProgramImportWriter {
                     return copy
                 })
                 try db.execute(sql: """
-                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt, groupID, objects, background)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO slide (id, presentationID, sortOrder, primaryText, secondaryText, notes, createdAt, updatedAt, groupID, objects, background, textFrames)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, arguments: [slide.id.uuidString, id, order, slide.primary, slide.secondary, slide.notes, now, now,
-                                     slide.groupID?.uuidString, objects, tools.slideBackground(own)])
+                                     slide.groupID?.uuidString, objects, tools.slideBackground(own), tools.slideTextFrames(slide.textFrames)])
                 if let actions = slide.actions {
                     let mapped = assetIDMap.isEmpty ? actions : actions.replacingUUIDs(assetIDMap)
                     try db.execute(sql: "INSERT INTO cueSlideActions (slideID, definition, createdAt, updatedAt) VALUES (?, ?, ?, ?)",

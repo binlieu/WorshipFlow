@@ -40,9 +40,6 @@ final class WorkspaceUIState {
     var binColumns = 1
     func keySectionEvent(_ event: KeySection.Event) { keySection = KeySection.after(event, from: keySection) }
     var binFolderID: UUID?
-    /// Debug pictures only: draws the entries of the Clear menu as a list, because a real menu popup is a separate window the
-    /// snapshot hook cannot capture. Never set in normal use.
-    var showClearMenuPreview = false
     /// True while the sidebar search field has keyboard focus (it is a SwiftUI field, not an NSSearchField).
     var searchHasFocus = false
     /// FIX-H item 7: the custom control that has keyboard focus, if one does (a toggle, a slider, a tab...). The controls report it; the

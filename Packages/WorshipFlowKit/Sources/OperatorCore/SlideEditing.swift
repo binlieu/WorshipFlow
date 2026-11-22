@@ -25,6 +25,22 @@ public enum SlideEditing {
     /// UI-004: the side, in points, of the area that grabs the resize handle. The drawn handle is smaller; the area is not.
     public static let handleHitSize: Double = 28
 
+    /// FIX-K: a point of the slide as the operator thinks of it: the theme's 1920 x 1080 frame. A nudge is one point (ten with Shift).
+    public static let referenceWidth = 1920.0
+    public static let referenceHeight = 1080.0
+
+    /// FIX-K: the frame a handle gives when dragged by (`dx`, `dy`) slide fractions from `start`. `px` and `py` say which handle: 0 is the left / top edge, 1 the right /
+    /// bottom edge, 0.5 the middle (that axis does not change). The opposite edge stays where it is; the frame is never smaller than `SlideObject.minimumSize`.
+    public static func resizedFrame(from s: NormalizedRect, handleX px: Double, handleY py: Double, dx: Double, dy: Double) -> NormalizedRect {
+        let minimum = SlideObject.minimumSize
+        var x = s.x, y = s.y, w = s.width, h = s.height
+        if px == 0 { let right = s.x + s.width; x = min(s.x + dx, right - minimum); w = right - x }
+        if px == 1 { w = max(s.width + dx, minimum) }
+        if py == 0 { let bottom = s.y + s.height; y = min(s.y + dy, bottom - minimum); h = bottom - y }
+        if py == 1 { h = max(s.height + dy, minimum) }
+        return NormalizedRect(x: x, y: y, width: w, height: h)
+    }
+
     public static func dragHasStarted(dx: Double, dy: Double) -> Bool { (dx * dx + dy * dy).squareRoot() >= dragThreshold }
     public static let fontSizeRange = ThemeEditing.fontSizeRange
     public static let outlineRange = ThemeEditing.outlineRange

@@ -9,22 +9,28 @@ public struct SlideContent: Sendable, Equatable, Codable, Hashable {
     /// MEDIA-010: this slide's own background (a bin video or picture). Nil means the presentation's own. A live override
     /// from the media bin beats it while that is on.
     public var background: MediaSelection?
+    /// FIX-K: this slide's own frame for the first and/or second language's words, in the theme's coordinate space. Nil (never an empty value) means
+    /// the theme's frames, exactly as before this field existed. Used by the audience screen; the broadcast look and the stage keep their own.
+    public var textFrames: SlideTextFrames?
 
-    public init(primary: String, secondary: String? = nil, objects: [SlideObject] = [], background: MediaSelection? = nil) {
+    public init(primary: String, secondary: String? = nil, objects: [SlideObject] = [], background: MediaSelection? = nil,
+                textFrames: SlideTextFrames? = nil) {
         self.primary = primary
         self.secondary = secondary
         self.objects = objects
         self.background = background
+        self.textFrames = (textFrames?.isEmpty ?? true) ? nil : textFrames
     }
 
-    private enum CodingKeys: String, CodingKey { case primary, secondary, objects, background }
+    private enum CodingKeys: String, CodingKey { case primary, secondary, objects, background, textFrames }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(primary: try c.decode(String.self, forKey: .primary),
                   secondary: try c.decodeIfPresent(String.self, forKey: .secondary),
                   objects: try c.decodeIfPresent([SlideObject].self, forKey: .objects) ?? [],
-                  background: try c.decodeIfPresent(MediaSelection.self, forKey: .background))
+                  background: try c.decodeIfPresent(MediaSelection.self, forKey: .background),
+                  textFrames: try? c.decodeIfPresent(SlideTextFrames.self, forKey: .textFrames))
     }
 
     /// Slides without objects encode exactly as they did before objects existed.
@@ -34,6 +40,7 @@ public struct SlideContent: Sendable, Equatable, Codable, Hashable {
         try c.encodeIfPresent(secondary, forKey: .secondary)
         if !objects.isEmpty { try c.encode(objects, forKey: .objects) }
         try c.encodeIfPresent(background, forKey: .background)
+        if let textFrames, !textFrames.isEmpty { try c.encode(textFrames, forKey: .textFrames) }
     }
 
     /// True when neither line has visible text and there are no objects.

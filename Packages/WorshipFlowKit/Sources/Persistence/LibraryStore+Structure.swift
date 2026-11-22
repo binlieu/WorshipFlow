@@ -70,7 +70,8 @@ extension LibraryStore {
                                 primaryText: result.content.primary, secondaryText: result.content.secondary,
                                 notes: carry.notes[order], createdAt: now, updatedAt: now, groupID: groupID,
                                 objects: SlideObjectsJSON.encode(carry.objects[order]),
-                                background: SlideBackgroundJSON.encode(carry.backgrounds[order])).insert(db)
+                                background: SlideBackgroundJSON.encode(carry.backgrounds[order]),
+                                textFrames: SlideTextFramesJSON.encode(carry.textFrames[order])).insert(db)
             }
             try Self.restoreSlideActions(db, actionCarry, newSlideIDs: newSlideIDs)
             try Self.touch(db, presentationID: presentationID, backend: backend)

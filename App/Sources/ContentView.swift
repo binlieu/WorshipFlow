@@ -125,7 +125,7 @@ struct WorkspaceView: View {
                 Divider()
                 MediaTransportStrip(media: media)
             }
-            // UI-005a: the design drops the bar in Edit, Stage and Screens; the keys still work and the toolbar shows the live chip.
+            // UI-005a: the design drops the bar in Edit, Stage and Screens; the keys still work (FIX-K: and the toolbar shows no live chip).
             if workspace.mode.showsTransportBar { TransportBar(app: app, workspace: workspace) }
         }
         .background(Tok.bg)
@@ -190,18 +190,18 @@ struct WorkspaceView: View {
 
     /// UI-005j: the design's 52 pt toolbar, drawn by the app instead of the system toolbar so every item sits where the mockup puts it:
     /// 14 pt in, the three window buttons' 52 pt and 6 pt (the window has no title bar of its own, see `WindowChrome`), then 12 pt between
-    /// the sidebar button, the title block, the mode switcher (centred in the room between them and the timers), the timers and the pills.
+    /// the sidebar button, the title block, the mode switcher (FIX-K: directly after the title block, not centred), the timers and the pills.
     private var operatorToolbar: some View {
         HStack(spacing: 12) {
             Color.clear.frame(width: 58, height: 1)      // under the window's own three buttons
             sidebarToggle
             titleBlock
-            Spacer(minLength: 0)
+            // FIX-K item 6 (owner: "align all top tabs to the left"): the switcher follows the title block directly, in every mode.
             modeSwitcher
             Spacer(minLength: 0)
                 // Open or close the screens: not in the design's toolbar, so it floats in the free room right of the mode switcher and takes none.
                 .overlay(alignment: .leading) { screensButton.padding(.leading, 12) }
-            if !workspace.mode.showsTransportBar, app.mode != .stopped { liveChip }
+            // FIX-K item 5 (owner: "remove live red on the top right corner. it looks too busy"): no LIVE chip here in any mode.
             if let stage = app.stage { ToolbarTimersView(stage: stage) }
             HStack(spacing: 12) {
                 ForEach(app.rolePills) { pill in
@@ -279,20 +279,6 @@ struct WorkspaceView: View {
         case .cues: "bolt"
         case .screens: "display"
         }
-    }
-
-    private var liveChip: some View {
-        HStack(spacing: 6) {
-            switch app.mode {
-            case .live: ThumbTag(text: "LIVE", kind: .live)
-            case .cleared: ThumbTag(text: "CLEARED", kind: .warning)
-            case .blackout: ThumbTag(text: "BLACKOUT", kind: .warning)
-            case .stopped: EmptyView()
-            }
-            Text(workspace.liveChipLine ?? "").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).frame(maxWidth: 220, alignment: .leading)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("On the screens: \(workspace.livePositionLine ?? "")")
     }
 }
 

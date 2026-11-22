@@ -21,7 +21,7 @@
    "d": "div.tb[0]>div.seg[3]",
    "a": "tb.modes",
    "skip": "LR",
-   "why": "content: the mode switcher is centred between the title block and the timers, so it moves with the subtitle's text (the seed's library is named Songs where the design's subtitle reads Lakeshore library)"
+   "why": "owner override, 2026-11-21 (\"align all top tabs to the left\"): the mode switcher sits directly after the title block in every mode, not centred; its left edge follows the title block's text"
   },
   {
    "d": "div.tb[0]>div.seg[3]>b[0]",

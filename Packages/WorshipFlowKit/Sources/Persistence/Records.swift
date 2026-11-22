@@ -82,6 +82,8 @@ struct SlideRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     /// Added by migration v11 (FIX-G): JSON for the slide's own background (a `MediaSelection`), NULL when it has none. Written
     /// by `insert` only when set, like `objects`.
     var background: String? = nil
+    /// Added by migration v14 (FIX-K): JSON for the slide's own text frames (`SlideTextFrames`), NULL when it has none. Written by `insert` only when set.
+    var textFrames: String? = nil
 
     func encode(to container: inout PersistenceContainer) throws {
         container["id"] = id.dbText
@@ -95,12 +97,13 @@ struct SlideRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
         container["groupID"] = groupID?.dbText
         if let objects { container["objects"] = objects }
         if let background { container["background"] = background }
+        if let textFrames { container["textFrames"] = textFrames }
     }
 
     var domain: Slide {
         Slide(id: id, presentationID: presentationID, sortOrder: sortOrder,
               content: SlideContent(primary: primaryText, secondary: secondaryText, objects: SlideObjectsJSON.decode(objects),
-                                    background: SlideBackgroundJSON.decode(background)),
+                                    background: SlideBackgroundJSON.decode(background), textFrames: SlideTextFramesJSON.decode(textFrames)),
               notes: notes, groupID: groupID, createdAt: createdAt, updatedAt: updatedAt)
     }
 }
@@ -176,5 +179,21 @@ enum SlideBackgroundJSON {
     static func decode(_ text: String?) -> MediaSelection? {
         guard let text, let data = text.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(MediaSelection.self, from: data)
+    }
+}
+
+/// FIX-K: the JSON text of a slide's own text frames as stored in `slide.textFrames`.
+enum SlideTextFramesJSON {
+    static func encode(_ frames: SlideTextFrames?) -> String? {
+        guard let frames, !frames.isEmpty else { return nil }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return (try? encoder.encode(frames)).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    /// An unreadable value reads as no frames rather than making the slide list fail to load in the middle of a service.
+    static func decode(_ text: String?) -> SlideTextFrames? {
+        guard let text, let data = text.data(using: .utf8), let frames = try? JSONDecoder().decode(SlideTextFrames.self, from: data), !frames.isEmpty else { return nil }
+        return frames
     }
 }

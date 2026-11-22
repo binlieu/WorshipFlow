@@ -184,9 +184,11 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
         public var actions: JSONValue?
         /// FIX-G (MEDIA-010): the slide's own background, if it has one. Absent in packages written before that fix.
         public var background: BackgroundEntry?
+        /// FIX-K: the slide's own text frames (fractions of the frame, no paths). Absent in packages written before that fix and for a slide without any.
+        public var textFrames: SlideTextFrames?
 
         public init(id: UUID, primary: String, secondary: String?, notes: String, groupID: UUID?, objects: [SlideObject],
-                    actions: JSONValue?, background: BackgroundEntry? = nil) {
+                    actions: JSONValue?, background: BackgroundEntry? = nil, textFrames: SlideTextFrames? = nil) {
             self.id = id
             self.primary = primary
             self.secondary = secondary
@@ -195,9 +197,10 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             self.objects = objects
             self.actions = actions
             self.background = background
+            self.textFrames = (textFrames?.isEmpty ?? true) ? nil : textFrames
         }
 
-        private enum CodingKeys: String, CodingKey { case id, primary, secondary, notes, groupID, objects, actions, background }
+        private enum CodingKeys: String, CodingKey { case id, primary, secondary, notes, groupID, objects, actions, background, textFrames }
 
         public init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -210,6 +213,8 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             actions = try c.decodeIfPresent(JSONValue.self, forKey: .actions)
             // A background in a shape this build does not know (a later build's) is ignored: the slide comes without it.
             background = (try? c.decodeIfPresent(BackgroundEntry.self, forKey: .background)) ?? nil
+            let frames = (try? c.decodeIfPresent(SlideTextFrames.self, forKey: .textFrames)) ?? nil
+            textFrames = (frames?.isEmpty ?? true) ? nil : frames
         }
 
         public func encode(to encoder: Encoder) throws {
@@ -222,6 +227,7 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             if !objects.isEmpty { try c.encode(objects, forKey: .objects) }
             try c.encodeIfPresent(actions, forKey: .actions)
             try c.encodeIfPresent(background, forKey: .background)
+            if let textFrames, !textFrames.isEmpty { try c.encode(textFrames, forKey: .textFrames) }
         }
     }
 

@@ -353,6 +353,12 @@ enum Schema {
             }
         }
 
+        // FIX-K (SLIDE): additive. A slide's own text frames (a moved or resized lyric box, in the theme's coordinate space) are stored with the slide as JSON text
+        // of a `SlideTextFrames`, NULL when it has none. Nothing is rewritten: every slide keeps drawing the theme's frames until its own are set.
+        migrator.registerMigration("v14") { db in
+            try db.alter(table: "slide") { t in t.add(column: "textFrames", .text) }
+        }
+
         return migrator
     }
 }

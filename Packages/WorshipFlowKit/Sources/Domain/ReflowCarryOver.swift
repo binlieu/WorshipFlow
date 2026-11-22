@@ -23,13 +23,16 @@ public struct ReflowLoss: Sendable, Equatable {
     public var objectCount: Int
     /// FIX-G: the old slide had its own background (a bin video or picture) that nothing takes over.
     public var hasBackground: Bool
+    /// FIX-K: the old slide had its own text frame (a moved or resized lyric box) that nothing takes over.
+    public var hasTextFrames: Bool
 
-    public init(sectionName: String?, primary: String, notes: String, objectCount: Int, hasBackground: Bool = false) {
+    public init(sectionName: String?, primary: String, notes: String, objectCount: Int, hasBackground: Bool = false, hasTextFrames: Bool = false) {
         self.sectionName = sectionName
         self.primary = primary
         self.notes = notes
         self.objectCount = objectCount
         self.hasBackground = hasBackground
+        self.hasTextFrames = hasTextFrames
     }
 }
 
@@ -40,6 +43,8 @@ public struct ReflowCarry: Sendable, Equatable {
     public var objects: [[SlideObject]]
     /// FIX-G: each new slide's own background, taken over by the same match as its notes and objects.
     public var backgrounds: [MediaSelection?] = []
+    /// FIX-K: each new slide's own text frames, by the same match.
+    public var textFrames: [SlideTextFrames?] = []
     public var losses: [ReflowLoss]
 }
 
@@ -52,6 +57,7 @@ extension Reflow {
         var notes: [String] = []
         var objects: [[SlideObject]] = []
         var backgrounds: [MediaSelection?] = []
+        var textFrames: [SlideTextFrames?] = []
         let oldKeys = old.map { SearchFolding.fold($0.content.primary) }
         for result in results {
             let key = SearchFolding.fold(result.content.primary)
@@ -61,20 +67,22 @@ extension Reflow {
                 notes.append(old[match].notes)
                 objects.append(old[match].content.objects)
                 backgrounds.append(old[match].content.background)
+                textFrames.append(old[match].content.textFrames)
             } else {
                 notes.append("")
                 objects.append([])
                 backgrounds.append(nil)
+                textFrames.append(nil)
             }
         }
         var losses: [ReflowLoss] = []
         for (i, slide) in old.enumerated() where !used.contains(i) {
             let hasNotes = !slide.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            guard hasNotes || !slide.content.objects.isEmpty || slide.content.background != nil else { continue }
+            guard hasNotes || !slide.content.objects.isEmpty || slide.content.background != nil || slide.content.textFrames != nil else { continue }
             losses.append(ReflowLoss(sectionName: slide.sectionName, primary: slide.content.primary, notes: slide.notes,
                                      objectCount: slide.content.objects.count,
-                                     hasBackground: slide.content.background != nil))
+                                     hasBackground: slide.content.background != nil, hasTextFrames: slide.content.textFrames != nil))
         }
-        return ReflowCarry(notes: notes, objects: objects, backgrounds: backgrounds, losses: losses)
+        return ReflowCarry(notes: notes, objects: objects, backgrounds: backgrounds, textFrames: textFrames, losses: losses)
     }
 }

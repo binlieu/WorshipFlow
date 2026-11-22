@@ -195,8 +195,9 @@ final class AppModel {
             editor.reservedFrames = { [weak self] content in
                 // Where the audience screen puts this slide's words, so a new object is not dropped on top of them.
                 guard let self, !content.primary.isEmpty || content.secondary != nil else { return [] }
-                return self.thumbnailScene(for: SlideContent(primary: content.primary, secondary: content.secondary)).textLayers.map(\.frame)
+                return self.thumbnailScene(for: SlideContent(primary: content.primary, secondary: content.secondary, textFrames: content.textFrames)).textLayers.map(\.frame)
             }
+            editor.lyricThemeFrames = { [weak self] content in self?.lyricThemeFrames(for: content) ?? [:] }
             slideEditor = editor
             let settings = SettingsModel(store: store, legacy: LegacySettingsFiles(libraryURL: url), defaultProfiles: { [weak self] in
                 ScreenProfile.defaults(displays: NSScreen.screens.map(DisplayOutput.displayID(of:)),
@@ -391,6 +392,38 @@ final class AppModel {
     }
 
     /// The Delete key, only while the objects editor is showing.
+    /// FIX-K: the theme's frame for each language of `content` on the audience screen: what the Edit canvas draws as the lyric boxes. A language with no words has
+    /// none, and neither has a theme with a plate (the plate stacks its lines itself and uses no frames). The slide's own frames are left out on purpose.
+    func lyricThemeFrames(for content: SlideContent) -> [LyricBox: NormalizedRect] {
+        let scene = thumbnailScene(for: SlideContent(primary: content.primary, secondary: content.secondary))
+        guard scene.plate == nil else { return [:] }
+        var frames: [LyricBox: NormalizedRect] = [:]
+        var index = 0
+        if !content.primary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, index < scene.textLayers.count, scene.textLayers[index].text == content.primary {
+            frames[.primary] = scene.textLayers[index].frame
+            index += 1
+        }
+        if let secondary = content.secondary, !secondary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           index < scene.textLayers.count, scene.textLayers[index].text == secondary {
+            frames[.secondary] = scene.textLayers[index].frame
+        }
+        return frames
+    }
+
+    /// FIX-K: an arrow key in Edit moves the selected object or lyric box by one point (ten with Shift). False when nothing is selected there: the key then moves the
+    /// slide selection as before.
+    func nudgeIfEditing(_ move: SelectionMove, big: Bool) -> Bool {
+        guard workspace?.mode == .edit, let editor = slideEditor else { return false }
+        let (columns, rows): (Int, Int)
+        switch move {
+        case .left: (columns, rows) = (-1, 0)
+        case .right: (columns, rows) = (1, 0)
+        case .up: (columns, rows) = (0, -1)
+        case .down: (columns, rows) = (0, 1)
+        }
+        return editor.nudgeSelection(columns: columns, rows: rows, big: big)
+    }
+
     func deleteSelectedObject() -> Bool {
         guard workspace?.mode == .edit else { return false }
         return slideEditor?.deleteSelected() ?? false
@@ -619,6 +652,7 @@ final class AppModel {
                     }
                     return true
                 case .moveSelection(let move):
+                    if self.nudgeIfEditing(move, big: shift) { return true }       // FIX-K: in Edit with an object or lyric box selected, an arrow nudges it
                     self.moveSelection(move)       // FIX-I item 2: Preview only, never the live slide
                     return true
                 case .sendBinSelectionLive:
@@ -1297,7 +1331,15 @@ final class AppModel {
         if let cue { cue.submit(.transport(.stop), from: source) } else if let w = workspace { w.stop() } else { send(.stop) }
     }
 
+    #if DEBUG
+    /// FIX-K (debug builds only): how many times the screens were republished, for the drag measurements.
+    var debugPublishCount = 0
+    #endif
+
     private func publish() {
+        #if DEBUG
+        debugPublishCount += 1
+        #endif
         sceneRevision &+= 1
         liveRevision &+= 1
         sceneBox.publish(makeSnapshot())

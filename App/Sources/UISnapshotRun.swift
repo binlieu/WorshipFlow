@@ -190,6 +190,15 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // FIX-K: real mouse and key events on the Edit canvas and the app's other drags (one added block; the same shape as the others).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXK"] != nil {
+                await runFixKScenario(note: { note($0) }, capture: { await capture($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // UI-005d: the Media mode in the state of the design picture (the one line this slice adds to this shared file).
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_UIMEDIA"] != nil {
                 await runMediaDesignScenario(note: { note($0) }, capture: { await capture($0) }, window: window)

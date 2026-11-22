@@ -50,19 +50,29 @@ struct ColumnHandle: View {
     /// +1 when dragging right widens the column (the sidebar), -1 when dragging left widens it (the inspector).
     let grows: Double
     let name: String
-    @State private var start: Double?
+    @State private var drag: ColumnDrag?
 
     var body: some View {
         Color.clear.frame(width: 0)
             .overlay {
                 Color.clear.frame(width: 9).contentShape(Rectangle())
                     .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
-                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                        .onChanged { drag in
-                            if start == nil { start = width }
-                            width = min(max((start ?? width) + grows * Double(drag.translation.width), range.lowerBound), range.upperBound)
+                    // FIX-K item 7: only a guide line follows the pointer; the columns and the 200-slide grid are laid out once, on release.
+                    .overlay {
+                        if let proposed = drag?.proposed {
+                            Rectangle().fill(Tok.blue).frame(width: 2).frame(maxHeight: .infinity).offset(x: grows * (proposed - width)).allowsHitTesting(false)
                         }
-                        .onEnded { _ in start = nil })
+                    }
+                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { value in
+                            var state = drag ?? ColumnDrag(range: range, grows: grows)
+                            state.change(translation: Double(value.translation.width), from: width)
+                            drag = state
+                        }
+                        .onEnded { _ in
+                            if var state = drag, let final = state.end() { width = final }
+                            drag = nil
+                        })
                     .accessibilityElement()
                     .accessibilityLabel(name)
                     .accessibilityValue("\(Int(width)) points")

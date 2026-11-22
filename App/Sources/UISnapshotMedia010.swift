@@ -38,9 +38,6 @@ extension AppModel {
         await capture("show-override")
 
         // 3. The Clear menu entries, then the layer clears through the one command path.
-        ui.showClearMenuPreview = true
-        await capture("clear-menu")
-        ui.showClearMenuPreview = false
         clearBackground()
         try? await Task.sleep(for: .milliseconds(500))
         note("media010: Clear background -> cleared \(show.isBackgroundCleared) (expected true), words still live \(show.liveSlide != nil) (expected true)")

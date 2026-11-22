@@ -44,26 +44,12 @@ struct TransportBar: View {
         .background(Tok.surface)
         .wfRect("tp")
         .overlay(alignment: .top) { Rectangle().fill(Tok.border).frame(height: 1) }
-        .overlay(alignment: .topTrailing) { if app.ui.showClearMenuPreview { clearMenuPreview } }
     }
 
     /// UI-005j: the width of the text block: the longer of its two lines as set in Inter, at most 440 pt (a longer headline is cut with an ellipsis).
     private var textBlockWidth: CGFloat {
         let widest = max(InterFont.textWidth(headline, size: 13, weight: 600), detail.map { InterFont.textWidth($0, size: 11, weight: 400) } ?? 0)
         return min(440, ceil(widest))
-    }
-
-    /// The Clear menu's entries, drawn (debug pictures only; see `showClearMenuPreview`).
-    private var clearMenuPreview: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach([ClearControl.Action.clearAll] + ClearControl.layerMenu, id: \.title) { action in
-                HStack { Text(action.title); Spacer(minLength: 16); Text(action.shortcut).foregroundStyle(Tok.muted) }
-                    .font(.wf(13))
-            }
-        }
-        .padding(10).frame(width: 250)
-        .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: Tok.surface2)
-        .offset(x: -330, y: -128)
     }
 
     private func hinted(_ symbol: String, _ title: String, _ key: String?, onFill: Bool = false) -> some View {
@@ -76,42 +62,14 @@ struct TransportBar: View {
 
     // MARK: Pieces
 
-    /// The design's ONE button "Clear ⌄": it opens the menu whose first entry is the words-only clear (Escape).
+    /// FIX-K item 2 (owner: "Clear menu no need anymore since we have all clear icons"): a plain Clear button, no chevron and no menu. It clears the words, as Escape
+    /// does. Clear all and the three layer clears are the five icons of the media bin's header, their keys (Shift-Escape, Control-Option-B, F and M) and the Show menu.
     private var clearControl: some View {
-        Menu {
-            Button("\(ClearControl.primary.title) (Escape)") { app.clear() }.help(ClearControl.primary.detail)
-            ForEach(ClearControl.menu, id: \.title) { action in
-                Button("\(action.title) (Shift-Escape)") { app.clearAll() }.help(action.detail)
-            }
-            Divider()
-            // MEDIA-010: one clear per layer. Each is reversible: Go Live, Next or a new choice brings content back.
-            ForEach(ClearControl.layerMenu, id: \.title) { action in
-                Button("\(action.title) (\(action.shortcut))") { performLayerClear(action) }.help(action.detail)
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "rectangle.slash").frame(width: 15, height: 15)
-                Text("Clear")
-                Image(systemName: "chevron.down").font(.wf(10, .bold)).frame(width: 12, height: 12)
-            }
-            .transportChrome()
-            .wfRect("tp.clear", size: 13, weight: 600, radius: Radius.lg)
-        }
-        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-        .disabled(workspace.show.isStopped)
-        .opacity(workspace.show.isStopped ? 0.45 : 1)
-        .help("Escape clears the words. The menu also has Clear all and one clear per layer.")
-        .accessibilityLabel("Clear")
-    }
-
-    private func performLayerClear(_ action: ClearControl.Action) {
-        switch action {
-        case .clearBackground: app.clearBackground()
-        case .clearForeground: app.clearForeground()
-        case .clearMusic: app.clearMusic()
-        case .clearWords: app.clear()
-        case .clearAll: app.clearAll()
-        }
+        Button { app.clear() } label: { hinted("rectangle.slash", "Clear", nil) }
+            .buttonStyle(TransportButtonStyle()).wfRect("tp.clear", size: 13, weight: 600, radius: Radius.lg)
+            .disabled(workspace.show.isStopped)
+            .help("Escape clears the words. Clear all and the layer clears are the icons in the media bin's header, their keys and the Show menu.")
+            .accessibilityLabel("Clear")
     }
 
     @ViewBuilder private var stateBadge: some View {

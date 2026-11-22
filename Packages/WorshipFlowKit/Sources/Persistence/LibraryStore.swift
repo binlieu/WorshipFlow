@@ -15,7 +15,12 @@ public final class LibraryStore: Sendable {
     /// LIB-005: maps media paths kept relative to the library's folder (nil for an in-memory store). See `MediaPathMapper`.
     let mediaPaths: MediaPathMapper?
 
-    private init(writer: any DatabaseWriter, searchBackend: SearchBackend, mediaPaths: MediaPathMapper?) {
+    /// FIX-K: counts the transactions that changed the database, so a test or the debug hook can prove that a drag writes nothing until it is dropped.
+    private let commits: CommitCounter
+    public var commitCount: Int { commits.count }
+
+    private init(writer: any DatabaseWriter, searchBackend: SearchBackend, mediaPaths: MediaPathMapper?, commits: CommitCounter) {
+        self.commits = commits
         self.writer = writer
         self.searchBackend = searchBackend
         self.mediaPaths = mediaPaths
@@ -30,8 +35,9 @@ public final class LibraryStore: Sendable {
 
     /// Internal: lets tests exercise the `LIKE` search path even where FTS5 exists.
     static func inMemory(forcing backend: SearchBackend?) throws -> LibraryStore {
-        let queue = try DatabaseQueue(configuration: makeConfiguration())
-        return try finishOpening(writer: queue, upTo: nil, forcing: backend)
+        let counter = CommitCounter()
+        let queue = try DatabaseQueue(configuration: makeConfiguration(counter))
+        return try finishOpening(writer: queue, upTo: nil, forcing: backend, commits: counter)
     }
 
     /// Opens (creating directories and file if needed) and migrates to the latest schema.
@@ -50,8 +56,9 @@ public final class LibraryStore: Sendable {
         // FIX-H item 14: a library last opened by a newer build is looked at read-only first and refused before anything can be written.
         if let newer = newerMigration(in: url) { throw newer }
         // One DatabasePool per file, kept for the life of the store (ADR-0004 decision 2).
-        let pool = try DatabasePool(path: url.path, configuration: makeConfiguration())
-        return try finishOpening(writer: pool, upTo: migration, forcing: backend,
+        let counter = CommitCounter()
+        let pool = try DatabasePool(path: url.path, configuration: makeConfiguration(counter))
+        return try finishOpening(writer: pool, upTo: migration, forcing: backend, commits: counter,
                                  mediaPaths: MediaPathMapper(libraryFolder: url.deletingLastPathComponent()))
     }
 
@@ -70,10 +77,11 @@ public final class LibraryStore: Sendable {
         return LibraryFromNewerBuildError(found: found, known: latest)
     }
 
-    private static func makeConfiguration() -> Configuration {
+    private static func makeConfiguration(_ counter: CommitCounter) -> Configuration {
         var config = Configuration()
         config.foreignKeysEnabled = true
         config.prepareDatabase { db in
+            db.add(transactionObserver: counter, extent: .databaseLifetime)
             // ADR-0004 decision 3, set explicitly on every connection.
             try db.execute(sql: "PRAGMA synchronous = NORMAL")
         }
@@ -81,7 +89,7 @@ public final class LibraryStore: Sendable {
     }
 
     private static func finishOpening(writer: any DatabaseWriter, upTo migration: String?,
-                                      forcing forced: SearchBackend?, mediaPaths: MediaPathMapper? = nil) throws -> LibraryStore {
+                                      forcing forced: SearchBackend?, commits: CommitCounter, mediaPaths: MediaPathMapper? = nil) throws -> LibraryStore {
         let migrator = Schema.makeMigrator()
         if let migration {
             guard migrator.migrations.contains(migration) else { throw StoreError.unknownMigration(migration) }
@@ -97,7 +105,7 @@ public final class LibraryStore: Sendable {
             try SearchIndex.prepare(db, backend: backend)
             try ScriptureIndex.prepare(db, backend: backend)
         }
-        return LibraryStore(writer: writer, searchBackend: backend, mediaPaths: mediaPaths)
+        return LibraryStore(writer: writer, searchBackend: backend, mediaPaths: mediaPaths, commits: commits)
     }
 
     /// Closes the connections. Calls made afterwards throw.
@@ -188,4 +196,15 @@ public final class LibraryStore: Sendable {
         ids.insert(moving, at: min(max(index, 0), ids.count))
         try writeOrder(db, table: table, ids: ids)
     }
+}
+
+/// FIX-K: a transaction observer that only counts commits that changed something.
+final class CommitCounter: TransactionObserver, @unchecked Sendable {
+    private let lock = NSLock()
+    private var n = 0
+    var count: Int { lock.lock(); defer { lock.unlock() }; return n }
+    func observes(eventsOfKind eventKind: DatabaseEventKind) -> Bool { true }
+    func databaseDidChange(with event: DatabaseEvent) {}
+    func databaseDidCommit(_ db: Database) { lock.lock(); n += 1; lock.unlock() }
+    func databaseDidRollback(_ db: Database) {}
 }

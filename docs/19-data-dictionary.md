@@ -36,6 +36,7 @@ Library file: `~/Library/Application Support/WORSHIPFLOW/Library.sqlite` by defa
 | notes | TEXT NOT NULL DEFAULT '' | Speaker notes |
 | createdAt | DATETIME NOT NULL | |
 | updatedAt | DATETIME NOT NULL | |
+| textFrames | TEXT | v14 (FIX-K): JSON of `SlideTextFrames` (`primary` and/or `secondary` frame, fractions of the output frame); NULL when the slide uses the theme's frames. Never an empty object |
 
 ### playlist
 | Column | Type | Notes |

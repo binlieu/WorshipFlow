@@ -127,8 +127,14 @@ public enum SceneComposer {
         scene.foregroundMedia = foreground
         if foreground == nil, look.visibleLayers.contains(.slide), let slide = state.liveSlide {
             let plated = theme.plate != nil
-            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, theme.primary, inPlate: plated, fits: theme.fitsText)) }
-            if let block = theme.secondary, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block, inPlate: plated, fits: theme.fitsText)) }
+            // FIX-K: the slide's own frames (audience only; a plate stacks its lines itself and uses no frames). Style and alignment stay the theme's.
+            var primaryBlock = theme.primary, secondaryBlock = theme.secondary
+            if !isBroadcast, !plated, let own = slide.textFrames {
+                if let f = own.primary { primaryBlock.frame = f }
+                if let f = own.secondary { secondaryBlock?.frame = f }
+            }
+            if let p = visible(slide.primary) { scene.textLayers.append(layer(p, primaryBlock, inPlate: plated, fits: theme.fitsText)) }
+            if let block = secondaryBlock, let t = visible(slide.secondary) { scene.textLayers.append(layer(t, block, inPlate: plated, fits: theme.fitsText)) }
             if plated, !scene.textLayers.isEmpty { scene.plate = theme.plate }     // no words, no plate
             // Slide objects (SLIDE-001a) follow the slide layer. A keyed (transparent) screen leaves them out, so
             // full-frame artwork cannot cover a lower third.

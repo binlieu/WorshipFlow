@@ -18,6 +18,7 @@
 		16B17570CCBF92112CCD419C /* ProgramTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */; };
 		19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */; };
 		1EE27DE8B8BB3B421294A754 /* MemoryProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FDCF1AB9166540AAA77F2EC /* MemoryProbe.swift */; };
+		27605FF226FEA6A5040876BE /* UISnapshotFixK.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3284C1C8C378CF0A5AD8842 /* UISnapshotFixK.swift */; };
 		28A2057DF36D637C3499C01F /* ShowMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32295D478AF06FE6654E71DA /* ShowMode.swift */; };
 		290CEB4FB2133C90AC582AEC /* MediaBinPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC10504886ECA9564D6B7B21 /* MediaBinPanel.swift */; };
 		293443AB187F98BCDDAFAAB7 /* EditMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3577B8A6A30E6666D1CC5615 /* EditMode.swift */; };
@@ -167,6 +168,7 @@
 		C6EF4672FCFA811AA7A49126 /* MediaTransportStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTransportStrip.swift; sourceTree = "<group>"; };
 		C72744D9DC0784C43722F32A /* HardwareTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareTestSupport.swift; sourceTree = "<group>"; };
 		CBE40339A5D9BF1D0E036D63 /* CuesControlInputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesControlInputs.swift; sourceTree = "<group>"; };
+		D3284C1C8C378CF0A5AD8842 /* UISnapshotFixK.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixK.swift; sourceTree = "<group>"; };
 		D4B1B6A1952D317922E741F6 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		D677F8D362BB899C12954273 /* MediaSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSupport.swift; sourceTree = "<group>"; };
 		D74BA46590DEC0370D1EB32F /* VideoSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSupport.swift; sourceTree = "<group>"; };
@@ -298,6 +300,7 @@
 				01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */,
 				55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */,
 				3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */,
+				D3284C1C8C378CF0A5AD8842 /* UISnapshotFixK.swift */,
 				78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */,
 				E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */,
 				D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */,
@@ -527,6 +530,7 @@
 				681C9CA7F7769B2188A1B181 /* UISnapshotCues.swift in Sources */,
 				8C131235AB1BE42BA3D35E4C /* UISnapshotDesign.swift in Sources */,
 				905D1888E120908524D706A5 /* UISnapshotFixI.swift in Sources */,
+				27605FF226FEA6A5040876BE /* UISnapshotFixK.swift in Sources */,
 				510F04BB6CAADD39C7460240 /* UISnapshotMedia010.swift in Sources */,
 				19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */,
 				10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */,

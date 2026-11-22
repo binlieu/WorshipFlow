@@ -134,7 +134,8 @@ enum ProgramSnapshot {
                 }
             }
             slides.append(.init(id: slide.id, primary: slide.content.primary, secondary: slide.content.secondary, notes: slide.notes,
-                                groupID: slide.groupID, objects: objects, actions: json, background: background))
+                                groupID: slide.groupID, objects: objects, actions: json, background: background,
+                                textFrames: slide.content.textFrames))
         }
         let groups = try await store.groups(of: id).map { ProgramDocument.GroupEntry(id: $0.id, name: $0.name) }
         let arrangements = try await store.arrangements(of: id).map {
@@ -202,6 +203,8 @@ enum ProgramSnapshot {
             var actions: JSONValue?
             /// The package path of the background's file (ids of bin items differ between libraries, bytes do not).
             var background: String?
+            /// FIX-K: the slide's own text frames.
+            var textFrames: SlideTextFrames?
         }
         struct ArrangementKey: Equatable {
             var name: String
@@ -219,7 +222,7 @@ enum ProgramSnapshot {
         return .init(title: p.title, kind: p.kind, themeID: p.themeID,
                      slides: p.slides.map { .init(primary: $0.primary, secondary: $0.secondary, notes: $0.notes,
                                                   group: $0.groupID.flatMap { names[$0] }, objects: $0.objects, actions: $0.actions,
-                                                  background: $0.background?.file) },
+                                                  background: $0.background?.file, textFrames: $0.textFrames) },
                      arrangements: p.arrangements.map { .init(name: $0.name, groups: $0.groupIDs.map { names[$0] ?? "" }) })
     }
 }

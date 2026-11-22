@@ -141,10 +141,11 @@ extension LibraryStore {
             // (v5) is written only when there are objects, so plain slides still insert on an older store.
             let objects = SlideObjectsJSON.encode(store.storedObjects(content.objects))
             let background = SlideBackgroundJSON.encode(content.background)
+            let textFrames = SlideTextFramesJSON.encode(content.textFrames)
             let record = SlideRecord(
                 id: UUID(), presentationID: presentationID, sortOrder: count,
                 primaryText: content.primary, secondaryText: content.secondary, notes: "",
-                createdAt: now, updatedAt: now, objects: objects, background: background)
+                createdAt: now, updatedAt: now, objects: objects, background: background, textFrames: textFrames)
             // The objects (v5) and background (v11) columns are written only when set, so plain slides still insert on an
             // older store.
             var columns = ["id", "presentationID", "sortOrder", "primaryText", "secondaryText", "notes", "createdAt", "updatedAt"]
@@ -152,6 +153,7 @@ extension LibraryStore {
                                                              content.secondary, "", now, now]
             if let objects { columns.append("objects"); values.append(objects) }
             if let background { columns.append("background"); values.append(background) }
+            if let textFrames { columns.append("textFrames"); values.append(textFrames) }       // FIX-K: v14, written only when set
             try db.execute(sql: "INSERT INTO slide (\(columns.joined(separator: ", "))) VALUES (\(columns.map { _ in "?" }.joined(separator: ", ")))",
                            arguments: StatementArguments(values))
             try Self.touch(db, presentationID: presentationID, backend: backend)
@@ -190,6 +192,12 @@ extension LibraryStore {
             if hasBackgroundColumn || slide.content.background != nil {
                 try db.execute(sql: "UPDATE slide SET background = ? WHERE id = ?",
                                arguments: [SlideBackgroundJSON.encode(slide.content.background), slide.id.dbText])
+            }
+            // The text frames column (v14): a slide without any on an older store has nothing to write.
+            let hasFramesColumn = try db.columns(in: "slide").contains { $0.name == "textFrames" }
+            if hasFramesColumn || slide.content.textFrames != nil {
+                try db.execute(sql: "UPDATE slide SET textFrames = ? WHERE id = ?",
+                               arguments: [SlideTextFramesJSON.encode(slide.content.textFrames), slide.id.dbText])
             }
             try Self.touch(db, presentationID: presentationID, backend: backend)
         }

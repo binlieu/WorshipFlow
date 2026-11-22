@@ -3,6 +3,8 @@
 // (after the Audio tab) and of the Media mode's bin. Each goes through the same command the Clear menu of the transport bar uses
 // (`AppModel.clear`, `clearBackground`, `clearForeground`, `clearMusic`, `clearAll`: the one serial command path), has a tooltip with
 // its name and key, a VoiceOver label, and looks disabled while there is nothing of its kind to clear. Never red.
+// FIX-K item 1: what lights, the glyph (a film for a video, a photo for a picture, the plain layer glyph when empty) and the tooltip come from the pure
+// `ClearIconState` (OperatorCore); the view only draws it.
 import SwiftUI
 import Domain
 import OperatorCore
@@ -10,40 +12,43 @@ import OperatorCore
 struct MediaClearButtons: View {
     let app: AppModel
 
-    private enum Kind: CaseIterable {
-        case lyric, background, foreground, music, all
-        var action: ClearControl.Action {
-            switch self {
-            case .lyric: .clearWords
-            case .background: .clearBackground
-            case .foreground: .clearForeground
-            case .music: .clearMusic
-            case .all: .clearAll
-            }
+    private func symbol(_ glyph: ClearGlyph) -> String {
+        switch glyph {
+        case .words: "text.alignleft"
+        case .film: "film"
+        case .photo: "photo"
+        case .backgroundLayer: "square.stack"
+        case .foregroundLayer: "rectangle.on.rectangle"
+        case .music: "music.note"
+        case .all: "rectangle.slash"
         }
-        /// "Clear lyric" is the words-only Clear: the transport bar calls it plain "Clear".
-        var name: String { self == .lyric ? "Clear lyric" : action.title }
-        var symbol: String {
-            switch self {
-            case .lyric: "text.alignleft"
-            case .background: "photo"
-            case .foreground: "film"
-            case .music: "music.note"
-            case .all: "rectangle.slash"
-            }
-        }
-        /// The four layer clears carry a small cross on their glyph; Clear all has its own glyph.
-        var crossed: Bool { self != .all }
+    }
+
+    /// What is live now, for the icons: the words, what plays on each layer (a bin choice, else the live slide's own background) and the sound cues.
+    private var live: ClearLiveState {
+        let show = app.workspace?.show
+        let media = app.media
+        func name(_ id: UUID?) -> String? { id.flatMap { media?.asset($0)?.name } }
+        var background = media?.layers.background?.selection
+        if background == nil, show?.isStopped == false, show?.isBackgroundCleared == false { background = show?.liveSlideAtPlace?.background }
+        let foreground = media?.layers.foreground?.selection
+        let cue = app.audio?.activeCues.last
+        return ClearLiveState(hasLiveWords: show?.liveSlide != nil && show?.isCleared == false && show?.isBlackedOut == false,
+                              backgroundKind: background?.kind, backgroundName: name(background?.assetID),
+                              foregroundKind: foreground?.kind, foregroundName: name(foreground?.assetID),
+                              musicName: cue.flatMap { name($0.assetID) }, hasMusic: !(app.audio?.activeCues.isEmpty ?? true))
     }
 
     var body: some View {
+        let live = live
         HStack(spacing: 0) {
-            ForEach(Kind.allCases, id: \.self) { kind in
-                let enabled = canClear(kind)
-                Button { perform(kind) } label: {
+            ForEach(ClearIcon.allCases, id: \.self) { icon in
+                let state = ClearIconState.state(for: icon, live: live)
+                let enabled = state.enabled
+                Button { perform(icon) } label: {
                     ZStack(alignment: .bottomTrailing) {
-                        Image(systemName: kind.symbol).font(.wf(13)).frame(width: 16, height: 16)
-                        if kind.crossed {
+                        Image(systemName: symbol(state.glyph)).font(.wf(13)).frame(width: 16, height: 16)
+                        if icon != .all {       // the small cross says it is an action (clear), not the thing itself
                             Image(systemName: "xmark").font(.wf(6, .heavy)).foregroundStyle(Tok.surface)
                                 .frame(width: 8, height: 8).background(enabled ? Tok.text : Tok.muted, in: Circle()).offset(x: 3, y: 2)
                         }
@@ -54,29 +59,15 @@ struct MediaClearButtons: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!enabled)
-                .help("\(kind.name) (\(kind.action.shortcut))")
-                .accessibilityLabel(kind.name)
-                .accessibilityHint(enabled ? kind.action.detail : "Nothing to clear")
+                .help(state.tooltip)
+                .accessibilityLabel(state.tooltip)
+                .accessibilityHint(enabled ? "" : "Nothing to clear")
             }
         }
     }
 
-    // MARK: What there is to clear
-
-    private func canClear(_ kind: Kind) -> Bool {
-        let show = app.workspace?.show
-        let media = app.media
-        switch kind {
-        case .lyric: return show?.liveSlide != nil
-        case .background: return media?.layers.background != nil || (show?.isStopped == false && show?.isBackgroundCleared == false)
-        case .foreground: return media?.layers.foreground != nil
-        case .music: return !(app.audio?.activeCues.isEmpty ?? true)
-        case .all: return Kind.allCases.dropLast().contains { canClear($0) }
-        }
-    }
-
-    private func perform(_ kind: Kind) {
-        switch kind {
+    private func perform(_ icon: ClearIcon) {
+        switch icon {
         case .lyric: app.clear()
         case .background: app.clearBackground()
         case .foreground: app.clearForeground()

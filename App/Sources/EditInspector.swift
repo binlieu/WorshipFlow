@@ -52,7 +52,9 @@ struct EditInspector: View {
     // MARK: Object tab
 
     @ViewBuilder private var objectTab: some View {
-        if let o = editor.selectedObject {
+        if let box = editor.selectedLyricBox, let frame = editor.lyricFrame(box) {
+            lyricSections(box, frame)
+        } else if let o = editor.selectedObject {
             switch o.content {
             case .text(let t): textSections(o, t)
             case .shape(let s): shapeSections(o, s)
@@ -69,7 +71,7 @@ struct EditInspector: View {
         } else {
             EditSection {
                 EditHeading(text: "No object selected")
-                Text("Choose an object on the slide, or add one with Text, Shape or Image in the bar above.")
+                Text("Choose an object or a lyric box on the slide, or add an object with Text, Shape or Image in the bar above.")
                     .font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -231,25 +233,54 @@ struct EditInspector: View {
     // MARK: Position (pixels of the 1920 x 1080 canvas)
 
     private func positionSection(_ o: SlideObject) -> some View {
+        positionGrid(o.frame) { f in editor.setFrame(o.id, x: f.x, y: f.y, width: f.width, height: f.height) }
+    }
+
+    /// X, Y, W and H in pixels of the 1920 x 1080 frame; `commit` receives the whole new frame.
+    private func positionGrid(_ frame: NormalizedRect, commit: @escaping (NormalizedRect) -> Void) -> some View {
         EditSection(rectID: "ed.insp.pos") {
             EditHeading(text: "Position", rectID: "ed.insp.pos.head")
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
-                posField("X", o, id: "x", label: "Left, in pixels") { Int(($0.x * 1920).rounded()) } set: { v, f in NormalizedRect(x: v / 1920, y: f.y, width: f.width, height: f.height) }
-                posField("Y", o, id: "y", label: "Top, in pixels") { Int(($0.y * 1080).rounded()) } set: { v, f in NormalizedRect(x: f.x, y: v / 1080, width: f.width, height: f.height) }
-                posField("W", o, id: "w", label: "Width, in pixels") { Int(($0.width * 1920).rounded()) } set: { v, f in NormalizedRect(x: f.x, y: f.y, width: v / 1920, height: f.height) }
-                posField("H", o, id: "h", label: "Height, in pixels") { Int(($0.height * 1080).rounded()) } set: { v, f in NormalizedRect(x: f.x, y: f.y, width: f.width, height: v / 1080) }
+                posField("X", frame, id: "x", label: "Left, in pixels", commit: commit) { Int(($0.x * 1920).rounded()) } set: { v, f in NormalizedRect(x: v / 1920, y: f.y, width: f.width, height: f.height) }
+                posField("Y", frame, id: "y", label: "Top, in pixels", commit: commit) { Int(($0.y * 1080).rounded()) } set: { v, f in NormalizedRect(x: f.x, y: v / 1080, width: f.width, height: f.height) }
+                posField("W", frame, id: "w", label: "Width, in pixels", commit: commit) { Int(($0.width * 1920).rounded()) } set: { v, f in NormalizedRect(x: f.x, y: f.y, width: v / 1920, height: f.height) }
+                posField("H", frame, id: "h", label: "Height, in pixels", commit: commit) { Int(($0.height * 1080).rounded()) } set: { v, f in NormalizedRect(x: f.x, y: f.y, width: f.width, height: v / 1080) }
             }
             .wfRect("ed.insp.pos.grid")
         }
     }
 
-    private func posField(_ prefix: String, _ o: SlideObject, id: String, label: String, get: (NormalizedRect) -> Int,
-                          set: @escaping (Double, NormalizedRect) -> NormalizedRect) -> some View {
-        EditNumberField(value: "\(get(o.frame))", prefix: prefix, label: label, rectID: "ed.insp.pos.\(id)") { entry in
+    private func posField(_ prefix: String, _ frame: NormalizedRect, id: String, label: String, commit: @escaping (NormalizedRect) -> Void,
+                          get: (NormalizedRect) -> Int, set: @escaping (Double, NormalizedRect) -> NormalizedRect) -> some View {
+        EditNumberField(value: "\(get(frame))", prefix: prefix, label: label, rectID: "ed.insp.pos.\(id)") { entry in
             guard let v = Self.number(entry) else { return false }
-            let f = set(v, o.frame)
-            editor.setFrame(o.id, x: f.x, y: f.y, width: f.width, height: f.height)
+            commit(set(v, frame))
             return true
+        }
+    }
+
+    // MARK: A lyric box (FIX-K)
+
+    @ViewBuilder private func lyricSections(_ box: LyricBox, _ frame: NormalizedRect) -> some View {
+        EditSection {
+            EditHeading(text: "Lyric box — \(box.title.lowercased())")
+            Text(editor.hasOwnFrame(box)
+                 ? "This slide has its own position for these words. Other slides still use the theme's."
+                 : "These words use the theme's position. Moving or resizing the box gives this slide its own.")
+                .font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
+        }
+        positionGrid(frame) { f in editor.setLyricFrame(box, x: f.x, y: f.y, width: f.width, height: f.height) }
+        EditSection {
+            EditRow {
+                Button("Reset to theme position") { editor.resetLyricFrame(box) }
+                    .buttonStyle(HeaderButtonStyle()).disabled(!editor.hasOwnFrame(box))
+                    .help("Give these words back the theme's place on this slide").accessibilityLabel("Reset to theme position")
+            }
+            EditRow {
+                Button("Apply to all slides in this song") { editor.applyLyricFrameToAllSlides(box) }
+                    .buttonStyle(HeaderButtonStyle())
+                    .help("Every slide of this song takes this position for \(box.title.lowercased()) words. One undo step on each slide").accessibilityLabel("Apply to all slides in this song")
+            }
         }
     }
 

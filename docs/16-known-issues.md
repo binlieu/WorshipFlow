@@ -161,3 +161,8 @@
 | KI-163 | Cues: the left column lists one Slide actions row (the open presentation); the design lists every presentation with actions. Needs a per-presentation count from the cue store. | Open |
 | KI-164 | Cues: Test in Preview, a keyboard trigger and Playback markers are open (CU-21, CU-22, CU-33); "Stage layout" and loop and dissolve in "Start background" are open (CU-28, CU-29). | Open |
 | KI-165 | Cues: the title chip is 2 pt narrower than the design's. | Open |
+| KI-166 | FIX-K: a slide's own text frame applies to the audience screen only; the broadcast look (a plated lower third) and the stage keep their own frames. Choosing otherwise needs a per-screen frame. | Open |
+| KI-167 | FIX-K: the clear-background icon lights for a bin choice or the live slide's own background, not for the theme's own loop (Control-Option-B and the Show menu still clear it). | Open |
+| KI-168 | FIX-K: the slide grid is keyed by index (an arrangement can repeat a slide id), so a reorder redraws every cell; the system drag image, the drag's hover loop and the drops' main-thread stalls (about 20 ms for a slide reorder, 25 ms for a Finder drop, 200 slides) were not reduced and the system drag was not measured with a real pointer. | Open |
+| KI-169 | FIX-K: the playlist split strip and the dock height strip still apply their value per event (dock measured 2 ms per event; the split strip was not measured). | Open |
+| KI-170 | FIX-K: Stage's lyric boxes are not draggable in the Stage editor (another agent's files); see AI/reports/FIX-K-report.md for what it needs. | Open |

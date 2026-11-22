@@ -64,7 +64,7 @@ import RenderEngine
         // After: opened by this build.
         let after = try LibraryStore.open(at: file)
         let applied = try await after.appliedMigrations()
-        #expect(Array(applied.prefix(12)) == (1...12).map { "v\($0)" } && applied.last == "v13")
+        #expect(Array(applied.prefix(12)) == (1...12).map { "v\($0)" } && applied.prefix(13).last == "v13")   // FIX-K: v14 follows (was: applied.last == "v13")
         let rows = try after.writer.read { db in try Row.fetchAll(db, sql: "SELECT id, definition FROM theme") }
         for (id, text) in stored {                                                  // the church's definitions are untouched, byte for byte
             #expect(rows.first { ($0["id"] as String) == id }.map { $0["definition"] as String } == text, "definition of \(id)")
@@ -115,8 +115,8 @@ import RenderEngine
         let file = url(); defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
         _ = try await writeV12(at: file, themes: [], withContent: false)
         let store = try LibraryStore.open(at: file)
-        let none = try await store.themes().isEmpty, last = try await store.appliedMigrations().last
-        #expect(none && last == "v13")
+        let none = try await store.themes().isEmpty, last = try await store.appliedMigrations().prefix(13).last
+        #expect(none && last == "v13")        // FIX-K: v14 follows (was: appliedMigrations().last == "v13")
         let fresh = try LibraryStore.inMemory()
         #expect(try await fresh.themes().isEmpty)
     }
