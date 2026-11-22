@@ -372,3 +372,9 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Cues mode with a long song: press Next ten times: the list follows without a pause (46 ms measured before, 12 after).
 - [ ] Optional, no hand needed: the interleaved method of FIX-R is in `AI/reports/FIX-R-report.md`; the scripts it used are `scripts/fixq-run.sh` and `scripts/measure-drags.sh` with `WF_CONFIG=Release`, run per variant.
 
+## FIX-S the crash on clicking a playlist song (KI-193)
+
+- [ ] Launch with the Performance test library. In Show, open a song with many slides, wait a few seconds, then click a song in the playlist that has fewer slides, then one with more, then the first one again, quickly, ten times. No crash, the grid always shows the song you clicked. Try it also in list view (the Grid and List switch) and in Edit mode (film strip on the left).
+- [ ] Switch to the other library in the sidebar, then click a playlist row whose song is in the first library. Same: no crash.
+- [ ] Open Launchpad and Spotlight and search "WorshipFlow": only the one in Applications should be listed. (Copies left in Xcode's DerivedData folders may stay listed until Spotlight rebuilds its index; they are marked not to be indexed from now on.)
+

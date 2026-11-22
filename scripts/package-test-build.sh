@@ -10,6 +10,8 @@ xcodegen generate --quiet
 # UI-004: the file system ignores case, so an app left from before the rename ("WORSHIPFLOW.app") would keep its capitals on disk
 # when the new build is written over it. Remove the old product first so the new one is created as "WorshipFlow.app".
 rm -rf "$DD/Build/Products/Release"/*.app
+# FIX-S: the derived-data folder holds a "WorshipFlow" app; keep Spotlight and Launchpad from listing it next to the installed one.
+mkdir -p "$DD" && touch "$DD/.metadata_never_index"
 xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DD" build -quiet
 APP="$DD/Build/Products/Release/WorshipFlow.app"
@@ -23,4 +25,8 @@ rm -rf "$OUT" "$OUT.zip"; mkdir -p "$OUT"
 ditto "$APP" "$OUT/WorshipFlow.app"
 cp docs/hardware-test-guide.md "$OUT/READ ME FIRST.md"
 ( cd "$(dirname "$OUT")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$OUT")" "$(basename "$OUT").zip" )
+# FIX-S: the unzipped folder holds another "WorshipFlow.app" that Spotlight and Launchpad would list. The zip has the same content; keep only that.
+[ -f "$OUT.zip" ] && rm -rf "$OUT"
+# The Release app in the derived-data folder is the same app again; the zip is the product, so it goes too.
+rm -rf "$DD/Build/Products/Release"/*.app
 echo "Packaged: $OUT.zip"

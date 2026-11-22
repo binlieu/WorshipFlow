@@ -192,7 +192,10 @@ struct SlideGrid: View {
     @ViewBuilder private func grid(width: CGFloat) -> some View {
         let _ = reportColumns(width)
         let _ = BodyProbe.hit("SlideGrid.content")
-        let keys = SlideCellKey.keys(for: workspace.slides.map(\.id))
+        // FIX-S (KI-193): one snapshot of the slides for the whole grid. The slots below carry their slide, so the lazy closure never reads the
+        // model's list by a position (see `CellSlot`).
+        let slides = workspace.slides
+        let keys = SlideCellKey.keys(for: slides.map(\.id))
         let available = app.media.map { Set($0.allAssets.map(\.id)) }      // once for the grid, not once per cell
         // FIX-Q: the grid's own body reads neither the selection, the live place nor the mode. Each cell asks for its own marks (`SlideGridCell`), so
         // Next, Previous, a selection, Blackout and Clear wake the cells that change and do not run this body or walk the 200 cells. FIX-O's rule stays:
@@ -210,12 +213,10 @@ struct SlideGrid: View {
                             LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
                                 // FIX-M: a cell's identity is its slide (SlideCellKey), not its position, so a reorder moves cells and only the moved range
                                 // is drawn again.
-                                // A lazy grid runs this closure later than the body that made the slots: after a shorter presentation is opened it can
-                                // still be asked for a position the new one does not have (crash in build 139). Out-of-range slots draw nothing.
-                                ForEach(run.indices.filter { keys.indices.contains($0) }.map { CellSlot(index: $0, key: keys[$0]) }) { slot in
-                                    if workspace.slides.indices.contains(slot.index) {
-                                        cell(slot.index, color: run.tone.color, available: available).id(slot.key)
-                                    }
+                                // A lazy grid runs this closure later than the body that made the slots, and runs it once more for cells that are
+                                // leaving: the slot carries its slide (FIX-S), so a shorter presentation cannot be asked for a position it lacks.
+                                ForEach(run.indices.compactMap { CellSlot(at: $0, slides: slides, keys: keys) }) { slot in
+                                    cell(slot, color: run.tone.color, available: available).id(slot.key)
                                 }
                             }
                             .wfRect("main.grid.\(runIndex)")
@@ -231,10 +232,9 @@ struct SlideGrid: View {
     }
 
     /// FIX-M: the cell is a value-comparing view: a drop or an edit that changes one slide draws that slide's cell, not all of them.
-    private func cell(_ i: Int, color: Color, available: Set<UUID>?) -> some View {
-        let slide = workspace.slides[i]
-        return SlideGridCell(app: app, workspace: workspace, slide: slide, index: i, isLast: i == workspace.slides.count - 1, color: color,
-                             available: available, onDelete: { pendingDelete = $0 })
+    private func cell(_ slot: CellSlot, color: Color, available: Set<UUID>?) -> some View {
+        SlideGridCell(app: app, workspace: workspace, slide: slot.slide, index: slot.index, isLast: slot.isLast, color: color,
+                      available: available, onDelete: { pendingDelete = $0 })
             .equatable()
     }
 
@@ -271,11 +271,13 @@ struct SlideList: View {
 
     var body: some View {
         let _ = BodyProbe.hit("SlideList")
+        let slides = workspace.slides                       // FIX-S (KI-193): one snapshot; the rows carry their slide (`CellSlot`)
+        let keys = SlideCellKey.keys(for: slides.map(\.id))
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 2) {
                 ForEach(sectionRuns(workspace)) { run in
                     SectionHeader(run: run).padding(.horizontal, Space.s3)
-                    ForEach(run.indices, id: \.self) { i in if workspace.slides.indices.contains(i) { row(i, color: run.tone.color) } }
+                    ForEach(run.indices.compactMap { CellSlot(at: $0, slides: slides, keys: keys) }) { slot in row(slot, color: run.tone.color) }
                 }
             }
             .padding(Space.s3)
@@ -283,8 +285,8 @@ struct SlideList: View {
         .background(Tok.bg)
     }
 
-    private func row(_ i: Int, color: Color) -> some View {
-        let slide = workspace.slides[i]
+    private func row(_ slot: CellSlot, color: Color) -> some View {
+        let (i, slide) = (slot.index, slot.slide)
         let selected = workspace.showParts.selectedIndex == i
         let live = liveIndex(app, workspace) == i
         return HStack(spacing: 8) {

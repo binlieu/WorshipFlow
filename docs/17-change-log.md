@@ -151,3 +151,11 @@
 ## 2026-11-22 (crash fix, KI-193)
 
 - Fixed a crash at launch in build 139 (`Index out of range` in the Show slide grid) reported by the owner with the performance test library. The Show grid, Show list and Edit film strip no longer read a slide by a position that the open presentation does not have. No behaviour change otherwise.
+
+## 2026-11-22 (FIX-S, KI-193 root cause and the intermittent tests)
+
+- FIX-S item 1 (KI-193): reproduced the build 139 crash and found its cause: lazy cell closures built by an older body ran after a newer body and read `workspace.slides[index]` live. New `CellSlot` (`OperatorCore`) carries a cell's slide; the Show grid, Show list and Edit film strip build their cells from one snapshot of the slides and no lazy closure reads the model's list by a position (the three guards of the first fix stay out because there is nothing left to guard). Tests: `FIXS_CellSlotTests`.
+- FIX-S item 2 (KI-194): the 60 s guard of `TestMedia.wait` is 180 s; the pause/seek, unplug and broken-clip tests were not reproduced failing. KI-195 records four more wall-clock tests that fail only under saturating load.
+- FIX-S item 3: `FIXO_ViewSourceTests.theGridGivesTheModeToTheLiveCellOnly` asserts that the cell decides its own mode from its own live mark, not a sentence in a comment.
+- FIX-S item 4 (KI-196): `scripts/check.sh` and `scripts/package-test-build.sh` leave no indexable build app (`.metadata_never_index`, staging folder removed after the zip).
+

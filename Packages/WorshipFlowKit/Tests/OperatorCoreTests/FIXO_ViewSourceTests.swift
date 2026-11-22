@@ -34,9 +34,16 @@ import Foundation
     }
 
     @Test func theGridGivesTheModeToTheLiveCellOnly() throws {
+        // FIX-S: the rule is "only the live cell draws the mode", and since FIX-Q the cell decides it from its own live mark (as
+        // `FIXQ_ViewSourceTests.eachCellAsksForItsOwnMarks` asserts for the marks). It used to assert a sentence kept in a comment.
+        let cell = try source("SlideGridCell.swift")
+        #expect(cell.contains("mode: live ? app.mode : .live"), "the cell takes the mode from app.mode only when its own live mark is set")
+        #expect(!cell.contains("let mode: LiveMode") && !cell.contains("let liveMode"), "the grid gives the cell no mode")
         let text = try source("CentrePane.swift")
-        #expect(text.contains("mode: live == i ? liveMode : .live"))
-        #expect(!text.contains("mode: app.mode, color"))
+        #expect(!text.contains("mode: app.mode, color"), "the grid hands app.mode to every cell")
+        let start = try #require(text.range(of: "struct SlideGrid: View"))
+        let end = try #require(text.range(of: "/// FIX-I item 6: the background entries"))
+        #expect(!String(text[start.lowerBound..<end.lowerBound]).contains("app.mode"), "the grid's own code reads the mode")
     }
 
     @Test func theToolbarTagReadsOnlyTheTwoHoldsAndTheModelKeepsTheWholeStateBehindTheParts() throws {

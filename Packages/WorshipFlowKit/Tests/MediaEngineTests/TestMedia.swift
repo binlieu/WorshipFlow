@@ -125,7 +125,10 @@ enum TestMedia {
     /// Polls until `condition` holds or `seconds` pass. Every caller waits for something AVFoundation reports in its own
     /// time. The limit is a guard against a hang, not a performance threshold (KI-060: 8 s was shorter than a loaded Mac
     /// sometimes takes to report a failed item), so a passing test returns as soon as the thing happens.
-    static func wait(upTo seconds: Double = 60, _ condition: () -> Bool) async -> Bool {
+    /// FIX-S (KI-172, KI-194): 60 s was reachable. With the whole package running on a saturated Mac, `aBrokenForegroundClipIsReportedPerAssetId`
+    /// took 20 to 52 s to be told about a broken file (0.09 s alone, 30 of 30 runs), so a slower run would have failed it with nothing wrong in the
+    /// code. 180 s keeps the guard a hang guard.
+    static func wait(upTo seconds: Double = 180, _ condition: () -> Bool) async -> Bool {
         let deadline = Date().addingTimeInterval(seconds)
         while Date() < deadline {
             if condition() { return true }

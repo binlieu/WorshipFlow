@@ -56,6 +56,9 @@ struct EditModeView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .wfRect("ed.fs.head")
+            // FIX-S (KI-193): one snapshot of the slides; the cells carry their slide (`CellSlot`) and never index the model's list.
+            let slides = workspace.slides
+            let keys = SlideCellKey.keys(for: slides.map(\.id))
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(sectionRuns(workspace).enumerated()), id: \.element.id) { runIndex, run in
@@ -65,7 +68,7 @@ struct EditModeView: View {
                                 .wfRect("ed.fs.sec.\(runIndex)", size: 11, weight: 600)
                                 .accessibilityAddTraits(.isHeader)
                         }
-                        ForEach(run.indices, id: \.self) { i in if workspace.slides.indices.contains(i) { filmCell(i) } }
+                        ForEach(run.indices.compactMap { CellSlot(at: $0, slides: slides, keys: keys) }) { slot in filmCell(slot) }
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
@@ -79,8 +82,8 @@ struct EditModeView: View {
         .wfRect("ed.fs")
     }
 
-    private func filmCell(_ i: Int) -> some View {
-        let slide = workspace.slides[i]
+    private func filmCell(_ slot: CellSlot) -> some View {
+        let (i, slide) = (slot.index, slot.slide)
         let selected = workspace.showParts.selectedIndex == i
         let live = app.showParts.liveDeckID == workspace.openPresentationID && app.showParts.liveIndex == i
         return VStack(alignment: .leading, spacing: 4) {

@@ -5,13 +5,6 @@ import SwiftUI
 import Domain
 import OperatorCore
 
-/// A cell's place in a run: where it is now and the identity it keeps across a reorder.
-struct CellSlot: Identifiable {
-    let index: Int
-    let key: SlideCellKey
-    var id: SlideCellKey { key }
-}
-
 /// The small picture that follows the pointer while something is dragged: a label, not a render of what is dragged.
 struct DragChip: View {
     let text: String

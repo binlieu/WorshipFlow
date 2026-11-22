@@ -15,9 +15,15 @@ fi
 echo "== generate project"
 xcodegen generate --quiet
 
+# FIX-S: a build product is a "WorshipFlow" app that Launchpad and Spotlight would list next to the installed one. Every derived-data folder this
+# script makes carries .metadata_never_index (Spotlight skips it; Launchpad follows Spotlight), before the first build writes an app into it.
+no_index() { mkdir -p "$1" && touch "$1/.metadata_never_index"; }
+
 echo "== app build"
+DD_DEBUG="${WF_DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-check}"
+no_index "$DD_DEBUG"
 xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Debug \
-  -destination 'platform=macOS' -derivedDataPath "${WF_DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-check}" \
+  -destination 'platform=macOS' -derivedDataPath "$DD_DEBUG" \
   build -quiet
 
 # FIX-Q: the Release build is part of the gate (compile only). A release-only compile error (a data-race diagnostic the debug compiler does not
@@ -26,6 +32,7 @@ xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Deb
 echo "== app build (Release, compile only)"
 RELEASE_START=$SECONDS
 DD="${WF_DERIVED_DATA_RELEASE:-${WF_DERIVED_DATA:-$HOME/Library/Developer/Xcode/DerivedData/WORSHIPFLOW-check}-release}"
+no_index "$DD"
 xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Release \
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DD" build -quiet
 echo "release build took $((SECONDS - RELEASE_START)) s"
@@ -37,5 +44,10 @@ RELEASE_BIN="$(ls -d "$DD"/Build/Products/Release/*.app | head -1)/Contents/MacO
 if strings "$RELEASE_BIN" | grep -E 'UI_SNAPSHOT_(DIR|FIXQ)' >/dev/null; then
   echo "The Release app contains measuring-hook strings (UI_SNAPSHOT_...): a hook is not behind DEBUG or WF_MEASURE" >&2; exit 1
 fi
+
+# FIX-S: the Release app is compiled only to see that it builds and is never run, and Spotlight indexes an app bundle wherever it sits (the marker
+# file above did not stop it for these folders), so that bundle is removed. The Debug app stays: the owner opens it from the check folder
+# (docs/hands-on-checklist.md); it carries the marker only.
+rm -rf "$DD"/Build/Products/Release/*.app
 
 echo "== OK"
