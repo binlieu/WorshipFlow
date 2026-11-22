@@ -89,6 +89,22 @@ extension AppModel {
         await capture("media-dark")
         setAppearance(.light)
         await capture("media-light")
+        // UI-006d: the design's offline callout (a clip whose file is then taken away) and a collection ("Announcement loop"), captured on their own.
+        let gone = folder.appendingPathComponent("Baptism testimony.png")      // a picture, so the scenario needs no test clip
+        try? FileManager.default.removeItem(at: gone)
+        Self.gradient(gone, tones[0].0, tones[0].1)
+        addMedia([gone])
+        try? await Task.sleep(for: .seconds(1.5))
+        try? FileManager.default.removeItem(at: gone)
+        let loop = media.assets.filter { ["Dawn light", "Offering card", "Mountains"].contains($0.name) }.map(\.id)
+        if let id = media.createCollection("Announcement loop", adding: loop) { media.collectionFilter = id }
+        await media.refreshOffline()
+        note("uimedia: offline \(media.offlineAssets.map(\.name)), collections \(media.collections.items.map(\.name))")
+        setAppearance(.dark)
+        await capture("media-offline-dark")
+        setAppearance(.light)
+        await capture("media-offline-light")
+        media.collectionFilter = nil
         setAppearance(.dark)
     }
 }

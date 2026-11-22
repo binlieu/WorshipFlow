@@ -9,13 +9,13 @@
    "d": "div.tb[0]>div.col[1]>span.title[0]",
    "a": "tb.title",
    "skip": "R",
-   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+   "why": "content: the subtitle is \"WorshipFlow \u00b7 Songs\" in the seed, \"WORSHIPFLOW \u00b7 Lakeshore library\" in the design; the block is as wide as its longer line"
   },
   {
    "d": "div.tb[0]>div.col[1]>span.sub[1]",
    "a": "tb.subtitle",
    "skip": "R",
-   "why": "content: the subtitle is \"WorshipFlow · Songs\" in the seed, \"WORSHIPFLOW · Lakeshore library\" in the design; the block is as wide as its longer line"
+   "why": "content: the subtitle is \"WorshipFlow \u00b7 Songs\" in the seed, \"WORSHIPFLOW \u00b7 Lakeshore library\" in the design; the block is as wide as its longer line"
   },
   {
    "d": "div.tb[0]>div.seg[3]",
@@ -790,6 +790,22 @@
   {
    "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.row[1]>div.col.mono.c-muted[4]>span[3]",
    "a": "media.lev.scale.3"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.row.c-warn[0]",
+   "a": "media.sb.offline",
+   "skip": "T",
+   "why": "content: the callout sits at the foot of the list, so its top follows the height of its text (the app's reason is a longer sentence than the design's, 3 lines against 2); the Locate button below it is at the same place"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>div.row.c-warn[0]>svg.i[0]",
+   "a": "media.sb.offline.icon",
+   "skip": "TB",
+   "why": "content: the callout sits at the foot of the list, so its top follows the height of its text (the app's reason is a longer sentence than the design's, 3 lines against 2); the Locate button below it is at the same place"
+  },
+  {
+   "d": "div.body[1]>div.side[0]>div.sec[2]>span.btn[0]",
+   "a": "media.sb.locate"
   }
  ],
  "ignore_design": [
@@ -907,7 +923,7 @@
   },
   {
    "match": "span\\.c-ok\\[0\\]$",
-   "reason": "the \"●\" glyph of the health readout: the app draws a 5 pt circle"
+   "reason": "the \"\u25cf\" glyph of the health readout: the app draws a 5 pt circle"
   },
   {
    "match": "div\\.meter\\[\\d\\]>i\\[0\\]$",

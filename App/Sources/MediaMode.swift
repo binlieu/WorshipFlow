@@ -19,6 +19,11 @@ struct MediaModeView: View {
                     .frame(maxWidth: .infinity)
                 if let audio = app.audio { MediaAudioColumn(app: app, audio: audio) }
             }
+            // UI-006d: offline files are looked for again when a disk is connected or removed and when the app comes forward (no timer).
+            .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in Task { await media.refreshOffline() } }
+            .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didUnmountNotification)) { _ in Task { await media.refreshOffline() } }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in Task { await media.refreshOffline() } }
+            .task { await media.refreshOffline() }
         } else {
             Text("The media bin is not available.").foregroundStyle(Tok.muted).padding(Space.s5)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -61,18 +66,32 @@ struct MediaSidebarRow: View {
 private struct MediaSidebar: View {
     let app: AppModel
     @Bindable var media: MediaModel
+    /// UI-006d: the name being typed for a new collection, and the collection being renamed or deleted.
+    @State private var creating = false
+    @State private var newName = ""
+    @State private var renaming: MediaCollection?
+    @State private var renameText = ""
+    @State private var deleting: MediaCollection?
 
     var body: some View {
         let entries = MediaBinCategories.entries(kinds: media.assets.map(\.kind))
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
-                // The design's first group is 172 high with five rows; two of them (Announcement loop, Live inputs) do not exist, their room stays.
+                // The design's first group is 172 high with five rows; the rows of the other two (Announcement loop is a collection the
+                // operator makes, Live inputs does not exist) keep their room, and the group grows with the collections.
                 VStack(alignment: .leading, spacing: 0) {
                     header("Media bin", rectID: "media.sb.h.0").padding(.bottom, 6)
+                        .overlay(alignment: .trailing) {
+                            Button { newName = ""; creating = true } label: { Image(systemName: "plus").font(.wf(12)).frame(width: 16, height: 16) }
+                                .buttonStyle(.plain).foregroundStyle(Tok.muted)
+                                .help("Make a collection: a named list of items from the bin, such as an announcement loop. The files are not moved or copied.")
+                                .accessibilityLabel("New collection")
+                        }
                     ForEach(Array(entries.filter { !$0.isAudio }.enumerated()), id: \.element.title) { index, entry in row(entry, id: "media.sb.row.\(index)") }
+                    ForEach(media.collections.items) { collection in collectionRow(collection) }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
-                .frame(height: 172, alignment: .topLeading)
+                .frame(minHeight: 172, alignment: .topLeading)
                 Rectangle().fill(Tok.border).frame(height: 1)
                 VStack(alignment: .leading, spacing: 0) {
                     header("Audio", rectID: "media.sb.h.1").padding(.bottom, 6)
@@ -81,6 +100,7 @@ private struct MediaSidebar: View {
                 }
                 .padding(.horizontal, 12).padding(.top, 10)
                 Spacer(minLength: 0)
+                MediaOfflineCallout(app: app, media: media)      // UI-006d: the design's "1 file is offline" and Locate...
             }
             .frame(width: 219)
             .frame(maxHeight: .infinity, alignment: .top)
@@ -89,6 +109,40 @@ private struct MediaSidebar: View {
         .frame(width: 220)
         .background(Tok.surface)
         .wfRect("media.sb")
+        .alert("New collection", isPresented: $creating) {
+            TextField("Name", text: $newName)
+            Button("Cancel", role: .cancel) {}
+            Button("Create") { if let id = media.createCollection(newName) { media.collectionFilter = id; app.ui.binFolderID = nil } }
+        } message: { Text("A collection is a list of items from the bin. The files are not moved or copied.") }
+        .alert("Rename collection", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Name", text: $renameText)
+            Button("Cancel", role: .cancel) {}
+            Button("OK") { if let c = renaming { media.renameCollection(c.id, to: renameText) } }
+        }
+        .alert("Delete the collection \"\(deleting?.name ?? "")\"?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete collection", role: .destructive) { if let c = deleting { media.deleteCollection(c.id) } }
+        } message: { Text("Only the list is deleted. Its items stay in the media bin and no file is touched.") }
+    }
+
+    /// UI-006d: a collection is a row like the kinds. Click shows it; right-click renames or deletes it; a tile dragged onto it joins it.
+    private func collectionRow(_ collection: MediaCollection) -> some View {
+        MediaSidebarRow(symbol: "rectangle.stack", title: collection.name, count: "\(collection.assetIDs.count)",
+                        selected: media.collectionFilter == collection.id && app.ui.binFolderID == nil, rectID: "media.extra.collection",
+                        accessibility: "Collection \(collection.name), \(collection.assetIDs.count) items") {
+            media.collectionFilter = collection.id; app.ui.binFolderID = nil
+        }
+        .contextMenu {
+            Button("Rename\u{2026}") { renameText = collection.name; renaming = collection }
+            Button("Delete collection\u{2026}", role: .destructive) { deleting = collection }
+        }
+        .dropDestination(for: String.self) { texts, _ in
+            let ids = texts.compactMap(SlideBackgroundDrop.mediaID(fromDragText:))
+            guard !ids.isEmpty else { return false }
+            media.addToCollection(ids, collection: collection.id)
+            return true
+        }
+        .accessibilityAction(named: "Delete collection") { deleting = collection }
     }
 
     private func header(_ text: String, rectID: String) -> some View {
@@ -97,8 +151,8 @@ private struct MediaSidebar: View {
 
     private func row(_ entry: MediaBinCategories.Entry, id: String) -> some View {
         MediaSidebarRow(symbol: Self.symbol(entry.kind), title: entry.title, count: "\(entry.count)",
-                        selected: media.kindFilter == entry.kind && app.ui.binFolderID == nil, rectID: id) {
-            media.kindFilter = entry.kind; app.ui.binFolderID = nil
+                        selected: media.kindFilter == entry.kind && app.ui.binFolderID == nil && media.collectionFilter == nil, rectID: id) {
+            media.kindFilter = entry.kind; app.ui.binFolderID = nil; media.collectionFilter = nil
         }
     }
 
@@ -119,7 +173,7 @@ private struct MediaSidebar: View {
                     MediaSidebarRow(symbol: state.status == .ok ? "folder" : "exclamationmark.triangle", title: state.folder.name, count: word,
                                     selected: app.ui.binFolderID == state.id, tint: state.status == .ok ? nil : Tok.warning, rectID: "media.extra.folder",
                                     accessibility: "Folder \(state.folder.name), \(state.status == .missing ? "missing" : (state.status == .unreachable ? "not answering, last list kept" : "\(state.items.count) items"))") {
-                        app.ui.binFolderID = state.id
+                        app.ui.binFolderID = state.id; media.collectionFilter = nil
                     }
                 }
             } else {
@@ -152,7 +206,7 @@ private struct MediaCentre: View {
     private var bar: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text(MediaBinCategories.title(for: media.kindFilter)).font(.wf(17, .bold)).lineLimit(1).wfLine(22)
+                Text(media.collectionFilter.flatMap { media.collections.collection($0)?.name } ?? MediaBinCategories.title(for: media.kindFilter)).font(.wf(17, .bold)).lineLimit(1).wfLine(22)
                     .wfRect("media.bar.title", size: 17, weight: 700)
                 // The owner's request (2026-11-21): every clear as an icon button, after the title.
                 Rectangle().fill(Tok.border).frame(width: 1, height: 16).padding(.horizontal, 4)
