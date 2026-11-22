@@ -51,6 +51,7 @@
 		61A932267E46A8B2C6777FF5 /* MediaClearButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005F7E8B7F1A0AA5D86B07DD /* MediaClearButtons.swift */; };
 		6263B42933630A04B8746DA5 /* ScriptureStore in Frameworks */ = {isa = PBXBuildFile; productRef = 64EA0BA693D9E86D7C82F026 /* ScriptureStore */; };
 		631FD0758865268C55AA2A43 /* LiveScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7904015CE5BD7D12564A3BED /* LiveScenes.swift */; };
+		653FEC6E2D9717C74F6D81BC /* UISnapshotFixP.swift in Sources */ = {isa = PBXBuildFile; fileRef = E729EB4470C492F146EC4687 /* UISnapshotFixP.swift */; };
 		655F6E1C969C78B9652465BF /* CentrePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28162D8810237DB29AB3177 /* CentrePane.swift */; };
 		6665FC5F7E9C7BB83C0801E5 /* ModeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0E2BC56276AF5141501882 /* ModeViews.swift */; };
 		67E0E90136F49F8817A24D7B /* CuesEditors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3E0BA6ED027775B81E509B /* CuesEditors.swift */; };
@@ -212,6 +213,7 @@
 		E155FF6C4037A8E612ACC07A /* CuesDesignCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesDesignCapture.swift; sourceTree = "<group>"; };
 		E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorshipFlowApp.swift; sourceTree = "<group>"; };
 		E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotMediaDesign.swift; sourceTree = "<group>"; };
+		E729EB4470C492F146EC4687 /* UISnapshotFixP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixP.swift; sourceTree = "<group>"; };
 		EC10504886ECA9564D6B7B21 /* MediaBinPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaBinPanel.swift; sourceTree = "<group>"; };
 		EEA55A5A32566C169711EDAF /* StageInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageInspector.swift; sourceTree = "<group>"; };
 		EF4F9BFE582616CC8E8F65DD /* HotFolderSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotFolderSupport.swift; sourceTree = "<group>"; };
@@ -347,6 +349,7 @@
 				0B9FC8B894AE463E3A36AB09 /* UISnapshotFixN.swift */,
 				4AE4BEDE4969D279EC646513 /* UISnapshotFixNPress.swift */,
 				83196D74BF6FAAD211DAEBBD /* UISnapshotFixOModes.swift */,
+				E729EB4470C492F146EC4687 /* UISnapshotFixP.swift */,
 				78ECD7A3760DF5248154A49B /* UISnapshotMedia010.swift */,
 				E533FF3500E4A94E0CCA5684 /* UISnapshotMediaDesign.swift */,
 				D99AFB70EE383D348A3BD95D /* UISnapshotProgram.swift */,
@@ -593,6 +596,7 @@
 				F1FA90BDEDE1E29F1B8FEABA /* UISnapshotFixN.swift in Sources */,
 				54C81FB3E57AF7F73052DED5 /* UISnapshotFixNPress.swift in Sources */,
 				18808C469DDDCFC945049258 /* UISnapshotFixOModes.swift in Sources */,
+				653FEC6E2D9717C74F6D81BC /* UISnapshotFixP.swift in Sources */,
 				510F04BB6CAADD39C7460240 /* UISnapshotMedia010.swift in Sources */,
 				19DD67187BB2EC8E190E10FD /* UISnapshotMediaDesign.swift in Sources */,
 				10D2C1B0AA50B35B1A8F7C5D /* UISnapshotProgram.swift in Sources */,

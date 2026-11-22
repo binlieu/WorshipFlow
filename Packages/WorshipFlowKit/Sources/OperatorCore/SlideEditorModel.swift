@@ -36,6 +36,10 @@ public final class SlideEditorModel {
     @ObservationIgnored private var histories: [UUID: History] = [:]
     @ObservationIgnored private var historyPresentation: UUID?
     @ObservationIgnored private var interactionBase: (slideID: UUID, snapshot: Snapshot)?
+    /// FIX-P items 1 and 2: the slides that took part in each grouped action (the source included), and the ones an undo put back, so a redo knows
+    /// whom to expect and an undo or redo can say how many it could not reach.
+    @ObservationIgnored private var groupMembers: [UUID: [UUID]] = [:]
+    @ObservationIgnored private var groupUndone: [UUID: [UUID]] = [:]
     /// FIX-N item 6: true while `endInteraction` writes, so its own writes do not close the interaction they belong to.
     @ObservationIgnored private var closingInteraction = false
     /// FIX-N item 6: counts the interactions that ended; the canvas's boxes reset their pressed state when it changes (a drag that SwiftUI cancelled
@@ -326,11 +330,23 @@ public final class SlideEditorModel {
         guard let source = slide else { return }
         let frame = source.content.textFrames?[box]
         let group = UUID()            // FIX-N item 7: one undo step for every slide the action changed
+        var members: [UUID] = []
         for target in lyricApplyTargets(box, frame: frame, source: source.id) {
             var frames = target.content.textFrames ?? SlideTextFrames()
             frames[box] = frame
+            let before = histories[target.id]?.undo.count
             writeTextFrames(target, frames.isEmpty ? nil : frames, key: nil, group: group)
+            if histories[target.id]?.undo.last?.group == group, histories[target.id]?.undo.count != before { members.append(target.id) }
         }
+        // FIX-P item 1: the slide the action came from shares the step (one that changes nothing on it), so the first Undo from ANY slide that took
+        // part, this one included, puts every slide back.
+        guard !members.isEmpty else { return }
+        if let current = workspace.slides.first(where: { $0.id == source.id }) {
+            var step = snapshot(of: current)
+            step.group = group
+            record(step, forSlide: source.id, key: nil)
+        }
+        groupMembers[group] = [source.id] + members
     }
 
     /// FIX-N item 7: how many slides "Apply to all slides in this song" would change: those other than the selected one that have words in this language
@@ -587,7 +603,7 @@ public final class SlideEditorModel {
         histories[slide.id] = h
         restore(previous, on: slide)
         // FIX-N item 7: the other slides of a grouped action ("Apply to all slides") go back with it, in the same step.
-        if let group = previous.group { stepGroup(group, undoing: true, except: slide.id) }
+        if let group = previous.group { stepGroup(group, undoing: true, current: slide.id) }
     }
 
     public func redo() {
@@ -598,12 +614,16 @@ public final class SlideEditorModel {
         h.lastKey = nil
         histories[slide.id] = h
         restore(next, on: slide)
-        if let group = next.group { stepGroup(group, undoing: false, except: slide.id) }
+        if let group = next.group { stepGroup(group, undoing: false, current: slide.id) }
     }
 
-    /// Undoes (or redoes) the step of `group` that sits on top of every other slide's history.
-    private func stepGroup(_ group: UUID, undoing: Bool, except skip: UUID) {
-        for other in workspace.slides where other.id != skip {
+    /// Undoes (or redoes) the step of `group` that sits on top of every other slide's history. A slide that was edited after the action no longer has
+    /// that step on top (its later edit is kept, never overwritten): FIX-P item 2, the operator is told how many slides could not go back.
+    private func stepGroup(_ group: UUID, undoing: Bool, current: UUID) {
+        let existing = Set(workspace.slides.map(\.id))
+        let expected = (undoing ? groupMembers[group] : groupUndone[group]) ?? [current]
+        var done: [UUID] = [current]
+        for other in workspace.slides where other.id != current {
             guard var h = histories[other.id] else { continue }
             if undoing {
                 guard h.undo.last?.group == group, let previous = h.undo.popLast() else { continue }
@@ -620,6 +640,14 @@ public final class SlideEditorModel {
                 histories[other.id] = h
                 restoreContent(next, on: other)
             }
+            done.append(other.id)
+        }
+        if undoing { groupUndone[group] = done }
+        let total = Set(expected).intersection(existing).union([current]).count
+        let missed = total - done.count
+        if missed <= 0, lastMessage?.hasPrefix("Position ") == true { lastMessage = nil }      // an earlier "edited since" no longer describes the screen
+        if missed > 0 {
+            lastMessage = "Position \(undoing ? "restored" : "re-applied") on \(done.count) of \(total) slides; \(missed) \(missed == 1 ? "was" : "were") edited since."
         }
     }
 
@@ -721,6 +749,8 @@ public final class SlideEditorModel {
     private func resetHistoryIfPresentationChanged() {
         if historyPresentation != workspace.openPresentationID {
             histories = [:]
+            groupMembers = [:]
+            groupUndone = [:]
             interactionBase = nil
             dragFrames = [:]
             lyricDragFrames = [:]

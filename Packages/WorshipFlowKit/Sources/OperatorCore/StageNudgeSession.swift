@@ -14,9 +14,11 @@ public final class StageNudgeSession {
         public let elementID: UUID
         public let from: NormalizedRect
         public let to: NormalizedRect
+        /// FIX-P item 3: the layout the run opened on. The view may show another layout by the time a run is cut short.
+        public let layoutID: UUID?
     }
 
-    private struct Run { let elementID: UUID; let start: NormalizedRect; var current: NormalizedRect; var lastNudge: Date }
+    private struct Run { let elementID: UUID; let layoutID: UUID?; let start: NormalizedRect; var current: NormalizedRect; var lastNudge: Date }
 
     @ObservationIgnored private var run: Run?
     /// Bumped by each nudge so a view that reads `transientFrame(for:)` redraws.
@@ -46,12 +48,13 @@ public final class StageNudgeSession {
     public var isOpen: Bool { run != nil }
 
     /// One arrow press: moves the open run's frame (or opens a run from `stored`) by one point, ten with Shift, kept on the canvas.
-    public func nudge(elementID: UUID, stored: NormalizedRect, directionX: Int, directionY: Int, shift: Bool, canvasWidth: Double, canvasHeight: Double) {
-        if let run, run.elementID != elementID { flush() }
+    public func nudge(elementID: UUID, stored: NormalizedRect, directionX: Int, directionY: Int, shift: Bool, canvasWidth: Double, canvasHeight: Double,
+                       layoutID: UUID? = nil) {
+        if let run, run.elementID != elementID || (layoutID != nil && run.layoutID != nil && run.layoutID != layoutID) { flush() }
         let base = run?.current ?? stored
         let to = StageCanvasEditing.nudged(base, directionX: directionX, directionY: directionY, points: StageCanvasEditing.nudgeDistance(shift: shift),
                                            canvasWidth: canvasWidth, canvasHeight: canvasHeight)
-        run = Run(elementID: elementID, start: run?.start ?? stored, current: to, lastNudge: clock())
+        run = Run(elementID: elementID, layoutID: run?.layoutID ?? layoutID, start: run?.start ?? stored, current: to, lastNudge: clock())
         revision &+= 1
         scheduleTick()
     }
@@ -74,7 +77,7 @@ public final class StageNudgeSession {
         guard let finished = run else { return }
         run = nil
         revision &+= 1
-        if finished.start != finished.current { onCommit(Commit(elementID: finished.elementID, from: finished.start, to: finished.current)) }
+        if finished.start != finished.current { onCommit(Commit(elementID: finished.elementID, from: finished.start, to: finished.current, layoutID: finished.layoutID)) }
     }
 
     private func scheduleTick() {

@@ -347,3 +347,14 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Press Space (Next) and Shift-Space with the grid, the inspector and the media dock in view: the red marker moves, the transport line and the Preview picture follow, and nothing else redraws. Press B, B, then Escape: the amber tag and the Blackout button follow, and every thumbnail but the live one stays as it was.
 - [ ] Do the same keys in Edit, Media, Stage, Cues and Screens and look at the toolbar tag, the transport bar and the AUD, STG and BRD pills.
 - [ ] Optional: `scripts/measure-drags.sh` (with `UI_SNAPSHOT_FIXO=1`) prints drop and gesture times and view body counts; `scripts/fixo-modes.sh` checks every mode for parts that did not follow.
+
+## FIX-P review fixes
+
+- [ ] Edit, a lyric box: set its position on slide 1, choose "Apply to all slides in this song", then press Undo without leaving slide 1: every slide goes back. Redo applies it again.
+- [ ] Apply to all, then edit the position on slide 3, select slide 2 and press Undo: slides 1 and 2 go back, slide 3 keeps its edit, and the message says "Position restored on 2 of 3 slides; 1 was edited since."
+- [ ] Stage: drag a box and, while still holding the mouse button, click another application's window or press Command-Tab: the box stays where it was when you left (it does not jump again when you come back and move). Do the same in Edit with a text box and with a handle.
+- [ ] Stage, a custom layout: select a box, switch to another layout and press the arrows: the slide selection moves (no box is selected), and a box you were nudging when you switched is written to the layout you left.
+- [ ] System Settings, Keyboard: set "Delay Until Repeat" to the longest, then hold an arrow on the Stage canvas and in Edit: one run, one Undo step.
+- [ ] After clicking a box, press Tab until a radio group (Hardware Test, or a sheet that has one) has focus: the arrows change the choice, not the box.
+- [ ] MIDI: with a real controller bound to Next, press pads while scrolling a long song and playing a clip: the slide follows within a blink. Note any delay.
+

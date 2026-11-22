@@ -135,8 +135,9 @@ public final class WorkspaceModel {
     @ObservationIgnored lazy var slideMoveWriter: @MainActor (UUID, Int) async throws -> Void = { [store] id, index in try await store.moveSlide(id: id, to: index) }
     @ObservationIgnored lazy var playlistMoveWriter: @MainActor (UUID, Int) async throws -> Void = { [store] id, index in try await store.movePlaylistItem(id: id, to: index) }
     /// FIX-M: the order the library holds while drops are written, and the chain that writes them one after the other in arrival order.
-    @ObservationIgnored var slideMoves = ReorderTracker<UUID>()
-    @ObservationIgnored var playlistMoves = ReorderTracker<UUID>()
+    /// FIX-P item 6: one tracker per presentation (and per playlist), so a drop in one list never restores, or confirms, another list's order.
+    @ObservationIgnored var slideMoves: [UUID: ReorderTracker<UUID>] = [:]
+    @ObservationIgnored var playlistMoves: [UUID: ReorderTracker<UUID>] = [:]
     @ObservationIgnored var slideMoveTail: Task<Void, Never>?
     @ObservationIgnored var playlistMoveTail: Task<Void, Never>?
     @ObservationIgnored private var draftRetry: Task<Void, Never>?

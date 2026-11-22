@@ -124,3 +124,14 @@
 - Views: the toolbar state tag, transport bar, clear icons, Show inspector (Preview and Live monitors are views of their own), the grid, Edit and Scripture views read parts. A drop on the grid or the dock no longer draws the toolbar, transport bar, clear icons or inspector; Blackout and Clear draw the live cell and not every cell (the grid gives `mode` to the live cell only). Public API added: `ObservedShow`, `ObservedSlideList`, `ObservedLayers`, `WorkspaceModel.showParts`, `.slideList`, `MediaModel.layerParts`, `ShowStateTag.text(isBlackedOut:isCleared:)`; nothing removed.
 - Debug aids: `BodyProbe` (view body counts), the FIXM hook prints them per drop and runs single gestures (`UI_SNAPSHOT_FIXO=1`), `scripts/fixo-modes.sh` drives Go Live, Next, Previous, Blackout and Clear in every mode and compares each mode's pixels with a fresh build.
 - Tests `FIXO_*` (29): each part notifies only its readers; a 600-command replay settles to the state the plain value reaches; Live is unchanged by any edit; the views do not read the whole state (source guard).
+
+## 2026-11-22 (FIX-P, fixes from the independent review of FIX-N and FIX-M)
+
+- FIX-P item 1 (M1): "Apply to all slides" records a step on the slide it was applied from too, so the first Undo from any slide that took part (the source included) puts every slide back; Redo the same.
+- FIX-P item 2 (M2): an Undo or Redo that cannot reach a slide edited after the apply restores the others, never overwrites the later edit, and says "Position restored on N of M slides; K were edited since." (or "re-applied").
+- FIX-P item 3 (M3): a drag or a run of nudges cut short by a layout change is written to the layout it began on (`Commit.layoutID`); a commit for an element not in that layout writes nothing and registers no undo step.
+- FIX-P item 4 (M4): a drag ended early (window resigns key, layout change) is not started again by the same gesture's later events (`PressGuard`, `StagePointerSession.interrupt()`): in Stage and in Edit (object, lyric box, handles). Only the canvas's own window resigning ends a Stage drag. In the running app the gesture's events do keep arriving after the resign.
+- FIX-P item 5 (M5): the Stage canvas takes the arrow keys only for a selection that is in the layout, and clears a stale selection on a layout or element change.
+- FIX-P item 6: L1 the nudge quiet period is longer than the system key-repeat delay (Stage and Edit; `NudgeTiming`); L2 Tab ends "the canvas was clicked last" so a radio group gets its own arrows; L5 reorder trackers are kept per presentation and per playlist. L3 (grid-focus flag) and L4 (typed text after a drop) did not reproduce and were left alone.
+- FIX-P items 7 and 8: MIDI latency measured under load (KI-189, new); the KI-188 control run shows noise (closed). New debug aids: `scripts/fixp-run.sh`, `UISnapshotFixP.swift`, a `#if DEBUG` latency probe on `MIDIRouter`, `UI_SNAPSHOT_FIXO_CONTROL`.
+

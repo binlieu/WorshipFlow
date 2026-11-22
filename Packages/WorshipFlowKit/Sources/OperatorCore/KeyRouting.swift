@@ -186,6 +186,10 @@ public enum KeyRouting {
         }
     }
 
+    /// FIX-P item 6 (L2): Tab moves keyboard focus on purpose, so the canvas is no longer "the last thing clicked": the arrows then belong to the control
+    /// that has focus (a radio group, a pop-up...), not to the box.
+    public static func clearsCanvasClick(keyCode: UInt16) -> Bool { keyCode == 48 }
+
     private static func arrowMove(_ key: KeyboardKey) -> SelectionMove? {
         switch key {
         case .leftArrow: .left

@@ -200,6 +200,7 @@ final class AppModel {
             model.onAppearanceChange = { [weak self] in self?.lookChanged() }
             workspace = model
             let editor = SlideEditorModel(workspace: model, imageChooser: { await Self.chooseImagePath() })
+            editor.nudgeQuietPeriod = NudgeTiming.quietPeriod(keyRepeatDelay: NSEvent.keyRepeatDelay, floor: 1.0)      // FIX-P item 6: longer than the system's delay until repeat
             editor.reservedFrames = { [weak self] content in
                 // Where the audience screen puts this slide's words, so a new object is not dropped on top of them.
                 guard let self, !content.primary.isEmpty || content.secondary != nil else { return [] }
@@ -656,9 +657,11 @@ final class AppModel {
             let held = !event.modifierFlags.intersection([.command, .control, .option]).isEmpty
             let shift = event.modifierFlags.contains(.shift)
             let key = KeyboardKey(keyCode: event.keyCode)
+            let endsCanvasClick = KeyRouting.clearsCanvasClick(keyCode: event.keyCode)      // FIX-P item 6: Tab moves focus on purpose
             let isRepeat = event.isARepeat      // R1: a held key never moves the show
             let handled: Bool = MainActor.assumeIsolated {
                 guard let self else { return false }
+                if endsCanvasClick { self.ui.canvasLastClicked = false }
                 let sheetOpen = self.ui.anySheetOpen || window.attachedSheet != nil
                 let inSearch = inNativeSearch || (textInput && self.ui.searchHasFocus)
                 // FIX-H item 7: what has focus decides. A control the app drew reports its own focus; an AppKit control is read from the

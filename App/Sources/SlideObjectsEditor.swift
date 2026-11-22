@@ -162,7 +162,8 @@ private struct ObjectBox: View {
     /// The frame when the current drag began, so a drag is measured from there and clamped by the model.
     @State private var dragStart: NormalizedRect?
     /// True from the press until the release, so the object is selected on the press and not only on the release.
-    @State private var pressed = false
+    /// FIX-P item 4: a press ended early (an interaction closed by another write) is not started again by the gesture's later events.
+    @State private var press = PressGuard()
     @FocusState private var textFocused: Bool
 
     private var handleHit: CGFloat { 16 }
@@ -187,10 +188,12 @@ private struct ObjectBox: View {
                 // the drag wait for them to fail, so it started late or not at all. The press selects at once; the drag starts on the
                 // first movement past a few points; a press that does not move is a click.
                 .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named(SlideCanvasSpace.name)).onChanged { value in
-                    if !pressed {
-                        pressed = true
+                    switch press.event(startedAt: .init(x: Double(value.startLocation.x), y: Double(value.startLocation.y))) {
+                    case .ignored: return
+                    case .began:
                         AppModel.shared.ui.canvasLastClicked = true        // FIX-N item 8
                         if editor.selectedObjectID != object.id { editor.select(object.id) }
+                    case .continuing: break
                     }
                     if dragStart == nil, !editing,
                        SlideEditing.dragHasStarted(dx: value.translation.width, dy: value.translation.height) {
@@ -202,7 +205,7 @@ private struct ObjectBox: View {
                                     dx: value.translation.width / canvas.width, dy: value.translation.height / canvas.height)
                     }
                 }.onEnded { _ in
-                    pressed = false
+                    press.ended()
                     if dragStart != nil {
                         dragStart = nil
                         editor.endInteraction()
@@ -212,7 +215,7 @@ private struct ObjectBox: View {
                     editor.select(object.id)
                     if isText { beginEditing() }
                 })
-                .onChange(of: editor.interactionEpoch) { _, _ in dragStart = nil; pressed = false }      // FIX-N item 6: an interaction ended elsewhere
+                .onChange(of: editor.interactionEpoch) { _, _ in dragStart = nil; press.interrupt() }      // FIX-N item 6, FIX-P item 4: an interaction ended elsewhere
             if editing, isText {
                 TextField("Text", text: Binding(get: { text }, set: { editor.setText(object.id, $0) }), axis: .vertical)
                     .textFieldStyle(.plain)
@@ -261,6 +264,7 @@ private struct CanvasHandles: View {
     let change: (NormalizedRect) -> Void
     let end: () -> Void
     @State private var start: NormalizedRect?
+    @State private var press = PressGuard()
 
     private var hit: CGFloat { 16 }
 
@@ -272,7 +276,7 @@ private struct CanvasHandles: View {
             ForEach(Array(Self.handles.enumerated()), id: \.offset) { index, h in handle(index, h.px, h.py) }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
-        .onChange(of: epoch) { _, _ in start = nil }
+        .onChange(of: epoch) { _, _ in start = nil; press.interrupt() }
     }
 
     private func handle(_ index: Int, _ px: Double, _ py: Double) -> some View {
@@ -285,11 +289,16 @@ private struct CanvasHandles: View {
             .frame(width: hit, height: hit)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .named(SlideCanvasSpace.name)).onChanged { value in
-                if start == nil { start = frame; begin(); AppModel.shared.ui.canvasLastClicked = true }        // FIX-N item 8
+                switch press.event(startedAt: .init(x: Double(value.startLocation.x), y: Double(value.startLocation.y))) {
+                case .ignored: return
+                case .began: start = frame; begin(); AppModel.shared.ui.canvasLastClicked = true        // FIX-N item 8
+                case .continuing: break
+                }
                 guard let s = start else { return }
                 change(SlideEditing.resizedFrame(from: s, handleX: px, handleY: py,
                                                  dx: Double(value.translation.width / canvas.width), dy: Double(value.translation.height / canvas.height)))
             }.onEnded { _ in
+                press.ended()
                 if start != nil { start = nil; end() }
             })
             .offset(x: cx - hit / 2, y: cy - hit / 2)
@@ -309,7 +318,8 @@ private struct LyricBoxView: View {
     let selected: Bool
     let own: Bool
     @State private var dragStart: NormalizedRect?
-    @State private var pressed = false
+    /// FIX-P item 4: a press ended early (an interaction closed by another write) is not started again by the gesture's later events.
+    @State private var press = PressGuard()
 
     var body: some View {
         let size = CGSize(width: frame.width * canvas.width, height: frame.height * canvas.height)
@@ -320,12 +330,14 @@ private struct LyricBoxView: View {
             .overlay(Rectangle().fill(Tok.blue.opacity(dragStart == nil ? 0 : 0.12)))
             .contentShape(Rectangle())
             .wfRect(selected ? "ed.lyric.\(box.rawValue)" : "ed.lyricbox.\(box.rawValue)")
-            .onChange(of: editor.interactionEpoch) { _, _ in dragStart = nil; pressed = false }      // FIX-N item 6
+            .onChange(of: editor.interactionEpoch) { _, _ in dragStart = nil; press.interrupt() }      // FIX-N item 6, FIX-P item 4
             .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named(SlideCanvasSpace.name)).onChanged { value in
-                if !pressed {
-                    pressed = true
+                switch press.event(startedAt: .init(x: Double(value.startLocation.x), y: Double(value.startLocation.y))) {
+                case .ignored: return
+                case .began:
                     AppModel.shared.ui.canvasLastClicked = true        // FIX-N item 8
                     if editor.selectedLyricBox != box { editor.selectLyric(box) }
+                case .continuing: break
                 }
                 if dragStart == nil, SlideEditing.dragHasStarted(dx: value.translation.width, dy: value.translation.height) {
                     dragStart = frame
@@ -335,7 +347,7 @@ private struct LyricBoxView: View {
                     editor.moveLyric(box, from: start, dx: value.translation.width / canvas.width, dy: value.translation.height / canvas.height)
                 }
             }.onEnded { _ in
-                pressed = false
+                press.ended()
                 if dragStart != nil { dragStart = nil; editor.endInteraction() }
             })
             .overlay(alignment: .topLeading) {

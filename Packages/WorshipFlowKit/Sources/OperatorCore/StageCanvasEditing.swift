@@ -133,11 +133,36 @@ public enum StageCanvasEditing {
     /// Writes `to` once, and registers one undo step that restores `from` (and, undone, one redo step). A frame that did not change writes nothing,
     /// and the built-in layout is never written.
     @MainActor public static func commit(stage: StageModel, layoutID: UUID, elementID: UUID, from: NormalizedRect, to: NormalizedRect, undoManager: UndoManager?) {
-        guard from != to, stage.isEditable(layoutID) else { return }
+        // FIX-P item 3: an element that is not in that layout writes nothing and registers no undo step (an undo step that restores nothing).
+        guard from != to, stage.isEditable(layoutID), stage.layout(withID: layoutID)?.elements.contains(where: { $0.id == elementID }) == true else { return }
         stage.setFrame(elementID, in: layoutID, x: to.x, y: to.y, width: to.width, height: to.height)
         undoManager?.registerUndo(withTarget: stage) { stage in
             MainActor.assumeIsolated { commit(stage: stage, layoutID: layoutID, elementID: elementID, from: to, to: from, undoManager: undoManager) }
         }
         undoManager?.setActionName("Move or resize element")
+    }
+
+    // MARK: Selection (FIX-P item 5)
+
+    /// The selection, only if that element is in the layout; a box that is not there (the layout was switched, the box was removed) is no selection.
+    public static func validSelection(_ selection: UUID?, in elementIDs: [UUID]) -> UUID? {
+        guard let selection, elementIDs.contains(selection) else { return nil }
+        return selection
+    }
+
+    /// Whether the canvas takes the arrow keys: an editable layout with a selected box that is really in it. A stale selection takes none, so the arrows
+    /// move the slide selection as if nothing were selected.
+    public static func takesArrows(editable: Bool, selection: UUID?, elementIDs: [UUID]) -> Bool {
+        editable && validSelection(selection, in: elementIDs) != nil
+    }
+}
+
+/// FIX-P item 6 (L1): a run of nudges ends after a quiet period, which must be longer than the system's "Delay Until Repeat": between the first
+/// arrow press and its first auto-repeat nothing arrives for that long, and a shorter period would end the run, then start a second one.
+public enum NudgeTiming {
+    public static let margin: TimeInterval = 0.25
+    public static func quietPeriod(keyRepeatDelay: TimeInterval, floor: TimeInterval) -> TimeInterval {
+        guard keyRepeatDelay.isFinite, keyRepeatDelay > 0 else { return floor }
+        return max(floor, keyRepeatDelay + margin)
     }
 }

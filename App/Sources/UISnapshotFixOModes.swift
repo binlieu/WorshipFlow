@@ -75,6 +75,37 @@ extension AppModel {
 
         var stale = 0, steps = 0
         let modes: [WorkspaceMode] = [.show, .edit, .media, .stage, .cues, .screens]
+        // FIX-P item 8 (KI-188): the control run. No command between two captures of the same screen: if live previews still differ, the difference is noise
+        // (a preview redrawing on its own clock), not a view that missed an update. Per mode: the same capture twice; two fresh builds of the mode (switch away
+        // and back, twice); and the same-state pair the real run compares (a capture, then a fresh build), none with a command in between.
+        if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXO_CONTROL"] != nil {
+            func box(_ d: (count: Int, box: CGRect?)) -> String {
+                "\(d.count) px" + (d.box.map { ", box x \(Int($0.minX)) y \(Int($0.minY)) w \(Int($0.width)) h \(Int($0.height))" } ?? "")
+            }
+            var differing = 0, pairs = 0
+            for mode in modes {
+                workspace.setMode(mode)
+                workspace.selectSlide(0)
+                workspace.goLive(at: 2)
+                await settle(1200)
+                for round in 1...3 {
+                    guard let a1 = Self.windowPixels(window) else { return }
+                    await settle(700)
+                    guard let a2 = Self.windowPixels(window) else { return }
+                    let other: WorkspaceMode = mode == .show ? .edit : .show
+                    workspace.setMode(other); await settle(500); workspace.setMode(mode); await settle(700)
+                    guard let f1 = Self.windowPixels(window) else { return }
+                    workspace.setMode(other); await settle(500); workspace.setMode(mode); await settle(700)
+                    guard let f2 = Self.windowPixels(window) else { return }
+                    let same = Self.pixelDifference(a1, a2, region: content), fresh = Self.pixelDifference(f1, f2, region: content), mixed = Self.pixelDifference(a2, f1, region: content)
+                    pairs += 3
+                    differing += [same, fresh, mixed].filter { $0.count != 0 }.count
+                    note("fixo-modes control[\(mode.rawValue)] round \(round), no command in between: same capture twice \(box(same)); two fresh builds \(box(fresh)); capture vs fresh build \(box(mixed))")
+                }
+            }
+            note("fixo-modes control: \(pairs) pairs with no command in between, \(differing) differed")
+            return
+        }
         for mode in modes {
             workspace.setMode(mode)
             workspace.selectSlide(0)

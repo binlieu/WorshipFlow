@@ -110,6 +110,7 @@ struct WorkspaceView: View {
             if let error = workspace.lastError ?? app.settingsError {
                 ErrorBar(message: error) { workspace.dismissError(); app.dismissSettingsError() }
             }
+            if let message = app.slideEditor?.lastMessage { ErrorBar(message: message) { app.slideEditor?.dismissMessage() } }      // FIX-P item 2: e.g. "Position restored on 2 of 3 slides; 1 was edited since."
             if let notice = app.fontNotice { ErrorBar(message: notice) { app.dismissFontNotice() } }
             ForEach(app.shownFaultCards) { card in OutputFaultBar(app: app, card: card).transition(.opacity) }
             ForEach(app.unsavedProblems, id: \.self) { UnsavedBar(message: $0) }

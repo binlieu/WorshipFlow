@@ -107,20 +107,23 @@ extension WorkspaceModel {
         }
         let target = max(0, min(index, playlistItems.count - 1))
         guard target != from else { return }
-        playlistMoves.begin(current: playlistItems.map(\.id))
-        let began = playlistMoves.epoch
+        playlistMoves[playlistID, default: ReorderTracker()].begin(current: playlistItems.map(\.id))
+        let began = playlistMoves[playlistID]?.epoch ?? 0
         playlistItems = Self.renumbered(OrderMove.moved(playlistItems, from: from, to: target))
         let previous = playlistMoveTail
         let write = Task { @MainActor [weak self] in
             await previous?.value
             guard let self else { return }
-            if self.playlistMoves.isStale(began) { self.playlistMoves.skipped(); return }
+            if self.playlistMoves[playlistID]?.isStale(began) ?? false { self.playlistMoves[playlistID]?.skipped(); return }
             do {
                 try await self.playlistMoveWriter(id, target)
-                self.playlistMoves.succeeded(id: id, to: target)
-                if self.playlistMoves.isIdle, self.selectedPlaylistID == playlistID, self.playlistItems.map(\.id) != self.playlistMoves.confirmed { await self.reloadPlaylistItems() }
+                self.playlistMoves[playlistID]?.succeeded(id: id, to: target)
+                let tracker = self.playlistMoves[playlistID]
+                if tracker?.isIdle ?? true, self.selectedPlaylistID == playlistID, self.playlistItems.map(\.id) != tracker?.confirmed { await self.reloadPlaylistItems() }
+                if self.playlistMoves[playlistID]?.isIdle ?? false { self.playlistMoves[playlistID] = nil }
             } catch {
-                let order = self.playlistMoves.failed()
+                let order = self.playlistMoves[playlistID]?.failed() ?? []
+                if self.playlistMoves[playlistID]?.isIdle ?? false { self.playlistMoves[playlistID] = nil }
                 self.lastError = Self.message(for: error, doing: "move the item")
                 if self.selectedPlaylistID == playlistID { self.playlistItems = Self.renumbered(OrderMove.restoring(self.playlistItems, toOrder: order)) }
             }

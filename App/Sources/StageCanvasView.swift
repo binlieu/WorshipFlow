@@ -24,7 +24,7 @@ struct StageCanvas: View {
     @State private var size = CGSize(width: 820, height: 461.25)
     @State private var keys = StageKeyBox()
     /// FIX-N item 5: arrow-key nudges move a transient frame and are written once per run.
-    @State private var nudges = StageNudgeSession()
+    @State private var nudges = StageNudgeSession(quietPeriod: NudgeTiming.quietPeriod(keyRepeatDelay: NSEvent.keyRepeatDelay, floor: 0.6))      // FIX-P item 6: longer than the system's delay until repeat
 
     /// The layout as drawn now: the dragged (or nudged) element at its transient frame, everything else as stored.
     private var shown: StageLayout {
@@ -37,7 +37,8 @@ struct StageCanvas: View {
         return copy
     }
 
-    private var takesArrows: Bool { editable && selection != nil }
+    /// FIX-P item 5: only a selection that is really in this layout takes the arrow keys; a stale one leaves them to the slide selection.
+    private var takesArrows: Bool { StageCanvasEditing.takesArrows(editable: editable, selection: selection, elementIDs: layout.elements.map(\.id)) }
 
     var body: some View {
         let layout = shown
@@ -70,8 +71,12 @@ struct StageCanvas: View {
             // FIX-N items 5, 6 and 8: a run of nudges and a drag end when the selection or the layout changes, the window resigns key or the view goes.
             .onChange(of: selection) { _, _ in nudges.flush() }
             .onChange(of: editable) { _, _ in nudges.flush() }
-            .onChange(of: layout.id) { _, _ in endEverything() }
-            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in endEverything() }
+            .onChange(of: layout.id) { _, _ in endEverything(); clearStaleSelection() }
+            .onChange(of: layout.elements.map(\.id)) { _, _ in clearStaleSelection() }
+            // FIX-P item 4: only THIS canvas's window resigning ends a drag (any other window of the app resigning key says nothing about it).
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
+                if let window = keys.view?.window, (note.object as? NSWindow) === window { endEverything() }
+            }
             .onDisappear {
                 endEverything()
                 AppModel.shared.ui.stageTakesArrows = false
@@ -87,7 +92,15 @@ struct StageCanvas: View {
 
     private func pointer(in canvas: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 0).onChanged { value in
-            if pointerState.press() { pressBegan(at: value.startLocation, in: canvas) }
+            // FIX-P item 4: the events of a press that was ended early (resign key, layout change) are ignored until the gesture's own end.
+            let sx = Double(value.startLocation.x), sy = Double(value.startLocation.y)
+            if pointerState.press(startedAt: sx, sy) { pressBegan(at: value.startLocation, in: canvas) }
+            else if !pointerState.accepts(startedAt: sx, sy) {
+                #if DEBUG
+                StageCanvasDebug.ignoredEvents += 1
+                #endif
+                return
+            }
             pressMoved(dx: Double(value.translation.width), dy: Double(value.translation.height), in: canvas)
         }.onEnded { _ in pressEnded() }
     }
@@ -105,16 +118,24 @@ struct StageCanvas: View {
         if pointerState.drag != nil { pointerState.update(dx: dx / Double(canvas.width), dy: dy / Double(canvas.height)) }
     }
 
-    private func pressEnded() {
-        if let commit = pointerState.finish() {
-            StageCanvasEditing.commit(stage: stage, layoutID: layout.id, elementID: commit.elementID, from: commit.from, to: commit.to, undoManager: undoManager)
-        }
+    /// The gesture's own end.
+    private func pressEnded() { write(pointerState.finish()) }
+
+    /// FIX-P items 3 and 4: written to the layout the drag began on, not the one the view shows now.
+    private func write(_ commit: StagePointerSession.Commit?) {
+        guard let commit else { return }
+        StageCanvasEditing.commit(stage: stage, layoutID: commit.layoutID ?? layout.id, elementID: commit.elementID, from: commit.from, to: commit.to, undoManager: undoManager)
     }
 
-    /// A drag or a run of nudges that was cut short is ended now: once, with what it showed.
+    /// A drag or a run of nudges that was cut short is ended now: once, with what it showed. The drag's remaining events are ignored until its own end.
     private func endEverything() {
         nudges.flush()
-        pressEnded()
+        write(pointerState.interrupt())
+    }
+
+    /// FIX-P item 5: a selection that names a box that is not in this layout is cleared (the arrows then move the slide selection).
+    private func clearStaleSelection() {
+        if let selection, StageCanvasEditing.validSelection(selection, in: layout.elements.map(\.id)) == nil { self.selection = nil }
     }
 
     private func begin(at point: CGPoint, in canvas: CGSize) {
@@ -123,12 +144,12 @@ struct StageCanvas: View {
         switch hit {
         case .none:
             selection = nil
-            pointerState.begin(nil)
+            pointerState.begin(nil, layoutID: layout.id)
         case .element(let id):
             selection = id
-            if editable, let e = layout.elements.first(where: { $0.id == id }) { pointerState.begin(.init(elementID: id, mode: .move, start: e.frame)) } else { pointerState.begin(nil) }
+            if editable, let e = layout.elements.first(where: { $0.id == id }) { pointerState.begin(.init(elementID: id, mode: .move, start: e.frame), layoutID: layout.id) } else { pointerState.begin(nil, layoutID: layout.id) }
         case .handle(let id, let handle):
-            if let e = layout.elements.first(where: { $0.id == id }) { pointerState.begin(.init(elementID: id, mode: .resize(handle), start: e.frame)) } else { pointerState.begin(nil) }
+            if let e = layout.elements.first(where: { $0.id == id }) { pointerState.begin(.init(elementID: id, mode: .resize(handle), start: e.frame), layoutID: layout.id) } else { pointerState.begin(nil, layoutID: layout.id) }
         }
     }
 
@@ -137,7 +158,7 @@ struct StageCanvas: View {
     /// An arrow key (FIX-N item 5): moves the transient frame; the run is written once, when the key is released or after a quiet period.
     private func nudge(dx: Int, dy: Int, shift: Bool) -> Bool {
         guard editable, let id = selection, let element = layout.elements.first(where: { $0.id == id }) else { return false }
-        nudges.nudge(elementID: id, stored: element.frame, directionX: dx, directionY: dy, shift: shift, canvasWidth: Double(size.width), canvasHeight: Double(size.height))
+        nudges.nudge(elementID: id, stored: element.frame, directionX: dx, directionY: dy, shift: shift, canvasWidth: Double(size.width), canvasHeight: Double(size.height), layoutID: layout.id)
         return true
     }
 
@@ -147,7 +168,7 @@ struct StageCanvas: View {
     private func refreshHandlers() {
         let stage = stage, layoutID = layout.id, undoManager = undoManager
         nudges.onCommit = { c in
-            StageCanvasEditing.commit(stage: stage, layoutID: layoutID, elementID: c.elementID, from: c.from, to: c.to, undoManager: undoManager)
+            StageCanvasEditing.commit(stage: stage, layoutID: c.layoutID ?? layoutID, elementID: c.elementID, from: c.from, to: c.to, undoManager: undoManager)
         }
         let ui = AppModel.shared.ui
         ui.stageTakesArrows = takesArrows
@@ -262,6 +283,8 @@ private struct StageKeyCatcher: NSViewRepresentable {
     }
     static func unregister() { pressHandler = nil; moveHandler = nil; releaseHandler = nil }
     static var isRegistered: Bool { pressHandler != nil }
+    /// FIX-P item 4: how many events of a press that was ended early still reached the gesture (and were ignored).
+    static var ignoredEvents = 0
     static func press(at point: CGPoint, in size: CGSize) { pressHandler?(point, size) }
     static func move(dx: Double, dy: Double, in size: CGSize) { moveHandler?(dx, dy, size) }
     static func release() { releaseHandler?() }

@@ -69,21 +69,24 @@ extension WorkspaceModel {
         let target = max(0, min(to, slides.count - 1))
         guard target != from else { return }
         let id = slides[from].id
-        slideMoves.begin(current: slides.map(\.id))
-        let began = slideMoves.epoch
+        slideMoves[presentationID, default: ReorderTracker()].begin(current: slides.map(\.id))
+        let began = slideMoves[presentationID]?.epoch ?? 0
         slides = Self.renumbered(OrderMove.moved(slides, from: from, to: target))
         refreshAfterReorder()
         let previous = slideMoveTail
         let write = Task { @MainActor [weak self] in
             await previous?.value
             guard let self else { return }
-            if self.slideMoves.isStale(began) { self.slideMoves.skipped(); return }
+            if self.slideMoves[presentationID]?.isStale(began) ?? false { self.slideMoves[presentationID]?.skipped(); return }
             do {
                 try await self.slideMoveWriter(id, target)
-                self.slideMoves.succeeded(id: id, to: target)
-                if self.slideMoves.isIdle, self.openPresentationID == presentationID, self.slides.map(\.id) != self.slideMoves.confirmed { await self.reloadOpen() }
+                self.slideMoves[presentationID]?.succeeded(id: id, to: target)
+                let tracker = self.slideMoves[presentationID]
+                if tracker?.isIdle ?? true, self.openPresentationID == presentationID, self.slides.map(\.id) != tracker?.confirmed { await self.reloadOpen() }
+                if self.slideMoves[presentationID]?.isIdle ?? false { self.slideMoves[presentationID] = nil }
             } catch {
-                let order = self.slideMoves.failed()
+                let order = self.slideMoves[presentationID]?.failed() ?? []
+                if self.slideMoves[presentationID]?.isIdle ?? false { self.slideMoves[presentationID] = nil }
                 self.lastError = Self.message(for: error, doing: "move the slide")
                 if self.openPresentationID == presentationID {
                     self.slides = Self.renumbered(OrderMove.restoring(self.slides, toOrder: order))

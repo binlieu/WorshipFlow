@@ -1,0 +1,35 @@
+#!/bin/bash
+# FIX-P: builds the debug app, runs it once against a throw-away library with the FIX-P hook (UI_SNAPSHOT_FIXP) and prints what it logged: grid focus
+# after a mode change, a Stage drag whose window resigns key, and MIDI latency under load. FIXP=focus,resign,midi picks parts (default all).
+# FIXO_CONTROL=1 runs the FIX-O mode comparison's control instead (no command between two captures; KI-188).
+# Run by hand; check.sh does not call it. Uses a COPY of the built app under a throw-away bundle id, a temporary --library and --silent-audio; the owner's
+# library and saved state are never touched. Stops only the process it started. Env: WF_SCRATCH, WF_DERIVED_DATA.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+ROOT="$(pwd)"
+SCRATCH="${WF_SCRATCH:-$(mktemp -d "${TMPDIR:-/tmp}/wf-fixp.XXXXXX")}"
+mkdir -p "${SCRATCH:?}/out/x"
+OUT="${SCRATCH:?}/out"
+rmdir "$OUT/x"
+rm -f "$OUT/ui-snapshots.log"
+DD="${WF_DERIVED_DATA:-${SCRATCH:?}/dd}"
+xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Debug -destination 'platform=macOS' \
+  -derivedDataPath "$DD" build -quiet > "$SCRATCH/build.log" 2>&1 || { grep -E "error:" "$SCRATCH/build.log" | head -20; exit 1; }
+APP_SRC=$(ls -d "$DD"/Build/Products/Debug/*.app | head -1)
+APP="$SCRATCH/Capture.app"
+rm -rf "${APP:?}"; cp -R "$APP_SRC" "$APP"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier org.worshipflow.fixprun.$$" "$APP/Contents/Info.plist"
+codesign --force --deep --sign - "$APP" >/dev/null 2>&1
+BIN="$APP/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")"
+rm -rf "${SCRATCH:?}/library"; mkdir -p "$SCRATCH/library"
+if [ -n "${FIXO_CONTROL:-}" ]; then
+  FLAGS=(UI_SNAPSHOT_PREFIX=FIXO_MODES UI_SNAPSHOT_FIXO_MODES=1 UI_SNAPSHOT_FIXO_CONTROL=1)
+else
+  FLAGS=(UI_SNAPSHOT_PREFIX=FIXP UI_SNAPSHOT_FIXP="${FIXP:-1}" UI_SNAPSHOT_MEDIA="$ROOT/TestMedia/loop-1080p5994.mov")
+fi
+env UI_SNAPSHOT_DIR="$OUT" "${FLAGS[@]}" \
+  "$BIN" --library "$SCRATCH/library/Library.sqlite" --silent-audio > "$SCRATCH/run.log" 2>&1 &
+PID=$!
+for _ in $(seq 1 300); do kill -0 $PID 2>/dev/null || break; [ -f "$OUT/ui-snapshots.log" ] && break; sleep 2; done
+sleep 2; kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+grep -h "fixp\|fixo-modes" "$OUT/ui-snapshots.log" 2>/dev/null || { echo "no log; see $SCRATCH/run.log"; tail -20 "$SCRATCH/run.log"; }
