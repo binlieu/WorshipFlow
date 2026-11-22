@@ -74,13 +74,9 @@ struct MacroEditor: View {
     }
 
     @ViewBuilder private func trailingBar(_ macro: Macro) -> some View {
-        let triggers = cue.bindings.bindings.filter { $0.command == .macro(macro.id) }.map { MIDIText.pattern($0.pattern) }
-        if !triggers.isEmpty {
-            Text("Trigger: MIDI \(triggers.joined(separator: ", "))").lineLimit(1).wfLine().wfField().wfRect("main.trigger", size: 12, weight: 400, radius: Radius.md)
-        }
-        // The design's "Test in Preview" (126.9 pt wide) belongs here: it needs a dry run that touches Preview only, which does not
-        // exist, so it is not drawn. Its room is kept so the trigger field stays where the design has it.
-        Color.clear.frame(width: 126.9, height: 1)
+        // UI-006g: the Trigger field is a menu that chooses the macro's function key (CU-21); "Dry run" lists what Run would do (CU-22).
+        CuesTriggerField(cue: cue, macro: macro)
+        CuesDryRunButton(app: app, cue: cue, macroID: macro.id)
         Button { cue.submit(.runMacro(macro.id), from: .button) } label: {
             HStack(spacing: 6) { Image(systemName: "bolt").font(.wf(13)).frame(width: 15, height: 15); Text("Run").wfLine() }
         }

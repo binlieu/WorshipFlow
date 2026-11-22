@@ -1,7 +1,8 @@
 // CUE-002b (item 6) / UI-001: the Cues mode, after docs/UI/screens/06-cues.png as far as the features exist. Left: macros, slide
 // actions, the control inputs and the schedule. Centre: what is chosen. Right: the MIDI map, the keyboard and the activity.
 // UI-005g: drawn at the rectangles of docs/UI/mockups/06-cues.html (columns 230 / 1fr / 380, rows, bar, tables), measured by
-// scripts/design-map-cues.json. Playback markers, Test in Preview and a keyboard trigger are not drawn (no feature behind them);
+// scripts/design-map-cues.json. UI-006g added the keyboard trigger (CU-21), a dry run in place of "Test in Preview" (CU-22) and one slide-
+// actions row per presentation; Playback markers are not drawn (no feature behind them);
 // Stream Deck is a row marked "later", as the design draws it.
 import SwiftUI
 import Domain
@@ -79,9 +80,18 @@ private struct CuesSidebar: View {
                 }
                 CuesSection(rectID: "sb.sec.1") {
                     SectionLabel("Slide actions", rectID: "sb.slides.title").padding(.bottom, 6)
-                    CuesListRow(symbol: "music.note", title: openTitle ?? "Actions on slides", count: "\(slidesWithActions)", selected: selection == .slideActions,
-                                rectID: "sb.slides.row.0", accessibility: "Slide actions, \(slidesWithActions) slides have actions") {
-                        app.ui.cuesSelection = .slideActions
+                    // UI-006g: one row per presentation that has slide actions, as the design lists them. A row of the open presentation chooses the
+                    // editor; another presentation's row opens it in Preview first (never Live), because the actions are edited on its slides.
+                    ForEach(Array(slideRows.enumerated()), id: \.element.id) { index, row in
+                        let chosen = selection == .slideActions && row.id == workspace.openPresentationID
+                        CuesListRow(symbol: "music.note", title: row.title, count: "\(row.count)", selected: chosen,
+                                    rectID: "sb.slides.row.\(index)", accessibility: "Slide actions, \(row.title), \(row.count) slide\(row.count == 1 ? "" : "s") with actions") {
+                            choose(row.id)
+                        }
+                    }
+                    if slideRows.isEmpty {
+                        CuesListRow(symbol: "music.note", title: "Actions on slides", count: "0", selected: selection == .slideActions,
+                                    rectID: "sb.slides.row.0", accessibility: "Slide actions, no slides have actions") { app.ui.cuesSelection = .slideActions }
                     }
                 }
                 CuesSection(rectID: "sb.sec.2") {
@@ -105,8 +115,25 @@ private struct CuesSidebar: View {
         .background(Tok.surface)
     }
 
-    private var openTitle: String? { workspace.presentations.first { $0.id == workspace.openPresentationID }?.title }
-    private var slidesWithActions: Int { workspace.slides.filter { !cue.slideActions.actions(for: $0.id).isEmpty }.count }
+    private struct SlideRow: Identifiable { var id: UUID; var title: String; var count: Int }
+
+    /// The presentations with actions, by title. The open one is counted from what is open now (an edit shows at once) and is listed even
+    /// with none, so its editor can always be reached.
+    private var slideRows: [SlideRow] {
+        let open = workspace.openPresentationID
+        var rows = cue.slideActionPresentations.filter { $0.id != open }.map { SlideRow(id: $0.id, title: $0.title, count: $0.slideCount) }
+        if let open, let title = workspace.presentations.first(where: { $0.id == open })?.title {
+            rows.append(SlideRow(id: open, title: title, count: workspace.slides.filter { !cue.slideActions.actions(for: $0.id).isEmpty }.count))
+            rows.sort { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        }
+        return rows
+    }
+
+    private func choose(_ presentationID: UUID) {
+        app.ui.cuesSelection = .slideActions
+        guard presentationID != workspace.openPresentationID else { return }
+        Task { @MainActor in await workspace.openPresentation(presentationID) }
+    }
     private var midiTitle: String { cue.midi.inputName.map { "MIDI \u{2014} \($0)" } ?? "MIDI" }
 
     @ViewBuilder private var midiState: some View {

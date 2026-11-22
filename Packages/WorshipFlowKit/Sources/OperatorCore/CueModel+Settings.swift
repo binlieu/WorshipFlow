@@ -30,6 +30,7 @@ extension CueModel {
         await reload()
         midi = await load(MIDISettings.self, key: Self.midiKey) ?? MIDISettings()
         remote = await load(RemoteSettings.self, key: Self.remoteKey) ?? RemoteSettings()
+        await loadKeyTriggers()          // UI-006g (CU-21)
         if midi.isEnabled { startMIDI() }
         if remote.isEnabled { await startRemote() }
     }

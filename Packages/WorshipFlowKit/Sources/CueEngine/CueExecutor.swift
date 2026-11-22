@@ -231,7 +231,8 @@ public final class CueExecutor {
 
     // MARK: Planning
 
-    private struct Plan {
+    // UI-006g: `Plan` and `makePlan` are module-internal (were private) so `dryRun` reads the very plan a run delivers.
+    struct Plan {
         var stages: [(delay: TimeInterval, actions: [CueAction])] = []
         var issues: [CueIssue] = []
     }
@@ -251,7 +252,7 @@ public final class CueExecutor {
         }
     }
 
-    private func makePlan(_ actions: [CueAction], origin: CueOrigin) -> Plan {
+    func makePlan(_ actions: [CueAction], origin: CueOrigin) -> Plan {
         var plan = Plan()
         var current: [CueAction] = []
         var stageDelay: TimeInterval = 0

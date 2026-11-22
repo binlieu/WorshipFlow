@@ -21,6 +21,10 @@ public final class CueModel {
     public var macros: [Macro] { library.macros }
     /// Actions of every slide in the library that has any, by slide id.
     public internal(set) var slideActions = SlideActionSet()
+    /// UI-006g: the presentations that have slide actions, with how many slides do (the design lists each; the Cues mode's left column).
+    public internal(set) var slideActionPresentations: [SlideActionPresentation] = []
+    /// UI-006g (CU-21): the function key that runs each macro (kept in the app state, not the cue tables).
+    public internal(set) var keyTriggers = CueKeyTriggers()
     public internal(set) var schedule = ScheduleEngine()
     public internal(set) var bindings = MIDIBindingSet()
     /// Things that could not be loaded cleanly (an unknown action, a row from a newer version).
@@ -127,6 +131,8 @@ public final class CueModel {
             loadIssues = loaded.issues
             isLoaded = true
             bindingsChanged()
+            slideActionPresentations = (try? await store.presentationsWithSlideActions()) ?? []      // UI-006g
+            await pruneKeyTriggers()                                                                  // UI-006g (CU-21)
         } catch {
             lastError = Self.message(for: error)
         }

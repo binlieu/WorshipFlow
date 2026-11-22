@@ -672,6 +672,7 @@ final class AppModel {
                 let focus: FocusedElement = textInput ? (inSearch ? .searchField : .textInput) : (self.ui.focusedControl ?? appKitFocus)
                 // FIX-N items 1 and 8: a box is selected on the canvas that has focus, or on the canvas that was clicked last.
                 let canvasHasSelection = (window.firstResponder as? StageKeyView)?.takesArrows ?? self.canvasSelectionForArrows
+                if self.handleCueKeyTrigger(keyCode: event.keyCode, modifierHeld: held, shift: shift, isRepeat: isRepeat, focus: focus, textInput: textInput, sheetOpen: sheetOpen) { return true }      // UI-006g (CU-21): a macro's function key
                 switch KeyRouting.decision(for: key, focus: focus, canvasHasSelection: canvasHasSelection, canvasLastClicked: self.ui.canvasLastClicked, section: self.effectiveKeySection, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
                 case .focusShow:
                     self.ui.controlFocusTracker.clear()

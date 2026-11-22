@@ -31,6 +31,7 @@ extension AppModel {
         await cue.setSteps([.pauseTimer(timer.id), .prop(id: prop.id, isOn: false), .transport(.blackout(.on))], of: end?.id ?? start.id)
         let emergency = await cue.createMacro(name: "Emergency clear")
         await cue.setSteps([.transport(.clearAll), .transport(.blackout(.on))], of: emergency?.id ?? start.id)
+        await cue.setKey(.f1, for: start.id)      // UI-006g: the design's "Trigger: F1 · MIDI note C2"
         // Two slides with an action, the design's "Amazing Grace 2".
         for index in [1, 2] where index < workspace.slides.count {
             try? await cue.setSlideActions([.selectLook(look.id)], for: workspace.slides[index].id)
