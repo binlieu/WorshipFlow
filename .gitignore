@@ -22,3 +22,6 @@ Bibles/
 
 # Packaged builds
 dist/
+
+# Agent working copies
+.claude/worktrees/
