@@ -444,6 +444,10 @@
   {
    "match": "^st\\.side\\.card\\.3",
    "reason": "the built-in Standard layout: listed after the operator's layouts; the design shows three presets"
+  },
+  {
+   "match": "^st\\.cv\\.handle\\.\\d$",
+   "reason": "the eight handles of the selected box (the design draws none)"
   }
  ]
 }

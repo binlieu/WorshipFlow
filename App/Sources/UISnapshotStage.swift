@@ -44,6 +44,8 @@ extension AppModel {
         setAppearance(.light)
         await capture("stage-light")
         setAppearance(.dark)
+        // FIX-K: with UI_SNAPSHOT_STAGE_DRAG the editor is then driven with real mouse events (UISnapshotStageMouse.swift).
+        if ProcessInfo.processInfo.environment["UI_SNAPSHOT_STAGE_DRAG"] != nil { await driveStageMouse(note: note, window: window) }
     }
 }
 #endif

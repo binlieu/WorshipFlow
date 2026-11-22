@@ -199,9 +199,18 @@ struct StageEditorView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .bottomLeading) {
-            Text("Sample words, clock, message and notes are shown here. Drag a box to move it, drag its corner to resize.")
-                .font(.wfMono(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
-                .wfRect("st.cv.caption", size: 11, weight: 400).padding(.leading, Space.s5).padding(.bottom, 10)
+            HStack(spacing: 8) {
+                // A built-in layout cannot be changed: say so quietly, with Duplicate one click away (a drag on it changes nothing).
+                Text(editable ? "Sample words, clock, message and notes are shown here. Drag a box to move it, any of its eight handles to resize, arrow keys to nudge."
+                              : "Built in. Duplicate to edit.")
+                    .font(.wfMono(11)).foregroundStyle(Tok.muted).lineLimit(1).wfLine()
+                    .wfRect("st.cv.caption", size: 11, weight: 400)
+                if !editable {
+                    Button("Duplicate") { if let made = stage.duplicateLayout(layoutID) { layoutID = made.id } }
+                        .buttonStyle(HeaderButtonStyle()).fixedSize().help("Make your own copy of this layout and edit that")
+                }
+            }
+            .padding(.leading, Space.s5).padding(.bottom, 10)
         }
     }
 
@@ -243,91 +252,3 @@ struct StageEditorView: View {
     }
 }
 
-/// The layout drawn by the compositor with sample content, and a box over each element that can be dragged and resized. The design's canvas
-/// is 16:9 on black with a shadow; each element is a dashed 1 pt box with its name above it, the selected one a solid 1.5 pt box in the
-/// selection blue.
-struct StageCanvas: View {
-    let stage: StageModel
-    let layout: StageLayout
-    let editable: Bool
-    @Binding var selection: UUID?
-
-    var body: some View {
-        ScenePreview(scene: stage.sampleScene(for: layout), width: 1280, cached: false)
-            .background(Color.black)
-            .overlay {
-                GeometryReader { geo in
-                    ZStack(alignment: .topLeading) {
-                        ForEach(Array(layout.elements.enumerated()), id: \.element.id) { index, element in
-                            ElementBox(stage: stage, layoutID: layout.id, element: element, index: index, editable: editable,
-                                       canvas: geo.size, selected: selection == element.id) { selection = element.id }
-                        }
-                    }
-                    .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
-                    .contentShape(Rectangle())
-                    .onTapGesture { selection = nil }
-                }
-            }
-            .shadow(color: .black.opacity(0.35), radius: 20, y: 12)
-            .wfRect("st.cv")
-    }
-}
-
-private struct ElementBox: View {
-    let stage: StageModel
-    let layoutID: UUID
-    let element: StageElement
-    let index: Int
-    let editable: Bool
-    let canvas: CGSize
-    let selected: Bool
-    let select: () -> Void
-    /// The frame when the current drag began, so a drag is measured from there and clamped by the model.
-    @State private var dragStart: NormalizedRect?
-    @State private var resizeStart: NormalizedRect?
-
-    private let handle: CGFloat = 10
-
-    var body: some View {
-        let f = element.frame
-        let size = CGSize(width: f.width * canvas.width, height: f.height * canvas.height)
-        ZStack(alignment: .bottomTrailing) {
-            Rectangle().fill(Color.clear)
-                .overlay(Rectangle().strokeBorder(selected ? Tok.blue : Color.white.opacity(0.22),
-                                                  style: StrokeStyle(lineWidth: selected ? 1.5 : 1, dash: selected ? [] : [4, 3])))
-                .contentShape(Rectangle())
-                .onTapGesture(perform: select)
-                .gesture(DragGesture(minimumDistance: 3).onChanged { value in
-                    guard editable else { return }
-                    if dragStart == nil { dragStart = element.frame; select() }
-                    stage.moveElement(element.id, in: layoutID, from: dragStart ?? element.frame,
-                                      dx: value.translation.width / canvas.width, dy: value.translation.height / canvas.height)
-                }.onEnded { _ in dragStart = nil })
-            if selected && editable {
-                Rectangle().fill(Tok.blue).frame(width: handle, height: handle)
-                    .gesture(DragGesture(minimumDistance: 1).onChanged { value in
-                        if resizeStart == nil { resizeStart = element.frame }
-                        stage.resizeElement(element.id, in: layoutID, from: resizeStart ?? element.frame,
-                                            dWidth: value.translation.width / canvas.width,
-                                            dHeight: value.translation.height / canvas.height)
-                    }.onEnded { _ in resizeStart = nil })
-                    .accessibilityHidden(true)
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .wfRect("st.cv.el.\(index)")
-        .overlay(alignment: .topLeading) {
-            Text(StageElementNames.canvasLabel(of: element, in: stage).uppercased())
-                .font(.wf(10, .semibold)).tracking(0.7).foregroundStyle(selected ? Tok.blue : Tok.muted)
-                .lineLimit(1).fixedSize().frame(height: 14)
-                .wfRect("st.cv.el.\(index).label", size: 10, weight: 600)
-                .offset(x: 1, y: -16)
-                .allowsHitTesting(false)
-        }
-        .offset(x: f.x * canvas.width, y: f.y * canvas.height)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Element: \(StageElementNames.title(of: element, in: stage))")
-        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
-        .accessibilityAction { select() }
-    }
-}

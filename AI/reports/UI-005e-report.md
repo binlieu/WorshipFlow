@@ -72,3 +72,40 @@ Hands-on checklist: "Stage: pick a layout card; rename the layout in the bar; Du
 ## Checks and not verified
 
 `./scripts/check.sh` exit 0, package tests 2811 in 441 suites passed (run once; no timing failures). Not verified: operating the editor by hand (drag, handle, rename, sheet, switches were built and compile but only the static capture was inspected); VoiceOver; the layout with a real stage screen on hardware; window widths other than 1440; the Standard (read-only) state beyond compiling.
+
+## Follow-up: every Stage box draggable and resizable (second commit)
+
+The owner, on build 115: "stage tab also text box doesn't work for the lyric".
+
+**What happened before, measured.** The debug hook `UI_SNAPSHOT_STAGE_DRAG=1` (`App/Sources/UISnapshotStageMouse.swift`) sends real mouse down, dragged and up events to the window. The harness itself was checked first: a click on a layout card changed the element list. On an operator-made layout (Band), on the code of the first commit: a press and an 8-step drag on the current-slide box, the next-slide box and the clock box moved nothing (stored frames identical, 0 writes, the drawn box did not move), and a plain click on a box did not select it (the inspector heading stayed "ELEMENT — CURRENT SLIDE"). No AppKit view was in the way (the hit test lands on the hosting view). The cause was in SwiftUI: every box carried its own tap and drag gestures inside an overlay that also carried a canvas-wide tap, and none of the box gestures ran. The fix does not depend on finding which modifier was to blame: the boxes no longer take events at all. The same wiring is in the old code the owner tested, which also writes the model on every mouse move, so even a working drag would have republished to the stage screens on every step.
+
+**Fix.** One pointer layer over the canvas (`App/Sources/StageCanvasView.swift`) hits-tests itself with `StageCanvasEditing.hit`: the selected box's handles first (eight, drawn like the slide editor's: 8 pt white, 1.5 pt blue edge, 16 pt grab area), then the smallest box under the point. A drag is held in the view (`StageCanvasEditing.Drag`); outline, handles and the compositor picture are drawn from the dragged frame in the same frame (the picture redraws at once while dragging); the model is not touched until release, when `StageCanvasEditing.commit` writes once and registers one undo step (Command-Z undoes it, redo works). Arrow keys nudge 1 point (Shift 10) through a small key-catching view that takes focus on a press and reports itself to the key router as a control that keeps the arrows (so the show's arrow keys do not also move the slide selection); one write and one undo step per key press. The second-language line and the NEXT label are relative to their element (FIX-J) and moved with it in the picture (test below). A built-in layout: a press selects, a drag draws and writes nothing, and the caption row says "Built in. Duplicate to edit." with a Duplicate button.
+
+**Real-mouse run now (Band layout, 820 x 461 pt canvas):**
+
+| What | Before the drag | After release | During the drag | Writes during / after |
+|---|---|---|---|---|
+| (a) current-slide box moved by 60 x 40 pt | x0.040 y0.090 | x0.113 y0.177 | box drawn following the pointer: yes | 0 / 1 |
+| (b) next-slide box moved by -40 x -30 pt | x0.040 y0.600 | x0.000 y0.535 (stops at the screen's edge) | yes | 0 / 1 |
+| (c) clock box moved by -50 x 20 pt | x0.740 y0.090 | x0.679 y0.133 | yes | 0 / 1 |
+| clock from the bottom-right handle | w0.220 h0.150 | w0.257 h0.193 | yes | 0 / 1 |
+| clock from the top-left handle | x0.679 y0.133 | x0.703 y0.155, w0.232 h0.172 | yes | 0 / 1 |
+| current from the right handle | w0.660 | w0.611 | yes | 0 / 1 |
+| current from the top handle | y0.177 h0.420 | y0.231 h0.366 | yes | 0 / 1 |
+| next from the bottom, then the bottom-left handle | h0.220 | h0.177, then x0.030 w0.630 h0.166 | yes | 0 / 1 each |
+| a click on a box (no movement) | | selects it (inspector heading changes), no write | | 0 / 0 |
+| arrows on the selected box: Left, then Shift+Down | x0.030 y0.535 | x0.029; then y0.557 (1 pt and 10 pt) | | one write each |
+| one Command-Z (the undo action) | y0.557 | y0.535 (the Shift+Down only) | | |
+| built-in Standard, drag on the lyric box | | stored frame unchanged, box not drawn moving, caption shows the note | | 0 / 0 |
+
+The other four handles (top-right, left, bottom-right on other boxes, and so on) are covered by the maths tests; the real-mouse run exercised six of the eight.
+
+**Tests** (`Packages/WorshipFlowKit/Tests/OperatorCoreTests/UI005e_StageCanvasEditingTests.swift`, 14, written first and seen failing against stubs, then passing): which element a point picks (overlap: the smallest wins, later on a tie; handles first, only when editable, all eight at their centres); each handle moves only its own edges; minimum size and the screen's edges; the move clamp; nudge 1 and 10 points and the clamp; a drag is measured from the press, touches no model and finishes with two frames or nothing; `commit` writes once with one undo step, undo restores and registers a redo, an unchanged frame writes nothing, the built-in layout is never written; the second-language line and NEXT label shift by the same amount as their elements. The mouse-driven behaviour above is the integration evidence; there is no automated UI test of it.
+
+**No model or schema change.** New pure logic is in a new OperatorCore file (`StageCanvasEditing.swift`) used only by the Stage view; `StageModel` is unchanged.
+
+**Rectangle comparison, re-run:** 82 mapped, 71 within 1 point (toolbar 16/23, sidebar 15/17, centre 18/20, inspector 22/22), unchanged; the eight handles are app-only and listed in the map's ignore rules. Check: `./scripts/check.sh` exit 0, package tests 2825 in 442 suites passed.
+
+**Not verified:** a real hand on a trackpad (the events are synthetic, sent to the window); cursor shapes (no resize cursor is set); dragging while a stage screen is on (the screens are updated by the same publish as before, once per release); the arrow keys with the canvas focused while another control was clicked after it (focus leaves with Escape or when another responder takes it); the Edit canvas, which the owner reports the same way but is not in this slice.
+
+Docs entries: Change log: "FIX-K (Stage): every element box on the Stage canvas can be selected, dragged, resized from eight handles and nudged with the arrows; the layout is written once on release as one undo step; a built-in layout says 'Built in. Duplicate to edit' with a Duplicate button." Known issues: "Stage canvas: no resize cursors; the Edit canvas has the same unfixed per-box gesture wiring (reported by the owner)." Hands-on checklist: "Stage: select, drag and resize each box (all eight handles, lyric boxes included) on your own layout; Command-Z undoes one drag; arrow keys nudge 1 pt, Shift 10; on Standard a drag changes nothing and Duplicate is offered."
