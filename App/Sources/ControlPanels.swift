@@ -373,12 +373,13 @@ struct MirrorStatusLine: View {
     }
 }
 
-/// The destination picker for a screen (`mirror == nil`) or one of its mirrors, with the SDI keying and alpha controls
-/// when the destination is SDI. A choice goes through `ScreenEditing`, so keying, alpha and mode stay valid.
-struct DestinationEditor: View {
+/// UI-005f: the destination choice as the design's pop-up (`.field` with a chevron). A choice goes through `ScreenEditing`, so keying,
+/// alpha and mode stay valid. `mirror == nil` is the screen's own destination, otherwise that mirror's.
+struct DestinationPopup: View {
     let model: AppModel
     let profile: ScreenProfile
     let mirror: Int?
+    var rectID = ""
 
     private var destination: OutputDestination {
         if let mirror, profile.mirrors.indices.contains(mirror) { return profile.mirrors[mirror] }
@@ -386,41 +387,26 @@ struct DestinationEditor: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Picker(mirror == nil ? "Destination" : "Mirror destination", selection: Binding(get: { destination }, set: { choose($0) })) {
-                ForEach(model.displayChoices) { Text($0.name).tag(OutputDestination.display($0.id)) }
-                Text("Window").tag(OutputDestination.window)
-                ForEach(model.sdiDevices) { device in
-                    ForEach(ScreenEditing.connectorChoices(device: device, keying: destination.isKeyed), id: \.self) { connector in
-                        Text(sdiOptionLabel(device, connector)).tag(sdiValue(device, connector))
-                    }
-                }
-                if !options.contains(destination) {
-                    Text(model.destinationName(destination)).tag(destination)
+        WFPopup(title: title, accessibilityName: "\(mirror == nil ? "Destination" : "Mirror destination") for \(profile.name)", rectID: rectID) {
+            ForEach(model.displayChoices) { choice in entry(choice.name, .display(choice.id)) }
+            entry("Window", .window)
+            ForEach(model.sdiDevices) { device in
+                ForEach(ScreenEditing.connectorChoices(device: device, keying: destination.isKeyed), id: \.self) { connector in
+                    entry(sdiOptionLabel(device, connector), sdiValue(device, connector))
                 }
             }
-            .labelsHidden()
-            .accessibilityLabel("\(mirror == nil ? "Destination" : "Mirror destination") for \(profile.name)")
-            if case .sdi(let deviceID, let connector, let keying, let alpha) = destination {
-                let device = model.sdiDevice(id: deviceID)
-                HStack(spacing: 10) {
-                    Toggle("Fill and key", isOn: Binding(get: { keying }, set: { setKeying($0) }))
-                        .toggleStyle(.wfCheckbox)
-                        .disabled(device?.supportsKeying == false)
-                        .accessibilityLabel("Fill and key for \(profile.name)")
-                    if keying {
-                        Text(ScreenEditing.keyingCaption(connector: connector, device: device)).font(.wfSmall).foregroundStyle(.secondary)
-                    }
-                }
-                if keying {
-                    Picker("Fill alpha", selection: Binding(get: { alpha }, set: { setAlpha($0) })) {
-                        Text("Premultiplied").tag(SDIAlphaMode.premultiplied)
-                        Text("Straight").tag(SDIAlphaMode.straight)
-                    }
-                    .pickerStyle(.segmented).frame(maxWidth: 300)
-                    .accessibilityLabel("Fill alpha for \(profile.name)")
-                }
-            }
+            if !options.contains(destination) { entry(model.destinationName(destination), destination) }
+        }
+    }
+
+    private var title: String {
+        if case .sdi(let id, let connector, _, _) = destination, let device = model.sdiDevice(id: id) { return sdiOptionLabel(device, connector) }
+        return model.destinationName(destination)
+    }
+
+    @ViewBuilder private func entry(_ text: String, _ value: OutputDestination) -> some View {
+        Button { choose(value) } label: {
+            if value == destination { Label(text, systemImage: "checkmark") } else { Text(text) }
         }
     }
 
@@ -442,7 +428,7 @@ struct DestinationEditor: View {
     private func sdiOptionLabel(_ device: SDIDeviceSummary, _ connector: Int) -> String {
         let simulated = device.isSimulated ? " (Simulated)" : ""
         let base = device.isSimulated && device.name.localizedCaseInsensitiveContains("simulated") ? device.name : device.name + simulated
-        return destination.isKeyed ? "\(base), connectors \(connector) and \(connector + 1)" : "\(base), connector \(connector)"
+        return destination.isKeyed ? "\(base) \u{2014} connectors \(connector) and \(connector + 1)" : "\(base) \u{2014} connector \(connector)"
     }
 
     private func choose(_ new: OutputDestination) {
@@ -454,6 +440,43 @@ struct DestinationEditor: View {
             var p = profile
             p.destination = new
             model.updateProfile(p)
+        }
+    }
+}
+
+/// The destination of a mirror (or of a screen in the older panel): the pop-up with the SDI keying and alpha controls under it when the
+/// destination is SDI. The Screens mode puts the keying and alpha controls of the screen itself in the design's right column instead.
+struct DestinationEditor: View {
+    let model: AppModel
+    let profile: ScreenProfile
+    let mirror: Int?
+
+    private var destination: OutputDestination {
+        if let mirror, profile.mirrors.indices.contains(mirror) { return profile.mirrors[mirror] }
+        return profile.destination
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            DestinationPopup(model: model, profile: profile, mirror: mirror)
+            if case .sdi(let deviceID, let connector, let keying, let alpha) = destination {
+                let device = model.sdiDevice(id: deviceID)
+                HStack(spacing: 8) {
+                    Toggle("Fill and key", isOn: Binding(get: { keying }, set: { setKeying($0) }))
+                        .toggleStyle(.wf)
+                        .disabled(device?.supportsKeying == false)
+                        .accessibilityLabel("Fill and key for \(profile.name)")
+                    if keying {
+                        Text(ScreenEditing.keyingCaption(connector: connector, device: device)).font(.wf(11)).foregroundStyle(Tok.muted)
+                    }
+                }
+                if keying {
+                    WFSegmented(items: [.init(value: SDIAlphaMode.premultiplied, title: "Premultiplied", label: "Premultiplied"),
+                                        .init(value: SDIAlphaMode.straight, title: "Straight", label: "Straight")],
+                                selection: Binding(get: { alpha }, set: { setAlpha($0) }),
+                                accessibilityName: "Fill alpha for \(profile.name)", outerPadding: 0)
+                }
+            }
         }
     }
 
