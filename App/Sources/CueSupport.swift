@@ -76,7 +76,8 @@ struct CueNote: View {
             Text(text).font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
-        .padding(Space.s4)
-        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(Tok.border, lineWidth: 1))
+        .padding(.horizontal, 13).padding(.vertical, 11)      // ui.css `.card`: padding 10 x 12 plus the border
+        .background(Tok.surface, in: RoundedRectangle(cornerRadius: Radius.xl))
+        .overlay(RoundedRectangle(cornerRadius: Radius.xl).strokeBorder(Tok.border, lineWidth: 1))
     }
 }

@@ -1,5 +1,6 @@
 // CUE-002b (item 6): the ordered, numbered list of actions of a macro or a slide, with a picker per action kind. Used by the macro
 // editor and the slide-actions editor; the decisions (kinds offered, reasons something is unavailable, row text) come from OperatorCore.
+// UI-005g: rows are the design's `.act` (38 pt, number 20, kind column 150, detail, tags), "Add action" its 26 pt `.btn`.
 import SwiftUI
 import CueEngine
 import OperatorCore
@@ -17,47 +18,13 @@ struct ActionListEditor: View {
 
     var body: some View {
         let choices = app.cueChoices()
-        VStack(alignment: .leading, spacing: Space.s3) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(actions.enumerated()), id: \.offset) { index, action in
-                row(index, action, choices)
+                CuesActionRow(index: index, actions: actions, choices: choices, editingMacro: editingMacro, editing: $editing, onChange: onChange)
+                    .padding(.bottom, 6)
             }
-            addMenu(choices)
+            addMenu(choices).padding(.top, 4)
         }
-    }
-
-    private func row(_ index: Int, _ action: CueAction, _ choices: CueChoices) -> some View {
-        let description = CueActionEditing.describe(action, choices: choices)
-        let kind = CueActionKind.of(action)
-        return HStack(spacing: Space.s4) {
-            Text("\(index + 1)").font(.wf(12, .bold).monospacedDigit())
-                .frame(width: 24, height: 24).background(Tok.surface3, in: Circle()).accessibilityHidden(true)
-            Image(systemName: kind?.symbol ?? "questionmark").frame(width: 18).foregroundStyle(Tok.muted).accessibilityHidden(true)
-            Text(description.title).font(.wf(14, .semibold)).frame(width: 190, alignment: .leading).lineLimit(1)
-            Text(description.detail).font(.wf(13)).foregroundStyle(description.isBroken ? Tok.warning : Tok.muted)
-                .lineLimit(1).truncationMode(.tail).frame(maxWidth: .infinity, alignment: .leading)
-            ScreenTags(screens: description.screens)
-            HStack(spacing: 2) {
-                iconButton("chevron.up", "Move up", disabled: index == 0) { move(index, to: index - 1) }
-                iconButton("chevron.down", "Move down", disabled: index == actions.count - 1) { move(index, to: index + 1) }
-                iconButton("slider.horizontal.3", "Edit", disabled: kind == nil) { editing = index }
-                    .popover(isPresented: Binding(get: { editing == index }, set: { if !$0, editing == index { editing = nil } }), arrowEdge: .trailing) {
-                        ActionEditForm(action: action, choices: choices, editingMacro: editingMacro) { new in replace(index, new) }
-                            .frame(width: 340).padding(Space.s5)
-                    }
-                iconButton("trash", "Remove", disabled: false) { remove(index) }
-            }
-        }
-        .padding(.horizontal, Space.s4).frame(minHeight: 48)
-        .background(Tok.surface, in: RoundedRectangle(cornerRadius: Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: Radius.lg).stroke(description.isBroken ? Tok.warning : Tok.border, lineWidth: 1))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Step \(index + 1): \(description.title) \(description.detail)")
-    }
-
-    private func iconButton(_ symbol: String, _ label: String, disabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol).frame(width: 24, height: 24).contentShape(Rectangle()) }
-            .buttonStyle(.plain).foregroundStyle(Tok.muted).disabled(disabled).opacity(disabled ? 0.35 : 1)
-            .help(label).accessibilityLabel(label)
     }
 
     private func addMenu(_ choices: CueChoices) -> some View {
@@ -81,11 +48,20 @@ struct ActionListEditor: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) { Image(systemName: "plus"); Text("Add action"); Image(systemName: "chevron.down").font(.wf(9)) }
-                .font(.wf(13, .medium)).padding(.horizontal, 12).frame(height: 30)
-                .overlay(RoundedRectangle(cornerRadius: Radius.md).stroke(Tok.borderStrong, lineWidth: 1))
+            // ui.css `.btn`: 26 pt, padding 0 10 plus the border, gap 6; a 15 pt plus, the words, a 12 pt chevron.
+            HStack(spacing: 6) {
+                Image(systemName: "plus").font(.wf(13)).frame(width: 15, height: 15)
+                Text("Add action").font(.wf(12, .medium)).wfLine()
+                Image(systemName: "chevron.down").font(.wf(9, .semibold)).frame(width: 12, height: 12)
+            }
+            .foregroundStyle(Tok.text)
+            .padding(.horizontal, 11).frame(height: Space.controlHeight)
+            .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: Tok.surface2)
+            .wfRect("main.add", size: 12, weight: 500, radius: Radius.md)
+            .contentShape(Rectangle())
         }
-        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+        .wfFocusReport(.popUp)
         .accessibilityLabel("Add action")
     }
 
@@ -95,10 +71,75 @@ struct ActionListEditor: View {
         c.macros = all.macros(excluding: editingMacro)
         return c
     }
+}
 
-    private func move(_ i: Int, to j: Int) { var l = actions; CueStepEditing.move(&l, from: i, to: j); onChange(l) }
-    private func remove(_ i: Int) { var l = actions; CueStepEditing.remove(&l, at: i); onChange(l) }
-    private func replace(_ i: Int, _ new: CueAction) { var l = actions; CueStepEditing.replace(&l, at: i, with: new); onChange(l) }
+/// One action row (`.act`): a 20 pt number, the kind with its icon in a 150 pt column, the detail, the screen tags. Move, edit and remove
+/// are the owner's extras: they appear at the right on hover, while the row has keyboard focus or while the edit form is open; they stay
+/// in the accessibility tree, so the row is as drawn and still fully operable.
+struct CuesActionRow: View {
+    let index: Int
+    let actions: [CueAction]
+    let choices: CueChoices
+    var editingMacro: UUID?
+    @Binding var editing: Int?
+    let onChange: ([CueAction]) -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        let action = actions[index]
+        let description = CueActionEditing.describe(action, choices: choices)
+        let kind = CueActionKind.of(action)
+        let id = "act.\(index)"
+        let shown = hovering || editing == index
+        HStack(spacing: 10) {
+            Text("\(index + 1)").font(.wf(11, .bold).monospacedDigit()).frame(width: 20, height: 20)
+                .background(Tok.surface3, in: Circle()).wfRect("\(id).n", size: 11, weight: 700, radius: 10)
+                .frame(width: 22, alignment: .leading).accessibilityHidden(true)
+            HStack(spacing: 8) {
+                Image(systemName: kind?.symbol ?? "questionmark").font(.wf(13)).frame(width: 15, height: 15).accessibilityHidden(true)
+                Text(description.title).font(.wf(13, .bold)).lineLimit(1).wfLine()
+            }
+            .frame(width: 150, alignment: .leading).wfRect("\(id).col")
+            Text(description.detail).font(.wf(13)).foregroundStyle(description.isBroken ? Tok.warning : Tok.muted)
+                .lineLimit(1).truncationMode(.tail).wfLine().frame(maxWidth: .infinity, alignment: .leading).wfRect("\(id).detail", size: 13, weight: 400)
+            HStack(spacing: 4) {
+                ForEach(Array(description.screens.enumerated()), id: \.offset) { n, screen in
+                    PillTag(text: screen.tag, color: screen.color, rectID: "\(id).tag.\(n)")
+                }
+            }
+            .wfRect("\(id).tags")
+        }
+        .padding(.horizontal, 11).padding(.vertical, 9)
+        .background(Tok.surface, in: RoundedRectangle(cornerRadius: Radius.lg))
+        .overlay(RoundedRectangle(cornerRadius: Radius.lg).strokeBorder(description.isBroken ? Tok.warning : Tok.border, lineWidth: 1))
+        .overlay(alignment: .trailing) { controlRow(action: action, kind: kind).opacity(shown ? 1 : 0).padding(.trailing, 6) }
+        .wfRect(id, radius: Radius.lg)
+        .onHover { hovering = $0 }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Step \(index + 1): \(description.title) \(description.detail)")
+    }
+
+    private func controlRow(action: CueAction, kind: CueActionKind?) -> some View {
+        HStack(spacing: 2) {
+            iconButton("chevron.up", "Move up", disabled: index == 0) { var l = actions; CueStepEditing.move(&l, from: index, to: index - 1); onChange(l) }
+            iconButton("chevron.down", "Move down", disabled: index == actions.count - 1) { var l = actions; CueStepEditing.move(&l, from: index, to: index + 1); onChange(l) }
+            iconButton("slider.horizontal.3", "Edit", disabled: kind == nil) { editing = index }
+                .popover(isPresented: Binding(get: { editing == index }, set: { if !$0, editing == index { editing = nil } }), arrowEdge: .trailing) {
+                    ActionEditForm(action: action, choices: choices, editingMacro: editingMacro) { new in
+                        var l = actions; CueStepEditing.replace(&l, at: index, with: new); onChange(l)
+                    }
+                    .frame(width: 340).padding(Space.s5)
+                }
+            iconButton("trash", "Remove", disabled: false) { var l = actions; CueStepEditing.remove(&l, at: index); onChange(l) }
+        }
+        .padding(.horizontal, 4).background(Tok.surface2, in: RoundedRectangle(cornerRadius: Radius.md))
+    }
+
+    private func iconButton(_ symbol: String, _ label: String, disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Image(systemName: symbol).frame(width: 24, height: 24).contentShape(Rectangle()) }
+            .buttonStyle(.plain).foregroundStyle(Tok.muted).disabled(disabled).opacity(disabled ? 0.35 : 1)
+            .help(label).accessibilityLabel(label)
+    }
 }
 
 /// The form for one action: a picker per kind of value.

@@ -17,8 +17,8 @@ struct MIDISection: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.s5) {
-            Text("MIDI").font(.wf(22, .bold))
+        CuesPage(title: "MIDI") {
+          VStack(alignment: .leading, spacing: Space.s5) {
             Toggle(isOn: Binding(get: { cue.midi.isEnabled }, set: { on in Task { @MainActor in await cue.setMIDIEnabled(on) } })) {
                 Text("Use MIDI").font(.wf(14, .semibold))
             }
@@ -30,6 +30,7 @@ struct MIDISection: View {
                 devices
             }
             bindings
+          }
         }
     }
 
@@ -138,8 +139,8 @@ struct RemoteSection: View {
     @State private var revokeAll = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.s5) {
-            Text("Remote control").font(.wf(22, .bold))
+        CuesPage(title: "Remote control") {
+          VStack(alignment: .leading, spacing: Space.s5) {
             Toggle(isOn: Binding(get: { cue.remote.isEnabled }, set: { on in Task { @MainActor in await cue.setRemoteEnabled(on) } })) {
                 Text("Let a phone on this network control the show").font(.wf(14, .semibold))
             }
@@ -160,6 +161,7 @@ struct RemoteSection: View {
             } else if !cue.remote.isEnabled {
                 CueNote(text: "Remote control is off: nothing is listening on the network.")
             }
+          }
         }
     }
 
