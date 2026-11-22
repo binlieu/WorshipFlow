@@ -366,3 +366,9 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Cues mode, Slide actions with a long song: press Next from the transport bar or the Space key: the list follows without a pause.
 - [ ] Optional, no hand needed: `WF_CONFIG=Release scripts/fixq-run.sh` (gestures), `WF_CONFIG=Release scripts/measure-drags.sh` (drops) and `WF_CONFIG=Release FIXP=midi scripts/fixp-run.sh` (MIDI) build a Release copy with the timing hooks (`WF_MEASURE`) against a throw-away library and print the numbers. Run them on an unlocked screen with the Mac otherwise idle for the cleanest numbers.
 
+## FIX-R which FIX-Q changes stay
+
+- [ ] Show, a long song, nothing loaded: press Space and Shift-Space quickly for ten seconds, then go on pressing slowly. The red marker should follow either way. This is the one thing the measuring cannot say: with the idle tick removed (kept, KI-192) the same press measures about 1.3 to 1.9 times longer in a burst, and shorter in total work. If the operator window feels slower to answer after a pause than during a burst of presses, tell the coordinator: unit (b) can be reverted (four files, see the FIX-R report).
+- [ ] Cues mode with a long song: press Next ten times: the list follows without a pause (46 ms measured before, 12 after).
+- [ ] Optional, no hand needed: the interleaved method of FIX-R is in `AI/reports/FIX-R-report.md`; the scripts it used are `scripts/fixq-run.sh` and `scripts/measure-drags.sh` with `WF_CONFIG=Release`, run per variant.
+
