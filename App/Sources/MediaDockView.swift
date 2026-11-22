@@ -80,6 +80,9 @@ struct MediaDockView: View {
                     app.ui.dockTab = tab; if app.mediaDock.isCollapsed { app.setMediaDock(collapsed: false) }
                 }
             }
+            // UI-005d: the clear buttons, after the Audio tab, set off by the design's divider.
+            Rectangle().fill(Tok.border).frame(width: 1, height: 16).padding(.horizontal, 3)
+            MediaClearButtons(app: app)
             Spacer(minLength: 4)
             if MediaDock.showsLayerChoice(on: app.ui.dockTab) {
                 WFSegmented(items: MediaLayerChoice.allCases.map { .init(value: $0, title: $0 == .background ? "\($0.title) layer" : $0.title, label: "\($0.title) layer") },
