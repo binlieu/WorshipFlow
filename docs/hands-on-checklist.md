@@ -447,3 +447,10 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Put five video objects on one slide: the fifth is named in the banner.
 - [ ] In Edit give the broadcast screen its own Look and press Broadcast: it matches the broadcast window; add Section to a stage layout: Edit's Stage shows it.
 - [ ] Remove the first of two mirrors that have key notes and chains: the second keeps its own.
+
+## FIX-X
+
+- [ ] Video object on the live slide, Blackout, wait, lift: the clip is mid-play, not at its first frame, and an unmuted clip is silent during Blackout.
+- [ ] Blackout, then Stop: the video objects' players close.
+- [ ] Marker with actions, press the trash button: the alert names the marker and the action count, Return cancels, Escape cancels, "Delete marker" deletes, and the alert is not drawn red.
+- [ ] Marker without actions: the trash button deletes it at once.

@@ -92,6 +92,25 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
         for id in failed { notify(id) }
     }
 
+    /// FIX-X (REVIEW-5 L3): `apply` for a publish that may be made under Blackout. Blackout composes a scene with no objects, which `apply` would read as
+    /// "close everything" and so restart every clip from its first frame when Blackout lifts. Under Blackout the open clips are kept as they are (they go on
+    /// playing, as the slide's own background does) and silenced; nothing is opened, closed or waited for. When Blackout is off the clips are heard as
+    /// their requests say and the set is made to match `requests` as before. Stop, Clear and a slide leaving Live are not Blackout, so they still close.
+    public func apply(_ requests: [ObjectVideoRequest], blackedOut: Bool) {
+        if blackedOut {
+            lock.lock()
+            let sources = open.values.map(\.source)
+            lock.unlock()
+            for source in sources { source.isMuted = true }
+            return
+        }
+        apply(requests)
+        lock.lock()
+        let now = open.values.map { ($0.source, $0.request.muted) }
+        lock.unlock()
+        for (source, muted) in now where source.isMuted != muted { source.isMuted = muted }
+    }
+
     /// The sound device the clips that are not muted play to (the same one the foreground clip uses). Nil is the system default.
     public func setAudioDevice(uid: String?) {
         let value = (uid?.isEmpty ?? true) ? nil : uid
@@ -147,6 +166,10 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
         lock.unlock()
         return source?.latestPixelBuffer()
     }
+
+    /// Tests: which player is open for the asset, to tell a kept player from a reopened one.
+    func sourceIdentity(for assetID: UUID) -> ObjectIdentifier? { lock.lock(); defer { lock.unlock() }; return open[assetID].map { ObjectIdentifier($0.source) } }
+    func isMuted(_ assetID: UUID) -> Bool? { lock.lock(); let s = open[assetID]?.source; lock.unlock(); return s?.isMuted }
 
     private func notify(_ id: UUID) {
         lock.lock(); let handler = availabilityChanged; lock.unlock()

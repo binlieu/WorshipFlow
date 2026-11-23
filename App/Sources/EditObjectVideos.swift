@@ -110,8 +110,11 @@ extension AppModel {
                                                    duration: asset.duration))
             }
         }
-        mediaRegistry.objectVideos.apply(requests)
-        ObjectVideoAccess.shared.keepOnly(Set(requests.map(\.assetID)))
+        // FIX-X (REVIEW-5 L3): under Blackout the scene has no objects, but the clips are kept (silenced) so lifting it does not restart them; their file
+        // access is kept with them. Stop and Clear still close everything.
+        let blackedOut = show.isBlackedOut
+        mediaRegistry.objectVideos.apply(requests, blackedOut: blackedOut)
+        if !blackedOut { ObjectVideoAccess.shared.keepOnly(Set(requests.map(\.assetID))) }
         reportObjectVideoProblems()
     }
 

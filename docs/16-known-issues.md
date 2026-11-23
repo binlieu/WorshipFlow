@@ -275,4 +275,5 @@
 | KI-276 | FIX-W: a key note kept but hidden after a destination goes from Fill and Key to plain (accepted). | Open. |
 | KI-277 | FIX-W: the unavailable text covers both "could not be opened" and "stopped playing" because the player set reports them together. | Open. |
 | KI-278 | REVIEW-5 M6: the preparation gate covers lyric text and images only; text boxes, shapes and fit-to-box text are laid out on the render thread at the first frame of a slide. Open; to be fixed after the idle soak (AI/reports/REVIEW-5.md). | Open. |
-| KI-279 | REVIEW-5 low findings L1 to L23 not fixed by FIX-W (all except L1, L5, L6 and L12): see AI/reports/REVIEW-5.md. Open. | Open. |
+| KI-279 | REVIEW-5 low findings L1 to L23 not fixed by FIX-W or FIX-X (all except L1, L3, L5, L6, L9, L12 and L13): see AI/reports/REVIEW-5.md. Open. | Open. |
+| KI-280 | FIX-X: Clear still closes video-object players and restarts them from the first frame when un-cleared (Blackout no longer does). | Open. |

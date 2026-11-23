@@ -150,6 +150,7 @@ private struct MarkerRow: View {
     let actionCount: Int
     @State private var timeText = ""
     @State private var nameText = ""
+    @State private var deletePrompt: MarkerDeleteConfirmation.Prompt?
     @FocusState private var timeFocused: Bool
     @FocusState private var nameFocused: Bool
 
@@ -165,11 +166,26 @@ private struct MarkerRow: View {
                 .fixedSize()
             Button { preview.seek(to: marker.time) } label: { Image(systemName: "arrow.right.to.line").font(.wf(11)).frame(width: 12, height: 12) }
                 .buttonStyle(HeaderButtonStyle(kind: .ghost, compact: true)).help("Move the preview playhead here").accessibilityLabel("Go to marker")
-            Button(role: .destructive) { Task { await markers.delete(marker.id) } } label: { Image(systemName: "trash").font(.wf(11)).frame(width: 12, height: 12) }
+            Button { askThenDelete() } label: { Image(systemName: "trash").font(.wf(11)).frame(width: 12, height: 12) }
                 .buttonStyle(HeaderButtonStyle(kind: .ghost, compact: true)).help("Delete this marker").accessibilityLabel("Delete marker")
         }
         .task(id: marker.time) { timeText = MediaTimeText.format(marker.time) }
         .task(id: marker.name) { nameText = marker.name ?? "" }
+        // FIX-X (REVIEW-5 L9, L13): a marker with actions asks first; Cancel is the default (Return) and Escape. No destructive role: red is only for on air.
+        .alert(deletePrompt?.title ?? "", isPresented: Binding(get: { deletePrompt != nil }, set: { if !$0 { deletePrompt = nil } })) {
+            Button("Cancel", role: .cancel) {}.keyboardShortcut(.defaultAction)
+            Button(deletePrompt?.confirmTitle ?? "Delete marker") { Task { await markers.delete(marker.id) } }
+        } message: { Text(deletePrompt?.message ?? "") }
+    }
+
+    /// A marker with no actions is deleted at once; one with actions asks first (the decision is `MarkerDeleteConfirmation`).
+    private func askThenDelete() {
+        if let prompt = MarkerDeleteConfirmation.prompt(name: marker.name, time: marker.time, actionCount: actionCount,
+                                                        actionsAreUnreadable: markers.actionsAreUnreadable(marker.id)) {
+            deletePrompt = prompt
+        } else {
+            Task { await markers.delete(marker.id) }
+        }
     }
 
     private func commitTime() {

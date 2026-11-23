@@ -216,3 +216,4 @@
 - FIX-W: a video object that cannot open or is past the limit of four is named in the media banner
 - FIX-W: Edit's Broadcast and Stage previews use the screen's own Look and the stage preview has section names
 - FIX-W: a library whose history cannot be read is refused with the copy message instead of being migrated unprotected
+- FIX-X: Blackout no longer closes the video objects' players, so lifting it shows the clips where they would be (they play on, silenced); deleting a marker that has actions asks first, naming the marker and its action count (REVIEW-5 L3, L9, L13)
