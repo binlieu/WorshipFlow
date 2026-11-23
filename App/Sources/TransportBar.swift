@@ -10,16 +10,8 @@ struct TransportBar: View {
     var body: some View {
         let _ = BodyProbe.hit("TransportBar")
         HStack(spacing: 10) {
-            stateBadge.wfRect("tp.badge", size: 11, weight: 700, radius: Radius.sm)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(headline).font(.wf(13, .semibold)).lineLimit(1).truncationMode(.tail).wfLine().frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(Tok.text).wfRect("tp.headline", size: 13, weight: 600)
-                if let detail { Text(detail).font(.wfCaption).lineLimit(1).truncationMode(.tail).foregroundStyle(Tok.muted).wfLine().frame(maxWidth: .infinity, alignment: .leading).wfRect("tp.detail", size: 11, weight: 400) }
-            }
-            // The design's text block is as wide as its longer line, and the buttons are pushed to the right edge by a spacer.
-            .frame(width: textBlockWidth, alignment: .leading)
-            .wfRect("tp.text")
-            .accessibilityElement(children: .combine)
+            // FIX-U: the state badge and the two lines are a view of their own: they change with every Next and every Clear, the buttons do not.
+            TransportText(app: app, workspace: workspace)
             Spacer(minLength: 10)
             Button { app.previous() } label: { hinted("backward.fill", "Previous", TransportKeyHints.previous) }
                 .buttonStyle(TransportButtonStyle()).wfRect("tp.previous", size: 13, weight: 600, radius: Radius.lg).help("Shift-Space: back one slide (the arrow keys only move the selection)")
@@ -47,12 +39,6 @@ struct TransportBar: View {
         .overlay(alignment: .top) { Rectangle().fill(Tok.border).frame(height: 1) }
     }
 
-    /// UI-005j: the width of the text block: the longer of its two lines as set in Inter, at most 440 pt (a longer headline is cut with an ellipsis).
-    private var textBlockWidth: CGFloat {
-        let widest = max(InterFont.textWidth(headline, size: 13, weight: 600), detail.map { InterFont.textWidth($0, size: 11, weight: 400) } ?? 0)
-        return min(440, ceil(widest))
-    }
-
     private func hinted(_ symbol: String, _ title: String, _ key: String?, onFill: Bool = false) -> some View {
         HStack(spacing: 6) {
             Image(systemName: symbol).frame(width: 15, height: 15)
@@ -71,6 +57,68 @@ struct TransportBar: View {
             .disabled(workspace.showParts.isStopped)
             .help("Escape clears the words. Clear all and the layer clears are the icons in the media bin's header, their keys and the Show menu.")
             .accessibilityLabel("Clear")
+    }
+
+    private var screensButton: some View {
+        Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
+            Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display")
+        }
+        .buttonStyle(HeaderButtonStyle())
+        .help(app.screensOn ? "Close screens" : "Open screens")
+        .accessibilityLabel(app.screensOn ? "Close screens" : "Open screens")
+    }
+
+    @ViewBuilder private var health: some View {
+        if let h = app.outputHealth {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 6) {
+                        Circle().fill(h.needsAttention ? Tok.warning : Tok.cyan).frame(width: 5, height: 5).accessibilityHidden(true)
+                        Text(h.rateText).foregroundStyle(h.needsAttention ? Tok.warning : Tok.text)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 14)
+                    .wfRect("tp.health.rate", size: 11, weight: 400)
+                    Text(h.countsText).foregroundStyle(Tok.muted).frame(maxWidth: .infinity, alignment: .leading).wfRect("tp.health.counts", size: 11, weight: 400)
+                }
+                .wfRect("tp.health")
+                .font(.wfMono(11))
+                if let audio = app.audio { MiniMeter(audio: audio) }
+            }
+            .fixedSize()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Output health: \(h.rateText), \(h.countsText)")
+        } else {
+            Text("screens closed").font(.wfMono(11)).foregroundStyle(Tok.muted).fixedSize()
+        }
+    }
+}
+
+/// FIX-U: the state badge and the headline and detail lines of the transport bar. Next and Previous change the words, Clear and Blackout change the badge:
+/// this view runs for those and the bar's buttons, the health readout and the meter do not.
+private struct TransportText: View {
+    let app: AppModel
+    let workspace: WorkspaceModel
+
+    var body: some View {
+        let _ = BodyProbe.hit("TransportText")
+        HStack(spacing: 10) {
+            stateBadge.wfRect("tp.badge", size: 11, weight: 700, radius: Radius.sm)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(headline).font(.wf(13, .semibold)).lineLimit(1).truncationMode(.tail).wfLine().frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(Tok.text).wfRect("tp.headline", size: 13, weight: 600)
+                if let detail { Text(detail).font(.wfCaption).lineLimit(1).truncationMode(.tail).foregroundStyle(Tok.muted).wfLine().frame(maxWidth: .infinity, alignment: .leading).wfRect("tp.detail", size: 11, weight: 400) }
+            }
+            // The design's text block is as wide as its longer line, and the buttons are pushed to the right edge by a spacer.
+            .frame(width: textBlockWidth, alignment: .leading)
+            .wfRect("tp.text")
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// UI-005j: the width of the text block: the longer of its two lines as set in Inter, at most 440 pt (a longer headline is cut with an ellipsis).
+    private var textBlockWidth: CGFloat {
+        let widest = max(InterFont.textWidth(headline, size: 13, weight: 600), detail.map { InterFont.textWidth($0, size: 11, weight: 400) } ?? 0)
+        return min(440, ceil(widest))
     }
 
     @ViewBuilder private var stateBadge: some View {
@@ -105,39 +153,6 @@ struct TransportBar: View {
     }
 
     private var detail: String? { app.mode == .stopped ? nil : workspace.livePositionLine }
-
-    private var screensButton: some View {
-        Button { app.screensOn ? app.stopScreens() : app.startScreens() } label: {
-            Image(systemName: app.screensOn ? "display.trianglebadge.exclamationmark" : "display")
-        }
-        .buttonStyle(HeaderButtonStyle())
-        .help(app.screensOn ? "Close screens" : "Open screens")
-        .accessibilityLabel(app.screensOn ? "Close screens" : "Open screens")
-    }
-
-    @ViewBuilder private var health: some View {
-        if let h = app.outputHealth {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 6) {
-                        Circle().fill(h.needsAttention ? Tok.warning : Tok.cyan).frame(width: 5, height: 5).accessibilityHidden(true)
-                        Text(h.rateText).foregroundStyle(h.needsAttention ? Tok.warning : Tok.text)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading).frame(height: 14)
-                    .wfRect("tp.health.rate", size: 11, weight: 400)
-                    Text(h.countsText).foregroundStyle(Tok.muted).frame(maxWidth: .infinity, alignment: .leading).wfRect("tp.health.counts", size: 11, weight: 400)
-                }
-                .wfRect("tp.health")
-                .font(.wfMono(11))
-                if let audio = app.audio { MiniMeter(audio: audio) }
-            }
-            .fixedSize()
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Output health: \(h.rateText), \(h.countsText)")
-        } else {
-            Text("screens closed").font(.wfMono(11)).foregroundStyle(Tok.muted).fixedSize()
-        }
-    }
 }
 
 struct SplitLeadingStyle: ButtonStyle {

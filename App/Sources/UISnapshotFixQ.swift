@@ -89,6 +89,8 @@ extension AppModel {
             if loop == "idle" { try? await Task.sleep(for: .seconds(20)); note("fixq loop done"); return }      // no command at all: what the window does by itself
             for n in 0..<loops {
                 if loop == "golive" { workspace.selectSlide(60 + n % 40); await workspace.goLive() }
+                else if loop == "clear" { if n % 2 == 0 { workspace.clear() } else { workspace.goLive(at: 20) } }          // FIX-U: Clear and the Go Live that lifts it
+                else if loop == "blackout" { workspace.blackout() }
                 else if n % 2 == 0 { await workspace.next() } else { await workspace.previous() }
                 try? await Task.sleep(for: .milliseconds(60))
             }
