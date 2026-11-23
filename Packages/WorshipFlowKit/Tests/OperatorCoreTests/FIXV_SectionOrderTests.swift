@@ -72,11 +72,12 @@ import Persistence
         let (model, store, p, order) = try await ready()
         await model.addSection(try chorus(model), toSectionOrder: order.id)                // two Choruses
         let entries = model.sectionEntries(of: try #require(model.arrangements.first))
-        // The first and the second Chorus are removed by two quick clicks. Once the first is gone the other Chorus is the first one, so "the second
-        // Chorus" does not exist any more: that click changes nothing (it never takes a different section) and says so.
-        async let first: Void = model.removeSection(entries[1], fromSectionOrder: order.id)
-        async let second: Void = model.removeSection(entries[4], fromSectionOrder: order.id)
-        _ = await (first, second)
+        // The first and then the second Chorus are removed. Once the first is gone the other Chorus is the first one, so "the second Chorus" does
+        // not exist any more: that click changes nothing (it never takes a different section) and says so. (In order: two racing tasks start in no
+        // fixed order, so the race itself is covered by the tests above, whose result does not depend on which runs first.)
+        await model.removeSection(entries[1], fromSectionOrder: order.id)
+        #expect(model.lastError == nil)
+        await model.removeSection(entries[4], fromSectionOrder: order.id)
         #expect(try await stored(model, store, p) == ["Verse 1", "Verse 2", "Bridge", "Chorus"])
         #expect(model.lastError?.contains("no longer") == true)
         model.lastError = nil

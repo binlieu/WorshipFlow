@@ -121,7 +121,7 @@ private struct MediaSidebar: View {
         }
         .alert("Delete the collection \"\(deleting?.name ?? "")\"?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Cancel", role: .cancel) {}
-            Button("Delete collection") {      // FIX-V: not drawn red (red is only for on air) if let c = deleting { media.deleteCollection(c.id) } }
+            Button("Delete collection") { if let c = deleting { media.deleteCollection(c.id) } }      // FIX-V: no destructive role: not drawn red (red is only for on air)
         } message: { Text("Only the list is deleted. Its items stay in the media bin and no file is touched.") }
     }
 
