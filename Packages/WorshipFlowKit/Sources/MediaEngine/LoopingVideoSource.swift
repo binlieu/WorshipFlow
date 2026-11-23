@@ -23,6 +23,7 @@ public final class LoopingVideoSource: @unchecked Sendable {
     private var latest: CVPixelBuffer?
     private var observation: NSKeyValueObservation?
     private var delivered = 0
+    private var itemChanges: [Double] = []   // OUT-002d: media-clock times the current item was replaced after the first
 
     public init(url: URL) throws {
         guard FileManager.default.isReadableFile(atPath: url.path) else { throw MediaError.fileNotFound(url.path) }
@@ -49,6 +50,8 @@ public final class LoopingVideoSource: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         if let old = output, let oldItem = outputItem { oldItem.remove(old) }
+        // OUT-002d: the looper replaces the current item at each loop boundary; remember when (bounded), for the soak report.
+        if outputItem != nil, item != nil, itemChanges.count < 2_000 { itemChanges.append(CACurrentMediaTime()) }
         output = nil
         outputItem = nil
         guard let item else { return }
@@ -72,6 +75,10 @@ public final class LoopingVideoSource: @unchecked Sendable {
         let time = String(format: "%.2f", player.currentTime().seconds)
         return "rate \(player.rate), control \(player.timeControlStatus.rawValue), item status \(status), time \(time), looper \(looper.status.rawValue), error \(err.map { "\($0)" } ?? "none")"
     }
+
+    /// Media-clock times at which the player's current item was replaced after the first, which is where the looper starts the next pass
+    /// (OUT-002d, reporting only; at most 2,000). Items set up when playback starts may add an early entry.
+    public var itemChangeTimes: [Double] { lock.lock(); defer { lock.unlock() }; return itemChanges }
 
     public func start() { player.play() }
     public func stop() { player.pause() }

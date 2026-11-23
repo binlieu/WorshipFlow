@@ -31,13 +31,19 @@ public struct FrameEvent: Sendable, Equatable {
     public var missed: Int
     public var isLate: Bool
     public var isLong: Bool
+    /// OUT-002d: the target frame period in ms when the event was recorded (0: unknown).
+    public var targetMs: Double
+    /// OUT-002d: the render thread's last ticks when the event was recorded, oldest first; at most the ring's capacity (8).
+    public var ticks: [TickSample]
 
-    public init(time: Double, intervalMs: Double, missed: Int, isLate: Bool, isLong: Bool) {
+    public init(time: Double, intervalMs: Double, missed: Int, isLate: Bool, isLong: Bool, targetMs: Double = 0, ticks: [TickSample] = []) {
         self.time = time
         self.intervalMs = intervalMs
         self.missed = missed
         self.isLate = isLate
         self.isLong = isLong
+        self.targetMs = targetMs
+        self.ticks = ticks
     }
 }
 
@@ -50,6 +56,8 @@ public struct FrameEventLog: Sendable, Equatable {
     public private(set) var events: [FrameEvent]
     /// Notable presentations after the cap was reached (not listed, not classified).
     public private(set) var beyondCap = 0
+    /// OUT-002d: how long the render thread's ticks worked over the run (fixed buckets).
+    public private(set) var workHistogram = TickWorkHistogram()
 
     public init(capacity: Int = FrameEventLog.defaultCapacity) {
         self.capacity = max(0, capacity)
@@ -58,14 +66,25 @@ public struct FrameEventLog: Sendable, Equatable {
     }
 
     public mutating func record(at time: Double, _ outcome: PresentationOutcome) {
+        record(at: time, outcome, targetInterval: 0, ticks: [])
+    }
+
+    /// OUT-002d: as `record(at:_:)`, and the event carries the ticks around it. `ticks` is evaluated only for a notable frame that fits under the cap.
+    public mutating func record(at time: Double, _ outcome: PresentationOutcome, targetInterval: Double, ticks: @autoclosure () -> [TickSample]) {
         guard outcome.isNotable else { return }
         if events.count < capacity {
             events.append(FrameEvent(time: time, intervalMs: outcome.gap * 1000, missed: outcome.missed,
-                                     isLate: outcome.isLate, isLong: outcome.isLong))
+                                     isLate: outcome.isLate, isLong: outcome.isLong, targetMs: targetInterval * 1000, ticks: ticks()))
         } else {
             beyondCap += 1
         }
     }
+
+    /// OUT-002d: a tick that made a frame, with its own work in seconds. A compare chain and two increments.
+    public mutating func noteTick(work: Double, period: Double) { workHistogram.record(work: work, period: period) }
+
+    /// OUT-002d: a tick that made no frame because the GPU was behind.
+    public mutating func noteSkippedTick() { workHistogram.recordSkipped() }
 }
 
 /// When the output window was covered, from visibility samples. A span opens at the last sample that saw the window visible (the
@@ -161,7 +180,9 @@ public enum SoakDropReport {
     }
 
     /// `origin` is the media-clock time of the soak's start; `maxListed` bounds the event lines in the text (the log's own cap bounds memory).
-    public static func lines(log: FrameEventLog, timeline: VisibilityTimeline, origin: Double, maxListed: Int = FrameEventLog.defaultCapacity) -> [String] {
+    /// `advances` and `loops` are media-clock moments of slide advances and video loop points (OUT-002d); nil means "not measured" (no video, for loops).
+    public static func lines(log: FrameEventLog, timeline: VisibilityTimeline, origin: Double, maxListed: Int = FrameEventLog.defaultCapacity,
+                             advances: [Double]? = nil, loops: [Double]? = nil) -> [String] {
         let split = split(events: log.events, timeline: timeline)
         func f(_ x: Double, _ d: Int = 3) -> String { String(format: "%.\(d)f", x) }
         var out: [String] = []
@@ -175,6 +196,7 @@ public enum SoakDropReport {
         } else {
             out.append("longest interval while visible: no interval over 1.5x period was recorded")
         }
+        out.append(contentsOf: classificationLines(log: log))
         if timeline.spans.isEmpty {
             out.append("covered spans: none")
         } else {
@@ -196,10 +218,51 @@ public enum SoakDropReport {
                 if e.isLong { kinds.append("over 2x period") }
                 let window = timeline.isCovered(at: e.time) ? "covered" : "visible"
                 out.append("  \(f(e.time - origin)), \(kinds.joined(separator: " + ")), \(f(e.intervalMs, 2)), \(window)")
+                out.append(eventDetailLine(e, advances: advances, loops: loops))
             }
         }
         let more = log.beyondCap > 0 ? " (at least: \(log.beyondCap) further event(s) were not classified)" : ""
         out.append("drops while visible: \(split.visible.dropped)\(more)")
         return out
+    }
+
+    // MARK: OUT-002d
+
+    public static let ruleLines: [String] = [
+        "classification rule (OUT-002d): each event is judged from the ticks that started from 3 frame periods before the previous presentation up to the event, checked in this order:",
+        "  app slow: a tick's own work (getting the drawable + building the scene + encoding and committing) exceeded the frame period; the largest part is named",
+        "  app late: no tick was slow, but a tick started more than 1.5 periods after the previous tick started, or ran more than 1.5 periods after the display link's own timestamp (the callback arrived late or the render thread was busy)",
+        "  unknown: a tick in that window was skipped (two frames were still on the GPU), or no tick was recorded near the event, or the event is past the log cap",
+        "  presented late: every tick near the event started on time with work within the period, yet a refresh was skipped (the system or the display presented late)",
+        "event detail lines: class and reason | nearest slide advance and video loop point in s (positive: the event is after it; loop points are item changes of the looping player, n/a without video) | ticks, oldest first: start ms relative to the event, cb = ms after the link's own timestamp, m = ms between the tick's end and the link's target time, d/b/e = drawable/build/encode ms, flags H gate holding, C scene changed, V new video frame, S skipped",
+    ]
+
+    static func classificationLines(log: FrameEventLog) -> [String] {
+        var counts: [LatenessClass: Int] = [:]
+        for e in log.events { counts[FrameLateness.classify(e).kind, default: 0] += 1 }
+        func n(_ k: LatenessClass) -> Int { counts[k] ?? 0 }
+        var out = ruleLines
+        out.append("classes: app slow \(n(.appSlow)), app late \(n(.appLate)), presented late \(n(.presentedLate)), unknown \(n(.unknown))"
+                   + (log.beyondCap > 0 ? " (\(log.beyondCap) further event(s) past the cap not classified)" : ""))
+        let h = log.workHistogram
+        if h.ticks + h.skipped == 0 {
+            out.append("tick work over the run: no ticks recorded")
+        } else {
+            out.append(String(format: "tick work over the run: %d ticks that produced a frame, maximum %.2f ms, over the frame period: %d", h.ticks, h.maxWorkMs, h.overPeriod))
+            out.append("tick work buckets (drawable + build + encode): " + h.counts.indices.map { "\(TickWorkHistogram.bucketLabel($0)): \(h.counts[$0])" }.joined(separator: ", "))
+            out.append("ticks skipped because the GPU was behind: \(h.skipped)")
+        }
+        return out
+    }
+
+    /// The one line per event for a person: class and reason, the nearest slide advance and video loop point (positive: the event is after it), and the ticks.
+    static func eventDetailLine(_ e: FrameEvent, advances: [Double]?, loops: [Double]?) -> String {
+        func since(_ name: String, _ marks: [Double]?) -> String {
+            guard let marks, let d = EventMarks.nearest(to: e.time, in: marks) else { return "\(name) n/a" }
+            return "\(name) \(String(format: "%+.3f", d)) s"
+        }
+        let c = FrameLateness.classify(e)
+        let ticks = e.ticks.isEmpty ? "no ticks" : "ticks: " + FrameLateness.tickText(e.ticks, eventTime: e.time)
+        return "    \(c.kind.label) (\(c.detail)) | \(since("advance", advances)), \(since("loop", loops)) | \(ticks)"
     }
 }

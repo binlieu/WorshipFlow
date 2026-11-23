@@ -27,9 +27,10 @@ final class MetalLayerView: NSView {
 }
 
 final class DisplayLinkTarget: NSObject {
-    private let handler: @Sendable () -> Void
-    init(handler: @escaping @Sendable () -> Void) { self.handler = handler }
-    @objc func fire(_ link: CADisplayLink) { handler() }
+    /// Called with the link's own timestamp and target presentation time (OUT-002d records them; nothing acts on them).
+    private let handler: @Sendable (Double, Double) -> Void
+    init(handler: @escaping @Sendable (Double, Double) -> Void) { self.handler = handler }
+    @objc func fire(_ link: CADisplayLink) { handler(link.timestamp, link.targetTimestamp) }
 }
 
 @MainActor
@@ -118,7 +119,7 @@ open class MetalOutput: OutputTarget {
 
         let thread = RunLoopThread()
         thread.start(name: "WorshipFlow.render.\(name)")
-        let target = DisplayLinkTarget { [weak renderer] in renderer?.tick() }
+        let target = DisplayLinkTarget { [weak renderer] timestamp, target in renderer?.tick(linkTimestamp: timestamp, linkTarget: target) }
         let link = view.displayLink(target: target, selector: #selector(DisplayLinkTarget.fire(_:)))
         if let runLoop = thread.runLoop { link.add(to: runLoop, forMode: .common) }
 

@@ -49,6 +49,10 @@ final class ScenePreparationGate: @unchecked Sendable {
     private var pendingToken = 0
     private var nextToken = 0
     private var held = 0
+    /// OUT-002d (reporting only): true when the last `sceneToDraw` returned a scene different from the one before it. Render thread only.
+    private(set) var adoptedOnLastCall = false
+    /// OUT-002d: true while the gate is keeping the scene on screen and waiting for a preparation. Render thread only.
+    var isHolding: Bool { pending != nil }
 
     init(maxHeldFrames: Int = ScenePreparationGate.defaultMaxHeldFrames, preparer: @escaping Preparer) {
         self.maxHeldFrames = max(0, maxHeldFrames)
@@ -57,6 +61,7 @@ final class ScenePreparationGate: @unchecked Sendable {
 
     /// The scene to draw this frame, given the one the output was asked for.
     func sceneToDraw(_ incoming: SceneDescription, width: Int, height: Int) -> SceneDescription {
+        adoptedOnLastCall = false
         if let shown, incoming == shown {                      // nothing new (the usual frame): no work and no copy
             if pending != nil { cancelPending() }
             return shown
@@ -79,6 +84,7 @@ final class ScenePreparationGate: @unchecked Sendable {
     }
 
     private func adopt(_ scene: SceneDescription) -> SceneDescription {
+        adoptedOnLastCall = true
         shown = scene
         cancelPending()
         return scene

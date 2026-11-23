@@ -1875,6 +1875,7 @@ final class AppModel {
         // OUT-002b: the media clock (the base of a frame's presented time) at the soak's start, and the visibility samples on it.
         let mediaOrigin = CACurrentMediaTime() - Date().timeIntervalSince(started)
         var timeline = VisibilityTimeline()
+        var advanceMarks = EventMarks()   // OUT-002d: when each slide advance was sent (media clock)
         var failure: String?
         let refreshAtStart = soakReadout()?.refreshRate ?? 0
         while true {
@@ -1891,6 +1892,7 @@ final class AppModel {
             if t - lastSlideAt >= 5 {
                 lastSlideAt = t
                 advances += 1
+                advanceMarks.add(CACurrentMediaTime())
                 send(.trigger(index: (show.selectedIndex + 1) % max(1, slides.count)))
             }
             if t - lastSampleAt >= 10 {
@@ -1952,7 +1954,8 @@ final class AppModel {
             }
         }
         // OUT-002b: when each dropped and late frame happened, and whether the window was covered then.
-        lines.append(contentsOf: SoakDropReport.lines(log: frameEvents, timeline: timeline, origin: mediaOrigin))
+        lines.append(contentsOf: SoakDropReport.lines(log: frameEvents, timeline: timeline, origin: mediaOrigin,
+                                                      advances: advanceMarks.times, loops: video.map(\.itemChangeTimes)))
         lines.append("status: \(failure ?? "completed")")
         let text = lines.joined(separator: "\n") + "\n"
         let path = config.reportPath ?? defaultReportPath()
