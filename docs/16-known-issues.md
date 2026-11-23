@@ -247,8 +247,8 @@
 | KI-249 | UI-007d: Marker times are shown and typed to a tenth of a second; stored times keep any precision typed. | Open. |
 | KI-250 | UI-007d: Hot-folder items have no marks or markers. | Open. |
 | KI-251 | UI-007d: The observer's 50 ms interval bounds how late a marker can run, plus the player's own lag; not measured under load or on hardware. | Open. |
-| KI-252 | UI-007e: Stage inspector rows Shows, Size, Weight sit 4 pt left of the design since UI-006e (cause not found, 8 pt too wide). | Open. |
-| KI-253 | UI-007e: Auto-fit label 12 pt against the design's 13. | Open. |
+| KI-252 | UI-007e: Stage inspector rows Shows, Size, Weight sit 4 pt left of the design since UI-006e (cause not found, 8 pt too wide). | Fixed by UI-008 (a spacer in the Size row made each section 8 pt wide): inspector 24 of 32 within 1 pt, Stage 73 of 92. Open: the Auto-fit field is 2.5 pt narrow and the eye buttons keep a 26 pt target. |
+| KI-253 | UI-007e: Auto-fit label 12 pt against the design's 13. | Fixed by UI-008. |
 | KI-254 | UI-007e: Next section draws nothing while the next slide is in the same section (by design). | Open (by design). |
 | KI-255 | UI-007f: (1) Edit's canvas preview of a screen with its own Look follows the show's Look. | Open. |
 | KI-256 | UI-007f: (2) A note or chain label typed in the new fields is committed on Return or when the field loses focus; switching screen with uncommitted text loses it. | Open. |
@@ -268,3 +268,5 @@
 | KI-270 | FIX-U: moving part of an `HStack`'s children into a view of their own can make the stack treat it as one flexible child and squeeze its first member; `compare-rects.py` caught it (U3). Any later split of the transport bar, the toolbar or the dock header should be checked the same way. | Open. |
 
 | KI-271 | Build: after a stored-property change to a widely used domain type (`MediaSelection` gained `markIn` and `markOut`), an incremental SwiftPM build gave garbage values in the new fields and 26 test failures on the merged tree; `swift package clean` and a full build passed (3,476 tests). Seen twice on 2026-11-22. The packaging script must build clean; the check does not force it. | Open. |
+| KI-272 | UI-008: Cues in light appearance measures 87 of 186 within 1 pt (dark: 159): when Activity holds a two-line entry the right column sits 7 pt left and 3 pt narrow. Cause not found. Cues markers: the order note is 187 pt lower than the design and the time axis 16 pt higher and 14 pt tall instead of 16. Media: the marker-list button pushes the scrub bar and mark buttons 55 pt left of the design. | Open. |
+| KI-273 | UI-008: a rectangle comparison is only true for a 1440 x 900 capture window; FIX-U's "32 of 220" for Show is believed to come from a capture at another size (inferred, not reproduced: the same method gives 209 of 242 today). `scripts/compare-rects.py` now refuses a dump of another size unless `--allow-size` is given. | Open. |

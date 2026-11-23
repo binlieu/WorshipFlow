@@ -2,7 +2,8 @@
 """UI-005j tool 3: compares the design's rectangles (scripts/design-rects) with the app's (the ui-snapshots dump, App/Sources/DesignProbe.swift)
 through a mapping file (scripts/design-map-show.json). Run by hand; check.sh does not call it.
 
-usage: scripts/compare-rects.py <design.json> <app.rects.json> <map.json> [--top N] [--all] [--region NAME] [--rects] [--bad] [--unmapped]
+usage: scripts/compare-rects.py <design.json> <app.rects.json> <map.json> [--top N] [--all] [--region NAME] [--rects] [--bad] [--unmapped] [--allow-size]
+(UI-008: exits 3 when the app dump's window is not 1440 x 900, unless --allow-size.)
 
 Mapping file: {"entries": [{"d": "<design path without the leading div.win[0]>>", "a": "<app identifier>"}],
                "ignore_design": [{"match": "<regex on the design path>", "reason": "..."}],
@@ -37,6 +38,12 @@ def main(argv):
     app_doc = load(args[1])
     mp = load(args[2])
     app = {r['id']: r for r in app_doc['rects']}
+    # UI-008: every design is 1440 x 900 points. A capture whose window is any other size (the window manager shrinks a 1440 x 900 window on a small
+    # or locked display) lays the app out differently and every number below is meaningless: FIX-U's 32 of 220 was most likely such a run.
+    win = app_doc.get('window')
+    if win and (abs(win.get('w', 0) - 1440) > 0.5 or abs(win.get('h', 0) - 900) > 0.5):
+        print('WARNING: the capture window is %gx%g points, not 1440x900: the numbers below are NOT comparable with the design; capture again.' % (win.get('w', 0), win.get('h', 0)), file=sys.stderr)
+        if '--allow-size' not in sys.argv: sys.exit(3)
     by_path = {}
     for e in design:
         p = e['path']

@@ -814,6 +814,23 @@
    "a": "r.act.lines",
    "skip": "B",
    "why": "content: the activity has the lines the run produced"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.h[5]",
+   "a": "mk.h",
+   "why": "UI-008: the design's header names its own clip; the app names the clip it shows (the words differ, the box is the row)"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.tl[6]",
+   "a": "mk.tl",
+   "skip": "TB",
+   "why": "UI-008: the app's track is 34 pt tall (a 6 pt bar with the marker lines); the design's is 54 pt with the marker names under the lines. The left and right edges are compared"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[1]>div.row.mono.c-muted[7]",
+   "a": "mk.axis",
+   "skip": "R",
+   "why": "UI-008: the app's axis has three times (start, middle, end), the design's five; the row's top and left are compared"
   }
  ],
  "ignore_design": [
@@ -911,6 +928,10 @@
   }
  ],
  "ignore_app": [
+  {
+   "match": "^mk\\.(act|main)",
+   "reason": "UI-008: the marker's own action list (the design draws a marker's actions as the timeline's label only); the same rows as the macro's, tagged with a prefix so they do not overwrite the macro's"
+  },
   {
    "match": "^(sb|r)\\.sec\\.3$|^sb\\.schedule\\.",
    "reason": "the owner's extra: Schedule, below the designed sections"

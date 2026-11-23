@@ -12,6 +12,8 @@ struct ActionListEditor: View {
     /// The macro being edited, so a macro cannot be offered itself.
     var editingMacro: UUID?
     let actions: [CueAction]
+    /// UI-008: a list nested under another one (the marker's) tags its rectangles with its own prefix, so the macro's `act.N` and `main.add` are not overwritten.
+    var rectPrefix = ""
     let onChange: ([CueAction]) -> Void
 
     @State private var editing: Int?
@@ -20,7 +22,7 @@ struct ActionListEditor: View {
         let choices = app.cueChoices()
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(actions.enumerated()), id: \.offset) { index, action in
-                CuesActionRow(index: index, actions: actions, choices: choices, editingMacro: editingMacro, editing: $editing, onChange: onChange)
+                CuesActionRow(index: index, actions: actions, choices: choices, editingMacro: editingMacro, editing: $editing, rectPrefix: rectPrefix, onChange: onChange)
                     .padding(.bottom, 6)
             }
             addMenu(choices).padding(.top, 4)
@@ -57,7 +59,7 @@ struct ActionListEditor: View {
             .foregroundStyle(Tok.text)
             .padding(.horizontal, 11).frame(height: Space.controlHeight)
             .wfOutline(RoundedRectangle(cornerRadius: Radius.md), stroke: Tok.borderStrong, fill: Tok.surface2)
-            .wfRect("main.add", size: 12, weight: 500, radius: Radius.md)
+            .wfRect("\(rectPrefix)main.add", size: 12, weight: 500, radius: Radius.md)
             .contentShape(Rectangle())
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
@@ -82,6 +84,7 @@ struct CuesActionRow: View {
     let choices: CueChoices
     var editingMacro: UUID?
     @Binding var editing: Int?
+    var rectPrefix = ""
     let onChange: ([CueAction]) -> Void
     @State private var hovering = false
 
@@ -89,7 +92,7 @@ struct CuesActionRow: View {
         let action = actions[index]
         let description = CueActionEditing.describe(action, choices: choices)
         let kind = CueActionKind.of(action)
-        let id = "act.\(index)"
+        let id = "\(rectPrefix)act.\(index)"
         let shown = hovering || editing == index
         HStack(spacing: 10) {
             Text("\(index + 1)").font(.wf(11, .bold).monospacedDigit()).frame(width: 20, height: 20)

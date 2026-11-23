@@ -476,6 +476,18 @@
    "a": "sc.detail.stop"
   },
   {
+   "d": "div.body[1]>div.side[0]>div.sec.row[0]>span.btn[2]",
+   "a": "sc.list.add"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[5]",
+   "a": "sc.map.identify"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[4]>span.btn.ghost.c-live[4]",
+   "a": "sc.detail.remove"
+  },
+  {
    "d": "div.body[1]>div.main[1]>div.form[5]",
    "a": "sc.form"
   },

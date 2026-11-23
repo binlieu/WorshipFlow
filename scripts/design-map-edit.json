@@ -504,6 +504,40 @@
   {
    "d": "div.body[1]>div.main[1]>div.row[1]>span.c-muted[2]",
    "a": "ed.strip.saved"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div.bar[0]>span.btn[3]",
+   "a": "ed.bar.video"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[5]",
+   "a": "ed.insp.fitrow"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[5]>label.k[0]",
+   "a": "ed.insp.fitrow.k"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.fr[5]>span.field[0]",
+   "a": "ed.insp.fit.field"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[3]",
+   "a": "ed.insp.fillrow"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[3]>span.chk[0]",
+   "a": "ed.insp.fill.chk"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[2]>div.fr[3]>span.field.mono[2]",
+   "a": "ed.insp.fill.field"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec.grow[4]>div.row[0]>span.h[0]",
+   "a": "ed.insp.layers.h",
+   "skip": "TRB",
+   "why": "the design's heading is the word's own width and sits at its own height (the Layers section starts lower in the app, after taller sections above it); the left edge is compared"
   }
  ],
  "ignore_design": [

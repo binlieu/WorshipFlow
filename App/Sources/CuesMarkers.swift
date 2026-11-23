@@ -20,7 +20,7 @@ struct CuesPlaybackMarkers: View {
             let videos = media.assets.filter { $0.kind == .video }
             let clip = effectiveClip(videos, markers: markers)
             VStack(alignment: .leading, spacing: 0) {
-                header(videos, clip: clip, markers: markers)
+                header(videos, clip: clip, markers: markers).wfRect("mk.h")      // UI-008: tagged for the rectangle comparison
                 if let clip {
                     let list = markers.markers(for: clip.id)
                     timeline(clip, list)
@@ -97,11 +97,11 @@ struct CuesPlaybackMarkers: View {
                 }
                 .frame(height: 34)
             }
-            .frame(height: 34)
+            .frame(height: 34).wfRect("mk.tl")
             HStack {
                 Text(MediaTimeText.format(0)); Spacer(); Text(MediaTimeText.format(length / 2)); Spacer(); Text(MediaTimeText.format(length))
             }
-            .font(.wfMono(11)).foregroundStyle(Tok.muted)
+            .font(.wfMono(11)).foregroundStyle(Tok.muted).wfRect("mk.axis")
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Timeline of \(clip.name), \(list.count) marker\(list.count == 1 ? "" : "s")")
@@ -146,7 +146,7 @@ struct CuesPlaybackMarkers: View {
                 Text("This marker's actions were written by a newer version or are damaged, so it runs nothing. Saving new actions replaces them.")
                     .font(.wf(12)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true)
             }
-            ActionListEditor(app: app, context: .marker, editingMacro: nil, actions: markers.actions(of: marker.id)) { new in
+            ActionListEditor(app: app, context: .marker, editingMacro: nil, actions: markers.actions(of: marker.id), rectPrefix: "mk.") { new in
                 Task { @MainActor in problem = await markers.setActions(new, for: marker.id, macros: cue.library) }
             }
             if let problem {

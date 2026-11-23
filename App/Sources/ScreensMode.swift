@@ -83,7 +83,7 @@ private struct ScreensList: View {
                 } label: {
                     HStack(spacing: 4) { Image(systemName: "plus").font(.wf(11, .semibold)); Text("Add screen") }
                 }
-                .buttonStyle(HeaderButtonStyle())
+                .buttonStyle(CuesSmallButtonStyle())      // UI-008: the design's 22 pt button (`style="height:22px"`), not the 26 pt one
                 .disabled(app.settings == nil)
                 .help("Add a screen. It starts off, in a window, until you choose where it goes and turn it on.")
                 .accessibilityLabel("Add screen")

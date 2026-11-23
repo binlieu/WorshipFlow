@@ -100,6 +100,8 @@ struct StageInspector: View {
     }
 
     /// The design's Size row: the size field (its stepper sits inside the field, at the right) and the Auto-fit checkbox. UI-006e.
+    /// UI-008: the field takes what the checkbox leaves (the design's flex row: 120.5 pt next to the 13 pt label), and the row has no trailing
+    /// spacer: a spacer after the 8 pt gap made the row 8 pt wider than the column, so the whole inspector sat 4 pt left of the design (KI-252).
     private func sizeControl(_ e: StageElement) -> some View {
         HStack(spacing: 8) {
             HStack(spacing: 4) {
@@ -111,15 +113,14 @@ struct StageInspector: View {
                         in: StageEditing.fontSizeRange, step: 4).labelsHidden().accessibilityLabel("Font size step")
                     .scaleEffect(0.8).frame(width: 14)
             }
-            .wfField().frame(width: 120.5).wfRect("st.insp.size", size: 11, weight: 400, radius: Radius.md)
+            .wfField().frame(maxWidth: .infinity).wfRect("st.insp.size", size: 11, weight: 400, radius: Radius.md)
             Toggle(isOn: Binding(get: { e.autoFit }, set: { stage.setAutoFit($0, for: e.id, in: layoutID) })) {
-                Text("Auto-fit").font(.wf(12)).foregroundStyle(Tok.text).wfLine()
+                Text("Auto-fit").font(.wf(13)).foregroundStyle(Tok.text).wfLine()
             }
             .toggleStyle(.wfCheckbox).fixedSize()
             .help("Shrink the text until it fits the box. The lyric stops at \(Int(StageAutoFit.lyricMinimum)) px at 1080p; other text at half its size. Elements with Auto-fit shrink together.")
             .accessibilityLabel("Auto-fit")
-            .wfRect("st.insp.autofit", size: 12, weight: 400)
-            Spacer(minLength: 0)
+            .wfRect("st.insp.autofit", size: 13, weight: 400)
         }
     }
 

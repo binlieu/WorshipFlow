@@ -806,6 +806,24 @@
   {
    "d": "div.body[1]>div.side[0]>div.sec[2]>span.btn[0]",
    "a": "media.sb.locate"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.btn[5]",
+   "a": "media.strip.markin",
+   "skip": "LR",
+   "why": "UI-008: the app's strip row has one more button after Add marker (the marker list, not in the design), which makes the scrub 55 pt shorter, so everything after it sits 55 pt left; top and bottom are compared"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.btn[6]",
+   "a": "media.strip.markout",
+   "skip": "LR",
+   "why": "UI-008: as Mark in"
+  },
+  {
+   "d": "div.body[1]>div.main[1]>div[3]>div.row[1]>span.btn[7]",
+   "a": "media.strip.addmarker",
+   "skip": "LR",
+   "why": "UI-008: as Mark in"
   }
  ],
  "ignore_design": [
