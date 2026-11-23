@@ -1,0 +1,29 @@
+# FIX-U: the Show window's update after a command (KI-186, KI-187, KI-189, KI-192)
+
+Feature IDs: UI (Show), SYS. Model: Sonnet. One agent in its own git worktree. No migration, no behaviour change.
+
+Measured in a release build with 200 slides (`AI/reports/FIX-Q-report.md`, `FIX-R-report.md`): the model call for Next is under 1 ms and the new scene reaches the outputs 0.3 to 0.9 ms after the command. What remains is SwiftUI updating and laying out the Show window: longest main-thread burst about 17 ms for Next, 23 ms for Blackout, 27 to 35 ms for Clear, 34 to 44 ms for a slide reorder, against a target of 8 ms median and 16 ms worst. Only seven view bodies run, but the update is expensive. By hiding parts, Next's CPU above idle was: everything 37.8 ms, no grid 27.2, no inspector 27.3, no transport 34.8, all five regions hidden 7.4. A message every 7 ms over MIDI therefore still queues.
+
+## What to do
+
+1. **Profile before changing anything,** in a release measuring build (`WF_CONFIG=Release`, `WF_MEASURE`, `scripts/fixq-run.sh`, `measure-drags.sh`, `fixp-run.sh`), with Instruments' SwiftUI and Time Profiler templates driven from the command line (`xctrace record`) if available, otherwise with signposts: for Next, Blackout, Clear and a grid reorder, where the time goes inside the update (which views' bodies, which layouts, text measurement, shadow or blur or mask rendering, `GeometryReader` cascades, `AnyView`, implicit animations, the preview and live monitors' image updates, the inspector). Put the profile in the report.
+2. **Fix causes, largest first,** keeping every view at its mapped rectangle and every behaviour as it is. Candidates to confirm by the profile, not assume: layout invalidation climbing to the window root (give the grid, inspector, transport bar and dock fixed or self-contained layout boundaries so a change inside one does not re-lay-out the others); the monitors replacing an image through SwiftUI state instead of a layer-backed view updated directly (an `NSViewRepresentable` whose `CALayer.contents` is set off the SwiftUI update, on the main thread but outside the view graph); per-cell overlays (live ring, mode tag) that re-render the whole cell; text that is measured again though unchanged; implicit animations on state the command changes. The FIX-O/FIX-Q rules stay: views read `showParts`, `slideList`, `layerParts`; nothing ticks while idle (`TickingWhile`); lazy cells carry their slide (`CellSlot`, FIX-S) and never index the model's list.
+3. **Measure by interleaved A/B** as FIX-R did (variants alternated in one session, noise floor reported), for each change separately. Keep a change only if it is measurably better on some gesture and not measurably worse on any (burst, CPU, idle); roll back the rest. Report the table per change and the final numbers against the targets. Say plainly which targets are still missed and why.
+4. **MIDI burst:** repeat `scripts/fixp-run.sh` at one message every 7 ms under load and report whether commands keep up (median under 50 ms, worst under 200 ms). No coalescing of Next or Previous.
+5. **Output unchanged:** `FIXQ_PublishedScenesDigestTests` passes without edits; command-to-publication time is not worse.
+
+## Working in a worktree
+
+- Your files: `App/Sources/CentrePane.swift`, `SlideGridCell.swift`, `ContentView.swift` (layout boundaries only), the Show inspector's monitor views, the transport bar, `MediaDockView.swift`, and new files `Show*.swift` / tests `FIXU_*.swift`. Another agent is changing persistence and domain types in the main folder (a migration); other agents will later work in `Edit*`, `Media*`, `Stage*`, `Screens*`, `Cues*` files: do not touch those or anything under `Packages/WorshipFlowKit/Sources/Persistence` or `Domain`.
+- Do not edit `docs/`: put change log, known issues (unnumbered) and hands-on entries in your report. Write only `AI/reports/FIX-U-report.md`.
+- Builds: your own uniquely named scratch build folders; delete them when done, and delete any build `.app` you leave in Xcode's DerivedData. If only a timing-sensitive test fails while other builds run (`MIDIRouterTests`, `ToolProcessRunnerTests`, `ScriptureLibraryTests`), re-run once, then run those suites alone, and report all results.
+- Untracked folders (`TestMedia/`, `TestData/`, `Vendor/DeckLinkSDK/`, `Bibles/`) are absent from a worktree: you may read test media and test data from the main checkout at /Volumes/Storage/chilt/worshipflow by passing their paths to your scripts (read only), and generate `TestData` with `scripts/make-test-data.sh` in your worktree if you need it.
+- Do not commit a regenerated `WORSHIPFLOW.xcodeproj/project.pbxproj`. Commit everything else to your own branch, message starting `perf(FIX-U):` and ending with the line `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`. Do not push, do not touch `main`, do not merge or rebase.
+
+## Rules
+
+- Test-first for any logic. Do not edit existing tests (source-rule tests such as `FIXO_ViewSourceTests`, `FIXQ_ViewSourceTests`, `FIXS_CellSlotTests` pin sentences in the grid code: if a real improvement conflicts with one, do not work around it with a comment; list it for the coordinator and stop that change). No wall-clock assertions.
+- Editing never changes Live; red only for on air; accessibility labels and keyboard behaviour kept; the mapped rectangles for Show still pass (`scripts/compare-rects.py`, `scripts/design-map-show.json`).
+- Do not edit `docs/UI`, `docs/adr`, `AI/specs`, `Vendor/`, `dist/`, `.claude/`. No advisor tool. No full computer control. Never open the owner's real library; temporary `--library` and `--silent-audio`; stop only what you started. Never use `pkill` by name: stop only process ids you started.
+- The repository is public: no personal strings.
+- If you are running out of room, stop at a change boundary with the check passing, commit, and say what is done.
