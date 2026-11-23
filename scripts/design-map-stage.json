@@ -360,6 +360,60 @@
   {
    "d": "div.body[1]>div.side.r[2]>div.sec.grow[2]>div.c-muted[2]",
    "a": "st.insp.note"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[2]>span.chk.on[1]",
+   "a": "st.insp.autofit",
+   "skip": "R",
+   "why": "UI-007e: the design's rectangle is the 14 pt box alone; the app's is the whole checkbox control (box and its \"Auto-fit\" label)"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[5]>label.k[0]",
+   "a": "st.insp.second.label"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[5]>span[0]",
+   "a": "st.insp.second.swatch"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[0]>div.fr[5]>span.field.mono[1]",
+   "a": "st.insp.second.hex"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li.on[1]>span.n[0]",
+   "a": "st.insp.el.0.eye",
+   "skip": "TRB",
+   "why": "UI-006e: the app's rectangle is the eye button (a 26 pt tall hit target, 24 pt wide); the design's is the 12 pt icon span"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[2]>span.n[0]",
+   "a": "st.insp.el.1.eye",
+   "skip": "TRB",
+   "why": "UI-006e: the app's rectangle is the eye button (a 26 pt tall hit target, 24 pt wide); the design's is the 12 pt icon span"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[3]>span.n[0]",
+   "a": "st.insp.el.2.eye",
+   "skip": "TRB",
+   "why": "UI-006e: the app's rectangle is the eye button (a 26 pt tall hit target, 24 pt wide); the design's is the 12 pt icon span"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[4]>span.n[0]",
+   "a": "st.insp.el.3.eye",
+   "skip": "TRB",
+   "why": "UI-006e: the app's rectangle is the eye button (a 26 pt tall hit target, 24 pt wide); the design's is the 12 pt icon span"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[5]>span.n[0]",
+   "a": "st.insp.el.4.eye",
+   "skip": "TRB",
+   "why": "UI-006e: the app's rectangle is the eye button (a 26 pt tall hit target, 24 pt wide); the design's is the 12 pt icon span"
+  },
+  {
+   "d": "div.body[1]>div.side.r[2]>div.sec[1]>div.li[6]>span.n[0]",
+   "a": "st.insp.el.5.eye",
+   "skip": "TRB",
+   "why": "UI-006e: the app's rectangle is the eye button (a 26 pt tall hit target, 24 pt wide); the design's is the 12 pt icon span"
   }
  ],
  "ignore_design": [

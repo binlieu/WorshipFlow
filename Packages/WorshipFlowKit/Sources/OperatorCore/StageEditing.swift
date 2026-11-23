@@ -16,8 +16,13 @@ public struct ClockStyle: Sendable, Equatable, Codable {
 
 /// The kinds of element the operator can add. A timer element needs a timer, chosen when it is added.
 public enum NewStageElement: String, Sendable, CaseIterable, Identifiable {
-    case currentSlide, nextSlide, timeOfDay, timer, message, notes
+    case currentSlide, nextSlide, timeOfDay, timer, message, notes, sectionName, nextSectionName
     public var id: String { rawValue }
+
+    /// The six elements with a plain Add button. UI-007e: the two Section elements have their own menu (`sectionElements`), so they are not here.
+    public static var allCases: [NewStageElement] { [.currentSlide, .nextSlide, .timeOfDay, .timer, .message, .notes] }
+    /// UI-007e: the Section elements, added from the Section menu.
+    public static var sectionElements: [NewStageElement] { [.sectionName, .nextSectionName] }
 
     public var title: String {
         switch self {
@@ -27,6 +32,8 @@ public enum NewStageElement: String, Sendable, CaseIterable, Identifiable {
         case .timer: "Timer"
         case .message: "Message"
         case .notes: "Notes"
+        case .sectionName: "Section"
+        case .nextSectionName: "Next section"
         }
     }
 }
@@ -41,7 +48,7 @@ public enum StageEditing {
         layout.elements.contains { element in
             switch element.kind {
             case .timeOfDay, .timer, .firstCountdown: true
-            case .currentSlide, .nextSlide, .message, .notes: false
+            case .currentSlide, .nextSlide, .message, .notes, .sectionName, .nextSectionName: false
             }
         }
     }
@@ -73,6 +80,22 @@ public enum StageEditing {
             style.fontSize = 40
             return StageElement(id: id, kind: .notes, frame: NormalizedRect(x: 0.04, y: 0.62, width: 0.92, height: 0.3),
                                 style: style, alignment: .leading)
+        case .sectionName:
+            // UI-007e: where the design draws its Section element (right edge, 60% down), the name in the design's blue.
+            var style = s.stageClock
+            style.fontSize = 40
+            style.color = ColorRGBA(red: 0.44, green: 0.72, blue: 0.98)
+            return StageElement(id: id, kind: .sectionName, frame: NormalizedRect(x: 0.74, y: 0.6, width: 0.22, height: 0.07),
+                                style: style, alignment: .trailing, verticalAlignment: .center)
+        case .nextSectionName:
+            // The design's "then Verse 2" line, in the muted colour under the section, with its caption.
+            var style = s.stageNext
+            style.fontSize = 32
+            var caption = s.stageClock
+            caption.fontSize = 20
+            let label = StageLabel(text: "NEXT", style: caption, relativeFrame: NormalizedRect(x: 0, y: 0, width: 1, height: 0.38), alignment: .trailing)
+            return StageElement(id: id, kind: .nextSectionName, frame: NormalizedRect(x: 0.74, y: 0.68, width: 0.22, height: 0.12),
+                                style: style, alignment: .trailing, verticalAlignment: .bottom, label: label)
         }
     }
 
@@ -101,7 +124,8 @@ public enum StageEditing {
     /// Words shown in the editor's canvas so every element has something to draw.
     public static let sampleLines = (current: "Amazing grace, how sweet the sound", currentSecond: "Ân điển lạ lùng thay",
                                      next: "That saved a wretch like me", clock: "10:30 AM",
-                                     message: "Wrap up in five minutes", notes: "Pause here and invite the church to stand.")
+                                     message: "Wrap up in five minutes", notes: "Pause here and invite the church to stand.",
+                                     currentSection: "Verse 1", nextSection: "Chorus")
 
     /// The layout as the stage screen would draw it, with sample slides, clock, message and notes, and the real timers.
     public static func sampleScene(layout: StageLayout, timers: [ShowTimer], now: TimeInterval,
@@ -110,7 +134,7 @@ public enum StageEditing {
         let deck = ShowDeck(presentationID: UUID(), slides: [
             SlideContent(primary: sampleLines.current, secondary: sampleLines.currentSecond),
             SlideContent(primary: sampleLines.next),
-        ])
+        ], sectionNames: [sampleLines.currentSection, sampleLines.nextSection])
         state.apply(.load(deck))
         state.apply(.trigger(index: 0))
         let context = StageContext(state: state, now: now, timeOfDayText: timeOfDayText, timers: timers,

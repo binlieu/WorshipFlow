@@ -18,6 +18,14 @@ extension AppModel {
         let layout = stage.layout(withID: band.id) ?? band
         let scene = stage.sampleScene(for: layout)
         note("stagefeatures: hidden=\(layout.elements.filter(\.isHidden).count) autoFit=\(layout.elements.filter(\.autoFit).count) layers=\(scene.textLayers.map(\.text)) fitFloors=\(scene.textLayers.compactMap(\.fitFloor)) presets=\(stage.customLayouts.map(\.name))")
+        // UI-007e: the Section elements, added to Band and composed against a live state that has section names (the model path, no window).
+        _ = stage.addElement(.sectionName, to: band.id)
+        _ = stage.addElement(.nextSectionName, to: band.id)
+        var state = ShowState()
+        state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "One"), SlideContent(primary: "Two")], sectionNames: ["Verse 1", "Chorus"])))
+        state.apply(.trigger(index: 0))
+        let withSections = stage.layout(withID: band.id) ?? band
+        note("stagesection: stage=\(stage.scene(layout: withSections, state: state, notes: nil).textLayers.map(\.text)) audience=\(SceneComposer.scene(for: .audience, state: state).textLayers.map(\.text)) broadcast=\(SceneComposer.scene(for: .broadcast, state: state).textLayers.map(\.text))")
         try? await Task.sleep(for: .seconds(1))
         await capture("stage-features-dark")
     }

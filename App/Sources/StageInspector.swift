@@ -93,6 +93,8 @@ struct StageInspector: View {
         case .message: "The stage message"
         case .notes: "Speaker notes"
         case .firstCountdown: "First countdown timer"
+        case .sectionName: "The live slide's section"
+        case .nextSectionName: "The next slide's section, when it changes"
         default: ""
         }
     }
@@ -306,6 +308,7 @@ private struct HexField: View {
     var body: some View {
         TextField("", text: $text).textFieldStyle(.plain).font(.wfMono(11)).focused($focused)
             .wfField()
+            .frame(width: 167)      // UI-007e: the design's width (its own 175 pt ideal pushed the whole inspector 4 pt off the design)
             .onAppear { text = current }
             .onChange(of: color) { _, _ in if !focused { text = current } }
             .onSubmit(commit)

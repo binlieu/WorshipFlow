@@ -165,6 +165,7 @@ struct StageEditorView: View {
             title
             Badge(text: "STAGE", style: .outline(Tok.roleStage), rectID: "st.bar.badge")
             Spacer(minLength: 0)
+            sectionMenu
             addButton(.notes, title: "Notes", symbol: "note.text", rectID: "st.bar.notes")
             addButton(.currentSlide, title: "Current", symbol: "textformat", rectID: "st.bar.current")
             addButton(.nextSlide, title: "Next", symbol: "textformat", rectID: "st.bar.next")
@@ -191,6 +192,21 @@ struct StageEditorView: View {
         } else {
             Text(layout.name).font(.wf(15, .bold)).lineLimit(1).wfLine().fixedSize().wfRect("st.bar.title", size: 15, weight: 700)
         }
+    }
+
+    /// UI-007e: the Section elements. One menu left of Notes (the design has no such button; the buttons to its right keep their places).
+    private var sectionMenu: some View {
+        Menu {
+            Button("Section · the live slide's section") { elementID = stage.addElement(.sectionName, to: layoutID) ?? elementID }
+            Button("Next section · when it changes") { elementID = stage.addElement(.nextSectionName, to: layoutID) ?? elementID }
+        } label: {
+            HStack(spacing: 6) { Image(systemName: "list.bullet.indent").frame(width: 15, height: 15); Text("Section") }
+        }
+        .menuStyle(.button).buttonStyle(HeaderButtonStyle()).menuIndicator(.hidden).fixedSize()
+        .wfFocusReport(.popUp)
+        .disabled(!editable)
+        .help(editable ? "Add the name of the live slide's section, or of the next one, to the stage screen" : StageModel.readOnlyMessage)
+        .accessibilityLabel("Add section element")
     }
 
     private func addButton(_ template: NewStageElement, title: String, symbol: String, rectID: String) -> some View {
@@ -245,6 +261,8 @@ struct StageEditorView: View {
         case .notes: "Notes"
         case .timer(let id): "Timer · " + (stage.timers.first { $0.id == id }?.name ?? "deleted timer")
         case .firstCountdown: "Timer · first countdown"
+        case .sectionName: "Section"
+        case .nextSectionName: "Next section"
         }
     }
     /// The small label over the element on the canvas.
@@ -260,6 +278,7 @@ struct StageEditorView: View {
         case .timer, .firstCountdown: "timer"
         case .message: "bubble.left"
         case .notes: "note.text"
+        case .sectionName, .nextSectionName: "list.bullet.indent"
         }
     }
 }
