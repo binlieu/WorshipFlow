@@ -15,11 +15,19 @@ struct ScreenProfileExtras: Codable {
     var videoMode: VideoModeDescription
     /// UI-002: the typed "connected to" notes. Absent in rows written before.
     var connectedTo: [String]?
+    /// SYS-015: optional keys, absent when empty, so a profile that uses none of them stores exactly what it stored before.
+    var connectedToKey: [String]?
+    var signalChains: [[ChainNode]]?
+    var screenLookID: UUID?
 
     init?(_ profile: ScreenProfile) {
         let sdi = profile.destination.isSDI ? profile.destination : nil
-        guard sdi != nil || !profile.mirrors.isEmpty || profile.videoMode != .standard || !profile.connectedTo.isEmpty else { return nil }
+        guard sdi != nil || !profile.mirrors.isEmpty || profile.videoMode != .standard || !profile.connectedTo.isEmpty
+                || !profile.connectedToKey.isEmpty || !profile.signalChains.isEmpty || profile.screenLookID != nil else { return nil }
         connectedTo = profile.connectedTo.isEmpty ? nil : profile.connectedTo
+        connectedToKey = profile.connectedToKey.isEmpty ? nil : profile.connectedToKey
+        signalChains = profile.signalChains.isEmpty ? nil : profile.signalChains
+        screenLookID = profile.screenLookID
         destination = sdi
         mirrors = profile.mirrors
         videoMode = profile.videoMode
@@ -203,6 +211,12 @@ extension LibraryStore {
         try await writer.write { db in
             try Self.requireExists(db, table: "look", id: id)
             try db.execute(sql: "DELETE FROM look WHERE id = ?", arguments: [id.dbText])
+            // SYS-015: a screen that followed this Look on its own goes back to the show's current Look.
+            var profiles = try Self.screenProfiles(db)
+            if profiles.contains(where: { $0.screenLookID == id }) {
+                for index in profiles.indices where profiles[index].screenLookID == id { profiles[index].screenLookID = nil }
+                try Self.writeScreenProfiles(db, profiles)
+            }
         }
     }
 
@@ -266,51 +280,56 @@ extension LibraryStore {
     // MARK: Screen profiles (OUT-002)
 
     public func screenProfiles() async throws -> [ScreenProfile] {
-        try await writer.read { db in
-            try Row.fetchAll(db, sql: "SELECT * FROM screenProfile ORDER BY sortOrder, rowid").map { row in
-                guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("screen id") }
-                guard let role = ScreenRole(rawValue: row["role"]) else { throw SettingsJSON.corrupt("screen role") }
-                let extras: ScreenProfileExtras? = try (row["extra"] as String?).map { try SettingsJSON.decode(ScreenProfileExtras.self, from: $0) }
-                let destination: OutputDestination
-                switch row["destination"] as String {
-                case "sdi":
-                    guard let sdi = extras?.destination else { throw SettingsJSON.corrupt("screen sdi destination") }
-                    destination = sdi
-                case "window": destination = .window
-                case "display":
-                    guard let display = row["displayID"] as Int64?, let value = UInt32(exactly: display) else {
-                        throw SettingsJSON.corrupt("screen display id")
-                    }
-                    destination = .display(value)
-                default: throw SettingsJSON.corrupt("screen destination")
+        try await writer.read { db in try Self.screenProfiles(db) }
+    }
+
+    static func screenProfiles(_ db: Database) throws -> [ScreenProfile] {
+        try Row.fetchAll(db, sql: "SELECT * FROM screenProfile ORDER BY sortOrder, rowid").map { row in
+            guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("screen id") }
+            guard let role = ScreenRole(rawValue: row["role"]) else { throw SettingsJSON.corrupt("screen role") }
+            let extras: ScreenProfileExtras? = try (row["extra"] as String?).map { try SettingsJSON.decode(ScreenProfileExtras.self, from: $0) }
+            let destination: OutputDestination
+            switch row["destination"] as String {
+            case "sdi":
+                guard let sdi = extras?.destination else { throw SettingsJSON.corrupt("screen sdi destination") }
+                destination = sdi
+            case "window": destination = .window
+            case "display":
+                guard let display = row["displayID"] as Int64?, let value = UInt32(exactly: display) else {
+                    throw SettingsJSON.corrupt("screen display id")
                 }
-                return ScreenProfile(id: id, name: row["name"], role: role, destination: destination, isEnabled: row["isEnabled"],
-                                     mirrors: extras?.mirrors ?? [], videoMode: extras?.videoMode ?? .standard,
-                                     connectedTo: extras?.connectedTo ?? [])
+                destination = .display(value)
+            default: throw SettingsJSON.corrupt("screen destination")
             }
+            return ScreenProfile(id: id, name: row["name"], role: role, destination: destination, isEnabled: row["isEnabled"],
+                                 mirrors: extras?.mirrors ?? [], videoMode: extras?.videoMode ?? .standard,
+                                 connectedTo: extras?.connectedTo ?? [], connectedToKey: extras?.connectedToKey ?? [],
+                                 signalChains: extras?.signalChains ?? [], screenLookID: extras?.screenLookID)
         }
     }
 
     /// Replaces the whole ordered set in one transaction. Duplicate ids throw `invalidReference`.
     public func saveScreenProfiles(_ profiles: [ScreenProfile]) async throws {
         guard Set(profiles.map(\.id)).count == profiles.count else { throw StoreError.invalidReference }
-        try await writer.write { db in
-            try db.execute(sql: "DELETE FROM screenProfile")
-            for (index, profile) in profiles.enumerated() {
-                let kind: String
-                var display: Int64?
-                switch profile.destination {
-                case .window: kind = "window"
-                case .display(let id): kind = "display"; display = Int64(id)
-                case .sdi: kind = "sdi"
-                }
-                let extras = ScreenProfileExtras(profile)
-                let extra: String? = try extras.map { try SettingsJSON.encode($0) }
-                try db.execute(sql: """
-                    INSERT INTO screenProfile (id, sortOrder, name, role, destination, displayID, isEnabled, extra)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, arguments: [profile.id.dbText, index, profile.name, profile.role.rawValue, kind, display, profile.isEnabled, extra])
+        try await writer.write { db in try Self.writeScreenProfiles(db, profiles) }
+    }
+
+    static func writeScreenProfiles(_ db: Database, _ profiles: [ScreenProfile]) throws {
+        try db.execute(sql: "DELETE FROM screenProfile")
+        for (index, profile) in profiles.enumerated() {
+            let kind: String
+            var display: Int64?
+            switch profile.destination {
+            case .window: kind = "window"
+            case .display(let id): kind = "display"; display = Int64(id)
+            case .sdi: kind = "sdi"
             }
+            let extras = ScreenProfileExtras(profile)
+            let extra: String? = try extras.map { try SettingsJSON.encode($0) }
+            try db.execute(sql: """
+                INSERT INTO screenProfile (id, sortOrder, name, role, destination, displayID, isEnabled, extra)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, arguments: [profile.id.dbText, index, profile.name, profile.role.rawValue, kind, display, profile.isEnabled, extra])
         }
     }
 
@@ -404,13 +423,17 @@ extension LibraryStore {
         }
     }
 
+    static func mediaAssetRows(_ db: Database, sql: String, arguments: StatementArguments) throws -> [MediaAsset] {
+        try mediaAssetRow(db, sql: sql, arguments: arguments)
+    }
+
     private static func mediaAssetRow(_ db: Database, sql: String, arguments: StatementArguments) throws -> [MediaAsset] {
         try Row.fetchAll(db, sql: sql, arguments: arguments).map { row in
             guard let id = UUID(uuidString: row["id"] as String) else { throw SettingsJSON.corrupt("media id") }
             guard let kind = MediaKind(rawValue: row["kind"]) else { throw SettingsJSON.corrupt("media kind") }
             return MediaAsset(id: id, name: row["name"], kind: kind, path: row["path"], bookmark: row["bookmark"],
                               duration: row["duration"], pixelWidth: row["pixelWidth"], pixelHeight: row["pixelHeight"],
-                              addedAt: row["addedAt"])
+                              addedAt: row["addedAt"], markIn: row["markIn"], markOut: row["markOut"])
         }
     }
 }

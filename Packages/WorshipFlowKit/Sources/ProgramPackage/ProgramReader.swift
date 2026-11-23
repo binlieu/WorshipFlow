@@ -116,6 +116,14 @@ extension ProgramPackageContents {
             try duration(asset.duration, "The media item \"\(describe(asset.name))\"")
             try pixels(asset.pixelWidth, "The media item \"\(describe(asset.name))\"")
             try pixels(asset.pixelHeight, "The media item \"\(describe(asset.name))\"")
+            try validateMarks(of: asset)
+        }
+        // SYS-015: a video object must name a clip the package carries.
+        let assetIDs = Set(document.mediaAssets.map(\.id))
+        for object in document.presentations.flatMap(\.slides).flatMap(\.objects) {
+            if case .video(let video) = object.content, !assetIDs.contains(video.mediaID) {
+                throw ProgramPackageError.manifestUnreadable("A slide has a video that names a media item the package does not carry, so the program was not opened.")
+            }
         }
         let limit = ProgramFormat.maxFrameFraction
         for slide in document.presentations.flatMap(\.slides) {
@@ -141,6 +149,26 @@ extension ProgramPackageContents {
                 throw ProgramPackageError.manifestUnreadable("The media files together are listed as larger than any real program, so it was not opened.")
             }
             total = sum
+        }
+    }
+
+    /// SYS-015: a clip's marks are real times inside the clip with the in mark not after the out mark; its markers are few, at real times inside the clip, and
+    /// carry actions in the versioned cue form and of a bounded size. A name is bounded when it is read (`MarkerEntry`), not refused.
+    private static func validateMarks(of asset: ProgramDocument.AssetEntry) throws {
+        let what = "The media item \"\(describe(asset.name))\""
+        guard MediaMarks.isValid(markIn: asset.markIn, markOut: asset.markOut, length: asset.duration) else {
+            throw ProgramPackageError.manifestUnreadable("\(what) has a start or end mark that is not a real time inside the clip, so the program was not opened.")
+        }
+        guard asset.markers.count <= MediaMarker.maxPerAsset else {
+            throw ProgramPackageError.manifestUnreadable("\(what) has more markers than any real clip, so the program was not opened.")
+        }
+        for marker in asset.markers {
+            guard MediaMarks.isValidTime(marker.time, length: asset.duration) else {
+                throw ProgramPackageError.manifestUnreadable("\(what) has a marker at a time that is not a real time inside the clip, so the program was not opened.")
+            }
+            guard MediaMarker.validatedActions(marker.actions.text) != nil else {
+                throw ProgramPackageError.manifestUnreadable("\(what) has a marker whose actions are not in the form this app writes or are far too large, so the program was not opened.")
+            }
         }
     }
 

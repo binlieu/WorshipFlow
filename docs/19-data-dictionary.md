@@ -173,6 +173,8 @@ A reference to a file in the media bin. The file itself is never read, moved or 
 | pixelWidth | INTEGER | NULL for audio |
 | pixelHeight | INTEGER | NULL for audio |
 | addedAt | DATETIME NOT NULL | Assets are listed by this, then insertion order |
+| markIn | DOUBLE | v15 (SYS-015): seconds into the clip where playback starts; NULL is the start of the clip. Never set on a picture; 0 to `duration` (to 360,000 s when the length is not known); not after `markOut` |
+| markOut | DOUBLE | v15: seconds where playback ends; NULL is the end of the clip. Same bounds |
 
 ### Columns added to v1 tables
 | Table.column | Type | Notes |
@@ -226,7 +228,7 @@ Media playback state and per-presentation media are not persisted yet; they arri
 
 | Table | Column | Type | Notes |
 |---|---|---|---|
-| screenProfile | extra | TEXT, nullable | JSON for settings added after v3: mirrors, SDI destination details, video mode. NULL for a plain profile. |
+| screenProfile | extra | TEXT, nullable | JSON for settings added after v3: mirrors, SDI destination details, video mode, and (v15) `connectedToKey`, `signalChains`, `screenLookID`. NULL for a plain profile. |
 
 ## Schema v7 (migration `v7`, LIB-004b)
 
@@ -375,3 +377,39 @@ Migration `v13` changes no table and rewrites no row. When the library already h
 New optional keys in stored JSON (absent means the earlier look, so no stored value is rewritten): in a `TextStyle` (themes, slide text objects, stage elements, props): `weight`, `letterSpacing`, `lineHeight`, `opticalSize`, `fontFeatures`; in a theme `definition`: `mediaFallback` (a radial gradient), `plate` (a `TextPlate` with an optional accent bar) and the background kind `gradient`; in a stage layout `definition`: `messageBand`, the element kind `firstCountdown`, and per element `secondLanguage` and `label`. An older build reads a theme that uses the `gradient` background kind as unreadable.
 
 FIX-J (no migration): new optional keys in stored JSON. In a `Theme`: `fitsText` (written only when true). In a `TextLayer` (scene values, not stored in the library): `fitFloor`, `ticks`. In a `StageElement`: the `secondLanguage` and `label` parts store `relativeFrame` (offset and size as fractions of the element's own frame); a layout written by UI-005h to FIX-I stored `frame` (a frame of the screen) there and is converted when read. On reading, every stored `ColorRGBA`, `NormalizedRect`, `TextShadow`, `TextStyle`, `GradientBackground`, `TextPlate` and `AccentBar` value is clamped to its sane range (see `docs/features/UI-005h-output-looks.md`); `HardwareEnvironmentInfo` gains `outputFont`.
+
+### Schema v15 (migration `v15`, SYS-015): the stored fields the mode features need
+
+Migration `v15` is additive and rewrites nothing: `ALTER TABLE mediaAsset ADD COLUMN markIn DOUBLE` and `markOut DOUBLE` (both nullable), and one new table. It is written against literal column names, not against any Swift type. The rest of the slice is optional keys inside JSON that is already stored, so those need no column.
+
+| Table | Column | Type | Notes |
+|---|---|---|---|
+| mediaMarker | id | TEXT PK | UUID |
+| mediaMarker | assetID | TEXT NOT NULL | FK `mediaAsset.id`, ON DELETE CASCADE (removing a clip removes its markers). Index `mediaMarker_on_assetID` |
+| mediaMarker | time | DOUBLE NOT NULL | Seconds into the clip: a real time from 0 to the clip's length (360,000 s when the length is not known) |
+| mediaMarker | name | TEXT | Trimmed, at most 120 characters; NULL when blank |
+| mediaMarker | actions | TEXT NOT NULL | The versioned cue JSON `{"actions":[...],"version":1}` (compact, sorted keys; `{"actions":[],"version":1}` runs nothing). A JSON object with an integer `version` of at least 1 and an `actions` array of objects, at most 64 KiB. Kinds of action are not judged here: a marker may hold one this build does not know |
+| mediaMarker | sortOrder | INTEGER NOT NULL | The order added; breaks a tie between markers at the same time. Markers are listed by `time`, then `sortOrder` |
+| mediaMarker | createdAt, updatedAt | DATETIME NOT NULL | |
+
+One table serves the Media bin's markers and the Cues' playback markers; there is no second one. A clip keeps at most 1,000 markers. Media collections stay in `appState` (`media.collections`); they have no table.
+
+New optional keys in stored JSON. A value at its default writes no key, so a library that uses none of them stores exactly the bytes it stored before; an old value decodes to the defaults.
+
+| Stored in | Key | Meaning |
+|---|---|---|
+| `slide.objects`, each element | `name` | The operator's name for the object. Trimmed, at most 120 characters; absent when blank |
+| | `isHidden` | `true` when the object is hidden: it stays on the slide and in the editor and is not drawn on any screen. Absent means false |
+| | `isLocked` | `true` when locked. Stored only; the editor honouring it is later work. Absent means false |
+| | content `{"video": {"_0": {"mediaID": "<UUID>", "loops": bool, "muted": bool}}}` | A video object. `mediaID` names a bin item (`loops` and `muted` default to true when absent). Stored only: nothing draws it yet |
+| `slide.objects`, a text object | `fit` | `"shrinkToFit"`; absent means `none` |
+| | `backgroundFill` | A colour (`red`, `green`, `blue`, `alpha`, each clamped to 0...1) behind the words; absent means none. Stored only |
+| `screenProfile.extra` | `connectedToKey` | Array of text, indexed like `connectedTo` (0 the primary destination, n + 1 mirror n): what the operator typed about where the KEY of a keyed destination goes |
+| | `signalChains` | Array, indexed the same way, of arrays of `{"kind": "enclosure"\|"converter"\|"other", "label": text}` (at most 12 boxes of 120 characters): the signal path the operator says a destination takes ("typed by you") |
+| | `screenLookID` | The Look this screen follows on its own (UUID). Deleting the Look clears it from every screen. Stored only |
+
+No stored section name. A stage Section element reads the section of the live and the next slide from `ShowState.liveSectionName` and `nextSectionName`, which come from `ShowDeck.sectionNames`, composed from the slides' groups (`slide.groupID` to `slideGroup.name`) when a presentation's preview deck is built. See ADR-0009.
+
+Downgrade: an older build cannot read a `video` object, and the library's migration history now holds `v15`, so every older build refuses to open the library (`LibraryFromNewerBuildError`) and changes nothing. This is the guard of FIX-H item 14, not a new one. An existing library that holds data is copied aside, once, before the step runs: `Backups/Library before migration to v15 (was v14) <UTC date>.sqlite` beside the library file (SQLite's backup API; a complete library file). If the copy cannot be written the library is not opened and nothing is migrated. These copies are never pruned.
+
+The program package (`docs/features/LIB-005-program-export-import.md`) carries the object fields inside each slide's `objects`; a video object's clip travels in `mediaAssets` with its file and is renamed on import like a slide's own background; a clip's `markIn`, `markOut` and `markers` (`id`, `time`, `name`, `actions`) travel with its `mediaAssets` entry, and a marker's actions that play or select another clip or Look bring that clip or Look along. A video object whose clip is no longer in the library is left out of the export with a warning. A screen's key note, chain and Look are not exported (profiles belong to a Mac).

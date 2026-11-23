@@ -179,6 +179,7 @@ func slideObjectTitle(_ object: SlideObject) -> String {
     switch object.content {
     case .text: "Text box"
     case .image: "Image"
+    case .video: "Video"        // SYS-015: stored only; the feature slice draws and edits it
     case .shape(let s):
         switch s.shape {
         case .rectangle: "Rectangle"

@@ -545,6 +545,7 @@ public final class StageModel {
             case .notFound: return "Could not \(what): that item no longer exists. Choose it again from the list."
             case .invalidReference: return "Could not \(what): the built-in layout cannot be changed."
             case .unknownMigration: return "Could not \(what): the library file is from a different version of the app."
+            case .invalidValue: return "Could not \(what): that value is not allowed (a time outside the clip, or a number that is not real). Change it and try again."
             }
         }
         return "Could not \(what): \(error.localizedDescription) The change is in effect now but may be lost when the app quits. Try again; if it keeps failing, restart the app."

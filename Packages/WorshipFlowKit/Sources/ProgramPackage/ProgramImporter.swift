@@ -193,11 +193,29 @@ enum ProgramImportWriter {
             }
             let name = asset.name.trimmingCharacters(in: .whitespacesAndNewlines)
             try db.execute(sql: """
-                INSERT INTO mediaAsset (id, name, kind, path, bookmark, duration, pixelWidth, pixelHeight, addedAt)
-                VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?)
+                INSERT INTO mediaAsset (id, name, kind, path, bookmark, duration, pixelWidth, pixelHeight, addedAt, markIn, markOut)
+                VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
                 """, arguments: [asset.id.uuidString, name.isEmpty ? "Media" : name, asset.kind.rawValue, path, asset.duration,
-                                 asset.pixelWidth, asset.pixelHeight, now])
+                                 asset.pixelWidth, asset.pixelHeight, now, asset.markIn, asset.markOut])
+            // SYS-015: the clip's markers come with it (their actions may name other clips; those are renamed below, once every clip is in).
+            for (order, marker) in asset.markers.enumerated() {
+                try db.execute(sql: """
+                    INSERT OR IGNORE INTO mediaMarker (id, assetID, time, name, actions, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, arguments: [marker.id.uuidString, asset.id.uuidString, marker.time, marker.name, marker.actions.text, order, now, now])
+            }
             result.mediaAssetsAdded += 1
+        }
+
+        // SYS-015: a marker's actions that play a clip the library already had under another id name that one.
+        if !assetIDMap.isEmpty {
+            for asset in plan.assetsToInsert where assetIDMap[asset.id] == nil {
+                for marker in asset.markers {
+                    let mapped = marker.actions.replacingUUIDs(assetIDMap)
+                    if mapped != marker.actions {
+                        try db.execute(sql: "UPDATE mediaMarker SET actions = ? WHERE id = ? AND assetID = ?", arguments: [mapped.text, marker.id.uuidString, asset.id.uuidString])
+                    }
+                }
+            }
         }
 
         for p in plan.presentations {
@@ -232,6 +250,13 @@ enum ProgramImportWriter {
             for (order, slide) in entry.slides.enumerated() {
                 let own = slide.background.map { MediaSelection(assetID: assetIDMap[$0.assetID] ?? $0.assetID, kind: $0.kind, duration: $0.duration) }
                 let objects = tools.slideObjects(slide.objects.map { object -> SlideObject in
+                    // SYS-015: a video object names the bin entry the library already had for the same file, when there is one.
+                    if case .video(var video) = object.content {
+                        video.mediaID = assetIDMap[video.mediaID] ?? video.mediaID
+                        var copy = object
+                        copy.content = .video(video)
+                        return copy
+                    }
                     guard case .image(var image) = object.content else { return object }
                     image.path = plan.localPath[image.path] ?? image.path
                     var copy = object

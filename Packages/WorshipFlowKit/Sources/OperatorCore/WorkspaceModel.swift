@@ -344,7 +344,8 @@ public final class WorkspaceModel {
 
     func previewDeck() -> ShowDeck {
         if let open = openScripture { return ShowDeck(presentationID: open.deckID, slides: open.contents) }    // LIB-004c
-        return ShowDeck(presentationID: openPresentationID ?? UUID(), slides: slides.map(\.content))
+        return ShowDeck(presentationID: openPresentationID ?? UUID(), slides: slides.map(\.content),
+                        sectionNames: ArrangementResolver.sectionNames(for: slides, groups: groups))        // SYS-015: for a stage Section element
     }
 
     func loadPreview() { apply(.load(previewDeck())) }
@@ -369,6 +370,7 @@ public final class WorkspaceModel {
             case .notFound: return "Could not \(what): that item no longer exists. It may have been deleted. Choose it again from the list."
             case .invalidReference: return "Could not \(what): that section order belongs to a different song."
             case .unknownMigration: return "Could not \(what): the library file is from a different version of the app."
+            case .invalidValue: return "Could not \(what): that value is not allowed (a time outside the clip, or a number that is not real). Change it and try again."
             }
         }
         return "Could not \(what): \(error.localizedDescription) Nothing on the screens was changed. Try again; if it keeps failing, restart the app."

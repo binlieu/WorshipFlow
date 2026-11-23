@@ -226,3 +226,12 @@
 | KI-228 | FIX-T: L18 a contact address in `docs/15-agent-handoff.md` (docs are the coordinator's). | Open. |
 | KI-229 | FIX-T: M7 second scenario: a package asset id equal to an unrelated existing bin id still skips the asset (slides then name the other file). Not part of the brief's confirmed path; needs a path comparison in the planner. | Open. |
 | KI-230 | FIX-T: `removeSection`/`moveSection` lost update (above). | Open. |
+| KI-231 | SYS-015: a `video` slide object is stored, edited by `SlideObject` and carried by the program package, but the compositor draws nothing for it and the Edit inspector shows no section for it (UI-007). | Open. |
+| KI-232 | SYS-015: `TextObject.fit`, `TextObject.backgroundFill` and `SlideObject.isLocked` are stored only: `TextLayer` does not carry them, and the editor does not yet refuse to move or edit a locked object. | Open. |
+| KI-233 | SYS-015: a clip's `markIn`, `markOut` and markers are stored only: the player does not start or stop at the marks and nothing feeds the clip position to `MarkerTracker`. `relocateMediaAsset` can change a clip's length without re-checking its marks (a mark may then lie past the end). | Open. |
+| KI-234 | SYS-015: a screen's key note, signal chain and own Look (`screenLookID`) are stored only; nothing reads them, and they are not in a program package. | Open. |
+| KI-235 | SYS-015: the copy taken before a migration is never pruned and restoring it is manual (copy it over `Library.sqlite` with the app closed, and delete the `-wal` and `-shm` files beside it). A library that cannot be copied (disk full, folder not writable) is not opened. | Open. |
+| KI-236 | SYS-015: Media collections are still one JSON value in `appState` and are not in a program package. | Open. |
+| KI-237 | SYS-015: the section names in a preview deck are composed when the deck is built, so renaming a section while its song is open shows the old name on the stage until the deck is next loaded. | Open. |
+| KI-238 | SYS-015: a slide object of a kind this build does not know still reads as no objects (the column is unreadable), and saving the slide would write none. Safe today because every build that could know a new kind ships a migration that older builds refuse; a later content case must do the same (ADR-0009). | Open (rule). |
+

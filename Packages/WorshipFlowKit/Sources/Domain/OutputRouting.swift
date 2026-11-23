@@ -61,6 +61,30 @@ public enum OutputDestination: Sendable, Equatable, Codable, Hashable {
     public var isKeyed: Bool { if case .sdi(_, _, let keying, _) = self { return keying } else { return false } }
 }
 
+/// SYS-015: one box in the operator's own description of what a signal passes through on the way to a screen ("typed by you": the app cannot know
+/// what is plugged in).
+public struct ChainNode: Sendable, Equatable, Codable, Hashable {
+    public enum Kind: String, Sendable, Equatable, Codable, Hashable, CaseIterable {
+        case enclosure, converter, other
+    }
+    public static let maxLabelLength = 120
+
+    public var kind: Kind
+    public var label: String
+
+    public init(kind: Kind, label: String) {
+        self.kind = kind
+        self.label = String(label.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.maxLabelLength))
+    }
+
+    private enum CodingKeys: String, CodingKey { case kind, label }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(kind: (try? c.decode(Kind.self, forKey: .kind)) ?? .other, label: try c.decodeIfPresent(String.self, forKey: .label) ?? "")
+    }
+}
+
 public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiable {
     public var id: UUID
     public var name: String
@@ -75,9 +99,23 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
     /// UI-002: what the operator typed about where each destination goes ("ATEM input 5"). Index 0 is the primary
     /// destination, index n + 1 is mirror n. Free text, never read by the engine; the app cannot know what is plugged in.
     public var connectedTo: [String]
+    /// SYS-015: what the operator typed about where the KEY of each keyed SDI destination goes, indexed like `connectedTo` (a Fill and Key
+    /// destination uses two connectors, so the fill's note and the key's note are separate). Free text, never read by the engine.
+    public var connectedToKey: [String]
+    /// SYS-015: per destination (indexed like `connectedTo`), the boxes the operator says the signal passes through (enclosure, converter, other).
+    public var signalChains: [[ChainNode]]
+    /// SYS-015: the Look this screen follows on its own, if the operator chose one. Nil: the show's current Look. Stored only; nothing reads it yet.
+    public var screenLookID: UUID?
+
+    /// SYS-015: the most boxes a chain keeps.
+    public static let maxChainLength = 12
 
     public init(id: UUID = UUID(), name: String, role: ScreenRole, destination: OutputDestination, isEnabled: Bool = true,
-                mirrors: [OutputDestination] = [], videoMode: VideoModeDescription = .standard, connectedTo: [String] = []) {
+                mirrors: [OutputDestination] = [], videoMode: VideoModeDescription = .standard, connectedTo: [String] = [],
+                connectedToKey: [String] = [], signalChains: [[ChainNode]] = [], screenLookID: UUID? = nil) {
+        self.connectedToKey = connectedToKey
+        self.signalChains = signalChains
+        self.screenLookID = screenLookID
         self.connectedTo = connectedTo
         self.id = id
         self.name = name
@@ -88,7 +126,7 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
         self.videoMode = videoMode
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, role, destination, isEnabled, mirrors, videoMode, connectedTo }
+    private enum CodingKeys: String, CodingKey { case id, name, role, destination, isEnabled, mirrors, videoMode, connectedTo, connectedToKey, signalChains, screenLookID }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -98,7 +136,26 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
                   isEnabled: try c.decode(Bool.self, forKey: .isEnabled),
                   mirrors: try c.decodeIfPresent([OutputDestination].self, forKey: .mirrors) ?? [],
                   videoMode: try c.decodeIfPresent(VideoModeDescription.self, forKey: .videoMode) ?? .standard,
-                  connectedTo: try c.decodeIfPresent([String].self, forKey: .connectedTo) ?? [])
+                  connectedTo: try c.decodeIfPresent([String].self, forKey: .connectedTo) ?? [],
+                  connectedToKey: try c.decodeIfPresent([String].self, forKey: .connectedToKey) ?? [],
+                  signalChains: try c.decodeIfPresent([[ChainNode]].self, forKey: .signalChains) ?? [],
+                  screenLookID: try c.decodeIfPresent(UUID.self, forKey: .screenLookID))
+    }
+
+    /// A value at its default writes no key.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(role, forKey: .role)
+        try c.encode(destination, forKey: .destination)
+        try c.encode(isEnabled, forKey: .isEnabled)
+        try c.encode(mirrors, forKey: .mirrors)
+        try c.encode(videoMode, forKey: .videoMode)
+        try c.encode(connectedTo, forKey: .connectedTo)
+        if !connectedToKey.isEmpty { try c.encode(connectedToKey, forKey: .connectedToKey) }
+        if !signalChains.isEmpty { try c.encode(signalChains, forKey: .signalChains) }
+        try c.encodeIfPresent(screenLookID, forKey: .screenLookID)
     }
 
     /// The typed "connected to" note of the primary destination (`mirror == nil`) or of a mirror; nil when empty.
@@ -117,6 +174,41 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
         while connectedTo.count <= index { connectedTo.append("") }
         connectedTo[index] = trimmed
         while connectedTo.last == "" { connectedTo.removeLast() }
+    }
+}
+
+extension ScreenProfile {
+    /// SYS-015: the typed note about where the key of the primary destination (`mirror == nil`) or of a mirror goes; nil when empty.
+    public func connectedKeyNote(mirror: Int?) -> String? {
+        let index = (mirror ?? -1) + 1
+        guard connectedToKey.indices.contains(index) else { return nil }
+        let text = connectedToKey[index].trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
+    }
+
+    /// SYS-015: sets the key note, trimmed and bounded. A mirror that does not exist takes no note.
+    public mutating func setConnectedKeyNote(_ text: String, mirror: Int?) {
+        if let mirror, !mirrors.indices.contains(mirror) { return }
+        let index = (mirror ?? -1) + 1
+        let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(ChainNode.maxLabelLength))
+        while connectedToKey.count <= index { connectedToKey.append("") }
+        connectedToKey[index] = trimmed
+        while connectedToKey.last == "" { connectedToKey.removeLast() }
+    }
+
+    /// SYS-015: the signal chain the operator typed for the primary destination or a mirror (empty when none).
+    public func signalChain(mirror: Int?) -> [ChainNode] {
+        let index = (mirror ?? -1) + 1
+        return signalChains.indices.contains(index) ? signalChains[index] : []
+    }
+
+    /// SYS-015: sets the chain, at most `maxChainLength` boxes. A mirror that does not exist takes none.
+    public mutating func setSignalChain(_ chain: [ChainNode], mirror: Int?) {
+        if let mirror, !mirrors.indices.contains(mirror) { return }
+        let index = (mirror ?? -1) + 1
+        while signalChains.count <= index { signalChains.append([]) }
+        signalChains[index] = Array(chain.prefix(Self.maxChainLength)).map { ChainNode(kind: $0.kind, label: $0.label) }
+        while signalChains.last?.isEmpty == true { signalChains.removeLast() }
     }
 }
 

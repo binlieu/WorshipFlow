@@ -5,10 +5,20 @@ import Foundation
 public struct ShowDeck: Sendable, Equatable, Hashable {
     public var presentationID: UUID
     public var slides: [SlideContent]
+    /// SYS-015: the name of the section (the slide group) each slide belongs to, one entry per slide in `slides` order, nil for a slide in no section.
+    /// Empty for a deck built without sections. Nothing is stored for it: it is composed from the slides' groups when the deck is built, so a stage
+    /// Section element can show where the song is.
+    public var sectionNames: [String?]
 
-    public init(presentationID: UUID, slides: [SlideContent]) {
+    public init(presentationID: UUID, slides: [SlideContent], sectionNames: [String?] = []) {
         self.presentationID = presentationID
         self.slides = slides
+        self.sectionNames = sectionNames
+    }
+
+    /// The section name of the slide at `index`; nil when there is none or the index is out of range.
+    public func sectionName(at index: Int) -> String? {
+        slides.indices.contains(index) && sectionNames.indices.contains(index) ? sectionNames[index] : nil
     }
 }
 
@@ -81,6 +91,18 @@ public struct ShowState: Sendable, Equatable {
     public var liveSlideAtPlace: SlideContent? {
         guard let deck = liveDeck, let i = liveIndex, deck.slides.indices.contains(i) else { return nil }
         return deck.slides[i]
+    }
+
+    /// SYS-015: the section of the live slide, kept while cleared like the place itself. Nil when stopped or when the slide is in no section.
+    public var liveSectionName: String? {
+        guard let deck = liveDeck, let i = liveIndex else { return nil }
+        return deck.sectionName(at: i)
+    }
+
+    /// SYS-015: the section of the next slide; nil when there is no next slide or it is in no section.
+    public var nextSectionName: String? {
+        guard let deck = liveDeck, let i = liveIndex, deck.slides.indices.contains(i + 1) else { return nil }
+        return deck.sectionName(at: i + 1)
     }
 
     public var nextSlide: SlideContent? {

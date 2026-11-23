@@ -106,7 +106,7 @@ public enum SlideEditing {
                 s.shape = .roundedRectangle(cornerRadius: limit(radius, 0...0.5, fallback: defaultCornerRadius))
             }
             o.content = .shape(s)
-        case .image:
+        case .image, .video:       // SYS-015: a video object has no number of its own to bound
             break
         }
         return o

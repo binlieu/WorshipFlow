@@ -10,6 +10,8 @@ public enum StoreError: Error, Equatable, Sendable {
     case unknownMigration(String)
     /// A group or arrangement id does not belong to the presentation it was used with.
     case invalidReference
+    /// SYS-015: a number or text that is not real or not in range (a mark outside the clip, a time that is not a time, actions that are not the versioned JSON), or a limit reached.
+    case invalidValue
 }
 
 /// FIX-H item 14: the library was last opened by a newer WorshipFlow: its migration history holds a step this build does not know. This

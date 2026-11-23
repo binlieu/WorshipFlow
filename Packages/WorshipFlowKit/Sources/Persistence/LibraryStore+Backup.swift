@@ -44,6 +44,53 @@ extension LibraryStore {
         }.value
     }
 
+    /// SYS-015: the prefix of the copy taken before a migration, `Library before migration to v15 (was v14) <UTC date>.sqlite`, in the same `Backups/`
+    /// folder. One copy per step that actually runs on a library that holds data; none for a new library, an in-memory store or a fixture built step by
+    /// step. These copies are never pruned (a schema step is rare and the file is a library).
+    public static let migrationBackupPrefix = "Library before migration "
+
+    /// Copies the library beside itself, with SQLite's backup API, when it already has applied migrations and this build knows one it lacks.
+    /// Throws `MigrationBackupFailed` (and migrates nothing) when the copy cannot be written: no migration runs without its safety copy.
+    static func backUpBeforeMigrating(libraryFile: URL, date: Date = Date()) throws {
+        guard FileManager.default.fileExists(atPath: libraryFile.path) else { return }
+        let known = Schema.makeMigrator().migrations
+        var config = Configuration()
+        config.readonly = true
+        // A file that cannot be read this way is left to the normal open, which reports it as before.
+        guard let source = try? DatabaseQueue(path: libraryFile.path, configuration: config) else { return }
+        defer { try? source.close() }
+        let applied: [String] = (try? source.read { db in
+            try db.tableExists("grdb_migrations") ? try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid") : []
+        }) ?? []
+        guard let last = applied.last, let target = known.last, !known.allSatisfy(applied.contains) else { return }
+        let fm = FileManager.default
+        let folder = libraryFile.deletingLastPathComponent().appendingPathComponent(importBackupFolderName, isDirectory: true)
+        let stamp = stampFormatter.string(from: date)
+        do {
+            try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+            var counter = 1
+            var name = "\(migrationBackupPrefix)to \(target) (was \(last)) \(stamp).sqlite"
+            while fm.fileExists(atPath: folder.appendingPathComponent(name).path) {
+                counter += 1
+                name = "\(migrationBackupPrefix)to \(target) (was \(last)) \(stamp) \(counter).sqlite"
+            }
+            let target = folder.appendingPathComponent(name)
+            let partial = folder.appendingPathComponent(".\(name).partial")
+            try? fm.removeItem(at: partial)
+            do {
+                let destination = try DatabaseQueue(path: partial.path)
+                try source.backup(to: destination)
+                try destination.close()
+                try fm.moveItem(at: partial, to: target)
+            } catch {
+                try? fm.removeItem(at: partial)
+                throw error
+            }
+        } catch {
+            throw MigrationBackupFailed(from: last, to: target, reason: error.localizedDescription)
+        }
+    }
+
     public enum BackupError: Error, LocalizedError, Equatable, Sendable {
         case noFolder
         public var errorDescription: String? { "This library is not kept in a folder, so it cannot be backed up." }
@@ -72,5 +119,15 @@ extension LibraryStore {
         let ours = names.compactMap { name in sortKey(name).map { (name, $0) } }
             .sorted { ($0.1.0, $0.1.1) > ($1.1.0, $1.1.1) }
         for (name, _) in ours.dropFirst(keeping) { try? fm.removeItem(at: folder.appendingPathComponent(name)) }
+    }
+}
+
+/// SYS-015: the safety copy before a migration could not be written, so the library was left as it was.
+public struct MigrationBackupFailed: Error, Equatable, Sendable, LocalizedError {
+    public var from: String
+    public var to: String
+    public var reason: String
+    public var errorDescription: String? {
+        "This library needs an update (step \(from) to \(to)), and a copy of it could not be saved first (\(reason)). Nothing was changed. Free some space or fix the folder's permissions, then open the library again."
     }
 }

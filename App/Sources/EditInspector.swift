@@ -59,6 +59,7 @@ struct EditInspector: View {
             case .text(let t): textSections(o, t)
             case .shape(let s): shapeSections(o, s)
             case .image(let i): imageSections(o, i)
+            case .video: EmptyView()        // SYS-015: stored only; the feature slice adds its sections
             }
             positionSection(o)
             EditSection {

@@ -58,6 +58,9 @@ public final class LibraryStore: Sendable {
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         // FIX-H item 14: a library last opened by a newer build is looked at read-only first and refused before anything can be written.
         if let newer = newerMigration(in: url) { throw newer }
+        // SYS-015: a library that already holds data is copied aside before a migration changes it. A fixture built step by step (`migration` named) is not.
+        // Done with its own short-lived connection, before the store's pool exists, so the pool opens exactly as it did before.
+        if migration == nil { try backUpBeforeMigrating(libraryFile: url) }
         // One DatabasePool per file, kept for the life of the store (ADR-0004 decision 2).
         let counter = CommitCounter()
         let pool = try DatabasePool(path: url.path, configuration: makeConfiguration(counter))

@@ -72,6 +72,8 @@ struct ActionReferences {
     var notCarried: Set<String> = []
     /// FIX-G: slides whose own background names a bin item that is no longer in the library.
     var lostBackgrounds = 0
+    /// SYS-015: video objects whose bin item is no longer in the library; they are left out of the package.
+    var lostVideos = 0
 
     mutating func add(_ json: JSONValue) {
         guard let data = try? JSONEncoder().encode(json), let list = try? JSONDecoder().decode(CueActionList.self, from: data) else { return }
@@ -115,6 +117,11 @@ enum ProgramSnapshot {
         for slide in try await store.slides(of: id) {
             var objects: [SlideObject] = []
             for object in slide.content.objects {
+                // SYS-015: a video object's bin item travels in `mediaAssets`, its file in `media/`; one whose item is gone is left out.
+                if case .video(let video) = object.content {
+                    if binAssets[video.mediaID] != nil { references.assets.append(video.mediaID); objects.append(object) } else { references.lostVideos += 1 }
+                    continue
+                }
                 guard case .image(var image) = object.content else { objects.append(object); continue }
                 image.path = try await collector.reference(image.path)
                 var copy = object

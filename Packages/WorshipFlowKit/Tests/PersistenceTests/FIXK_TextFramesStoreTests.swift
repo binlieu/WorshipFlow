@@ -36,7 +36,7 @@ import Domain
 
         let new = try LibraryStore.open(at: file)
         let applied = try await new.appliedMigrations()
-        #expect(Array(applied.prefix(13)) == (1...13).map { "v\($0)" } && applied.last == "v14")
+        #expect(Array(applied.prefix(14)) == (1...14).map { "v\($0)" })       // SYS-015: v14 is no longer the newest step
         #expect(try await new.columnNames(of: "slide").contains("textFrames"))
         let after = try await new.slides(of: p.id)
         #expect(after == before && after.map(\.id) == [a.id, b.id])

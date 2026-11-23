@@ -312,7 +312,13 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
         public var pixelWidth: Int?
         public var pixelHeight: Int?
         public var file: String
-        public init(id: UUID, name: String, kind: MediaKind, duration: Double?, pixelWidth: Int?, pixelHeight: Int?, file: String) {
+        /// SYS-015: the clip's mark in and mark out in seconds, and its markers by time. Absent in packages written before v15.
+        public var markIn: Double?
+        public var markOut: Double?
+        public var markers: [MarkerEntry]
+
+        public init(id: UUID, name: String, kind: MediaKind, duration: Double?, pixelWidth: Int?, pixelHeight: Int?, file: String,
+                    markIn: Double? = nil, markOut: Double? = nil, markers: [MarkerEntry] = []) {
             self.id = id
             self.name = name
             self.kind = kind
@@ -320,6 +326,60 @@ public struct ProgramDocument: Codable, Equatable, Sendable {
             self.pixelWidth = pixelWidth
             self.pixelHeight = pixelHeight
             self.file = file
+            self.markIn = markIn
+            self.markOut = markOut
+            self.markers = markers
+        }
+
+        private enum CodingKeys: String, CodingKey { case id, name, kind, duration, pixelWidth, pixelHeight, file, markIn, markOut, markers }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(UUID.self, forKey: .id)
+            name = try c.decode(String.self, forKey: .name)
+            kind = try c.decode(MediaKind.self, forKey: .kind)
+            duration = try c.decodeIfPresent(Double.self, forKey: .duration)
+            pixelWidth = try c.decodeIfPresent(Int.self, forKey: .pixelWidth)
+            pixelHeight = try c.decodeIfPresent(Int.self, forKey: .pixelHeight)
+            file = try c.decode(String.self, forKey: .file)
+            markIn = try c.decodeIfPresent(Double.self, forKey: .markIn)
+            markOut = try c.decodeIfPresent(Double.self, forKey: .markOut)
+            markers = try c.decodeIfPresent([MarkerEntry].self, forKey: .markers) ?? []
+        }
+
+        /// A clip without marks or markers writes none of the new keys.
+        public func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(id, forKey: .id)
+            try c.encode(name, forKey: .name)
+            try c.encode(kind, forKey: .kind)
+            try c.encodeIfPresent(duration, forKey: .duration)
+            try c.encodeIfPresent(pixelWidth, forKey: .pixelWidth)
+            try c.encodeIfPresent(pixelHeight, forKey: .pixelHeight)
+            try c.encode(file, forKey: .file)
+            try c.encodeIfPresent(markIn, forKey: .markIn)
+            try c.encodeIfPresent(markOut, forKey: .markOut)
+            if !markers.isEmpty { try c.encode(markers, forKey: .markers) }
+        }
+    }
+
+    /// SYS-015: one marker of a clip. `actions` is the versioned cue JSON exactly as stored (also actions this build does not understand).
+    public struct MarkerEntry: Codable, Equatable, Sendable {
+        public var id: UUID
+        public var time: Double
+        public var name: String?
+        public var actions: JSONValue
+        public init(id: UUID, time: Double, name: String?, actions: JSONValue) {
+            self.id = id
+            self.time = time
+            self.name = MediaMarker.cleanName(name)
+            self.actions = actions
+        }
+        private enum CodingKeys: String, CodingKey { case id, time, name, actions }
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            self.init(id: try c.decode(UUID.self, forKey: .id), time: try c.decode(Double.self, forKey: .time),
+                      name: try c.decodeIfPresent(String.self, forKey: .name), actions: try c.decode(JSONValue.self, forKey: .actions))
         }
     }
 

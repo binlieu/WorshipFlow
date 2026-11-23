@@ -359,6 +359,29 @@ enum Schema {
             try db.alter(table: "slide") { t in t.add(column: "textFrames", .text) }
         }
 
+        // SYS-015: additive, for the mode features. A media item may carry a mark in and a mark out (seconds; NULL is the whole clip), and may carry markers:
+        // named times in the clip, each with the actions that run when playback passes it (`actions` is the versioned JSON the cue rows use,
+        // `{"version":1,"actions":[...]}`). One table serves the Media bin's markers and the Cues' playback markers. A marker goes with its media item.
+        // Nothing is rewritten. Written against literal names, not against any Swift type, so later changes to those types cannot change this step.
+        // The other stored fields of the same slice live inside JSON that is already stored (slide objects, screen profiles) and need no column.
+        migrator.registerMigration("v15") { db in
+            try db.alter(table: "mediaAsset") { t in
+                t.add(column: "markIn", .double)
+                t.add(column: "markOut", .double)
+            }
+            try db.create(table: "mediaMarker") { t in
+                t.column("id", .text).primaryKey()
+                t.column("assetID", .text).notNull().references("mediaAsset", onDelete: .cascade)
+                t.column("time", .double).notNull()
+                t.column("name", .text)
+                t.column("actions", .text).notNull()
+                t.column("sortOrder", .integer).notNull()
+                t.column("createdAt", .datetime).notNull()
+                t.column("updatedAt", .datetime).notNull()
+            }
+            try db.create(index: "mediaMarker_on_assetID", on: "mediaMarker", columns: ["assetID"])
+        }
+
         return migrator
     }
 }

@@ -185,3 +185,11 @@
 **FIX-T (review fixes)**
 
 - H1/M3 manifest number bounds and total conversions; M1/M2 identity after await and `deleteSlide(id:)`; M7 media item remap; M4/M5/M6 SDI lifecycle (Simulated); L1, L10, L13, L20; text style bound.
+
+## 2026-11-22 (SYS-015, migration v15)
+
+- SYS-015: migration v15, additive: `mediaAsset.markIn` and `markOut`, and the table `mediaMarker` (cascades with its clip; one table for Media's markers and Cues' playback markers). New optional keys in stored JSON: slide object `name`, `isHidden`, `isLocked`, a `video` content case, text `fit` and `backgroundFill`; screen profile `connectedToKey`, `signalChains`, `screenLookID`. A value at its default writes no key; old values decode to the defaults. A stage Section element needs no stored field: `ShowDeck.sectionNames` carries the section name of each slide, composed from the groups, and `ShowState.liveSectionName` and `nextSectionName` read it (ADR-0009).
+- SYS-015 store methods for the feature slices: `setMediaMarks`, `clearMediaMarks`, `mediaMarkers`, `addMediaMarker`, `moveMediaMarker`, `renameMediaMarker`, `setMediaMarkerActions`, `deleteMediaMarker`, `setSlideObjectName`, `setSlideObjectHidden`, `setSlideObjectLocked`, `setScreenKeyNote`, `setScreenSignalChain`, `setScreenLook` (and `StoreError.invalidValue`). Deleting a Look clears it from the screens that followed it.
+- SYS-015 rendering: one rule added, a hidden object is not drawn on any screen. A `video` object is stored and carried by the program package but draws nothing yet; `fit`, `backgroundFill`, `isLocked`, marks and markers are stored only. Scene digests for audience, stage and keyed broadcast are unchanged for a library that uses none of the new fields (pinned in `SYS015_ScenesDigestTests`).
+- SYS-015 safety: a library that holds data is copied aside once before a migration runs (`Backups/Library before migration to v15 (was v14) <date>.sqlite`); no copy, no migration. An older build refuses a v15 library (the existing newer-library guard). The program package carries the object fields, video objects with their clips, and a clip's marks and markers; the reader refuses marks and markers that are not real and a video with no clip, and bounds names.
+

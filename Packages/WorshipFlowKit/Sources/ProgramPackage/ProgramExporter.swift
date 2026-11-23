@@ -40,6 +40,20 @@ public enum ProgramExporter {
         }
         references.assets.append(contentsOf: itemAssets)
 
+        // SYS-015: a clip's markers travel with it, and what a marker's actions play or select travels too (followed until nothing new is named).
+        var markersOf: [UUID: [MediaMarker]] = [:]
+        var pending = Array(Set(references.assets))
+        while let id = pending.popLast() {
+            guard markersOf[id] == nil else { continue }
+            let found = (try? await store.mediaMarkers(forAsset: id)) ?? []
+            markersOf[id] = found
+            for marker in found {
+                let before = references.assets.count
+                if let json = JSONValue.parse(marker.actions) { references.add(json) }
+                pending.append(contentsOf: references.assets[before...])
+            }
+        }
+
         // Looks that the slide actions select, then every custom theme those Looks and the presentations use.
         let allLooks = try await store.looks()
         let looks = allLooks.filter { Set(references.looks).contains($0.id) }
@@ -59,12 +73,19 @@ public enum ProgramExporter {
         let assets = try await store.mediaAssets(kind: nil).filter { wanted.contains($0.id) }
         var assetEntries: [ProgramDocument.AssetEntry] = []
         for asset in assets {
+            let markers = (markersOf[asset.id] ?? []).compactMap { m in
+                JSONValue.parse(m.actions).map { ProgramDocument.MarkerEntry(id: m.id, time: m.time, name: m.name, actions: $0) }
+            }
             assetEntries.append(ProgramDocument.AssetEntry(id: asset.id, name: asset.name, kind: asset.kind, duration: asset.duration,
-                                       pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight, file: try await collector.reference(asset.path)))
+                                       pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight, file: try await collector.reference(asset.path),
+                                       markIn: asset.markIn, markOut: asset.markOut, markers: markers))
         }
         if wanted.count > assets.count { warnings.append("A slide action plays a media item that is not in this library; it was left out.") }
         if references.lostBackgrounds > 0 {
             warnings.append("A slide's own background uses a media item that is no longer in this library; that slide goes without it.")
+        }
+        if references.lostVideos > 0 {
+            warnings.append("A slide has a video whose media item is no longer in this library; that video was left out of the program.")
         }
         if !references.notCarried.isEmpty {
             warnings.append("Slide actions use \(references.notCarried.sorted().joined(separator: ", ")), which a program does not carry: set them up again on the other Mac.")
