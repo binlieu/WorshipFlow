@@ -15,6 +15,7 @@ final class OutputRenderer: @unchecked Sendable {
     private let mediaSource: (any MediaFrameSource)?
     private let lock = NSLock()
     private var stats: FrameStatistics
+    private var events = FrameEventLog()   // OUT-002b: reserved once; guarded by `lock`
     private var running = false
     private var errorText: String?
     private var ticks = 0
@@ -54,6 +55,7 @@ final class OutputRenderer: @unchecked Sendable {
     }
 
     var statistics: FrameStatistics { lock.lock(); defer { lock.unlock() }; return stats }
+    var frameEvents: FrameEventLog { lock.lock(); defer { lock.unlock() }; return events }
     /// (display-link ticks received, frames submitted to the GPU) for diagnostics.
     var counters: (ticks: Int, submitted: Int) { lock.lock(); defer { lock.unlock() }; return (ticks, submittedFrames) }
     var lastError: String? { lock.lock(); defer { lock.unlock() }; return errorText }
@@ -70,7 +72,9 @@ final class OutputRenderer: @unchecked Sendable {
     }
 
     private func record(presentedAt t: Double) {
-        lock.lock(); stats.recordPresentation(at: t); lock.unlock()
+        lock.lock()
+        if let outcome = stats.recordPresentation(at: t) { events.record(at: t, outcome) }   // OUT-002b: a compare, and a few stores when notable
+        lock.unlock()
     }
 
     private func fail(_ message: String) {

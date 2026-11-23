@@ -42,6 +42,8 @@ public protocol OutputTarget: AnyObject {
     /// Display refresh rate in Hz as reported by the screen the output is on (0 if unknown).
     var refreshRate: Double { get }
     var statistics: FrameStatistics { get }
+    /// OUT-002b: when each dropped or late frame happened, for the soak report. Empty for outputs that do not keep one.
+    var frameEvents: FrameEventLog { get }
     var lastRenderError: String? { get }
     /// Image files the output could not draw (missing or unreadable), sorted. For the operator window (OUT-003).
     var unavailableImagePaths: [String] { get }
@@ -76,6 +78,7 @@ public protocol OutputTarget: AnyObject {
 }
 
 extension OutputTarget {
+    public var frameEvents: FrameEventLog { FrameEventLog(capacity: 0) }
     public var isOccluded: Bool { false }
     public var unavailableImagePaths: [String] { [] }
     public var renderProblems: [String] { [] }

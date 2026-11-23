@@ -15,16 +15,21 @@ public struct FrameStatistics: Sendable, Equatable {
 
     /// Records one presentation at `time` (seconds). A drop is a whole target interval with no presentation;
     /// a late frame is one whose gap from the previous presentation exceeded 1.5 intervals.
-    public mutating func recordPresentation(at time: Double) {
+    @discardableResult
+    public mutating func recordPresentation(at time: Double) -> PresentationOutcome? {
         presentedFrames += 1
+        var outcome: PresentationOutcome?
         if let last = lastPresentation, targetInterval > 0 {
             let gap = time - last
             maxInterval = max(maxInterval, gap)
             let missed = Int((gap / targetInterval).rounded()) - 1
             if missed > 0 { droppedFrames += missed }
-            if gap > 1.5 * targetInterval { lateFrames += 1 }
+            let late = gap > 1.5 * targetInterval
+            if late { lateFrames += 1 }
+            outcome = PresentationOutcome(gap: gap, missed: max(0, missed), isLate: late, isLong: gap > 2 * targetInterval)
         }
         lastPresentation = time
+        return outcome
     }
 
     /// Counters from outside a display link: an SDI output reads them from its session (HW-002).

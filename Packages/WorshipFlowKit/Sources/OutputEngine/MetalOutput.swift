@@ -61,6 +61,7 @@ open class MetalOutput: OutputTarget {
     }
 
     public var statistics: FrameStatistics { renderer?.statistics ?? FrameStatistics(targetInterval: 1.0 / 60.0) }
+    public var frameEvents: FrameEventLog { renderer?.frameEvents ?? FrameEventLog(capacity: 0) }
     public var isOccluded: Bool {
         guard status == .running, let w = window else { return false }
         return !w.occlusionState.contains(.visible)

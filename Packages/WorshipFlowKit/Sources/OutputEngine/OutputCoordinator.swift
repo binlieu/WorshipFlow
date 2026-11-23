@@ -358,6 +358,9 @@ public final class OutputCoordinator {
         return readout
     }
 
+    /// OUT-002b: the per-event log of a screen's primary output (soak report).
+    public func frameEvents(for id: UUID) -> FrameEventLog? { running[OutputSlot(screenID: id)]?.target.frameEvents }
+
     public func diagnostics(for id: UUID) -> String? { running[OutputSlot(screenID: id)]?.target.diagnostics }
 
     // MARK: Internals

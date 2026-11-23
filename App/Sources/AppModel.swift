@@ -2,6 +2,7 @@
 // by `OutputCoordinator`. This model sends commands and reads status; it never renders. Render threads read an
 // immutable `PublishedScenes` snapshot, never this object.
 import AppKit
+import QuartzCore
 import SwiftUI
 import Observation
 import Domain
@@ -1871,6 +1872,9 @@ final class AppModel {
         if let m = MemoryProbe.residentBytes() { memory.append(m) }
         var lastSlideAt = 0.0, lastSampleAt = 0.0
         var advances = 0, samples = 0, hiddenSamples = 0
+        // OUT-002b: the media clock (the base of a frame's presented time) at the soak's start, and the visibility samples on it.
+        let mediaOrigin = CACurrentMediaTime() - Date().timeIntervalSince(started)
+        var timeline = VisibilityTimeline()
         var failure: String?
         let refreshAtStart = soakReadout()?.refreshRate ?? 0
         while true {
@@ -1879,8 +1883,8 @@ final class AppModel {
             let r = soakReadout()
             samples += 1
             switch r?.state {
-            case .running?: break
-            case .hidden?: hiddenSamples += 1
+            case .running?: timeline.note(sampleAt: CACurrentMediaTime(), covered: false)
+            case .hidden?: hiddenSamples += 1; timeline.note(sampleAt: CACurrentMediaTime(), covered: true)
             default: failure = "audience output stopped before the soak finished: \(describe(r?.state))"
             }
             if failure != nil { break }
@@ -1903,6 +1907,8 @@ final class AppModel {
         let videoFrames = video?.deliveredFrameCount ?? 0
         let videoDiag = video?.diagnostics ?? "none"
         let diag = soakProfileID.flatMap { coordinator.diagnostics(for: $0) } ?? "none"
+        let frameEvents = soakProfileID.flatMap { coordinator.frameEvents(for: $0) } ?? FrameEventLog(capacity: 0)
+        timeline.finish(at: CACurrentMediaTime())
         stopScreens(waitForPorts: true)
 
         let modeText: String
@@ -1945,6 +1951,8 @@ final class AppModel {
                 exitCode = 1
             }
         }
+        // OUT-002b: when each dropped and late frame happened, and whether the window was covered then.
+        lines.append(contentsOf: SoakDropReport.lines(log: frameEvents, timeline: timeline, origin: mediaOrigin))
         lines.append("status: \(failure ?? "completed")")
         let text = lines.joined(separator: "\n") + "\n"
         let path = config.reportPath ?? defaultReportPath()
