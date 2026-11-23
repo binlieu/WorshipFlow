@@ -405,3 +405,37 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 ## FIX-T review fixes
 
 - [ ] (1) open a Media bin that holds a tile with a stored length of 1e300 (edit a scratch library) and see "–:–", no crash; (2) import a hand-made package with `"size": 9223372036854775807` and see the plain refusal; (3) with a Bible passage in the playlist, press Next and remove it from the playlist at the same moment: Next stops with the message; (4) Close screens with an SDI card or the simulator and see the window answer at once; (5) name a playlist "Hardware Test" and press Space, Return, B and the arrows in the operator window: they work.
+
+## UI-007c Edit layers, lock, fit and video
+
+- [ ] Edit: Video menu, add a clip, see the still; go live and see it play in its box on a window screen and the monitor; Stop it; lock a box and try to drag, arrow, Delete; hide a box; Fit a long text box; Background fill; undo each once.
+
+## UI-007d Media marks, markers and Cues marker actions
+
+- [ ] Media: select a video, move the player to 0:04, press Mark in; to 0:09, Mark out. Play in the player: it starts at 0:04 and stops at 0:09; with Loop it starts again at 0:04. Open the list button: type `0:06` for In; clear Out. Right-click Mark in: Clear.
+- [ ] Add marker at 0:07, rename it "Lower third on", move it by typing a time, delete it; they stay in time order; relaunch: they are back.
+- [ ] Take a slide live, press Live foreground on the marked clip: it starts at the in mark and the words return at the out mark; with the clip looping it restarts at the in mark. Edit the marks while it plays: nothing changes until it is started again.
+- [ ] Cues: choose the clip in Playback markers; give a marker "Prop on"; try to add "Next slide": refused with the reason. Play the clip live: Activity says "marker ... at 00:07.0 in ...", the prop shows once; seek over the marker with the transport scrubber: it does not run; seek back and play past: it runs again. Play the clip in the Media preview: nothing runs.
+- [ ] With a loop (Live background): the marker runs once per pass. Take the screens down (Stop): nothing runs.
+- [ ] Activity Monitor or Instruments: with no marked clip playing there is no 50 ms timer from the app.
+- [ ] Light and dark; VoiceOver on Mark in, Mark out, Add marker, the list button and each marker row.
+
+## UI-007e Stage Section elements
+
+- [ ] Stage: your own layout, Section menu, add Section and Next section; with a song live (sections set), the stage screen shows the section name, and NEXT plus the following section on the last slide before a change; hide with the eye; audience and broadcast screens never show them.
+
+## UI-007f Screens key label, signal chain and own Look
+
+- [ ] Screens, select a keyed broadcast screen: type a key label and press Return (the key tile shows it; blank shows the fill's). Add a chain (enclosure, converter), name and reorder it: the map shows the boxes with "typed by you".
+- [ ] Choose a Look for one screen: its row shows "Look: name"; select another Look for the show: that screen does not change, the others do; delete the Look: the screen follows the show's Look again.
+- [ ] Relaunch: all kept. Dark and light, VoiceOver.
+
+## FIX-V review fixes (macro keys, Remove screen, section order, Stage preview)
+
+- [ ] F5 with a macro in Show/Cues runs once, holding it runs once; in Edit, Stage, Screens, Media, in Settings, and with a button focused in Edit nothing happens; the Trigger menu's first line; F11/F12 and Fn behaviour. Remove screen while open: refusal alert; closed: dialog text with Look names and stage layout; the button not red. Section order: remove rows 1 and 3 in quick succession; drag a row. Edit Stage preview with Speaker preset and Band with Next hidden. Open and close the screens 20 times and compare memory. Media: bring the app forward repeatedly (no check burst), rename a file's folder and wait up to a minute or use Locate.
+
+## FIX-U Show window update after a command
+
+- [ ] Show, with a song live: press Escape (Clear), then Return on a slide, then B twice (Blackout on and off): the amber word in the toolbar appears with Cleared and Blackout and goes away when lifted; the pinned "Edit live slide" row at the bottom of the right column is there while words are live and goes away on Clear; the transport bar's badge and text change with each; nothing is cut or moved (the LIVE badge keeps its width and the headline starts 10 pt after it).
+- [ ] Next, Previous and a click on a far slide still scroll the grid to the selection when it is off screen.
+- [ ] Feel: Clear, Blackout and Go Live after Clear on a 200-slide song with the real screen unlocked; the report's numbers come from a locked screen.

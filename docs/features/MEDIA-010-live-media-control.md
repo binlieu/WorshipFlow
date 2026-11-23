@@ -19,3 +19,10 @@ From the owner's hands-on feedback of 2026-11-21 (items 3 and 6 to 10).
 - Where a background shows: KI-101.
 - Show dock tiles still send on a single click; the Media mode bin selects on a single click.
 - Tests: `MEDIA010_*` in `OperatorCoreTests`, `PersistenceTests`, `MediaEngineTests`.
+
+## UI-007d additions (marks and markers)
+
+- Marks: `markIn` and `markOut` on a video clip (set at the playhead or typed, cleared), honoured by the bin preview and by live playback (start at in, stop or loop at out) through `MediaTransport` and the player.
+- Markers: add at the playhead, rename, move, delete; kept in time order; stored in table `mediaMarker` (migration v15).
+- Playback rule: a marker's actions run when live playback crosses it, once per crossing, through the one command path (source "marker"); never from the preview and never when seeking over it.
+- Not verified: the AVFoundation adapter of the bin player (out-mark stop, loop to in); marker timing against real picture and sound.

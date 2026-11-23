@@ -77,3 +77,9 @@ The app calls `start(at:)` when a clip starts, `advance(to:)` for each position 
 - Nothing here talks to hardware, CoreMIDI, the app or a real clock. `SystemCueClock` uses `CLOCK_MONOTONIC`, which should keep counting during sleep; that was not verified by sleeping a Mac.
 - The schedule tests rely on the installed time zone data for 2026; a Mac with older data could disagree about a rule change.
 - Event and binding stored forms other than `CueActionList`, `MacroLibrary` and `SlideActionSet` use Swift's default `Codable` shapes and have no version field yet.
+
+## UI-007d additions (playback markers)
+
+- `CommandSource.marker` and `OperatorCommand.markerReached`: a marker's actions run through the one command path and show in Activity with source "marker".
+- Marker observer rule: runs only while a clip with markers plays live (50 ms interval); never from the preview; never when seeking over a marker.
+- No-transport rule: transport actions (for example "Next slide") are refused as a marker's action, with the reason shown.
