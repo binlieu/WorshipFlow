@@ -14,6 +14,7 @@ struct ScreensDetail: View {
     let profile: ScreenProfile
     let readout: ScreenReadout
     @State private var confirmRemove = false
+    @State private var removeRefusal: String?
 
     private var running: Bool { readout.state == .running || readout.state == .hidden }
     private var isSDI: Bool { profile.destination.isSDI }
@@ -55,21 +56,23 @@ struct ScreensDetail: View {
             }
             // UI-006f: "Remove screen", asked first. Ghost and muted, not red: red is only for on air. The last screen cannot be removed.
             let removable = ScreenListEditing.canRemove(profile.id, from: app.profiles)
-            Button { confirmRemove = true } label: { Text("Remove screen") }
+            Button { if let why = app.screenRemovalBlock(profile.id) { removeRefusal = why } else { confirmRemove = true } } label: { Text("Remove screen") }
                 .buttonStyle(HeaderButtonStyle(kind: .ghost))
                 .disabled(!removable)
                 .help(removable ? "Remove this screen's settings" : "The last screen cannot be removed.")
                 .accessibilityLabel("Remove screen \(profile.name)")
                 .wfRect("sc.detail.remove", size: 12, weight: 500, radius: Radius.md)
+                .alert("\(profile.name) cannot be removed now", isPresented: Binding(get: { removeRefusal != nil }, set: { if !$0 { removeRefusal = nil } })) {
+                    Button("OK", role: .cancel) {}
+                } message: { Text(removeRefusal ?? "") }
                 .confirmationDialog("Remove \(profile.name)?", isPresented: $confirmRemove, titleVisibility: .visible) {
                     Button("Remove screen", role: .destructive) {
                         let next = ScreenListEditing.selection(afterRemoving: profile.id, from: app.profiles)
-                        app.settings?.removeProfile(profile.id)
-                        app.ui.selectedScreenID = next
+                        if let why = app.removeScreen(profile.id) { removeRefusal = why } else { app.ui.selectedScreenID = next }
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("Its output stops and its destination, mirrors and notes are forgotten. This cannot be undone. Your slides and media are not touched.")
+                    Text(app.screenRemovalText(profile.id))
                 }
         }
         .padding(.horizontal, 14).padding(.top, 8)

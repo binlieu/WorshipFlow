@@ -207,6 +207,9 @@ public final class StageModel {
 
     public func layoutID(forScreen screenID: UUID) -> UUID { layout(forScreen: screenID).id }
 
+    /// FIX-V item 2: a screen was removed: its layout choice goes with it, so no entry is left for an id that no longer exists.
+    public func forgetScreen(_ screenID: UUID) { setLayout(nil, forScreen: screenID) }
+
     /// Chooses the layout of a stage screen; nil, or the built-in id, returns it to the built-in layout.
     public func setLayout(_ layoutID: UUID?, forScreen screenID: UUID) {
         if let layoutID, layoutID != StageLayout.standardID {

@@ -39,6 +39,8 @@ public final class SettingsModel {
 
     /// Called on the main actor after a change to the screen profiles, so the app can re-plan its outputs.
     @ObservationIgnored public var onProfilesChange: (@MainActor () -> Void)?
+    /// FIX-V item 2: called with the id of a screen that was just removed, so what other models keep per screen is removed with it.
+    @ObservationIgnored public var onProfileRemoved: (@MainActor (UUID) -> Void)?
     /// Called on the main actor after "Show simulated SDI device" changes, so the app can re-plan its outputs.
     @ObservationIgnored public var onSimulatedSDIDeviceChange: (@MainActor () -> Void)?
     /// Called after a change to Looks, props or themes, so the app can publish scenes again.
@@ -209,8 +211,11 @@ public final class SettingsModel {
     }
 
     /// Removes a screen and keeps the Looks' entries consistent (a surviving screen of the same role keeps its look). The last screen stays.
-    public func removeProfile(_ id: UUID) {
-        guard ScreenListEditing.canRemove(id, from: profiles) else { return }
+    /// FIX-V item 2: refused (the reason is returned, nothing changes) while the screen is on air; `onProfileRemoved` lets the other models
+    /// forget what they keep per screen (the stage layout choice).
+    @discardableResult
+    public func removeProfile(_ id: UUID, activeOutputs: Set<UUID> = [], screensOpen: Bool = false) -> String? {
+        if let why = ScreenListEditing.removalBlock(id, profiles: profiles, activeOutputs: activeOutputs, screensOpen: screensOpen) { return why }
         let before = profiles
         profiles = ScreenListEditing.removing(id, from: before)
         for i in looks.indices {
@@ -218,8 +223,10 @@ public final class SettingsModel {
             if updated != looks[i] { looks[i] = updated; persistLook(updated) }
         }
         persistProfiles()
+        onProfileRemoved?(id)
         onProfilesChange?()
         onAppearanceChange?()
+        return nil
     }
 
     private func persistProfiles() {

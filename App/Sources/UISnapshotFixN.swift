@@ -162,6 +162,53 @@ extension AppModel {
             }
             await keys("Screens, after \(scenario)") { "" }
         }
+        // MARK: FIX-V item 1: a macro's function key (F5 selects the Worship Look), real key events in every mode, in the operator window and in another one.
+        if let cue {
+            for name in ["Worship", "Sermon"] { addLook(); if let last = looks.last { renameLook(last.id, to: name) } }
+            if let worship = looks.first(where: { $0.name == "Worship" }), let sermon = looks.first(where: { $0.name == "Sermon" }),
+               let macro = await cue.createMacro(name: "F5 test") {
+                await cue.setSteps([.selectLook(worship.id)], of: macro.id)
+                await cue.setKey(.f5, for: macro.id)
+                @MainActor func f5(_ label: String, in target: RealPointer, shift: Bool = false, isRepeat: Bool = false, expectRun: Bool) async {
+                    selectLook(sermon.id)
+                    let before = cue.activity.count
+                    target.key(96, "\u{F708}", shift: shift, isRepeat: isRepeat)
+                    try? await Task.sleep(for: .milliseconds(500))
+                    await cue.settled()
+                    let ran = currentLook?.name == "Worship"
+                    let lines = cue.activity.last.map { "\($0.source.label): \($0.text)" } ?? "none"; _ = before
+                    note("fixv[\(label)]: F5 \(ran ? "ran the macro" : "did nothing") (expected \(expectRun ? "ran" : "nothing")); last activity line \(lines) \(ran == expectRun ? "OK" : "MISMATCH")")
+                }
+                for mode in WorkspaceMode.allCases {
+                    workspace.setMode(mode)
+                    try? await Task.sleep(for: .milliseconds(900))
+                    await f5("mode \(mode)", in: pointer, expectRun: mode == .show || mode == .cues)
+                }
+                workspace.setMode(.show)
+                try? await Task.sleep(for: .milliseconds(700))
+                let buttonID = UUID()
+                ui.controlFocus(id: buttonID, .toggle, true)
+                await f5("Show, a toggle focused", in: pointer, expectRun: true)
+                ui.controlFocus(id: buttonID, .toggle, false)
+                await f5("Show, Shift held", in: pointer, shift: true, expectRun: false)
+                await f5("Show, key repeat", in: pointer, isRepeat: true, expectRun: false)
+                ui.showSectionOrders = true
+                try? await Task.sleep(for: .milliseconds(700))
+                await f5("Show, a sheet open", in: pointer, expectRun: false)
+                ui.showSectionOrders = false
+                try? await Task.sleep(for: .milliseconds(700))
+                let other = NSWindow(contentRect: NSRect(x: 200, y: 200, width: 300, height: 200), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+                other.isReleasedWhenClosed = false
+                other.title = "Other window"
+                other.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .milliseconds(400))
+                await f5("another window (not the operator window)", in: RealPointer(window: other), expectRun: false)
+                other.close()
+                window.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .milliseconds(300))
+                await f5("Show, back in the operator window", in: pointer, expectRun: true)
+            } else { note("fixv: no macro") }
+        }
         workspace.setMode(.show)
         await resetShow()
         note("fixn: done")

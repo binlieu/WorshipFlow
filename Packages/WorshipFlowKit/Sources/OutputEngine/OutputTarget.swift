@@ -67,6 +67,12 @@ public protocol OutputTarget: AnyObject {
     func stopWithoutWaiting()
     /// Returns when a stop begun with `stopWithoutWaiting()` has finished; at once when none is under way.
     func waitUntilStopped()
+    /// FIX-V item 4: true from the moment a stop was begun until its teardown has finished. A window or display output stops at once and is
+    /// never "tearing down"; an SDI output is while its port is still being closed on its own queue.
+    var isTearingDown: Bool { get }
+    /// FIX-V item 4: called on the main actor when a teardown that `isTearingDown` reported has finished. Only an output with a teardown of
+    /// its own (SDI) ever calls it.
+    var onTeardownFinished: (@MainActor () -> Void)? { get set }
 }
 
 extension OutputTarget {
@@ -77,6 +83,8 @@ extension OutputTarget {
     public var stoppedByDeviceLoss: Bool { false }
     public func stopWithoutWaiting() { stop() }
     public func waitUntilStopped() {}
+    public var isTearingDown: Bool { false }
+    public var onTeardownFinished: (@MainActor () -> Void)? { get { nil } set {} }
 }
 
 /// The SDI-specific part of a screen's readout (HW-002).

@@ -170,6 +170,15 @@ public enum SDIRenderPacing: Sendable, Equatable {
     case lockstep
 }
 
+/// FIX-V item 4: how many teardowns are queued and not finished; read on the main actor, changed on the output's queue.
+private final class TeardownCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var pending: Int { lock.withLock { count } }
+    func begin() { lock.withLock { count += 1 } }
+    func end() { lock.withLock { count -= 1 } }
+}
+
 @MainActor
 public final class SDIOutput: OutputTarget {
     public static let opaqueKeyWarning = "Nothing will key: background is opaque. Give this screen a theme with a transparent background, such as the lower third."
@@ -202,6 +211,8 @@ public final class SDIOutput: OutputTarget {
     private let prefill: Int
     private let queue = DispatchQueue(label: "WorshipFlow.sdi.start", qos: .userInteractive)
     private var clockRunning = false
+    /// FIX-V item 4: stops queued on `queue` that have not finished.
+    private let teardowns = TeardownCounter()
     private var lostDevice = false
 
     /// - Parameters:
@@ -314,6 +325,12 @@ public final class SDIOutput: OutputTarget {
     /// Returns when every start and stop queued on this output has finished.
     public func waitUntilStopped() { queue.sync {} }
 
+    /// FIX-V item 4: told (on the main actor) when a teardown has finished; the coordinator lets go of the output then.
+    public var onTeardownFinished: (@MainActor () -> Void)?
+
+    /// FIX-V item 4: a teardown queued by `finish` has not run to its end yet.
+    public var isTearingDown: Bool { teardowns.pending > 0 }
+
     /// Tests: returns when the work `start()` queued has finished, so the first frames are scheduled.
     func waitUntilStarted() { queue.sync {} }
 
@@ -336,11 +353,15 @@ public final class SDIOutput: OutputTarget {
         let session = session, ahead = ahead, port = port, clock = clock
         let stopClock = clockRunning
         clockRunning = false
-        queue.async {
+        teardowns.begin()
+        let teardowns = teardowns
+        queue.async { [weak self] in
             session.stop()
             ahead.stop()
             port.close()
             if stopClock { clock?.stop() }
+            teardowns.end()
+            Task { @MainActor [weak self] in self?.onTeardownFinished?() }
         }
         if wait { queue.sync {} }
     }

@@ -139,6 +139,8 @@ public final class WorkspaceModel {
     /// FIX-P item 6: one tracker per presentation (and per playlist), so a drop in one list never restores, or confirms, another list's order.
     @ObservationIgnored var slideMoves: [UUID: ReorderTracker<UUID>] = [:]
     @ObservationIgnored var playlistMoves: [UUID: ReorderTracker<UUID>] = [:]
+    /// FIX-V item 3: section order edits run one after the other (the editor's quick clicks never overlap).
+    @ObservationIgnored var sectionEditTail: Task<Void, Never>?
     @ObservationIgnored var slideMoveTail: Task<Void, Never>?
     @ObservationIgnored var playlistMoveTail: Task<Void, Never>?
     @ObservationIgnored private var draftRetry: Task<Void, Never>?

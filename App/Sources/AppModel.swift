@@ -220,6 +220,7 @@ final class AppModel {
             let stage = StageModel(store: store)
             stage.onChange = { [weak self] in self?.publish() }
             self.stage = stage
+            settings.onProfileRemoved = { [weak stage] id in stage?.forgetScreen(id) }      // FIX-V item 2: the stage layout choice goes with the screen
             let media = MediaModel(store: store, prober: AppMediaProber())
             media.onLayersChange = { [weak self] layers in self?.mediaLayersChanged(layers) }
             media.onAssetsChange = { [weak self] assets in
@@ -672,8 +673,12 @@ final class AppModel {
                 let focus: FocusedElement = textInput ? (inSearch ? .searchField : .textInput) : (self.ui.focusedControl ?? appKitFocus)
                 // FIX-N items 1 and 8: a box is selected on the canvas that has focus, or on the canvas that was clicked last.
                 let canvasHasSelection = (window.firstResponder as? StageKeyView)?.takesArrows ?? self.canvasSelectionForArrows
-                if self.handleCueKeyTrigger(keyCode: event.keyCode, modifierHeld: held, shift: shift, isRepeat: isRepeat, focus: focus, textInput: textInput, sheetOpen: sheetOpen) { return true }      // UI-006g (CU-21): a macro's function key
-                switch KeyRouting.decision(for: key, focus: focus, canvasHasSelection: canvasHasSelection, canvasLastClicked: self.ui.canvasLastClicked, section: self.effectiveKeySection, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat) {
+                // FIX-V item 1: a macro's function key (UI-006g, CU-21) is routed like every other show key: the decision knows the mode, the window and any alert.
+                let isOperatorWindow = window.identifier == Self.operatorWindowIdentifier || (window.identifier == nil && window.title == Self.operatorWindowTitle)
+                switch KeyRouting.decision(for: key, focus: focus, canvasHasSelection: canvasHasSelection, canvasLastClicked: self.ui.canvasLastClicked, section: self.effectiveKeySection, sheetOpen: sheetOpen, commandModifierDown: held, shiftDown: shift, isRepeat: isRepeat,
+                                           macroKey: CueFunctionKey(keyCode: event.keyCode), mode: self.workspace?.mode ?? .show, isOperatorWindow: isOperatorWindow, modalUp: NSApp.modalWindow != nil) {
+                case .runMacro(let functionKey):
+                    return self.cue?.runKeyTrigger(functionKey) ?? false      // false (the key passes on) when no macro holds it
                 case .focusShow:
                     self.ui.controlFocusTracker.clear()
                     window.makeFirstResponder(nil)
@@ -820,6 +825,27 @@ final class AppModel {
     }
 
     // MARK: Settings (APP-001)
+
+    /// FIX-V item 2 (REVIEW-4 M4): the screens whose output exists now (running, hidden behind another window, or faulted).
+    private var activeOutputIDs: Set<UUID> {
+        Set(readouts.filter { if case .stopped = $0.state { false } else { true } }.map(\.id))
+    }
+
+    /// Why this screen cannot be removed now, or nil.
+    func screenRemovalBlock(_ id: UUID) -> String? {
+        ScreenListEditing.removalBlock(id, profiles: profiles, activeOutputs: activeOutputIDs, screensOpen: screensOn)
+    }
+
+    /// What goes with the screen, for the confirmation.
+    func screenRemovalText(_ id: UUID) -> String {
+        ScreenListEditing.removalImpact(id, profiles: profiles, looks: looks, hasStageLayoutChoice: stage?.layoutChoices[id] != nil).text
+    }
+
+    /// Removes a screen if the rules allow; returns the reason when they do not.
+    @discardableResult
+    func removeScreen(_ id: UUID) -> String? {
+        settings?.removeProfile(id, activeOutputs: activeOutputIDs, screensOpen: screensOn)
+    }
 
     var profiles: [ScreenProfile] { settings?.profiles ?? soakProfiles }
     var looks: [Look] { settings?.looks ?? [] }
