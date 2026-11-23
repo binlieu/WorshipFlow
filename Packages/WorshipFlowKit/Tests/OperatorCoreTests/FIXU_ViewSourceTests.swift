@@ -44,7 +44,9 @@ import Foundation
         for pattern in ["app.mode", "liveSlide", "livePositionLine", "textBlockWidth", "InterFont"] {
             #expect(!bar.contains(pattern), "TransportBar reads `\(pattern)`: every Next would run the whole bar")
         }
-        #expect(bar.contains("TransportText(app: app, workspace: workspace)"))
+        // fixedSize: as one child of the bar, the badge and the text block must keep their own widths (found with `scripts/compare-rects.py`: without it
+        // the badge was squeezed from 45.7 to 18 pt and the text block moved 27 pt left).
+        #expect(bar.contains("TransportText(app: app, workspace: workspace).fixedSize(horizontal: true, vertical: false)"))
         let words = String(text[end.lowerBound...])
         #expect(words.contains("app.mode") && words.contains("workspace.showParts.liveSlide") && words.contains("livePositionLine"))
     }

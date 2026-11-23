@@ -11,7 +11,8 @@ struct TransportBar: View {
         let _ = BodyProbe.hit("TransportBar")
         HStack(spacing: 10) {
             // FIX-U: the state badge and the two lines are a view of their own: they change with every Next and every Clear, the buttons do not.
-            TransportText(app: app, workspace: workspace)
+            // `fixedSize`: it keeps its own width (badge, 10, text block), as these were separate children of the bar, so the badge is not squeezed when the bar is tight.
+            TransportText(app: app, workspace: workspace).fixedSize(horizontal: true, vertical: false)
             Spacer(minLength: 10)
             Button { app.previous() } label: { hinted("backward.fill", "Previous", TransportKeyHints.previous) }
                 .buttonStyle(TransportButtonStyle()).wfRect("tp.previous", size: 13, weight: 600, radius: Radius.lg).help("Shift-Space: back one slide (the arrow keys only move the selection)")
