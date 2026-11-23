@@ -4,6 +4,8 @@
 import SwiftUI
 import CoreText
 import AppKit
+import Domain
+import OperatorCore
 
 extension Text {
     /// The CSS line box for text that may wrap: every line is `lineHeight` tall (ui.css gives most text 16), whatever the font's own
@@ -95,5 +97,27 @@ struct ScreensTypedNode: View {
         .wfRect(rectID, radius: Radius.lg)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Connected to \(text), typed by you")
+    }
+}
+
+/// UI-007f: one box of the signal chain the operator typed (an enclosure, a converter, anything else). Drawn as a node with the kind and the words
+/// "typed by you": WorshipFlow cannot see what sits between the card and the screen.
+struct ScreensChainBox: View {
+    let node: ChainNode
+    var rectID = ""
+    var body: some View {
+        let title = SignalChainEditing.title(node)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title).font(.wf(12, .bold)).lineLimit(1).frame(height: 15, alignment: .leading)
+                .wfRect(rectID.isEmpty ? "" : "\(rectID).text", size: 12, weight: 700)
+            Text("\(SignalChainEditing.kindName(node.kind)) · typed by you").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1)
+                .frame(height: 15, alignment: .leading)
+                .wfRect(rectID.isEmpty ? "" : "\(rectID).sub", size: 11, weight: 400)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(ScreensNodeChrome())
+        .wfRect(rectID, radius: Radius.lg)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(SignalChainEditing.kindName(node.kind)): \(title), typed by you")
     }
 }

@@ -269,7 +269,30 @@ public final class SettingsModel {
 
     // MARK: Looks (SCRN-08)
 
-    public func screenLook(for screenID: UUID) -> ScreenLook { currentLook?.screenLook(for: screenID, in: profiles) ?? .standard }
+    /// What one screen shows under the Look it uses: its own (UI-007f) when the operator chose one for it, else the show's Look.
+    public func screenLook(for screenID: UUID) -> ScreenLook {
+        guard let profile = profiles.first(where: { $0.id == screenID }) else { return currentLook?.screenLook(for: screenID, in: profiles) ?? .standard }
+        return ScreenLooks.look(for: profile, global: currentLook, looks: looks)?.screenLook(for: screenID, in: profiles) ?? .standard
+    }
+
+    /// UI-007f: the Look of each screen that has one of its own; empty when none does. What the composers take next to the show's Look.
+    public var screenLookOverrides: [UUID: Look] { ScreenLooks.overrides(profiles: profiles, global: currentLook, looks: looks) }
+
+    /// UI-007f: which Look a screen uses and whether the operator chose it for that screen.
+    public func screenLookSummary(for screenID: UUID) -> ScreenLooks.Summary {
+        guard let profile = profiles.first(where: { $0.id == screenID }) else { return ScreenLooks.Summary(lookName: currentLook?.name, isOwn: false) }
+        return ScreenLooks.summary(for: profile, global: currentLook, looks: looks)
+    }
+
+    /// UI-007f (SC-51): the operator gives one screen a Look of its own (nil: follow the show's Look again). A Look that does not exist, or a
+    /// screen that does not, changes nothing. It republishes through `onAppearanceChange`, exactly as `selectLook` does: no sooner, no later.
+    public func setScreenLook(_ lookID: UUID?, forScreen screenID: UUID) {
+        guard let i = profiles.firstIndex(where: { $0.id == screenID }), profiles[i].screenLookID != lookID else { return }
+        if let lookID, !looks.contains(where: { $0.id == lookID }) { return }
+        profiles[i].screenLookID = lookID
+        persistProfiles()
+        onAppearanceChange?()
+    }
 
     public func selectLook(_ id: UUID) {
         guard id != selectedLookID, looks.contains(where: { $0.id == id }) else { return }
@@ -306,6 +329,8 @@ public final class SettingsModel {
     public func deleteLook(_ id: UUID) {
         guard looks.count > 1, let i = looks.firstIndex(where: { $0.id == id }) else { return }
         looks.remove(at: i)
+        // UI-007f: a screen that chose this Look follows the show's Look again (the store clears it from the stored profiles the same way).
+        for p in profiles.indices where profiles[p].screenLookID == id { profiles[p].screenLookID = nil }
         persist(key: "look:\(id)", "delete the Look") { [store] in try await store.deleteLook(id: id) }
         if selectedLookID == id {
             selectedLookID = looks[min(i, looks.count - 1)].id
@@ -323,7 +348,9 @@ public final class SettingsModel {
     }
 
     private func editScreenLook(_ screenID: UUID, _ change: (inout ScreenLook) -> Void) {
-        guard let i = looks.firstIndex(where: { $0.id == selectedLookID }) else { return }
+        // UI-007f: the Look this screen uses: its own when it chose one, else the show's.
+        let usedID = profiles.first(where: { $0.id == screenID })?.screenLookID.flatMap { id in looks.contains { $0.id == id } ? id : nil } ?? selectedLookID
+        guard let i = looks.firstIndex(where: { $0.id == usedID }) else { return }
         var screenLook = looks[i].screenLook(for: screenID, in: profiles)
         let before = screenLook
         change(&screenLook)

@@ -37,10 +37,10 @@ extension AppModel {
         let live = workspace?.livePresentationIDs ?? []
         guard !live.isEmpty || !show.isStopped else { return .none }
         let look = currentLook
-        var themes = Set(profiles.compactMap { profile in look?.screenLook(for: profile.id, in: profiles).themeID })
+        var themes = Set(profiles.compactMap { profile in screenLook(for: profile.id).themeID })      // UI-007f: the Look each screen uses
         if let shown = workspace?.shownThemeID { themes.insert(shown) }
         return ProgramLiveContext(livePresentationIDs: live, isShowLive: !show.isStopped, themeIDsInUse: themes,
-                                  lookIDsInUse: look.map { [$0.id] } ?? [])
+                                  lookIDsInUse: Set((look.map { [$0.id] } ?? []) + screenLookOverrides.values.map(\.id)))
     }
 
     /// The library was written behind the workspace's back: bring its themes, Looks and media bin up to date. (The workspace's own

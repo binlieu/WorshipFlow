@@ -11,14 +11,17 @@ public struct PublishedScenes: Sendable, Equatable {
     ///   applies it to audience screens only, after the screen's own Look theme.
     /// - Parameter stageScenes: ready-made scenes (from `StageModel`) for stage screens, which ignore themes and Looks.
     ///   A stage screen without an entry falls back to the built-in stage scene.
+    /// - Parameter screenLooks: the Look of each screen that has one of its own (`ScreenLooks.overrides`); a screen not in it follows `look`.
     /// - Parameter media: the chosen background and the clip playing in the foreground (MEDIA-001). Audience and
     ///   broadcast screens follow the rules in `SceneComposer`; stage screens never show media.
     public init(state: ShowState, clockText: String?, profiles: [ScreenProfile] = [], themes: [Theme] = Theme.builtIn,
                 look: Look? = nil, props: [Prop] = [], presentationThemeID: UUID? = nil,
-                stageScenes: [UUID: SceneDescription] = [:], media: MediaLayers? = nil) {
+                stageScenes: [UUID: SceneDescription] = [:], media: MediaLayers? = nil,
+                screenLooks: [UUID: Look] = [:]) {
         var composed: [UUID: SceneDescription] = [:]
         for profile in profiles {
-            let screenLook = look?.screenLook(for: profile.id, in: profiles) ?? .standard
+            // UI-007f: a screen the operator gave a Look of its own composes with it; the map is empty unless one did.
+            let screenLook = (screenLooks[profile.id] ?? look)?.screenLook(for: profile.id, in: profiles) ?? .standard
             if profile.role == .stage, let stage = stageScenes[profile.id] {
                 // UI-005b: props targeted to the stage (and shown by its Look) go on top of the stage layout's own scene.
                 composed[profile.id] = SceneComposer.addingProps(to: stage, role: .stage, state: state, look: screenLook, props: props)

@@ -35,6 +35,8 @@ struct ScreensDetail: View {
             form
             counters
             if let captions = ScreensPresentation.keyedCaptions(destination: profile.destination, device: deviceInfo) { keyedPreviews(captions) }
+            // UI-007f: the Look this screen uses and the operator's own notes (key label, signal chain), below the designed area.
+            ScreensNotes(app: app, profile: profile).id(profile.id)
         }
     }
 

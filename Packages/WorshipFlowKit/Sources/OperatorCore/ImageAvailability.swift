@@ -9,10 +9,10 @@ public enum ImageUsage {
     /// the props layer) and the background image of the theme each screen resolves to (when it shows the background
     /// layer). A stage screen draws neither. Themes nobody uses are not listed.
     public static func pathsInUse(props: [Prop], themes: [Theme], profiles: [ScreenProfile], look: Look?,
-                                  presentationThemeID: UUID?) -> Set<String> {
+                                  presentationThemeID: UUID?, screenLooks: [UUID: Look] = [:]) -> Set<String> {
         var paths = Set<String>()
         for profile in profiles where profile.isEnabled && profile.role != .stage {
-            let screenLook = look?.screenLook(for: profile.id, in: profiles) ?? .standard
+            let screenLook = (screenLooks[profile.id] ?? look)?.screenLook(for: profile.id, in: profiles) ?? .standard
             if screenLook.visibleLayers.contains(.props) {
                 for prop in props where prop.isOn && prop.kind == .image && prop.targets.contains(profile.role) { paths.insert(prop.imagePath) }
             }

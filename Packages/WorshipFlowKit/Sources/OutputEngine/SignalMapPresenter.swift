@@ -43,6 +43,9 @@ public struct SignalTile: Equatable, Identifiable, Sendable {
     /// Plain word for the run state: Running, Stopped, Hidden, Fault; nil for an unused connector.
     public var stateWord: String?
     public var isSimulated: Bool
+    /// UI-007f: the boxes the operator typed between this connector and where it goes (enclosure, converter, other). Their words, never detected;
+    /// empty when none was typed. Carried by the output, fill and display tiles, not by a key tile (one chain per destination).
+    public var chain: [ChainNode] = []
 }
 
 public struct SignalDeviceBlock: Equatable, Identifiable, Sendable {
@@ -87,6 +90,14 @@ public enum SignalMapPresenter {
             guard let p = input.profiles.first(where: { $0.id == slot.screenID }) else { return nil }
             return (slot.mirror.map { "\(p.name) (mirror \($0 + 1))" } ?? p.name, p.connectedNote(mirror: slot.mirror), slot.mirror != nil)
         }
+        // UI-007f: the key connector has a label of its own; without one it shows the fill's, as it did before the key had its own.
+        func keyNote(_ slot: OutputSlot) -> String? {
+            guard let p = input.profiles.first(where: { $0.id == slot.screenID }) else { return nil }
+            return p.connectedKeyNote(mirror: slot.mirror) ?? p.connectedNote(mirror: slot.mirror)
+        }
+        func chain(_ slot: OutputSlot) -> [ChainNode] {
+            input.profiles.first(where: { $0.id == slot.screenID })?.signalChain(mirror: slot.mirror) ?? []
+        }
 
         var blocks: [SignalDeviceBlock] = []
         for device in input.devices {
@@ -110,8 +121,10 @@ public enum SignalMapPresenter {
                     let info = slot.flatMap(who)
                     let s = slot.map(state)
                     return SignalTile(id: "\(device.id)#\(connector)", connector: connector, title: "\(prefix) · \(title)", subtitle: subtitle,
-                                      kind: kind, screenID: slot?.screenID, isMirror: info?.mirror ?? false, connectedTo: info?.note,
-                                      faultText: s.flatMap(fault), stateWord: s.map(word), isSimulated: device.info.isSimulated)
+                                      kind: kind, screenID: slot?.screenID, isMirror: info?.mirror ?? false,
+                                      connectedTo: kind == .key ? slot.flatMap(keyNote) : info?.note,
+                                      faultText: s.flatMap(fault), stateWord: s.map(word), isSimulated: device.info.isSimulated,
+                                      chain: kind == .key ? [] : (slot.map(chain) ?? []))
                 }
                 switch use {
                 case .unused:
@@ -158,7 +171,8 @@ public enum SignalMapPresenter {
                 let s = state(slot)
                 direct.append(SignalTile(id: "\(p.id)#\(slot.mirror.map(String.init) ?? "p")", connector: nil, title: title,
                                          subtitle: who(slot)?.name ?? p.name, kind: kind, screenID: p.id, isMirror: slot.mirror != nil,
-                                         connectedTo: p.connectedNote(mirror: slot.mirror), faultText: fault(s), stateWord: word(s), isSimulated: false))
+                                         connectedTo: p.connectedNote(mirror: slot.mirror), faultText: fault(s), stateWord: word(s), isSimulated: false,
+                                         chain: p.signalChain(mirror: slot.mirror)))
             }
         }
 
