@@ -1,8 +1,23 @@
 # Agent handoff
 
-Updated: 2026-11-21 (afternoon)
+Updated: 2026-11-22 (night)
 
-## State
+## Current state (2026-11-22, night): read this section first; everything below it is history
+
+- **HEAD** `4bddabe` on `main`, pushed, plus the commit that carries this section. `./scripts/check.sh` passes on it: 3,476 tests, Debug and Release builds. Schema v15 (ADR-0009): a library opened by a v15 build cannot be opened by an older build; a copy is taken into the library's `Backups` folder before a migration.
+- **Done on 2026-11-22:** FIX-K to FIX-V, UI-005c to g, UI-006c to g, SYS-015 (migration v15), UI-007c (Edit layers, lock, hide, text Fit and fill, video objects), UI-007d (mark in and out, markers, marker actions in Cues), UI-007e (Stage Section elements), UI-007f (Screens key label, typed signal chain, per-screen Look), FIX-U (Show window update cost), UI-008 (every mode re-measured against its design), TESTDATA-001, three independent reviews (REVIEW-FIX-N, REVIEW-3, REVIEW-4) with their fixes. Reports are in `AI/reports/`, briefs in `AI/specs/`.
+- **Installed for the owner:** build 189 (commit `4bddabe`) in Applications, installed 2026-11-22 night with the owner's standing consent for that one install; library backed up first to `WORSHIPFLOW-backup-2026-11-22-h` (the older `-g` copy is also kept). The owner's library is at v14 until build 189 first opens it, which migrates it to v15 after an automatic copy. Package: `dist/WorshipFlow-hardware-test-20261122-4bddabe.zip` (the only zip kept). The rule for later builds stands: say a build is ready and ask before replacing the installed app.
+- **The owner's real library** is `~/Library/Application Support/WORSHIPFLOW/`. Agents never open it and never launch the app without a temporary `--library`. Two exceptions happened, both asked for by the owner: the backup copy before each install, and the test-data import (a "Performance test" library of 100 synthetic songs and 204 bin images that point into the git-ignored `TestData/` folder, which must stay in place).
+- **In flight:** nothing. No agent is running and no worktree holds unmerged work. Finished worktrees under `.claude/worktrees/` may be removed when clean and unlocked; never force-remove one.
+- **Not verified, by any evidence:** nothing is Hardware Verified or Live-Service Verified (no DeckLink, enclosure or ATEM is owned). Almost none of the 2026-11-22 features has been operated by a person: `docs/hands-on-checklist.md` lists what to try. Marker timing against the real picture is unmeasured (KI-243).
+- **Open speed gaps (KI-186, KI-187, KI-189, KI-267, KI-268):** longest main-thread burst, quiet machine: Clear 19 ms, Go Live after Clear 21 ms, Blackout 11 ms, slide drops 14 to 40 ms, against 8 ms median and 16 ms worst; MIDI at one message every 7 ms lags (median 66 to 83 ms). The cost is SwiftUI's graph update; Instruments cannot attach to the ad-hoc signed measuring build (KI-269).
+- **Build caution (KI-271):** after a stored-property change to a shared domain type, run `swift package clean` before trusting a test failure, and package from an empty derived-data folder.
+- **Soak:** a 60-minute run on display 1 on 2026-11-22 night (build 189 source) **measured no timing**: the output window was covered for all 14,126 samples (the screen was almost certainly locked while the owner was away), so presented, dropped and late are all 0 and KI-007 stays open. What the run does show: it ran the full 3,600 s without a crash or render error, 359,996 frames submitted, 706 slide advances, 214,599 video frames delivered, resident memory 149 to 186 MB. Both displays were at 100 Hz, so even an uncovered run would not have counted for the 60 Hz criterion. The soak must be repeated with the screen unlocked, nothing covering display 1, and the display set to 60 Hz by the owner (`scripts/soak.sh 3600 1`).
+- **Next safe tasks:** an independent review of the UI-007, FIX-U, FIX-V and UI-008 merge (`0f89ce3..HEAD`); KI-272 (Cues in light appearance); the open low findings of REVIEW-3 and REVIEW-4; the hands-on checklist with the owner.
+- **Waiting on the owner (none blocks building):** plain Clear button and amber tag; Stop in a menu; a moving preview in Media; which English Bible to bundle; Edit toolbar icons; whether to start a Windows port (the project is macOS-only until an ADR says otherwise); sending the new zip to the DeckLink tester; an Apple Developer account for signing.
+- **Coordinator rules:** the project `CLAUDE.md` overrides any global file (no Codex, no advisor). Hand off at 97% context or 99% of the weekly Fable limit. The repository is public: scan staged changes for personal strings before every commit; push `main` only; never push the tag `backup/pre-rewrite-2026-11-21`.
+
+## History: state on 2026-11-21, afternoon (superseded)
 
 - Public repository: github.com/binlieu/WorshipFlow, Apache 2.0, every commit authored as Simon Lieu <me@simonlieu.com> (repo-local git config). A local-only tag `backup/pre-rewrite-2026-11-21` holds the pre-rewrite history and must never be pushed. Push `main` only.
 - Package tests: see `AI/reports/UI-003-report.md` for the count and the five consecutive full runs after the UI-003 work. KI-079 is closed (a test rig race).
@@ -45,7 +60,7 @@ UI-005h (output looks) is implemented and waiting for review and commit: report 
 
 FIX-J (the review of UI-005h) is implemented in the working tree and waiting for review and commit: brief `AI/specs/FIX-J-ui-005h-review.md`, report `AI/reports/FIX-J-report.md`, feature notes in `docs/features/UI-005h-output-looks.md`. Known issues KI-150 to KI-156. Open for the owner: whether the earlier UI005h digest tests may be gated by machine identity (KI-156). Next safe task: the design order after UI-005h (Edit, Media, Stage, Screens, Cues) or the hands-on pass of the FIX-J checklist.
 
-## State on 2026-11-22, morning (read this first, then the section below)
+## History: state on 2026-11-22, morning (superseded by the current state at the top)
 
 - **HEAD** `1d1e3be` on `main`, pushed. Since the section below: UI-005c/d/e/f/g, FIX-K, FIX-L, FIX-M (drag and drop), FIX-N (Stage keys), FIX-O (show state observed part by part), FIX-P (review fixes). 3,017 tests pass. FIX-Q: the check now also compiles the Release build (and fails if the Release app contains a measuring hook); `scripts/package-test-build.sh` still builds the packaged app.
 - **Installed for the owner:** build 145 (commit `a0fa76c`) in Applications, library backed up to `WORSHIPFLOW-backup-2026-11-22-g`. Package for the hardware test: `dist/WorshipFlow-hardware-test-20261122-a0fa76c.zip`. The owner's library now also holds a "Performance test" library (100 synthetic songs) and 200 bin images that point into `TestData/` in the repository folder. Build 139 crashed for the owner at launch (KI-193); 145 guards the crash site but the crash was not reproduced: ask what they clicked.
@@ -73,7 +88,7 @@ FIX-J (the review of UI-005h) is implemented in the working tree and waiting for
 - **Open questions for the owner:** unchanged from the section below, plus whether the amber BLACKOUT/CLEARED tag is quiet enough.
 - **Housekeeping:** agents' scratch build folders fill the boot disk (it reached 4 GB free on 2026-11-22); tell each agent to keep one build folder and delete it when done.
 
-## State on 2026-11-21, evening (read this first)
+## History: state on 2026-11-21, evening (superseded)
 
 **How the coordinator works here.** The project `CLAUDE.md` overrides any global instruction file: no Codex, no advisor. The coordinator writes a brief in `AI/specs/`, a Sonnet agent builds it tests-first and reports to `AI/reports/`, a second Sonnet agent reviews the commit read-only, a fix brief follows, and the coordinator runs `./scripts/check.sh` itself, checks protected files (`docs/UI`, `docs/adr`, `AI/specs`, `Vendor/`, the vendored `sdk/`), scans staged changes for personal strings (the repository is public), commits as the repository's configured author with the `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` trailer, and pushes `main` only. The local tag `backup/pre-rewrite-2026-11-21` must never be pushed. Independent slices run in parallel in git worktrees under `.claude/worktrees/` (ignored by git), at most three or four at once: more than that overloads the Mac and the package's MIDI tests interfere across simultaneous runs. Each worktree agent touches only its own files, commits to its own branch, and the coordinator merges, regenerates the project (`check.sh` runs xcodegen), merges the docs entries from the reports, and checks the merged tree.
 
