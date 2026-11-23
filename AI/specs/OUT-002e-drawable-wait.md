@@ -1,0 +1,31 @@
+# OUT-002e: the display output spends long stretches blocked a whole frame in "get the drawable", one refresh from dropping
+
+Feature IDs: OUT-002, KI-007 (display output's presentation). Model: Sonnet. One agent in the main folder; nothing else is in flight. No migration. This is the live output path: confirm first, then the smallest change, tests first for any logic, A/B by measurement.
+
+## Evidence
+
+10-minute soak, 60 Hz display, never covered, after OUT-002d (`AI/reports/soak-screen2-600s-20261123-0844.log`, not in git; read it in full):
+
+- Tick work is bimodal: about 19,500 ticks under 1 ms, and **15,634 ticks of 16 to 20 ms in which almost all the time is "getting the drawable"** (`d16.3` to `d16.7`), ending about 0.5 ms *after* the display link's target time (`m-0.5`). In the other mode the drawable comes in 0.3 to 0.5 ms and the tick ends 16 ms before the target (`m+16`).
+- The run started in the blocked mode. Three single drops (0.39, 58.9, 68.2 s) happened in it; at 108.9 s one "get the drawable" took 109 ms (5 refreshes dropped), after which the ticks shown are in the fast mode. 15,634 blocked ticks is about 260 s, so the output was in the blocked mode for more than the first 109 s; the report does not say when it re-entered it.
+- In the fast mode two more events: at 212.5 s a tick started 68.9 ms after the previous one (classified app late: the callback was late or the render thread busy), and at 442.9 s every tick was on time and short yet a refresh was skipped (presented late). The Mac was in use over Remote Control, which may explain those two; they are not this task unless your evidence ties them to the app.
+- No tick was skipped for the GPU being behind; build and encode are 0.1 to 0.3 ms.
+
+So the app's own render work is tiny; the display output is phase-locked so that `nextDrawable()` (or what stands for it) waits a full refresh, leaving no margin.
+
+## What to do
+
+1. **Confirm the mechanism from the code and Apple's documentation** (read the SDK headers and documentation available on this Mac; do not rely on memory for API behaviour): which display link drives `OutputRenderer.tick` for a display output (`MetalOutput`), on which thread, how the `CAMetalLayer` is configured (`maximumDrawableCount`, `displaySyncEnabled`, `presentsWithTransaction`, `allowsNextDrawableTimeout`, pixel format, drawable size), where and how the drawable is presented (`present(_:)`, `present(_:atTime:)`, `present(_:afterMinimumDuration:)`, in the command buffer or after), and what holds drawables (the presented handler, a retained drawable, the two-frames-on-GPU guard). Explain why the output can sit in a state where every `nextDrawable()` waits about one refresh, and why it can flip between the two states. Say what you are sure of and what is inference.
+2. **Options to weigh, with the trade-off of each stated:** driving the output from `CAMetalDisplayLink` (macOS 14 and later: it hands the drawable to the callback with a preferred frame latency; check the project's deployment target and whether a fallback is needed), presenting at the link's target time instead of as soon as possible, the drawable count, getting the drawable later or earlier in the tick, and anything else the documentation suggests. Latency matters: a worship output should add as little delay as possible, and the change must not add a whole frame of latency silently; say what latency each option has.
+3. **Measure before choosing.** You may run short soaks yourself for A/B: at most 90 s each, **only on screen index 2** (the 60 Hz display named "MNN" at 1920,0), only if `system_profiler SPDisplaysDataType` shows it online and not asleep, with `caffeinate -d -i`, using the same invocation as `scripts/soak.sh` but your own scratch derived-data folder and report paths in your scratch folder (not `AI/reports`). The measure is the report's tick-work histogram (share of ticks with 12 ms or more), the margin to the target time, drops, and the longest interval. Because the output can start in either mode, run each variant at least three times, alternating variants, and report every run. If screen index 2 is absent or asleep, do not run on any other screen: stop and report.
+4. **Implement the smallest change that keeps the output out of the blocked mode** without adding hidden latency, keeping Preview/Live/Blackout/Clear semantics, the OUT-002c preparation gate, the frame statistics and event log, and the two-frames-on-GPU guard working. Tests first for any logic that can be tested without a display (state machines, timing decisions with injected clocks); the presentation itself is verified by the A/B soaks. Do not edit existing tests.
+5. If the evidence says the blocked mode is a property of the system compositor that the app cannot avoid, or the only fix is a redesign of the output scheduling, stop after step 3 and report the evidence and options; do not start a redesign.
+
+## Rules
+
+- Display outputs only. SDI, the SDI scheduler and Fill/Key untouched. Stage and audience windows are both display outputs: the change applies to all of them the same way.
+- Keep everything off the main thread that is off it today; bound every queue; no force unwraps; Swift 6 strict concurrency clean in Debug and Release.
+- Do not edit `docs/` (change log and known-issues text go in the report), `docs/UI`, `docs/adr`, `AI/specs`, `Vendor/`, `dist/`, `.claude/`. Write `AI/reports/OUT-002e-report.md` with every run's numbers.
+- No git state changes. No advisor tool. No full computer control. Never open the owner's real library (the soak does not open a library), never touch `/Applications/WorshipFlow.app`; stop only process ids you started; never `pkill` by name; do not change display or system settings.
+- The repository is public: no personal strings (soak reports contain local paths: keep them out of the repository; quote numbers only).
+- If a test shows garbage values, run `swift package clean` in `Packages/WorshipFlowKit` first (KI-271). Keep one scratch build folder and delete it and any DerivedData build `.app` when done. Finish with `./scripts/check.sh` exit 0 (timing-flaky suites `MIDIRouterTests`, `ToolProcessRunnerTests`, `ScriptureLibraryTests`: re-run once, report both).

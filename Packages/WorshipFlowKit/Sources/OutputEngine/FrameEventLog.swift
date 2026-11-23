@@ -58,6 +58,7 @@ public struct FrameEventLog: Sendable, Equatable {
     public private(set) var beyondCap = 0
     /// OUT-002d: how long the render thread's ticks worked over the run (fixed buckets).
     public private(set) var workHistogram = TickWorkHistogram()
+    public private(set) var presentLatency = PresentLatencyStats()   // OUT-002e
 
     public init(capacity: Int = FrameEventLog.defaultCapacity) {
         self.capacity = max(0, capacity)
@@ -81,7 +82,8 @@ public struct FrameEventLog: Sendable, Equatable {
     }
 
     /// OUT-002d: a tick that made a frame, with its own work in seconds. A compare chain and two increments.
-    public mutating func noteTick(work: Double, period: Double) { workHistogram.record(work: work, period: period) }
+    public mutating func notePresentLatency(_ seconds: Double) { presentLatency.record(seconds) }
+    public mutating func noteTick(work: Double, period: Double, margin: Double? = nil) { workHistogram.record(work: work, period: period, margin: margin) }
 
     /// OUT-002d: a tick that made no frame because the GPU was behind.
     public mutating func noteSkippedTick() { workHistogram.recordSkipped() }
@@ -250,6 +252,18 @@ public enum SoakDropReport {
         } else {
             out.append(String(format: "tick work over the run: %d ticks that produced a frame, maximum %.2f ms, over the frame period: %d", h.ticks, h.maxWorkMs, h.overPeriod))
             out.append("tick work buckets (drawable + build + encode): " + h.counts.indices.map { "\(TickWorkHistogram.bucketLabel($0)): \(h.counts[$0])" }.joined(separator: ", "))
+            out.append("ticks with work of 12 ms or more: \(h.ticksAtTwelveMsOrMore) of \(h.ticks)")
+            if h.marginTicks > 0 {
+                out.append(String(format: "margin to the display link target (target minus the end of the tick): mean %.2f ms, minimum %.2f ms, ticks ending after the target: %d of %d", h.marginMeanMs, h.marginMinMs, h.marginLateTicks, h.marginTicks))
+            } else {
+                out.append("margin to the display link target: no link target recorded")
+            }
+            let l = log.presentLatency
+            if l.count > 0 {
+                out.append(String(format: "latency from the start of a tick to its frame on screen: mean %.2f ms, minimum %.2f ms, maximum %.2f ms over %d frames", l.meanMs, l.minMs, l.maxMs, l.count))
+            } else {
+                out.append("latency from the start of a tick to its frame on screen: no presented frame")
+            }
             out.append("ticks skipped because the GPU was behind: \(h.skipped)")
         }
         return out

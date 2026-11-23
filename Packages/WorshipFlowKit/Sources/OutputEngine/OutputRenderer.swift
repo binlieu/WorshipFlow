@@ -80,8 +80,9 @@ final class OutputRenderer: @unchecked Sendable {
         lock.lock(); stats.targetInterval = interval; lock.unlock()
     }
 
-    private func record(presentedAt t: Double) {
+    private func record(presentedAt t: Double, tickStart: Double = 0) {
         lock.lock()
+        if tickStart > 0 { events.notePresentLatency(t - tickStart) }   // OUT-002e
         // OUT-002b: a compare, and a few stores when notable. OUT-002d: a notable frame also copies the ring (the snapshot is not taken otherwise).
         if let outcome = stats.recordPresentation(at: t) { events.record(at: t, outcome, targetInterval: stats.targetInterval, ticks: ring.snapshot()) }
         lock.unlock()
@@ -91,13 +92,15 @@ final class OutputRenderer: @unchecked Sendable {
         lock.lock(); errorText = message; lock.unlock()
     }
 
-    /// Called by the display link on the render thread. `linkTimestamp` and `linkTarget` are the link's own times (0 when it gave none); they are
+    /// Called by the display link on the render thread. OUT-002e: `drawable` is the one the Metal display link handed to its callback; without
+    /// it (tests, offscreen) the tick asks the layer for one, which waits when the swap queue is full. `linkTimestamp` and `linkTarget` are the link's own times (0 when it gave none); they are
     /// only recorded (OUT-002d).
-    func tick(linkTimestamp: Double = 0, linkTarget: Double = 0) {
+    func tick(linkTimestamp: Double = 0, linkTarget: Double = 0, drawable given: CAMetalDrawable? = nil) {
         let t0 = CACurrentMediaTime()   // OUT-002d clock read 1 of 4
         lock.lock(); ticks += 1; let isRunning = running; lock.unlock()
         guard isRunning, let compositor else { return }
-        let size = layer.drawableSize
+        // OUT-002e: with the Metal display link the drawable arrives with the callback; its own size is the one that is drawn into.
+        let size = given.map { CGSize(width: $0.texture.width, height: $0.texture.height) } ?? layer.drawableSize
         guard size.width >= 1, size.height >= 1 else { return }
         guard inFlight.wait(timeout: .now()) == .success else {   // GPU behind: skip, never block
             let skipped = TickSample(start: t0, linkTimestamp: linkTimestamp, linkTarget: linkTarget, flags: TickSample.skipped)
@@ -110,7 +113,7 @@ final class OutputRenderer: @unchecked Sendable {
         var drawableEnd = -1.0, builtEnd = -1.0
         var flags: UInt8 = 0
         autoreleasepool {
-            guard let drawable = layer.nextDrawable(), let cb = compositor.makeCommandBuffer() else { return }
+            guard let drawable = given ?? layer.nextDrawable(), let cb = compositor.makeCommandBuffer() else { return }
             drawableEnd = CACurrentMediaTime()   // OUT-002d clock read 2 of 4
             var scene = gate.sceneToDraw(sceneProvider(), width: Int(size.width), height: Int(size.height))   // OUT-002c
             if gate.isHolding { flags |= TickSample.gateHolding }
@@ -137,7 +140,7 @@ final class OutputRenderer: @unchecked Sendable {
             }
             drawable.addPresentedHandler { [weak self] d in
                 let t = d.presentedTime
-                if t > 0 { self?.record(presentedAt: t) }
+                if t > 0 { self?.record(presentedAt: t, tickStart: t0) }
             }
             cb.present(drawable)
             let sem = inFlight
@@ -156,7 +159,7 @@ final class OutputRenderer: @unchecked Sendable {
         lock.lock()
         if submitted { submittedFrames += 1 }
         ring.push(sample)
-        events.noteTick(work: sample.work, period: stats.targetInterval)
+        events.noteTick(work: sample.work, period: stats.targetInterval, margin: sample.margin)
         lock.unlock()
     }
 }

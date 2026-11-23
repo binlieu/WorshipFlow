@@ -36,6 +36,8 @@ public struct TickSample: Sendable, Equatable {
 
     /// The tick's own work: the three phases together.
     public var work: Double { drawable + build + encode }
+    /// OUT-002e: the display link's target time minus the moment the tick ended, in seconds (negative: it ended after the target). Nil when the link gave no target.
+    public var margin: Double? { linkTarget > 0 ? linkTarget - (start + work) : nil }
     /// The preparation gate was keeping the previous scene on screen while the next was prepared.
     public var gateHolding: Bool { flags & TickSample.gateHolding != 0 }
     /// The scene drawn on this tick differs from the one drawn before it.
@@ -90,10 +92,25 @@ public struct TickWorkHistogram: Sendable, Equatable {
     /// Ticks whose work exceeded the frame period.
     public private(set) var overPeriod = 0
     public private(set) var maxWorkMs = 0.0
+    /// OUT-002e: ticks that had a link target, how many ended after it, and the sum and minimum of target minus tick end, in ms.
+    public private(set) var marginTicks = 0
+    public private(set) var marginLateTicks = 0
+    public private(set) var marginSumMs = 0.0
+    public private(set) var marginMinMs = 0.0
+    public var marginMeanMs: Double { marginTicks > 0 ? marginSumMs / Double(marginTicks) : 0 }
+    /// Ticks whose work was 12 ms or more (the buckets from 12 ms up).
+    public var ticksAtTwelveMsOrMore: Int { counts.indices.filter { $0 > 5 }.reduce(0) { $0 + counts[$1] } }
 
     public init() {}
 
-    public mutating func record(work seconds: Double, period: Double) {
+    public mutating func record(work seconds: Double, period: Double, margin: Double? = nil) {
+        if let margin {
+            let m = margin * 1000
+            if marginTicks == 0 || m < marginMinMs { marginMinMs = m }
+            marginTicks += 1
+            marginSumMs += m
+            if m < 0 { marginLateTicks += 1 }
+        }
         let ms = seconds * 1000
         ticks += 1
         var i = 0
@@ -112,6 +129,24 @@ public struct TickWorkHistogram: Sendable, Equatable {
         if i == 0 { return "< \(f(edgesMs[0])) ms" }
         if i >= edgesMs.count { return ">= \(f(edgesMs[edgesMs.count - 1])) ms" }
         return "\(f(edgesMs[i - 1])) to \(f(edgesMs[i])) ms"
+    }
+}
+
+/// OUT-002e: how long a frame took from the start of the tick that made it to the presented time the system reports. Fixed size.
+public struct PresentLatencyStats: Sendable, Equatable {
+    public private(set) var count = 0
+    public private(set) var sumMs = 0.0
+    public private(set) var minMs = 0.0
+    public private(set) var maxMs = 0.0
+    public var meanMs: Double { count > 0 ? sumMs / Double(count) : 0 }
+    public init() {}
+    public mutating func record(_ seconds: Double) {
+        guard seconds > 0 else { return }
+        let ms = seconds * 1000
+        if count == 0 || ms < minMs { minMs = ms }
+        if ms > maxMs { maxMs = ms }
+        count += 1
+        sumMs += ms
     }
 }
 

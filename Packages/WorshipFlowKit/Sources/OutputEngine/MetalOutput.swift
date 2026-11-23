@@ -1,4 +1,4 @@
-// OUT-001: shared implementation of a window-backed output: CAMetalLayer view, display link on a render
+// OUT-001: shared implementation of a window-backed output: CAMetalLayer view, Metal display link (OUT-002e) on a render
 // thread, status reporting, and safe shutdown when the window closes or the display disappears.
 import AppKit
 import QuartzCore
@@ -26,11 +26,15 @@ final class MetalLayerView: NSView {
     }
 }
 
-final class DisplayLinkTarget: NSObject {
-    /// Called with the link's own timestamp and target presentation time (OUT-002d records them; nothing acts on them).
-    private let handler: @Sendable (Double, Double) -> Void
-    init(handler: @escaping @Sendable (Double, Double) -> Void) { self.handler = handler }
-    @objc func fire(_ link: CADisplayLink) { handler(link.timestamp, link.targetTimestamp) }
+/// OUT-002e: receives the Metal display link's callbacks on the render thread. The drawable comes with the callback, already acquired by the
+/// system, so the render thread never waits for the swap queue (`nextDrawable()` waited one whole refresh whenever the queue was one frame deep).
+final class MetalLinkTarget: NSObject, CAMetalDisplayLinkDelegate {
+    /// Called with the callback's target timestamp, the target presentation timestamp and the drawable (OUT-002d records the times; nothing acts on them).
+    private let handler: @Sendable (Double, Double, CAMetalDrawable) -> Void
+    init(handler: @escaping @Sendable (Double, Double, CAMetalDrawable) -> Void) { self.handler = handler }
+    func metalDisplayLink(_ link: CAMetalDisplayLink, needsUpdate update: CAMetalDisplayLink.Update) {
+        handler(update.targetTimestamp, update.targetPresentationTimestamp, update.drawable)
+    }
 }
 
 @MainActor
@@ -49,8 +53,8 @@ open class MetalOutput: OutputTarget {
     private var view: MetalLayerView?
     private var renderer: OutputRenderer?
     private var thread: RunLoopThread?
-    private var link: CADisplayLink?
-    private var linkTarget: DisplayLinkTarget?
+    private var link: CAMetalDisplayLink?
+    private var linkTarget: MetalLinkTarget?
     private var observers: [NSObjectProtocol] = []
 
     init(name: String, sceneProvider: @escaping SceneProvider, videoSource: (any VideoSourceFactory)?,
@@ -93,6 +97,16 @@ open class MetalOutput: OutputTarget {
     var outputWindow: NSWindow? { window }
     func syncDrawableSize() { view?.syncDrawableSize() }
 
+    /// The lowest the display link accepts. Measured on a 60 Hz display (OUT-002e): values from 0.5 to 3 gave the same timing, so the system sets the
+    /// latency; the value is kept explicit so that the intent (as little delay as possible) does not depend on a default.
+    static let preferredFrameLatency: Float = 1
+
+    /// The refresh rate the output runs at, as the display link's frame-rate range.
+    static func frameRateRange(hz: Double) -> CAFrameRateRange {
+        let f = Float(max(1, hz))
+        return CAFrameRateRange(minimum: f, maximum: f, preferred: f)
+    }
+
     public func start() throws {
         guard status != .running else { return }
         let window = makeWindow()
@@ -119,8 +133,13 @@ open class MetalOutput: OutputTarget {
 
         let thread = RunLoopThread()
         thread.start(name: "WorshipFlow.render.\(name)")
-        let target = DisplayLinkTarget { [weak renderer] timestamp, target in renderer?.tick(linkTimestamp: timestamp, linkTarget: target) }
-        let link = view.displayLink(target: target, selector: #selector(DisplayLinkTarget.fire(_:)))
+        let target = MetalLinkTarget { [weak renderer] timestamp, presentation, drawable in
+            renderer?.tick(linkTimestamp: timestamp, linkTarget: presentation, drawable: drawable)
+        }
+        let link = CAMetalDisplayLink(metalLayer: layer)
+        link.delegate = target
+        link.preferredFrameLatency = MetalOutput.preferredFrameLatency
+        link.preferredFrameRateRange = MetalOutput.frameRateRange(hz: refreshRate)
         if let runLoop = thread.runLoop { link.add(to: runLoop, forMode: .common) }
 
         self.window = window
@@ -152,7 +171,10 @@ open class MetalOutput: OutputTarget {
                 else if let problem = self.reconcileGeometry() { self.finish(reason: problem) }
                 else if let screen = self.window?.screen {
                     self.refreshRate = Double(screen.maximumFramesPerSecond)
-                    if self.refreshRate > 0 { self.renderer?.setTargetInterval(1.0 / self.refreshRate) }
+                    if self.refreshRate > 0 {
+                        self.renderer?.setTargetInterval(1.0 / self.refreshRate)
+                        self.link?.preferredFrameRateRange = MetalOutput.frameRateRange(hz: self.refreshRate)
+                    }
                 }
             }
         })
