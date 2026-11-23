@@ -206,11 +206,7 @@ struct WorkspaceView: View {
                 .overlay(alignment: .leading) { screensButton.padding(.leading, 12) }
             // FIX-K item 5 (owner: "remove live red on the top right corner. it looks too busy"): no LIVE chip here in any mode.
             // FIX-N item 3: but a quiet amber word, only while the screens are blacked out or cleared, so B and Escape show that they happened.
-            if let tag = ShowStateTag.text(isBlackedOut: app.showParts.isBlackedOut, isCleared: app.showParts.isCleared) {
-                Badge(text: tag, style: .warning, rectID: "tb.stateTag")
-                    .help(tag == "BLACKOUT" ? "Blackout is on: the audience screens are black. Press B to lift it." : "The words are cleared on every screen. Go live or press Next to bring them back.")
-                    .accessibilityLabel(tag == "BLACKOUT" ? "Blackout is on" : "Cleared")
-            }
+            ToolbarStateTag(app: app)
             if let stage = app.stage { ToolbarTimersView(stage: stage) }
             HStack(spacing: 12) {
                 ForEach(app.rolePills) { pill in
@@ -287,6 +283,21 @@ struct WorkspaceView: View {
         case .stage: "music.mic"
         case .cues: "bolt"
         case .screens: "display"
+        }
+    }
+}
+
+/// FIX-U: the toolbar's Blackout / Cleared word, a view of its own. It reads the two holds, so Blackout, Clear and a Go Live that lifts one wake this
+/// small view and not the whole window's body (`WorkspaceView` read them directly and rebuilt the toolbar, the mode, the transport bar and the sheets).
+private struct ToolbarStateTag: View {
+    let app: AppModel
+
+    var body: some View {
+        let _ = BodyProbe.hit("ToolbarStateTag")
+        if let tag = ShowStateTag.text(isBlackedOut: app.showParts.isBlackedOut, isCleared: app.showParts.isCleared) {
+            Badge(text: tag, style: .warning, rectID: "tb.stateTag")
+                .help(tag == "BLACKOUT" ? "Blackout is on: the audience screens are black. Press B to lift it." : "The words are cleared on every screen. Go live or press Next to bring them back.")
+                .accessibilityLabel(tag == "BLACKOUT" ? "Blackout is on" : "Cleared")
         }
     }
 }
