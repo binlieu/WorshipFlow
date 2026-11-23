@@ -115,7 +115,7 @@ struct SlideCanvas: View {
 
     var body: some View {
         let _ = app.sceneRevision          // follows theme and Look changes
-        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.editPreviewScene(role: role, for: shownContent),
+        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.editPreviewScene(role: role, for: shownContent, slideID: editor.slide?.id),
                      width: Int(renderWidth), cached: false, follow: !editor.dragFrames.isEmpty || !editor.lyricDragFrames.isEmpty)
             .overlay {
                 if role.isEditable { boxes }

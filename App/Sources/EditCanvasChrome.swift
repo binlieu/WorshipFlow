@@ -34,10 +34,16 @@ struct EditSaveText: View {
 
 extension AppModel {
     /// E16: how `slide` is composed for one screen role, by the same composer the outputs use (the audience case is `thumbnailScene`).
-    /// A preview only: the live show, the screens and the saved slide are not touched, and speaker notes are not an input.
-    func editPreviewScene(role: EditPreviewRole, for slide: SlideContent) -> SceneDescription {
-        EditPreviewScene.scene(role: role, slide: slide, profiles: profiles, themes: themes, look: currentLook, props: props,
-                               presentationThemeID: workspace?.openThemeID,
-                               media: LiveMedia.preview(slide: slide, at: MediaClock.now()))
+    /// A preview only: the live show, the screens and the saved slide are not touched. FIX-V item 5: the stage preview is the stage screen's
+    /// own scene (its chosen layout, Hide, Auto-fit, the next slide and, if the layout has a notes element, this slide's speaker notes). Broadcast
+    /// and audience previews never get notes.
+    func editPreviewScene(role: EditPreviewRole, for slide: SlideContent, slideID: UUID? = nil) -> SceneDescription {
+        let slides = workspace?.slides ?? []
+        let index = slideID.flatMap { id in slides.firstIndex { $0.id == id } }
+        let notes = index.flatMap { slides[$0].notes }.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+        return EditPreviewScene.scene(role: role, slide: slide, profiles: profiles, themes: themes, look: currentLook, props: props,
+                                      presentationThemeID: workspace?.openThemeID,
+                                      media: LiveMedia.preview(slide: slide, at: MediaClock.now()),
+                                      deck: index == nil ? nil : slides.map(\.content), index: index, stage: stage, notes: notes)
     }
 }
