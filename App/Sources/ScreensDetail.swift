@@ -66,7 +66,7 @@ struct ScreensDetail: View {
                     Button("OK", role: .cancel) {}
                 } message: { Text(removeRefusal ?? "") }
                 .confirmationDialog("Remove \(profile.name)?", isPresented: $confirmRemove, titleVisibility: .visible) {
-                    Button("Remove screen", role: .destructive) {
+                    Button("Remove screen") {      // FIX-V: no destructive role: the system draws it red, and red is only for on air
                         let next = ScreenListEditing.selection(afterRemoving: profile.id, from: app.profiles)
                         if let why = app.removeScreen(profile.id) { removeRefusal = why } else { app.ui.selectedScreenID = next }
                     }

@@ -265,7 +265,7 @@ struct StageInspector: View {
                 GridRow { percent("Left", e, \.x); percent("Top", e, \.y) }
                 GridRow { percent("Width", e, \.width); percent("Height", e, \.height) }
             }
-            Button("Delete element", role: .destructive) {
+            Button("Delete element") {      // FIX-V: not drawn red (red is only for on air)
                 stage.removeElement(e.id, from: layoutID)
                 elementID = nil
             }

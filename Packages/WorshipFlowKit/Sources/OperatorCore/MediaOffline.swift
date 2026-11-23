@@ -4,6 +4,31 @@ import Foundation
 import Domain
 
 public enum MediaOffline {
+    // FIX-V item 6 (L8): when coming forward is a reason to look at the files again.
+
+    /// What the last check looked at: the bin's file paths and the disks that were connected.
+    public struct Signature: Equatable, Sendable {
+        public var paths: [String]
+        public var volumes: [String]
+        public init(paths: [String], volumes: [String]) { self.paths = paths; self.volumes = volumes }
+    }
+
+    public struct LastCheck: Equatable, Sendable {
+        public var signature: Signature
+        public var at: Date
+        public init(signature: Signature, at: Date) { self.signature = signature; self.at = at }
+    }
+
+    /// Seconds after which an unchanged bin on unchanged disks is looked at again when the app comes forward (a file can be renamed on the same
+    /// disk). A burst of activations inside that time is no check at all.
+    public static let activationInterval: TimeInterval = 60
+
+    /// Whether coming forward starts a check: the first one, a bin or set of disks that changed, or a last check that is old.
+    public static func shouldCheckOnActivation(last: LastCheck?, now: Date, signature: Signature) -> Bool {
+        guard let last else { return true }
+        return last.signature != signature || now.timeIntervalSince(last.at) >= activationInterval
+    }
+
     public struct Summary: Equatable, Sendable {
         public var headline: String
         public var detail: String?

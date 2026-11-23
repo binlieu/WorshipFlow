@@ -131,7 +131,7 @@ public final class CueModel {
             loadIssues = loaded.issues
             isLoaded = true
             bindingsChanged()
-            slideActionPresentations = (try? await store.presentationsWithSlideActions()) ?? []      // UI-006g
+            await refreshSlideActionPresentations()      // UI-006g
             await pruneKeyTriggers()                                                                  // UI-006g (CU-21)
         } catch {
             lastError = Self.message(for: error)
@@ -140,6 +140,12 @@ public final class CueModel {
 
     static func message(for error: Error) -> String {
         (error as? CueStoreError)?.message ?? "Could not use the cue library: \(error.localizedDescription)"
+    }
+
+    /// FIX-V item 6 (L5): reads the presentations that have slide actions again (a rename, a deletion, actions added elsewhere). One read; the
+    /// Cues view asks when it appears, so nothing ticks.
+    public func refreshSlideActionPresentations() async {
+        slideActionPresentations = (try? await store.presentationsWithSlideActions()) ?? []
     }
 
     // MARK: The one command path

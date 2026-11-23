@@ -118,6 +118,13 @@ public final class MediaModel {
     /// The callout's words for them, worked out where the file system is read (off the main thread). Nil when nothing is offline.
     public internal(set) var offlineSummary: MediaOffline.Summary?
     @ObservationIgnored var offlineTask: Task<Void, Never>?
+    /// FIX-V item 6 (L8): a check is reading now, and another was asked for meanwhile; what the last finished check looked at.
+    @ObservationIgnored var offlineRunning = false
+    @ObservationIgnored var offlineAgain = false
+    @ObservationIgnored var lastOfflineCheck: MediaOffline.LastCheck?
+    /// The disks that are connected now. The app sets it (the model has no file system of its own); tests leave it empty.
+    @ObservationIgnored public var mountedVolumes: @MainActor () -> [String] = { [] }
+    @ObservationIgnored var offlineClock: () -> Date = { Date() }
 
     public var visibleAssets: [MediaAsset] {
         if let collectionFilter, collections.collection(collectionFilter) != nil { return collections.assets(in: collectionFilter, from: assets) }      // UI-006d

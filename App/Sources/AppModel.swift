@@ -222,6 +222,7 @@ final class AppModel {
             self.stage = stage
             settings.onProfileRemoved = { [weak stage] id in stage?.forgetScreen(id) }      // FIX-V item 2: the stage layout choice goes with the screen
             let media = MediaModel(store: store, prober: AppMediaProber())
+            media.mountedVolumes = { (FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? []).map(\.path).sorted() }
             media.onLayersChange = { [weak self] layers in self?.mediaLayersChanged(layers) }
             media.onAssetsChange = { [weak self] assets in
                 self?.mediaAssetsChanged(assets)
