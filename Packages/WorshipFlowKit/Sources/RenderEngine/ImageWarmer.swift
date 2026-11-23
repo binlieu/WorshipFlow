@@ -4,7 +4,7 @@ import Domain
 
 extension SceneDescription {
     /// Every image file the scene draws, in draw order, without repeats.
-    var imagePaths: [String] {
+    public var imagePaths: [String] {
         var paths: [String] = []
         func add(_ path: String) { if !paths.contains(path) { paths.append(path) } }
         if let background = backgroundImage { add(background.path) }
@@ -30,6 +30,11 @@ public enum ImageWarmer {
         var paths: [String] = []
         for scene in scenes { for p in scene.imagePaths where !paths.contains(p) { paths.append(p) } }
         return await warm(paths: paths)
+    }
+
+    /// The same, on the calling thread (a background queue: never the main thread or the render thread).
+    public static func warmNow(scene: SceneDescription) {
+        for path in scene.imagePaths { _ = SharedImageStore.shared.load(path, pin: true) }
     }
 
     private static func warm(paths: [String]) async -> Set<String> {

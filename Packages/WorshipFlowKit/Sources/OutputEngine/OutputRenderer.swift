@@ -21,6 +21,8 @@ final class OutputRenderer: @unchecked Sendable {
     private var ticks = 0
     private var submittedFrames = 0
     private let inFlight = DispatchSemaphore(value: 2)
+    // OUT-002c: a scene with words or images not yet shown is prepared off this thread first; touched only from the render thread.
+    private let gate: ScenePreparationGate
 
     private var compositor: Compositor?
     private var textureProvider: (any VideoTextureProvider)?
@@ -34,6 +36,10 @@ final class OutputRenderer: @unchecked Sendable {
         self.videoSource = videoSource
         self.mediaSource = mediaSource
         self.stats = FrameStatistics(targetInterval: targetInterval)
+        let preparer = BackgroundScenePreparer()
+        self.gate = ScenePreparationGate { scene, width, height, isWanted, done in
+            preparer.prepare(scene, width, height, isWanted: isWanted, done: done)
+        }
     }
 
     func prepare() throws {
@@ -92,7 +98,7 @@ final class OutputRenderer: @unchecked Sendable {
         var submitted = false
         autoreleasepool {
             guard let drawable = layer.nextDrawable(), let cb = compositor.makeCommandBuffer() else { return }
-            var scene = sceneProvider()
+            var scene = gate.sceneToDraw(sceneProvider(), width: Int(size.width), height: Int(size.height))   // OUT-002c
             // Without a registry there is no way to draw chosen media: leave the scene as it was before media layers
             // existed (the theme's shared video, if any).
             if mediaResolver == nil { scene.backgroundMedia = nil; scene.foregroundMedia = nil }
