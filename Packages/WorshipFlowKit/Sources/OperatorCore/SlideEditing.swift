@@ -7,6 +7,8 @@ import Domain
 public enum NewSlideObject: Sendable, Equatable {
     case textBox, rectangle, ellipse, roundedRectangle
     case image(path: String)
+    /// UI-007c: a clip from the media bin, placed looped and muted.
+    case video(mediaID: UUID)
 
     public var title: String {
         switch self {
@@ -15,6 +17,7 @@ public enum NewSlideObject: Sendable, Equatable {
         case .ellipse: "Ellipse"
         case .roundedRectangle: "Rounded rectangle"
         case .image: "Image"
+        case .video: "Video"
         }
     }
 }
@@ -61,6 +64,7 @@ public enum SlideEditing {
         case .textBox: (0.5, 0.2)
         case .rectangle, .ellipse, .roundedRectangle: (0.2, 0.2 * 16 / 9)
         case .image: (0.4, 0.4 * 16 / 9)
+        case .video: (0.4, 0.4)          // equal fractions of a 16:9 slide are a 16:9 picture
         }
     }
 
@@ -80,6 +84,8 @@ public enum SlideEditing {
                                                            fill: defaultShapeFill)))
         case .image(let path):
             return SlideObject(id: id, frame: frame, content: .image(ImageObject(path: path, contentMode: .fit)))
+        case .video(let mediaID):
+            return SlideObject(id: id, frame: frame, content: .video(VideoObject(mediaID: mediaID)))
         }
     }
 

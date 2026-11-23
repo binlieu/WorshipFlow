@@ -283,12 +283,30 @@ public final class Compositor {
         return remember(status)
     }
 
+    /// UI-007c: the fit of one text object, which has its own factor (a text box shrinks alone, not with the lyrics). The same measure and the same floor
+    /// as the lyrics' fit; computed once per words, style, frame and output shape and kept.
+    private func objectFitStatus(_ layer: TextLayer, width: Int, height: Int) -> TextFitStatus {
+        guard let floor = layer.fitFloor else { return .unchanged }
+        let refW = TextFitter.referenceWidth(width: width, height: height)
+        let key = FitKey(layers: [FitLayerKey(text: layer.text, style: layer.style, frame: layer.frame, alignment: layer.alignment, inPlate: false, floor: floor)],
+                         plate: nil, referenceWidth: refW)
+        if let hit = fitCache.value(for: key) { return hit }
+        let status = TextFitter.status(layers: [layer], plate: nil, referenceWidth: refW, rasterizer: rasterizer)
+        objectFitComputationCount += 1
+        fitCache.insert(status, for: key)
+        return status
+    }
+
+    /// UI-007c: text objects fitted so far, one per distinct text box and output shape, never one per frame (tests and diagnostics).
+    public private(set) var objectFitComputationCount = 0
+
     // MARK: Offscreen rendering
 
     /// Renders to a new offscreen BGRA texture and reads it back. Used by tests and snapshots, not the live path.
     /// `video`, `backgroundMedia` and `foregroundMedia` are passed to `encode` as they are (tests use solid-colour textures).
     public func renderImage(scene: SceneDescription, width: Int, height: Int, video: MTLTexture? = nil,
-                            backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil) throws -> RenderedFrame {
+                            backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil,
+                            objectMedia: [UUID: MTLTexture] = [:]) throws -> RenderedFrame {
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
         td.usage = [.renderTarget, .shaderRead]
@@ -297,7 +315,7 @@ public final class Compositor {
             throw RenderError.resourceCreation("offscreen texture")
         }
         try encode(scene: scene, into: texture, video: video, commandBuffer: cb, imageLoading: .synchronous,
-                   backgroundMedia: backgroundMedia, foregroundMedia: foregroundMedia)
+                   backgroundMedia: backgroundMedia, foregroundMedia: foregroundMedia, objectMedia: objectMedia)
         cb.commit()
         cb.waitUntilCompleted()
         if let error = cb.error { throw RenderError.pipeline("\(error)") }
@@ -322,9 +340,13 @@ public final class Compositor {
     ///
     /// Draw order: background colour, background media (or the shared video), background image, foreground media,
     /// slide objects back to front, lyric text, overlay images.
+    ///
+    /// UI-007c: `objectMedia` holds the current frame of each clip a video object names (by the media bin's id); an object whose clip has no frame
+    /// yet draws nothing. A frame fills the object's frame (cropped to it) and is clipped to it.
     public func encode(scene: SceneDescription, into texture: MTLTexture, video: MTLTexture? = nil,
                        commandBuffer: MTLCommandBuffer, imageLoading: ImageLoading = .background,
-                       backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil) throws {
+                       backgroundMedia: MTLTexture? = nil, foregroundMedia: MTLTexture? = nil,
+                       objectMedia: [UUID: MTLTexture] = [:]) throws {
         let width = texture.width, height = texture.height
         guard width > 0, height > 0 else { throw RenderError.invalidSize }
         let pipeline = try pipeline(for: texture.pixelFormat)
@@ -366,7 +388,11 @@ public final class Compositor {
             case .shape(let shape):
                 if let draw = shapeDraw(shape, width: width, height: height) { objects.append(draw) }
             case .text(let text):
-                if let draw = safeTextDraw(text, width: width, height: height) { objects.append(draw) }
+                // UI-007c: a text box with "Shrink to fit box" has its own factor; every other one is drawn as it always was.
+                let objectFit = text.fitFloor == nil ? TextFitStatus.unchanged : objectFitStatus(text, width: width, height: height)
+                if let draw = safeTextDraw(text, width: width, height: height, fit: objectFit) { objects.append(draw) }
+            case .video(let clip):
+                if let frame = objectMedia[clip.mediaID], let draw = videoDraw(clip, frame, width: width, height: height) { objects.append(draw) }
             case .image(let image):
                 if let d = imageDraw(image, width: width, height: height, loading: imageLoading) {
                     objects.append(QuadDraw(texture: d.texture, origin: d.origin, size: d.size, uvOrigin: d.uvOrigin,
@@ -458,6 +484,16 @@ public final class Compositor {
     }
 
     // MARK: Text and shape draws
+
+    /// UI-007c: a clip's frame in its object's frame: aspect-fill (the excess cropped), clipped to the frame, at the object's opacity.
+    private func videoDraw(_ clip: VideoLayer, _ frame: MTLTexture, width: Int, height: Int) -> QuadDraw? {
+        guard frame.width > 0, frame.height > 0, clip.opacity > 0 else { return nil }
+        let rect = clip.frame.pixelRect(width: width, height: height)
+        guard rect.width > 0, rect.height > 0 else { return nil }
+        let uv = Self.fillUV(sourceWidth: Double(frame.width), sourceHeight: Double(frame.height), width: Double(rect.width), height: Double(rect.height))
+        return QuadDraw(texture: frame, origin: SIMD2(Float(rect.x), Float(rect.y)), size: SIMD2(Float(rect.width), Float(rect.height)),
+                        uvOrigin: uv.origin, uvSize: uv.size, opacity: Float(clip.opacity), clip: rect)
+    }
 
     private func draw(_ q: QuadDraw, with enc: MTLRenderCommandEncoder, target: SIMD2<Float>, width: Int, height: Int) {
         var left = 0, top = 0, right = width, bottom = height

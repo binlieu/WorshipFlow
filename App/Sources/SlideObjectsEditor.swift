@@ -115,7 +115,7 @@ struct SlideCanvas: View {
 
     var body: some View {
         let _ = app.sceneRevision          // follows theme and Look changes
-        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.editPreviewScene(role: role, for: shownContent),
+        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.stillScene(app.editPreviewScene(role: role, for: shownContent)),      // UI-007c: a video object is its poster
                      width: Int(renderWidth), cached: false, follow: !editor.dragFrames.isEmpty || !editor.lyricDragFrames.isEmpty)
             .overlay {
                 if role.isEditable { boxes }
@@ -156,7 +156,9 @@ struct SlideCanvas: View {
                                              selected: editor.selectedLyricBox == box, own: editor.hasOwnFrame(box))
                             }
                         }
-                        ForEach(content.objects) { object in
+                        // UI-007c: a hidden object is not drawn on any screen, so it has no box to catch the pointer either; selected from the Layers list it
+                        // shows its outline, so the operator sees where it is.
+                        ForEach(content.objects.filter { !$0.isHidden || editor.selectedObjectID == $0.id }) { object in
                             ObjectBox(editor: editor, object: object, canvas: geo.size,
                                       selected: editor.selectedObjectID == object.id,
                                       editing: editingTextID == object.id,
@@ -176,10 +178,11 @@ struct SlideCanvas: View {
 enum SlideCanvasSpace { static let name = "slideCanvas" }
 
 func slideObjectTitle(_ object: SlideObject) -> String {
-    switch object.content {
+    if let name = object.name { return name }          // UI-007c: the operator's own name
+    return switch object.content {
     case .text: "Text box"
     case .image: "Image"
-    case .video: "Video"        // SYS-015: stored only; the feature slice draws and edits it
+    case .video: "Video"
     case .shape(let s):
         switch s.shape {
         case .rectangle: "Rectangle"
@@ -202,6 +205,8 @@ private struct ObjectBox: View {
     /// True from the press until the release, so the object is selected on the press and not only on the release.
     /// FIX-P item 4: a press ended early (an interaction closed by another write) is not started again by the gesture's later events.
     @State private var press = PressGuard()
+    /// UI-007c: the "locked" reason was shown for this press.
+    @State private var toldLocked = false
     @FocusState private var textFocused: Bool
 
     private var handleHit: CGFloat { 16 }
@@ -229,12 +234,18 @@ private struct ObjectBox: View {
                     switch press.event(startedAt: .init(x: Double(value.startLocation.x), y: Double(value.startLocation.y))) {
                     case .ignored: return
                     case .began:
+                        toldLocked = false
                         AppModel.shared.ui.canvasLastClicked = true        // FIX-N item 8
                         if editor.selectedObjectID != object.id { editor.select(object.id) }
                     case .continuing: break
                     }
                     if dragStart == nil, !editing,
                        SlideEditing.dragHasStarted(dx: value.translation.width, dy: value.translation.height) {
+                        // UI-007c: a locked object is selected by the press but never dragged; it says why, once per press.
+                        if object.isLocked {
+                            if !toldLocked { toldLocked = true; editor.explainLocked(object.id) }
+                            return
+                        }
                         dragStart = object.frame
                         editor.beginInteraction()
                     }
@@ -272,14 +283,23 @@ private struct ObjectBox: View {
         }
         .frame(width: size.width, height: size.height)
         .overlay(alignment: .topLeading) {
-            if selected {
+            if selected, !object.isLocked {
                 CanvasHandles(size: size, canvas: canvas, frame: object.frame, epoch: editor.interactionEpoch,
                               begin: { editor.beginInteraction() }, change: { editor.dragFrame(object.id, to: $0) }, end: { editor.endInteraction() })
             }
         }
+        // UI-007c: a locked object has no handles; a small lock in its corner says it is locked (and the press says why).
+        .overlay(alignment: .topLeading) {
+            if object.isLocked {
+                Image(systemName: "lock.fill").font(.wf(10)).foregroundStyle(.white).padding(3)
+                    .background(RoundedRectangle(cornerRadius: 3).fill(Tok.blue.opacity(selected ? 0.9 : 0.55)))
+                    .padding(3).allowsHitTesting(false).accessibilityHidden(true)
+            }
+        }
+        .opacity(object.isHidden ? 0.55 : 1)
         .offset(x: f.x * canvas.width, y: f.y * canvas.height)
         .accessibilityElement(children: editing ? .contain : .ignore)
-        .accessibilityLabel("Object: \(slideObjectTitle(object))")
+        .accessibilityLabel("Object: \(slideObjectTitle(object))\(object.isLocked ? ", locked" : "")\(object.isHidden ? ", hidden" : "")")
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
         .accessibilityAction { editor.select(object.id) }
         .accessibilityAction(named: "Delete") { editor.delete(object.id) }

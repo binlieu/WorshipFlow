@@ -46,6 +46,7 @@ extension SlideEditorModel {
     @discardableResult
     public func align(_ id: UUID, _ alignment: ObjectAlignment) -> Bool {
         guard let object = objects.first(where: { $0.id == id }) else { return false }
+        guard !refusesBecauseLocked(id) else { return false }          // UI-007c
         let target = alignment.aligned(object.frame)
         guard target != object.frame else { return false }
         edit(id) { $0.frame = target }

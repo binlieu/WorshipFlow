@@ -378,6 +378,7 @@ public final class SlideEditorModel {
         if let last = lastNudgeAt, now.timeIntervalSince(last) >= nudgeQuietPeriod, let id = slide?.id { histories[id]?.lastKey = nil }
         lastNudgeAt = now
         if let id = selectedObjectID {
+            if refusesBecauseLocked(id) { return true }          // UI-007c: the arrow is taken (the slide selection must not move), the object says why it stays
             edit(id, key: "nudge") { $0.move(dx: dx, dy: dy) }
             return true
         }
@@ -398,6 +399,7 @@ public final class SlideEditorModel {
     /// A frame change from a drag. Inside an open interaction it only moves the transient frame (see `dragFrames`); outside one
     /// (the keyboard, a test) it is written at once, as before.
     private func editFrame(_ id: UUID, _ change: @escaping (inout SlideObject) -> Void) {
+        guard !refusesBecauseLocked(id) else { return }          // UI-007c
         resetHistoryIfPresentationChanged()
         guard let slide, interactionBase?.slideID == slide.id,
               let stored = slide.content.objects.first(where: { $0.id == id }) else {
@@ -413,6 +415,7 @@ public final class SlideEditorModel {
 
     /// Sets the frame from typed values (fractions of the slide), kept on the slide and at least the minimum size.
     public func setFrame(_ id: UUID, x: Double, y: Double, width: Double, height: Double) {
+        guard !refusesBecauseLocked(id) else { return }          // UI-007c
         edit(id, key: "frame") { $0.frame = NormalizedRect(x: x, y: y, width: width, height: height) }
     }
 
@@ -544,10 +547,12 @@ public final class SlideEditorModel {
 
     public func delete(_ id: UUID) {
         guard let slide, slide.content.objects.contains(where: { $0.id == id }) else { return }
+        guard !refusesBecauseLocked(id) else { return }          // UI-007c
         mutate(slide, key: nil, selecting: nil, clearSelection: selectedObjectID == id) { $0.removeAll { $0.id == id } }
     }
 
-    /// Delete key: removes the selected object, if there is one. Returns whether it did.
+    /// Delete key: removes the selected object, if there is one. Returns whether the key was taken: true also for a locked object, which stays
+    /// (and says why), so the key never falls through to something else.
     @discardableResult
     public func deleteSelected() -> Bool {
         guard let id = selectedObjectID else { return false }
@@ -671,6 +676,16 @@ public final class SlideEditorModel {
         } else {
             selection = nil
         }
+    }
+
+    // MARK: Lock (UI-007c)
+
+    /// True, and the reason in `lastMessage`, when the object is locked: a locked object is never moved, resized, nudged, aligned or deleted. The
+    /// operator unlocks it in the Layers list. An unknown id is not locked.
+    func refusesBecauseLocked(_ id: UUID) -> Bool {
+        guard let object = (slide?.content.objects ?? []).first(where: { $0.id == id }), object.isLocked else { return false }
+        lastMessage = "“\(Self.layerTitle(object))” is locked, so it cannot be moved, resized or deleted. Unlock it in the Layers list."
+        return true
     }
 
     // MARK: Internals

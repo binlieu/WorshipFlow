@@ -223,11 +223,31 @@ public struct ShapeLayer: Sendable, Equatable, Codable, Hashable {
     }
 }
 
+/// UI-007c: a clip playing inside its frame on a slide. The output looks the clip's current frame up by `mediaID` (the media bin's id) and draws it
+/// filling the frame (cropped to it), clipped to the frame, at `opacity`. Nothing is drawn until a frame has arrived.
+public struct VideoLayer: Sendable, Equatable, Codable, Hashable {
+    public var mediaID: UUID
+    public var frame: NormalizedRect
+    public var opacity: Double
+    public var loops: Bool
+    public var muted: Bool
+
+    public init(mediaID: UUID, frame: NormalizedRect, opacity: Double = 1, loops: Bool = true, muted: Bool = true) {
+        self.mediaID = mediaID
+        self.frame = frame
+        self.opacity = opacity.isNaN ? 1 : min(1, max(0, opacity))
+        self.loops = loops
+        self.muted = muted
+    }
+}
+
 /// One drawable slide object. A scene lists them back to front.
 public enum SceneObjectLayer: Sendable, Equatable, Codable, Hashable {
     case shape(ShapeLayer)
     case text(TextLayer)
     case image(ImageLayer)
+    /// UI-007c.
+    case video(VideoLayer)
 }
 
 extension SlideObject {
@@ -238,20 +258,49 @@ extension SlideObject {
             return .shape(ShapeLayer(shape: s.shape, fill: s.fill, strokeColor: s.strokeColor, strokeWidth: s.strokeWidth,
                                      frame: frame, opacity: opacity))
         case .text(let t):
+            // UI-007c: a text box with "Shrink to fit box" carries the lyric floor, so the compositor shrinks it (alone, by its own factor) until it fits.
             return .text(TextLayer(text: t.text, style: t.style, frame: frame, alignment: t.alignment,
-                                   verticalAlignment: t.verticalAlignment, opacity: opacity))
+                                   verticalAlignment: t.verticalAlignment, opacity: opacity,
+                                   fitFloor: t.fit == .shrinkToFit ? Theme.fitFloor : nil))
         case .image(let i):
             return .image(ImageLayer(path: i.path, frame: frame, opacity: opacity, contentMode: i.contentMode))
-        case .video:
-            // SYS-015: a video object is not drawn yet. Callers that compose a scene use `drawableLayer`; this stays total and draws nothing.
-            return .shape(ShapeLayer(shape: .rectangle, fill: nil, strokeColor: nil, strokeWidth: 0, frame: frame, opacity: 0))
+        case .video(let v):
+            return .video(VideoLayer(mediaID: v.mediaID, frame: frame, opacity: opacity, loops: v.loops, muted: v.muted))
         }
     }
 
-    /// SYS-015: what the compositor draws for this object: nothing for a hidden object, and nothing yet for a video object.
+    /// SYS-015: what the compositor draws for this object: nothing for a hidden object.
     public var drawableLayer: SceneObjectLayer? {
         if isHidden { return nil }
-        if case .video = content { return nil }
         return sceneLayer
+    }
+
+    /// UI-007c: every layer this object draws, back to front: nothing for a hidden object; a text box with a Background fill is that fill (a plain
+    /// rectangle in the box's frame and opacity) and then its words. An object that uses no new value is its one `sceneLayer`, as before.
+    public var drawableLayers: [SceneObjectLayer] {
+        guard !isHidden else { return [] }
+        if case .text(let t) = content, let fill = t.backgroundFill {
+            return [.shape(ShapeLayer(shape: .rectangle, fill: fill, frame: frame, opacity: opacity)), sceneLayer]
+        }
+        return [sceneLayer]
+    }
+}
+
+extension SceneDescription {
+    /// The video objects this scene asks its output to play.
+    public var videoObjectLayers: [VideoLayer] {
+        objectLayers.compactMap { if case .video(let v) = $0 { v } else { nil } }
+    }
+
+    /// UI-007c: the same scene with each video object drawn as a still picture (`poster` gives the file for a clip, nil for none: the video then draws
+    /// nothing). For the editor and the thumbnails, which show a still frame and never play.
+    public func replacingVideoObjects(poster: (UUID) -> String?) -> SceneDescription {
+        guard objectLayers.contains(where: { if case .video = $0 { true } else { false } }) else { return self }
+        var scene = self
+        scene.objectLayers = objectLayers.compactMap { layer in
+            guard case .video(let v) = layer else { return layer }
+            return poster(v.mediaID).map { .image(ImageLayer(path: $0, frame: v.frame, opacity: v.opacity, contentMode: .fill)) }
+        }
+        return scene
     }
 }

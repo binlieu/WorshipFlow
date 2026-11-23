@@ -1,7 +1,7 @@
 // UI-001 / ADR-0007 and UI-005c: the Edit mode, laid out as docs/UI/mockups/02-editor.html draws it: a 200 pt filmstrip, a centre with the object
 // bar, the live strip and the canvas, and a 320 pt inspector with the tabs Object, Slide and Theme (no transport bar in this mode).
-// UI-006c added Align, the Audience / Stage / Broadcast preview, the zoom field and the "Saved ... ago" words. The control whose feature still
-// does not exist (Video) keeps its room; see AI/reports/UI-005c-report.md and AI/reports/UI-006c-report.md.
+// UI-006c added Align, the Audience / Stage / Broadcast preview, the zoom field and the "Saved ... ago" words. UI-007c added Video (a clip from the
+// media bin as an object); see AI/reports/UI-005c-report.md, UI-006c-report.md and UI-007c-report.md.
 import SwiftUI
 import Domain
 import OperatorCore
@@ -140,8 +140,18 @@ struct EditModeView: View {
                 .help("Add a shape to the selected slide").wfRect("ed.bar.shape", size: 12, weight: 500, radius: 6)
             Button { app.insertImage() } label: { barLabel("photo", "Image") }
                 .buttonStyle(HeaderButtonStyle()).disabled(!previewRole.isEditable).help("Add an image to the selected slide").wfRect("ed.bar.image", size: 12, weight: 500, radius: 6)
-            // The room of Video (76.1): a feature that does not exist yet (no video object in `SlideObject`). See the report.
-            Color.clear.frame(width: 76.1, height: 1)
+            // UI-007c: Video, a clip from the media bin placed on the slide (looped and muted); plays inside its box on Live, shows one still frame here.
+            let videos = app.binVideos
+            Menu {
+                if videos.isEmpty {
+                    Text("No video clips in the media bin")
+                } else {
+                    ForEach(videos) { asset in Button(asset.name) { app.insertVideoObject(asset) } }
+                }
+            } label: { barLabel("film", "Video") }
+                .menuStyle(.button).buttonStyle(HeaderButtonStyle()).menuIndicator(.hidden).fixedSize().disabled(!previewRole.isEditable || videos.isEmpty)
+                .help(videos.isEmpty ? "Add a video clip to the media bin first (Media mode)" : "Place a clip from the media bin on the selected slide, looped and muted")
+                .accessibilityLabel("Video").wfRect("ed.bar.video", size: 12, weight: 500, radius: 6)
             Rectangle().fill(Tok.border).frame(width: 1, height: 20).wfRect("ed.bar.div").accessibilityHidden(true)
             // UI-006c: Align (to the slide), one undo step each.
             Menu {

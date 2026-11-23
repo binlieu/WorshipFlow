@@ -537,10 +537,10 @@ final class AppModel {
         let profile = profiles.first { $0.role == .audience && $0.isEnabled }
             ?? profiles.first { $0.role == .audience }
             ?? ScreenProfile(name: "Audience", role: .audience, destination: .window)
-        return PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props,
-                               presentationThemeID: workspace?.openThemeID,
-                               media: LiveMedia.preview(slide: slide, at: MediaClock.now()))
-            .scene(forScreen: profile.id)
+        return stillScene(PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props,
+                                          presentationThemeID: workspace?.openThemeID,
+                                          media: LiveMedia.preview(slide: slide, at: MediaClock.now()))
+            .scene(forScreen: profile.id))          // UI-007c: a video object is its poster here (never played)
     }
 
     /// The workspace changed the show: publish to every output and open the screens on the first slide.
@@ -1408,6 +1408,7 @@ final class AppModel {
         liveRevision &+= 1
         let snapshot = PhaseProbe.time("publish: compose") { makeSnapshot() }
         PhaseProbe.time("publish: box") { sceneBox.publish(snapshot) }
+        syncObjectVideos(snapshot)          // UI-007c: the clips of the video objects the screens now show (EditObjectVideos.swift)
         PhaseProbe.markPublished()
         PhaseProbe.time("publish: ticker") { updateStageTicker() }
     }

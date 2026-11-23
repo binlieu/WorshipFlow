@@ -139,7 +139,7 @@ public enum SceneComposer {
             // Slide objects (SLIDE-001a) follow the slide layer. A keyed (transparent) screen leaves them out, so
             // full-frame artwork cannot cover a lower third.
             if !isBroadcast || theme.background != .transparent {
-                scene.objectLayers = slide.objects.compactMap(\.drawableLayer)      // SYS-015: a hidden object, and a video object (not drawn yet), are left out
+                scene.objectLayers = slide.objects.flatMap(\.drawableLayers)      // SYS-015: a hidden object is left out; UI-007c: a Background fill is a box before its words, a video object is a layer
             }
         }
         return addingProps(to: scene, role: isBroadcast ? .broadcast : .audience, state: state, look: look, props: props)

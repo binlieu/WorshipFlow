@@ -1,7 +1,7 @@
 // UI-005c: the Edit mode's inspector, 320 pt, drawn from docs/UI/mockups/02-editor.html: the tabs Object / Slide / Theme, then sections
 // (`.sec`) of rows (`.fr`) in the design's fields. Object holds the selected object's controls; Slide holds the words fields and the slide
-// actions the old header row had; Theme holds the presentation's theme control. Not built (feature missing, room kept): Fit, Background
-// fill, the Layers list. See AI/reports/UI-005c-report.md.
+// actions the old header row had; Theme holds the presentation's theme control. UI-007c added Fit, Background fill, the video object's section and
+// the Layers list (`EditLayers.swift`). See AI/reports/UI-005c-report.md and UI-007c-report.md.
 import SwiftUI
 import AppKit
 import Domain
@@ -59,7 +59,7 @@ struct EditInspector: View {
             case .text(let t): textSections(o, t)
             case .shape(let s): shapeSections(o, s)
             case .image(let i): imageSections(o, i)
-            case .video: EmptyView()        // SYS-015: stored only; the feature slice adds its sections
+            case .video(let v): videoSections(o, v)
             }
             positionSection(o)
             EditSection {
@@ -72,10 +72,11 @@ struct EditInspector: View {
         } else {
             EditSection {
                 EditHeading(text: "No object selected")
-                Text("Choose an object or a lyric box on the slide, or add an object with Text, Shape or Image in the bar above.")
+                Text("Choose an object or a lyric box on the slide, or add an object with Text, Shape, Image or Video in the bar above.")
                     .font(.wf(12)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
+        EditLayersSection(app: app, editor: editor)          // UI-007c: the slide's layers, at the design's place (last)
     }
 
     // MARK: Text object
@@ -118,7 +119,14 @@ struct EditInspector: View {
                     editor.setTextColor(id, c); return true
                 }
             }
-            EditRow { Color.clear }          // Fit (the design's "Shrink to fit box"): no fit mode in the model yet; its row is kept
+            // UI-007c: Fit, the design's "Shrink to fit box": the words shrink (never below the lyric floor) until they fit the box.
+            EditRow(label: "Fit", rectID: "ed.insp.fitrow") {
+                EditPopup(title: t.fit == .shrinkToFit ? "Shrink to fit box" : "None", accessibilityName: "Text fit", rectID: "ed.insp.fit.field") {
+                    Button("None") { editor.setFit(id, .none) }
+                    Button("Shrink to fit box") { editor.setFit(id, .shrinkToFit) }
+                }
+                .help("Shrink to fit box: the words get smaller, never below \(Int(Theme.fitFloor)) pt, until they fit inside the box; if they still do not, they are cut at its edge")
+            }
         }
         EditSection(rectID: "ed.insp.effects") {
             EditHeading(text: "Effects", rectID: "ed.insp.effects.h")
@@ -154,7 +162,22 @@ struct EditInspector: View {
                 }
                 .frame(width: 96).disabled(!outlined).opacity(outlined ? 1 : 0.45)
             }
-            EditRow { Color.clear }          // Background fill: not in the model for text; its row is kept
+            // UI-007c: Background fill, a colour behind the words filling the whole box.
+            let fill = t.backgroundFill
+            EditRow(rectID: "ed.insp.fillrow") {
+                EditCheckbox(isOn: Binding(get: { fill != nil }, set: { on in editor.setBackgroundFill(id, on ? ColorRGBA(red: 0, green: 0, blue: 0, alpha: 0.6) : nil) }),
+                             title: "Background fill", rectID: "ed.insp.fill.chk")
+                Spacer(minLength: 0)
+                EditSwatch(color: Color(fill ?? ColorRGBA(red: 0, green: 0, blue: 0, alpha: 0.6)), label: "Background fill colour", rectID: "ed.insp.fill.sw") {
+                    colourChoices(label: "Background fill colour", color: fill ?? ColorRGBA(red: 0, green: 0, blue: 0, alpha: 0.6)) { editor.setBackgroundFill(id, $0) }
+                }
+                .disabled(fill == nil).opacity(fill == nil ? 0.45 : 1)
+                EditNumberField(value: fill.map { Self.hex($0) } ?? "None", label: "Background fill, hex", rectID: "ed.insp.fill.field") { entry in
+                    guard fill != nil, let c = Self.colour(hex: entry) else { return false }
+                    editor.setBackgroundFill(id, ColorRGBA(red: c.red, green: c.green, blue: c.blue, alpha: fill?.alpha ?? 1)); return true
+                }
+                .frame(width: 96).disabled(fill == nil).opacity(fill == nil ? 0.45 : 1)
+            }
         }
     }
 
@@ -228,6 +251,30 @@ struct EditInspector: View {
                     Button("Fill (crop to the box)") { editor.setImageContentMode(o.id, .fill) }
                 }
             }
+        }
+    }
+
+    // MARK: Video object (UI-007c)
+
+    @ViewBuilder private func videoSections(_ o: SlideObject, _ v: VideoObject) -> some View {
+        let id = o.id
+        EditSection(rectID: "ed.insp.video") {
+            EditHeading(text: "Video")
+            if let name = app.videoTitle(v.mediaID) {
+                Text(name).font(.wf(12)).foregroundStyle(Tok.text).lineLimit(2).truncationMode(.middle).padding(.bottom, 6)
+            } else {
+                Text("This clip is not in the media bin any more, so nothing is drawn. Delete this object or add the clip to the bin again.")
+                    .font(.wf(12)).foregroundStyle(Tok.warning).fixedSize(horizontal: false, vertical: true).padding(.bottom, 6)
+            }
+            EditRow {
+                EditCheckbox(isOn: Binding(get: { v.loops }, set: { editor.setVideoLoops(id, $0) }), title: "Loop")
+            }
+            EditRow {
+                EditCheckbox(isOn: Binding(get: { !v.muted }, set: { editor.setVideoMuted(id, !$0) }), title: "Play its sound")
+            }
+            Text(v.muted ? "Plays inside its box while this slide is live, without sound. Here you see one still frame."
+                         : "Its sound goes to the programme audio device while this slide is live. Here you see one still frame.")
+                .font(.wf(11)).foregroundStyle(Tok.muted).fixedSize(horizontal: false, vertical: true).padding(.top, 4)
         }
     }
 

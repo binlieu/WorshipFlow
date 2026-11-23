@@ -62,6 +62,8 @@ public final class MediaRegistry: @unchecked Sendable {
     private var backgroundMuted = true
     private var audioDeviceUID: String?
     private var availabilityChanged: (@Sendable (UUID, MediaAvailability) -> Void)?
+    /// UI-007c: the players behind video objects on slides (separate from the two layer slots).
+    public let objectVideos = ObjectVideoPlayers()
 
     public init(stillLimit: Int = MediaRegistry.defaultStillLimit) {
         self.stillLimit = max(2, stillLimit)
@@ -88,6 +90,7 @@ public final class MediaRegistry: @unchecked Sendable {
         let closing = slots.filter { $0.value.assetID == id }.map(\.key)
         for slot in closing { slots[slot] = nil }
         lock.unlock()
+        objectVideos.close(id)          // UI-007c
     }
 
     // MARK: Availability (R9)
@@ -197,6 +200,7 @@ public final class MediaRegistry: @unchecked Sendable {
         let sources = [slots[.foreground]?.source, slots[.background]?.source]
         lock.unlock()
         for source in sources { source?.audioOutputDeviceUniqueID = value }
+        objectVideos.setAudioDevice(uid: value)          // UI-007c
     }
 
     /// The device the foreground clip's audio is routed to; nil for the system default.
@@ -288,9 +292,13 @@ public final class MediaRegistry: @unchecked Sendable {
         failed.removeAll()
         lock.unlock()
         for source in open { source.stop() }
+        objectVideos.closeAll()          // UI-007c
     }
 
     // MARK: Render side
+
+    /// UI-007c: the newest frame of the clip a video object names, or nil when there is none yet. Never opens a file and never waits.
+    public func currentObjectPixelBuffer(for assetID: UUID) -> CVPixelBuffer? { objectVideos.pixelBuffer(for: assetID) }
 
     /// The frame to draw for `media` in `layer`, or nil when there is none yet (still decoding, player not ready,
     /// file unavailable, or the media is not what that layer currently holds). Never opens a file and never waits.
