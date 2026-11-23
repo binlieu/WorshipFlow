@@ -101,7 +101,8 @@ final class OutputRenderer: @unchecked Sendable {
             }
             do {
                 try compositor.encode(scene: scene, into: drawable.texture, video: video, commandBuffer: cb,
-                                      backgroundMedia: media.background?.texture, foregroundMedia: media.foreground?.texture)
+                                      backgroundMedia: media.background?.texture, foregroundMedia: media.foreground?.texture,
+                                      objectMedia: media.objectTextures)
             } catch {
                 fail("\(error)")
                 return

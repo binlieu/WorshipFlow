@@ -11,13 +11,25 @@ import Domain
 public protocol MediaFrameSource: AnyObject, Sendable {
     /// The newest BGRA frame for `media` in `layer`, or nil when there is none yet.
     func currentPixelBuffer(for media: SceneMedia, layer: MediaLayerSlot) -> CVPixelBuffer?
+    /// UI-007c: the newest BGRA frame of the clip a video object on a slide names (the media bin's id), or nil when there is none yet. Same rule:
+    /// only look up.
+    func currentObjectPixelBuffer(for assetID: UUID) -> CVPixelBuffer?
+}
+
+extension MediaFrameSource {
+    /// A source with no video objects (a fake, a still-only source) has no frame for any.
+    public func currentObjectPixelBuffer(for assetID: UUID) -> CVPixelBuffer? { nil }
 }
 
 /// The textures for one frame's media layers. Hold it until the GPU has finished with the frame.
 struct MediaFrameTextures {
     var background: VideoTexture?
     var foreground: VideoTexture?
-    var hold: MediaFrameHold { MediaFrameHold([background?.keepAlive, foreground?.keepAlive].compactMap { $0 }) }
+    /// UI-007c: the frame of each clip a video object names.
+    var objects: [UUID: VideoTexture] = [:]
+    var hold: MediaFrameHold { MediaFrameHold([background?.keepAlive, foreground?.keepAlive].compactMap { $0 } + objects.values.map(\.keepAlive)) }
+    /// The textures by clip, as the compositor takes them.
+    var objectTextures: [UUID: MTLTexture] { objects.mapValues(\.texture) }
 }
 
 /// Keeps a frame's CVMetalTextures alive until a command buffer completes.
@@ -63,12 +75,22 @@ final class MediaFrameResolver {
         var result = MediaFrameTextures()
         if let media = scene.backgroundMedia { result.background = texture(for: media, layer: .background) }
         if let media = scene.foregroundMedia { result.foreground = texture(for: media, layer: .foreground) }
+        // UI-007c: the clips of the slide's video objects, at most as many as the players open (the control side opens no more).
+        for clip in scene.videoObjectLayers.prefix(Self.objectVideoLimit) where result.objects[clip.mediaID] == nil {
+            if let buffer = source.currentObjectPixelBuffer(for: clip.mediaID), let t = texture(from: buffer) { result.objects[clip.mediaID] = t }
+        }
         return result
     }
 
+    /// Most video objects one frame resolves.
+    static let objectVideoLimit = 8
+
     private func texture(for media: SceneMedia, layer: MediaLayerSlot) -> VideoTexture? {
-        guard let buffer = source.currentPixelBuffer(for: media, layer: layer),
-              CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA else { return nil }
+        source.currentPixelBuffer(for: media, layer: layer).flatMap { texture(from: $0) }
+    }
+
+    private func texture(from buffer: CVPixelBuffer) -> VideoTexture? {
+        guard CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA else { return nil }
         let width = CVPixelBufferGetWidth(buffer), height = CVPixelBufferGetHeight(buffer)
         var cvTexture: CVMetalTexture?
         let status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, cache, buffer, nil,

@@ -124,9 +124,20 @@ final class PreviewRenderer: @unchecked Sendable {
                     .flatMap { converter.texture(from: $0) }
             }
         }
-        defer { withExtendedLifetime((background, foreground)) {} }
+        // UI-007c: the clips of a live scene's video objects (the monitors); a scene made for looking at has posters instead and names none.
+        var clips: [UUID: VideoTextureConverter.Frame] = [:]
+        if let frames, !scene.videoObjectLayers.isEmpty {
+            if converter == nil { converter = try? VideoTextureConverter(device: compositor.device) }
+            if let converter {
+                for clip in scene.videoObjectLayers.prefix(ObjectVideoPlayers.limit) where clips[clip.mediaID] == nil {
+                    if let buffer = frames.currentObjectPixelBuffer(for: clip.mediaID), let frame = converter.texture(from: buffer) { clips[clip.mediaID] = frame }
+                }
+            }
+        }
+        defer { withExtendedLifetime((background, foreground, clips)) {} }
         guard let frame = try? compositor.renderImage(scene: scene, width: width, height: height,
-                                                      backgroundMedia: background?.texture, foregroundMedia: foreground?.texture),
+                                                      backgroundMedia: background?.texture, foregroundMedia: foreground?.texture,
+                                                      objectMedia: clips.mapValues(\.texture)),
               let image = Self.cgImage(from: frame, channel: channel, straight: straight) else { return nil }
         let result = PreviewImage(image: image)
         flushTexturesIfDue()
@@ -254,7 +265,7 @@ struct CheckerboardView: View {
 }
 
 extension ScenePreview {
-    static func hasMedia(_ scene: SceneDescription) -> Bool { scene.backgroundMedia != nil || scene.foregroundMedia != nil }
+    static func hasMedia(_ scene: SceneDescription) -> Bool { scene.backgroundMedia != nil || scene.foregroundMedia != nil || !scene.videoObjectLayers.isEmpty }       // UI-007c: a video object moves too
 }
 
 /// A slide as the audience screen draws it, with the background it will have when it goes live (FIX-I item 5): its own, else the

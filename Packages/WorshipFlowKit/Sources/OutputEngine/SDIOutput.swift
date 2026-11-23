@@ -89,7 +89,8 @@ final class SDIFrameRenderer: @unchecked Sendable {
             }
             guard let cb = compositor.makeCommandBuffer() else { throw RenderError.resourceCreation("command buffer") }
             try compositor.encode(scene: scene, into: texture, video: video, commandBuffer: cb,
-                                  backgroundMedia: media.background?.texture, foregroundMedia: media.foreground?.texture)
+                                  backgroundMedia: media.background?.texture, foregroundMedia: media.foreground?.texture,
+                                  objectMedia: media.objectTextures)
             let copied = encodeReadback(of: texture, on: cb)
             cb.commit()
             cb.waitUntilCompleted()

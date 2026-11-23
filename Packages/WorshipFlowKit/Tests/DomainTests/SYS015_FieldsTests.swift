@@ -98,12 +98,13 @@ import Domain
         #expect(scene.objectLayers.count == 1)
     }
 
-    @Test func aVideoObjectDrawsNothingYetAndDoesNotStopTheOthers() {
+    // UI-007c: the rule SYS-015 left to the feature slice ("a video object draws nothing yet") is now the feature: a video object is a video layer in its place.
+    @Test func aVideoObjectIsALayerInItsPlaceAndDoesNotStopTheOthers() {
         let video = SlideObject(frame: frame, content: .video(VideoObject(mediaID: UUID())))
         let objects = [box(1), video, box(3)]
         let scene = SceneComposer.scene(for: .audience, state: live(SlideContent(primary: "Grace", objects: objects)), theme: .fullScreen, look: .standard, props: [])
-        #expect(scene.objectLayers == [objects[0].sceneLayer, objects[2].sceneLayer])
-        #expect(video.drawableLayer == nil && objects[0].drawableLayer != nil)
+        #expect(scene.objectLayers == [objects[0].sceneLayer, video.sceneLayer, objects[2].sceneLayer])
+        #expect(video.drawableLayer == video.sceneLayer && objects[0].drawableLayer != nil)
         #expect(box(1, hidden: true).drawableLayer == nil)
     }
 

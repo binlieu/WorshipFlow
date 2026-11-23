@@ -152,6 +152,7 @@ extension AppModel {
         try? await Task.sleep(for: .seconds(1.5))
         note("design: window \(window.map { "\(Int($0.frame.width))x\(Int($0.frame.height))" } ?? "none"), live \(workspace.show.liveIndex.map(String.init) ?? "-"), slides \(workspace.slides.count)")
         if ProcessInfo.processInfo.environment["UI_SNAPSHOT_EDIT"] != nil { await runEditDesignScenario(note: note, capture: capture); return }      // UI-005c: the Edit capture (EditDesignCapture.swift)
+        if ProcessInfo.processInfo.environment["UI_SNAPSHOT_UI007C"] != nil { await runUI007cScenario(note: note, capture: capture); return }      // UI-007c (EditUI007cCapture.swift)
         setAppearance(.dark)
         await capture("show-dark")
         openQuickEdit()
