@@ -124,6 +124,7 @@ public final class MediaMarkerModel {
         self.sampleSource = sample
         self.onFire = fire
         media.onPlaybackChange = { [weak self] in self?.refresh() }
+        media.onPlaybackWillChange = { [weak self] in self?.lastLook() }
     }
 
     public func setFire(_ handler: @escaping @MainActor (MarkerFiring) -> Void) { onFire = handler }
@@ -244,8 +245,19 @@ public final class MediaMarkerModel {
             scheduler.start(interval: Self.observerInterval) { [weak self] in self?.tick() }
         } else if scheduler.isRunning {
             scheduler.stop()
-            feed.reset()
+            // A layer that is only paused (it has markers and its clock is still) keeps its place, so resuming it does not start a new pass and
+            // run a marker it just ran (L5). Every other layer is forgotten.
+            for slot in MediaLayerSlot.allCases {
+                if let s = lookAt(slot), !s.isPlaying, !markers(for: s.assetID).isEmpty { continue }
+                feed.forget(slot)
+            }
         }
+    }
+
+    /// FIX-W (M1): one more look, just before a pause, a Stop or the clip's end changes the layers. Only while the observer runs; nothing ticks otherwise.
+    private func lastLook() {
+        guard scheduler.isRunning else { return }
+        tick()
     }
 
     /// One look at each live layer. Every marker reached is handed to the fire callback.

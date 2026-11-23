@@ -62,6 +62,9 @@ public struct MarkerFeed: Sendable {
     /// Whether the layer has a clip being followed now.
     public func isTracking(_ slot: MediaLayerSlot) -> Bool { layers[slot] != nil }
 
+    /// Forgets one layer (its clip left the screens).
+    public mutating func forget(_ slot: MediaLayerSlot) { layers[slot] = nil }
+
     /// Forgets every layer (the observer stopped).
     public mutating func reset() { layers.removeAll() }
 

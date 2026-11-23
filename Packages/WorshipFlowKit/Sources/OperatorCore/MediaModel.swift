@@ -65,7 +65,12 @@ public final class MediaModel {
     public let layerParts = ObservedLayers()
     public private(set) var layers: MediaLayers {
         get { layerParts.layers }
-        set { layerParts.set(newValue) }
+        set {
+            // FIX-W (M1): the marker observer takes one last look at the layers as they are, before a change (a pause, Stop, the clip's end)
+            // takes the clip away or stops its clock, so a marker crossed since its last tick is not lost.
+            if newValue != layerParts.layers { onPlaybackWillChange?() }
+            layerParts.set(newValue)
+        }
     }
     public internal(set) var lastError: String?
     /// R12: set while a write (the remembered background) failed and is still waiting to succeed, with the reason.
@@ -107,8 +112,12 @@ public final class MediaModel {
     /// not wait for them). It is restored as soon as the item is listed, unless the operator chose something else meanwhile.
     @ObservationIgnored private var pendingBackgroundID: UUID?
     @ObservationIgnored private var folderPlay: FolderPlay?
+    /// FIX-W (M4): the message `reportObjectVideos` last raised (nil when it has none up).
+    @ObservationIgnored private var objectVideoMessage: String?
     /// UI-007d: told after every change to what plays live (the layers, the show going live or stopping), for the marker observer.
     @ObservationIgnored public var onPlaybackChange: (@MainActor () -> Void)?
+    /// FIX-W (M1): called just before the layers change, while they still hold the clip as it was.
+    @ObservationIgnored public var onPlaybackWillChange: (@MainActor () -> Void)?
     /// UI-007d: per layer, how many times its clip was started and how many times it was sought: what tells a marker observer "played again" and
     /// "the operator jumped" apart from playing on.
     @ObservationIgnored private var playEpochs: [MediaLayerSlot: Int] = [:]
@@ -489,6 +498,7 @@ public final class MediaModel {
     /// The app says whether the show is running. A clip stops when the show does (Stop empties every screen).
     public func showStateChanged(isLive: Bool, isBlackedOut: Bool = false) {
         let wasLive = showIsLive
+        if wasLive && !isLive { onPlaybackWillChange?() }      // FIX-W (M1): the last look before Stop empties the screens
         showIsLive = isLive
         if !isLive { stopForeground() }
         if wasLive != isLive { onPlaybackChange?() }      // UI-007d: the marker observer follows the screens going live or stopping
@@ -544,6 +554,29 @@ public final class MediaModel {
             changed = true
         }
         if changed { layersChanged() }
+    }
+
+    /// FIX-W (M4): video objects on a slide whose clip could not be opened (or stopped playing), or that are past the players' limit, draw nothing on the
+    /// screens; the operator is told which clip and why. `unavailable` and `skipped` are what the object players report now; an empty pair clears the
+    /// message this raised (never another one). A problem that is already told is not raised again, so a dismissed message stays dismissed until the
+    /// problem goes and comes back.
+    public func reportObjectVideos(unavailable: Set<UUID>, skipped: Set<UUID>, limit: Int) {
+        func name(_ id: UUID) -> String { asset(id).map { "\"\($0.name)\"" } ?? "a clip that is no longer in the media bin" }
+        var parts: [String] = []
+        let broken = unavailable.sorted { name($0) < name($1) }
+        if !broken.isEmpty {
+            let names = broken.map(name).joined(separator: ", ")
+            parts.append("The video \(names) on a slide could not be opened or has stopped playing, so its place on the screens is empty. Check that the drive or folder is connected.")
+        }
+        let extra = skipped.subtracting(unavailable).sorted { name($0) < name($1) }
+        if !extra.isEmpty {
+            parts.append("A slide has more video objects than can play at once (the limit is \(limit)): \(extra.map(name).joined(separator: ", ")) is not playing.")
+        }
+        let message = parts.isEmpty ? nil : parts.joined(separator: " ")
+        let previous = objectVideoMessage
+        guard message != previous else { return }
+        objectVideoMessage = message
+        if let message { lastError = message } else if lastError == previous { lastError = nil }
     }
 
     /// A player's availability changed. A foreground clip that failed or stalled ends, so the words come back, and the

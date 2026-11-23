@@ -265,6 +265,10 @@ final class AppModel {
                 }
                 Task { @MainActor in AppModel.shared.media?.availabilityChanged(id, mapped) }
             }
+            // FIX-W (M4): a video object's player failed or stalled after it opened: the operator is told (the same path as a failure at open).
+            mediaRegistry.objectVideos.setOnAvailabilityChange { _ in
+                Task { @MainActor in AppModel.shared.reportObjectVideoProblems() }
+            }
             mediaRegistry.setOnForegroundEnded {
                 Task { @MainActor in AppModel.shared.media?.playerReportedEnd() }
             }

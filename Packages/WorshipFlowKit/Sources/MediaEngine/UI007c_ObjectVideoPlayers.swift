@@ -86,7 +86,7 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
         }
         lock.lock()
         open = kept.merging(opened) { a, _ in a }
-        failedIDs = failedIDs.intersection(wanted.keys).union(failed)
+        failedIDs = failedIDs.intersection(wanted.keys).subtracting(opened.keys).union(failed)       // a clip that opens now is no longer failed (REVIEW-5 L1)
         lock.unlock()
         for source in closing { source.stop() }
         for id in failed { notify(id) }

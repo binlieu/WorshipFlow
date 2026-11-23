@@ -112,6 +112,14 @@ extension AppModel {
         }
         mediaRegistry.objectVideos.apply(requests)
         ObjectVideoAccess.shared.keepOnly(Set(requests.map(\.assetID)))
+        reportObjectVideoProblems()
+    }
+
+    /// FIX-W (M4): tells the operator, where media problems are shown, about a video object that cannot be opened or is past the players' limit, and
+    /// takes the message back when the clip opens. Called after every publish and when a player's health changes; it only reads two small sets.
+    func reportObjectVideoProblems() {
+        let players = mediaRegistry.objectVideos
+        media?.reportObjectVideos(unavailable: players.unavailableAssetIDs, skipped: players.skippedAssetIDs, limit: ObjectVideoPlayers.limit)
     }
 }
 

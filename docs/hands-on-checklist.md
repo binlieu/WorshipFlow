@@ -439,3 +439,11 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Show, with a song live: press Escape (Clear), then Return on a slide, then B twice (Blackout on and off): the amber word in the toolbar appears with Cleared and Blackout and goes away when lifted; the pinned "Edit live slide" row at the bottom of the right column is there while words are live and goes away on Clear; the transport bar's badge and text change with each; nothing is cut or moved (the LIVE badge keeps its width and the headline starts 10 pt after it).
 - [ ] Next, Previous and a click on a far slide still scroll the grid to the selection when it is off screen.
 - [ ] Feel: Clear, Blackout and Go Live after Clear on a 200-slide song with the real screen unlocked; the report's numbers come from a locked screen.
+
+## FIX-W
+
+- [ ] Play a clip with a marker 0.3 s before its end and one with a marker just before a Pause: the marker runs once.
+- [ ] Put a video object on a slide with its file on an unplugged disk, go live: the banner names the clip; replug, publish again: the banner goes.
+- [ ] Put five video objects on one slide: the fifth is named in the banner.
+- [ ] In Edit give the broadcast screen its own Look and press Broadcast: it matches the broadcast window; add Section to a stage layout: Edit's Stage shows it.
+- [ ] Remove the first of two mirrors that have key notes and chains: the second keeps its own.

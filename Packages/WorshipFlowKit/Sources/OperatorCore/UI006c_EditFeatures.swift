@@ -126,15 +126,16 @@ public enum EditPreviewScene {
     /// The slide is drawn as a triggered preview; nothing here touches the live show.
     public static func scene(role: EditPreviewRole, slide: SlideContent, profiles: [ScreenProfile], themes: [Theme], look: Look?,
                              props: [Prop], presentationThemeID: UUID?, media: MediaLayers?,
-                             deck: [SlideContent]? = nil, index: Int? = nil, stageScene: SceneDescription? = nil) -> SceneDescription {
-        let state = previewState(slide: slide, deck: deck, index: index)
+                             deck: [SlideContent]? = nil, index: Int? = nil, stageScene: SceneDescription? = nil,
+                             screenLooks: [UUID: Look] = [:], sectionNames: [String?] = []) -> SceneDescription {
+        let state = previewState(slide: slide, deck: deck, index: index, sectionNames: sectionNames)
         let profile = profile(for: role, in: profiles)
         // The Look is resolved against the real profile list, so a profile that is not in it still gets the standard look.
         let all = profiles.contains { $0.id == profile.id } ? profiles : profiles + [profile]
         // FIX-V item 5 (REVIEW-4 M1): a stage screen is drawn from its own layout, as the real screen is, when the caller supplies that scene.
         let stageScenes: [UUID: SceneDescription] = role == .stage ? (stageScene.map { [profile.id: $0] } ?? [:]) : [:]
         return PublishedScenes(state: state, clockText: nil, profiles: all, themes: themes, look: look, props: props,
-                               presentationThemeID: presentationThemeID, stageScenes: stageScenes, media: media)
+                               presentationThemeID: presentationThemeID, stageScenes: stageScenes, media: media, screenLooks: screenLooks)
             .scene(forScreen: profile.id)
     }
 
@@ -143,28 +144,32 @@ public enum EditPreviewScene {
     @MainActor
     public static func scene(role: EditPreviewRole, slide: SlideContent, profiles: [ScreenProfile], themes: [Theme], look: Look?,
                              props: [Prop], presentationThemeID: UUID?, media: MediaLayers?,
-                             deck: [SlideContent]?, index: Int?, stage: StageModel?, notes: String?) -> SceneDescription {
+                             deck: [SlideContent]?, index: Int?, stage: StageModel?, notes: String?,
+                             screenLooks: [UUID: Look] = [:], sectionNames: [String?] = []) -> SceneDescription {
         var stageScene: SceneDescription?
         if role == .stage, let stage {
-            let state = previewState(slide: slide, deck: deck, index: index)
+            let state = previewState(slide: slide, deck: deck, index: index, sectionNames: sectionNames)
             stageScene = stage.stageScene(forScreen: profile(for: role, in: profiles).id, state: state, notes: notes)
         }
         return scene(role: role, slide: slide, profiles: profiles, themes: themes, look: look, props: props, presentationThemeID: presentationThemeID,
-                     media: media, deck: deck, index: index, stageScene: stageScene)
+                     media: media, deck: deck, index: index, stageScene: stageScene, screenLooks: screenLooks, sectionNames: sectionNames)
     }
 
     /// FIX-V item 5: the state the preview is composed from. With the open deck and the slide's position in it, the stage preview has the same
     /// current and next slide the stage screen would have if this slide were live; without them it is a one-slide deck. Never the live state.
-    public static func previewState(slide: SlideContent, deck: [SlideContent]?, index: Int?) -> ShowState {
+    /// FIX-W (L12): `sectionNames` are the deck's section names in the deck's order (the live deck's own), so a stage Section element draws.
+    public static func previewState(slide: SlideContent, deck: [SlideContent]?, index: Int?, sectionNames: [String?] = []) -> ShowState {
         var slides = [slide]
         var at = 0
+        var names: [String?] = []                 // the names belong to the open deck, not to a one-slide stand-in
         if let deck, let index, deck.indices.contains(index) {
             slides = deck
             slides[index] = slide
             at = index
+            names = sectionNames
         }
         var state = ShowState()
-        state.apply(.load(ShowDeck(presentationID: UUID(), slides: slides)))
+        state.apply(.load(ShowDeck(presentationID: UUID(), slides: slides, sectionNames: names)))
         state.apply(.trigger(index: at))
         return state
     }

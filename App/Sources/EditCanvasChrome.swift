@@ -44,6 +44,8 @@ extension AppModel {
         return EditPreviewScene.scene(role: role, slide: slide, profiles: profiles, themes: themes, look: currentLook, props: props,
                                       presentationThemeID: workspace?.openThemeID,
                                       media: LiveMedia.preview(slide: slide, at: MediaClock.now()),
-                                      deck: index == nil ? nil : slides.map(\.content), index: index, stage: stage, notes: notes)
+                                      deck: index == nil ? nil : slides.map(\.content), index: index, stage: stage, notes: notes,
+                                      screenLooks: screenLookOverrides,          // FIX-W (M5): each screen's own Look, as the live path passes it
+                                      sectionNames: ArrangementResolver.sectionNames(for: slides, groups: workspace?.groups ?? []))      // FIX-W (L12)
     }
 }

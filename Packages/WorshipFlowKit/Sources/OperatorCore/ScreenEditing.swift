@@ -136,8 +136,14 @@ public enum ScreenEditing {
         guard profile.mirrors.indices.contains(index) else { return profile }
         var p = profile
         p.mirrors.remove(at: index)
-        if p.connectedTo.indices.contains(index + 1) { p.connectedTo.remove(at: index + 1) }     // keep the typed notes aligned
+        // Every per-destination array is indexed like `connectedTo` (0 the primary, n + 1 mirror n): shift them all, so what the operator typed for
+        // the mirrors that stay is still on their own destination (FIX-W, REVIEW-5 M2).
+        if p.connectedTo.indices.contains(index + 1) { p.connectedTo.remove(at: index + 1) }
+        if p.connectedToKey.indices.contains(index + 1) { p.connectedToKey.remove(at: index + 1) }
+        if p.signalChains.indices.contains(index + 1) { p.signalChains.remove(at: index + 1) }
         while p.connectedTo.last == "" { p.connectedTo.removeLast() }
+        while p.connectedToKey.last == "" { p.connectedToKey.removeLast() }
+        while p.signalChains.last?.isEmpty == true { p.signalChains.removeLast() }
         return p
     }
 

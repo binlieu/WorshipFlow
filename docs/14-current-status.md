@@ -6,6 +6,8 @@ Updated: 2026-11-22 (night)
 
 On 2026-11-22 (night) `main` passes `./scripts/check.sh` with 3,476 package tests and Debug and Release builds; the schema is v15. The whole operator workflow (library, edit, playlist, preview, live to audience, stage and broadcast compositions, media, cues, macros, MIDI, remote control, scripture, program packages) is Implemented and Unit Tested, and the modes are measured against the design by rectangles (UI-008). Keyboard control has been run with real key events through the debug hook (FIX-N, FIX-V); almost none of the 2026-11-22 features has been operated by a person. SDI output is Simulated only: no video hardware is owned, so nothing is Hardware Verified or Live-Service Verified. The Phase 0 timing criterion (KI-007) depends on the soak result recorded in `docs/15-agent-handoff.md`. The table below is per slice and was last filled in on 2026-11-21: its test counts are the counts when each slice landed, and slices after UI-005h (FIX-K to FIX-V, UI-005c to g, UI-006, SYS-015, UI-007, UI-008, TESTDATA-001) have no row; see `docs/17-change-log.md` and `docs/15-agent-handoff.md` for those.
 
+REVIEW-5 (0 high, 6 medium, 23 low) and FIX-W (M1 to M5 and the migration-backup low fixed; M6 open until after the idle soak); not yet in an installed build (build 197 does not have FIX-W).
+
 ## Verification by slice
 
 | Slice | Implemented | Unit Tested | Simulated | Hardware Verified | Live-Service Verified |

@@ -56,12 +56,31 @@ extension LibraryStore {
         let known = Schema.makeMigrator().migrations
         var config = Configuration()
         config.readonly = true
-        // A file that cannot be read this way is left to the normal open, which reports it as before.
-        guard let source = try? DatabaseQueue(path: libraryFile.path, configuration: config) else { return }
+        // FIX-W (REVIEW-5 L6): a library that cannot be read this way gets no copy and so must not be migrated: it is refused, unchanged, unless the
+        // file is empty (a new library). The reason names what failed; ADR-0009 decision 4.
+        let size = ((try? FileManager.default.attributesOfItem(atPath: libraryFile.path))?[.size] as? NSNumber)?.intValue ?? 0
+        guard size > 0 else { return }
+        // A read-only connection to a library in WAL mode can fail to open (SQLITE_CANTOPEN) when its -wal and -shm files are not there, which is the
+        // normal state of a library that was closed cleanly: then the history is read through an ordinary connection, the one the open is about to
+        // make anyway. Only when neither can read it is the library refused.
+        func readHistory(_ configuration: Configuration) throws -> (DatabaseQueue, [String]) {
+            let queue = try DatabaseQueue(path: libraryFile.path, configuration: configuration)
+            do {
+                let applied = try queue.read { db in
+                    try db.tableExists("grdb_migrations") ? try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid") : []
+                }
+                return (queue, applied)
+            } catch { try? queue.close(); throw error }
+        }
+        let source: DatabaseQueue
+        let applied: [String]
+        do {
+            do { (source, applied) = try readHistory(config) }
+            catch { (source, applied) = try readHistory(Configuration()) }
+        } catch {
+            throw MigrationBackupFailed(from: "", to: known.last ?? "", reason: "the library could not be read to take the copy: \(error.localizedDescription)")
+        }
         defer { try? source.close() }
-        let applied: [String] = (try? source.read { db in
-            try db.tableExists("grdb_migrations") ? try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY rowid") : []
-        }) ?? []
         guard let last = applied.last, let target = known.last, !known.allSatisfy(applied.contains) else { return }
         let fm = FileManager.default
         let folder = libraryFile.deletingLastPathComponent().appendingPathComponent(importBackupFolderName, isDirectory: true)
@@ -128,6 +147,6 @@ public struct MigrationBackupFailed: Error, Equatable, Sendable, LocalizedError 
     public var to: String
     public var reason: String
     public var errorDescription: String? {
-        "This library needs an update (step \(from) to \(to)), and a copy of it could not be saved first (\(reason)). Nothing was changed. Free some space or fix the folder's permissions, then open the library again."
+        "This library needs an update (\(from.isEmpty ? "to \(to)" : "step \(from) to \(to)")), and a copy of it could not be saved first (\(reason)). Nothing was changed. Free some space or fix the folder's permissions, then open the library again."
     }
 }

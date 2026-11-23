@@ -206,3 +206,13 @@
 - OUT-002c: a 10-minute soak at 60 Hz dropped one frame at the first show of each of the soak's six slides (text fit and Core Text rasterisation on the render thread: 35 to 43 ms against 14 to 15 ms offscreen). `ScenePreparationGate` prepares an unseen scene's lyric text and images on a background queue and the output keeps drawing the previous scene until it is ready, at most 3 frames; Blackout, Clear, an output's first scene and clock ticks never wait; a newer scene cancels an unshown older one. Unit Tested (counts: 0 rasterisations and 0 fits on the render call). Not prepared off the render thread: texture upload, gradient, plate and shape bitmaps, object text layers. SDI, the scheduler and Fill/Key untouched.
 - OUT-002d: the soak report classifies each dropped or late frame as app slow, app late, presented late or unknown from an 8-tick ring of tick timings (drawable, scene build, encode and commit, the display link's timestamps, gate hold, scene change, new video frame), gives seconds to the nearest slide advance and video loop, and a fixed histogram of tick work. Four clock reads and about 25 stores per tick, no allocation. Unit Tested only until a soak produces the section.
 - OUT-002e: display outputs (audience and stage) are driven by `CAMetalDisplayLink`, which hands the drawable to the callback, instead of `CADisplayLink` plus a blocking `nextDrawable()`. Before, the output sat for long stretches waiting one refresh for a drawable and committing 0.7 ms after its target (5,351 to 5,399 of about 5,400 ticks at 12 ms or more in four 90 s runs at 60 Hz; tick to screen 49 ms); after, 1 of about 5,400 and a 32.5 ms margin (tick to screen 33 ms) in seven runs. The soak report prints margin, share of long ticks and tick-to-screen latency. Simulated on one 60 Hz display in 90 s runs; the first cold scene still drops 2 to 3 refreshes.
+
+## 2026-11-23
+
+- REVIEW-5: fifth independent review of 8590d5a..fb41ae2, 0 high, 6 medium, 23 low (AI/reports/REVIEW-5.md)
+- FIX-W: a marker crossed between the last observer tick and a pause, Stop or the clip's end now runs once (and a marker that ran just before a pause no longer runs again on resume)
+- FIX-W: removing a mirror shifts the key notes and signal chains with it
+- FIX-W: an imported marker selects a Look imported under a new id
+- FIX-W: a video object that cannot open or is past the limit of four is named in the media banner
+- FIX-W: Edit's Broadcast and Stage previews use the screen's own Look and the stage preview has section names
+- FIX-W: a library whose history cannot be read is refused with the copy message instead of being migrated unprotected

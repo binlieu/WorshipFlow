@@ -199,9 +199,11 @@ enum ProgramImportWriter {
                                  asset.pixelWidth, asset.pixelHeight, now, asset.markIn, asset.markOut])
             // SYS-015: the clip's markers come with it (their actions may name other clips; those are renamed below, once every clip is in).
             for (order, marker) in asset.markers.enumerated() {
+                // A Look imported under a new id is selected by its new id, as in a slide's actions (FIX-W, REVIEW-5 M3).
+                let actions = plan.lookMap.isEmpty ? marker.actions : marker.actions.replacingUUIDs(plan.lookMap)
                 try db.execute(sql: """
                     INSERT OR IGNORE INTO mediaMarker (id, assetID, time, name, actions, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, arguments: [marker.id.uuidString, asset.id.uuidString, marker.time, marker.name, marker.actions.text, order, now, now])
+                    """, arguments: [marker.id.uuidString, asset.id.uuidString, marker.time, marker.name, actions.text, order, now, now])
             }
             result.mediaAssetsAdded += 1
         }
@@ -210,8 +212,9 @@ enum ProgramImportWriter {
         if !assetIDMap.isEmpty {
             for asset in plan.assetsToInsert where assetIDMap[asset.id] == nil {
                 for marker in asset.markers {
-                    let mapped = marker.actions.replacingUUIDs(assetIDMap)
-                    if mapped != marker.actions {
+                    let looked = plan.lookMap.isEmpty ? marker.actions : marker.actions.replacingUUIDs(plan.lookMap)
+                    let mapped = looked.replacingUUIDs(assetIDMap)
+                    if mapped != looked {
                         try db.execute(sql: "UPDATE mediaMarker SET actions = ? WHERE id = ? AND assetID = ?", arguments: [mapped.text, marker.id.uuidString, asset.id.uuidString])
                     }
                 }
