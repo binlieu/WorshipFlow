@@ -20,9 +20,8 @@ struct MacroEditor: View {
                 ActionListEditor(app: app, context: .macro, editingMacro: macro.id, actions: macro.steps) { steps in
                     Task { @MainActor in await cue.setSteps(steps, of: macro.id) }
                 }
-                // The design's "Playback markers" section sits here (a 54 pt timeline and its axis). Markers are not stored or run yet,
-                // so nothing is drawn; its room is kept so the note below stays where the design has it.
-                Color.clear.frame(height: 142)
+                // The design's "Playback markers" section (UI-007d, CU-33): a clip's timeline and what each marker runs. 142 pt high at least, as the design.
+                CuesPlaybackMarkers(app: app, cue: cue)
                 orderNote
             }
             .task(id: macro.id) { name = macro.name }

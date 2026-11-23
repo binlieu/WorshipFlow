@@ -8,6 +8,9 @@ import OperatorCore
 final class AVPreviewPlayer: PreviewPlayback {
     let player = AVPlayer()
     private var loops = false
+    /// UI-007d: the part of the clip to play. The player stops at the out mark (and reports the end like a clip's own end); a loop starts again at the in mark.
+    private var markIn: Double?
+    private var markOut: Double?
     private var endObserver: NSObjectProtocol?
     private(set) var openedKind: MediaKind?
 
@@ -20,18 +23,26 @@ final class AVPreviewPlayer: PreviewPlayback {
         openedKind = kind
         guard kind != .image else { return }
         let item = AVPlayerItem(url: URL(fileURLWithPath: path))
+        player.actionAtItemEnd = .pause
+        markIn = nil; markOut = nil
         player.replaceCurrentItem(with: item)
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                if self.loops { self.player.seek(to: .zero); self.player.play() }
+                if self.loops { self.player.seek(to: CMTime(seconds: self.markIn ?? 0, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero); self.player.play() }
             }
         }
     }
 
     func play() {
-        if duration > 0, position >= duration - 0.05 { player.seek(to: .zero) }
+        let end = markOut ?? duration
+        if end > 0, position >= end - 0.05 { seek(to: markIn ?? 0) }
         player.play()
+    }
+    func setMarks(in markIn: Double?, out markOut: Double?) {
+        self.markIn = markIn
+        self.markOut = markOut
+        player.currentItem?.forwardPlaybackEndTime = markOut.map { CMTime(seconds: $0, preferredTimescale: 600) } ?? .invalid
     }
     func pause() { player.pause() }
     func seek(to seconds: Double) { player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) }
@@ -44,5 +55,6 @@ final class AVPreviewPlayer: PreviewPlayback {
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = nil
         openedKind = nil
+        markIn = nil; markOut = nil
     }
 }

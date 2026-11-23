@@ -137,7 +137,8 @@ public enum CueScreen: String, Sendable, Equatable {
     public var tag: String { switch self { case .audience: "AUD"; case .stage: "STG"; case .broadcast: "BRD" } }
 }
 
-public enum CueActionContext: Sendable { case slide, macro }
+/// UI-007d: a marker's actions follow the rule of a slide's: nothing that moves the show.
+public enum CueActionContext: Sendable { case slide, macro, marker }
 
 /// One row of an action list.
 public struct CueActionRow: Sendable, Equatable {

@@ -47,6 +47,13 @@ extension AppModel {
             (MIDIPattern(kind: .noteOn, channel: 1, number: 45), .macro((emergency ?? start).id)),
         ]
         for (pattern, command) in rows { await cue.saveBinding(MIDIBinding(name: MIDIText.pattern(pattern), pattern: pattern, command: command)) }
+        // UI-007d (CU-33): the design's three playback markers on the first video of the bin, the first with an action.
+        if let video, let markers, let length = video.duration, length > 1 {
+            for (fraction, name) in [(0.12, "Lower third on"), (0.55, "Lower third off"), (0.84, "Fade to background")] {
+                await markers.add(to: video.id, at: (length * fraction * 10).rounded() / 10, name: name)
+            }
+            if let first = markers.markers(for: video.id).first { await markers.setActions([.prop(id: prop.id, isOn: true)], for: first.id) }
+        }
         cue.submit(.runMacro(start.id), from: .button)
         await cue.settled()
         window?.setContentSize(NSSize(width: 1440, height: 900))

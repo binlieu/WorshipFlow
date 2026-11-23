@@ -24,12 +24,12 @@ struct MediaTransportStrip: View {
                     .disabled(r.status == .ended)
                     Text(MediaTile.clock(dragging ? dragPosition : r.position)).font(.wfMono(12)).frame(width: 52, alignment: .trailing)
                     WFSlider(value: Binding(get: { dragging ? dragPosition : r.position }, set: { dragPosition = $0 }),
-                             range: 0...max(r.duration, 0.1), accessibilityName: "Position") { editing in
+                             range: r.rangeStart...max(r.rangeEnd, r.rangeStart + 0.1), accessibilityName: "Position") { editing in      // UI-007d: the played part
                         if editing { dragPosition = r.position; dragging = true }
                         else { media.seek(to: dragPosition); dragging = false }
                     }
                     .disabled(!r.canSeek).accessibilityLabel("Clip position")
-                    Text("-" + MediaTile.clock(dragging ? max(0, r.duration - dragPosition) : r.remaining))
+                    Text("-" + MediaTile.clock(dragging ? max(0, r.rangeEnd - dragPosition) : r.remaining))
                         .font(.wfMono(12)).foregroundStyle(Tok.muted).frame(width: 56, alignment: .leading)
                     Rectangle().fill(Tok.border).frame(width: 1, height: 18)
                     Button { media.setMuted(!media.isMuted) } label: {

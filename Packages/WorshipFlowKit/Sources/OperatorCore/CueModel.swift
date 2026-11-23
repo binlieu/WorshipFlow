@@ -168,7 +168,7 @@ public final class CueModel {
     func refusal(for source: CommandSource) -> String? {
         guard hardwareTestIsRunning() else { return nil }
         switch source {
-        case .midi, .remote, .schedule:
+        case .midi, .remote, .schedule, .marker:
             return "The Hardware Test is running, so a command from \(source.label) was refused. Use the buttons or keys, or wait until the test ends."
         default: return nil
         }
@@ -237,6 +237,16 @@ public final class CueModel {
             guard !actions.isEmpty else { return }
             log(.slideAction, "slide \(event.index + 1): \(actions.count) action\(actions.count == 1 ? "" : "s")")
             await runActions(actions, origin: .slide, source: .slideAction)
+        case .markerReached(let firing):
+            // UI-007d (CU-33): the same rule as a slide's actions: nothing that moves the show, so a looping clip cannot advance it by itself.
+            // Checked again here because a macro may have been edited since the marker was saved.
+            if let why = MarkerActions.refusal(for: firing.actions, library: library) {
+                problem(job.source, "marker \(firing.summary) was not run. \(why)")
+                return
+            }
+            log(job.source, firing.summary)
+            guard !firing.actions.isEmpty else { return }
+            await runActions(firing.actions, origin: .marker, source: job.source)
         case .tick:
             let report = executor.tick()
             await finish(report, source: job.source)

@@ -44,6 +44,9 @@ public struct ForegroundReadout: Sendable, Equatable {
     public var position: Double
     public var duration: Double
     public var remaining: Double
+    /// UI-007d: the part of the clip that plays (its in mark and its out mark or length), so the scrubber can show it.
+    public var rangeStart: Double = 0
+    public var rangeEnd: Double = 0
     public var isPlaying: Bool { status == .playing }
     /// False for a clip whose length is not known: the scrubber is disabled.
     public var canSeek: Bool { duration > 0 }
@@ -104,6 +107,12 @@ public final class MediaModel {
     /// not wait for them). It is restored as soon as the item is listed, unless the operator chose something else meanwhile.
     @ObservationIgnored private var pendingBackgroundID: UUID?
     @ObservationIgnored private var folderPlay: FolderPlay?
+    /// UI-007d: told after every change to what plays live (the layers, the show going live or stopping), for the marker observer.
+    @ObservationIgnored public var onPlaybackChange: (@MainActor () -> Void)?
+    /// UI-007d: per layer, how many times its clip was started and how many times it was sought: what tells a marker observer "played again" and
+    /// "the operator jumped" apart from playing on.
+    @ObservationIgnored private var playEpochs: [MediaLayerSlot: Int] = [:]
+    @ObservationIgnored private var seekCounts: [MediaLayerSlot: Int] = [:]
 
     /// Which layer a hot folder plays on.
     public enum FolderLayer: Sendable, Equatable { case background, foreground }
@@ -205,7 +214,8 @@ public final class MediaModel {
             return
         }
         guard asset.kind != .audio else { return }
-        layers.setBackground(MediaSelection(asset: asset), at: now())
+        layers.setBackground(MediaSelection.forPlayback(asset), at: now())
+        bumpEpoch(.background)
         layersChanged()
     }
 
@@ -288,8 +298,9 @@ public final class MediaModel {
         guard let asset = asset(id), usable(asset, as: "a background") else { return }
         pendingBackgroundID = nil
         endFolderPlay(on: .background)
-        if layerParts.background?.selection == MediaSelection(asset: asset) { return }
-        layers.setBackground(MediaSelection(asset: asset), at: now())
+        if layerParts.background?.selection == MediaSelection.forPlayback(asset) { return }
+        layers.setBackground(MediaSelection.forPlayback(asset), at: now())
+        bumpEpoch(.background)
         persistBackground(asset.id)
         layersChanged()
         onBackgroundChosen?()
@@ -328,7 +339,8 @@ public final class MediaModel {
         }
         endFolderPlay(on: .foreground)
         loopingAssetID = nil                      // a new clip plays once unless the operator asks otherwise
-        layers.startForeground(MediaSelection(asset: asset), at: now())
+        layers.startForeground(MediaSelection.forPlayback(asset), at: now())
+        bumpEpoch(.foreground)
         foregroundStarts += 1
         layersChanged()
         return nil
@@ -345,6 +357,7 @@ public final class MediaModel {
         guard layerParts.foreground != nil else { return }
         layers.seekForeground(to: 0, at: now())
         layers.resumeForeground(at: now())
+        bumpEpoch(.foreground)
         layersChanged()
     }
 
@@ -363,6 +376,7 @@ public final class MediaModel {
     public func seek(to seconds: Double) {
         guard layerParts.foreground != nil else { return }
         layers.seekForeground(to: seconds, at: now())
+        seekCounts[.foreground, default: 0] += 1
         layersChanged()
     }
 
@@ -391,6 +405,7 @@ public final class MediaModel {
     public func seekBackground(to seconds: Double) {
         guard layerParts.background != nil else { return }
         layers.seekBackground(to: seconds, at: now())
+        seekCounts[.background, default: 0] += 1
         layersChanged()
     }
 
@@ -398,6 +413,7 @@ public final class MediaModel {
         guard layerParts.background != nil else { return }
         layers.seekBackground(to: 0, at: now())
         layers.resumeBackground(at: now())
+        bumpEpoch(.background)
         layersChanged()
     }
 
@@ -407,7 +423,8 @@ public final class MediaModel {
         let t = time ?? now()
         return ForegroundReadout(assetID: b.selection.assetID, name: asset(b.selection.assetID)?.name ?? "Background",
                                  status: b.transport.status(at: t), position: b.transport.position(at: t),
-                                 duration: b.transport.duration, remaining: b.transport.remaining(at: t))
+                                 duration: b.transport.duration, remaining: b.transport.remaining(at: t),
+                                 rangeStart: b.transport.start, rangeEnd: b.transport.end)
     }
 
     /// Ends a clip that has finished. Returns true when something changed (the words come back on the screens).
@@ -446,6 +463,7 @@ public final class MediaModel {
 
     private func restartForegroundNow(_ f: MediaLayer, at t: Double) {
         layers.startForeground(f.selection, at: t)
+        bumpEpoch(.foreground)
         layersChanged()
     }
 
@@ -455,15 +473,18 @@ public final class MediaModel {
         let t = time ?? now()
         return ForegroundReadout(assetID: f.selection.assetID, name: asset(f.selection.assetID)?.name ?? "Clip",
                                  status: f.transport.status(at: t), position: f.transport.position(at: t),
-                                 duration: f.transport.duration, remaining: f.transport.remaining(at: t))
+                                 duration: f.transport.duration, remaining: f.transport.remaining(at: t),
+                                 rangeStart: f.transport.start, rangeEnd: f.transport.end)
     }
 
     // MARK: Show and audio
 
     /// The app says whether the show is running. A clip stops when the show does (Stop empties every screen).
     public func showStateChanged(isLive: Bool, isBlackedOut: Bool = false) {
+        let wasLive = showIsLive
         showIsLive = isLive
         if !isLive { stopForeground() }
+        if wasLive != isLive { onPlaybackChange?() }      // UI-007d: the marker observer follows the screens going live or stopping
         // Blackout also takes the clip's sound off the speakers (the picture is already black), and a clip started during
         // Blackout starts silent; lifting Blackout (or Stop, which ends it) puts the operator's level back.
         let blackout = isLive && isBlackedOut
@@ -623,10 +644,13 @@ public final class MediaModel {
 
     private func startFolderClip(_ asset: MediaAsset, on layer: FolderLayer) {
         switch layer {
-        case .background: layers.setBackground(MediaSelection(asset: asset), at: now(), loops: false)
+        case .background:
+            layers.setBackground(MediaSelection.forPlayback(asset), at: now(), loops: false)
+            bumpEpoch(.background)
         case .foreground:
             loopingAssetID = nil
-            layers.startForeground(MediaSelection(asset: asset), at: now())
+            layers.startForeground(MediaSelection.forPlayback(asset), at: now())
+            bumpEpoch(.foreground)
             foregroundStarts += 1
         }
         layersChanged()
@@ -704,6 +728,22 @@ public final class MediaModel {
     private func layersChanged() {
         releaseRetainedHot()
         onLayersChange?(layers)
+        onPlaybackChange?()      // UI-007d
+    }
+
+    private func bumpEpoch(_ slot: MediaLayerSlot) { playEpochs[slot, default: 0] += 1 }
+
+    /// UI-007d: one look at the clip playing on a layer, for the marker observer: where it is in the clip, whether it plays, how often it has
+    /// wrapped. Nil unless the screens are live and the layer holds a video (a background chosen with the screens stopped plays nowhere).
+    public func playbackSample(_ slot: MediaLayerSlot, at time: Double? = nil) -> PlaybackSample? {
+        guard showIsLive else { return nil }
+        guard let layer = slot == .foreground ? layerParts.foreground : layerParts.background, layer.selection.kind == .video else { return nil }
+        let t = time ?? now()
+        let transport = layer.transport
+        return PlaybackSample(assetID: layer.selection.assetID, epoch: playEpochs[slot] ?? 0, seekCount: seekCounts[slot] ?? 0,
+                              position: transport.position(at: t), loopCount: transport.loopCount(at: t),
+                              isPlaying: transport.status(at: t) == .playing,
+                              rangeStart: transport.start, rangeEnd: transport.end > transport.start ? transport.end : nil)
     }
 
     func persist(key: String, _ what: String, _ operation: @escaping @Sendable () async throws -> Void) {

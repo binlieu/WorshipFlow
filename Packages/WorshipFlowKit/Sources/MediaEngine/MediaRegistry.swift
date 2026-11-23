@@ -32,6 +32,9 @@ public final class MediaRegistry: @unchecked Sendable {
     private struct Slot {
         var assetID: UUID
         var source: VideoPlayerSource?     // nil for a still
+        /// UI-007d: the marks the source was opened with. A clip chosen again with other marks is opened again.
+        var markIn: Double? = nil
+        var markOut: Double? = nil
     }
 
     /// Stills decoded so far, least recently used dropped first. Stills the layers use are never dropped.
@@ -221,7 +224,7 @@ public final class MediaRegistry: @unchecked Sendable {
         let location = locations[id]
         lock.unlock()
 
-        if let existing, existing.assetID == id {
+        if let existing, existing.assetID == id, existing.markIn == layer.transport.markIn, existing.markOut == layer.transport.markOut {
             existing.source?.apply(layer.transport, at: now)
             return
         }
@@ -240,14 +243,14 @@ public final class MediaRegistry: @unchecked Sendable {
                 lock.unlock()
                 let source = try VideoPlayerSource(url: location.url, loops: layer.transport.loops,
                                                    duration: layer.selection.duration ?? location.duration,
-                                                   muted: silent)
+                                                   muted: silent, markIn: layer.transport.markIn, markOut: layer.transport.markOut)
                 source.volume = level                                // before it plays: no burst at full volume
                 source.audioOutputDeviceUniqueID = device            // and none on the wrong device
                 if slot == .foreground {
                     source.setOnEnded { [weak self] in self?.notifyForegroundEnded() }
                 }
                 source.setOnHealthChange { [weak self] _ in self?.notifyAvailability(id) }
-                lock.lock(); slots[slot] = Slot(assetID: id, source: source); failed.remove(id); lock.unlock()
+                lock.lock(); slots[slot] = Slot(assetID: id, source: source, markIn: layer.transport.markIn, markOut: layer.transport.markOut); failed.remove(id); lock.unlock()
                 source.apply(layer.transport, at: now)
             } catch {
                 markFailed(id, closing: slot)

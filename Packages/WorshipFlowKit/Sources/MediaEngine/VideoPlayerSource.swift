@@ -88,21 +88,33 @@ public final class VideoPlayerSource: @unchecked Sendable {
     ///   - duration: Seconds, when known (the media bin stores it). Needed for the transport to report the end and the
     ///     remaining time by itself; without it the end is still reported, from the player.
     ///   - muted: A background loop is normally muted; a foreground clip is not.
-    public init(url: URL, loops: Bool, duration: Double? = nil, muted: Bool = true,
+    ///   - markIn: UI-007d: the second of the clip where playing starts (nil is the beginning).
+    ///   - markOut: UI-007d: the second where it ends: a clip that does not loop stops there (and reports its end), a loop wraps from there to
+    ///     the in mark. Marks that cannot work (see `MediaTransport`) are ignored.
+    public init(url: URL, loops: Bool, duration: Double? = nil, muted: Bool = true, markIn: Double? = nil, markOut: Double? = nil,
                 clock: @escaping @Sendable () -> Double = MediaClock.now) throws {
         guard FileManager.default.isReadableFile(atPath: url.path) else { throw MediaError.fileNotFound(url.path) }
         self.url = url
         self.loops = loops
         self.clock = clock
-        self.transport = MediaTransport(duration: duration ?? 0, loops: loops)
+        let marked = MediaTransport(duration: duration ?? 0, loops: loops, markIn: markIn, markOut: markOut)
+        self.transport = marked
         let item = AVPlayerItem(url: url)
         if loops {
             let queue = AVQueuePlayer()
             self.player = queue
-            self.looper = AVPlayerLooper(player: queue, templateItem: item)
+            // A loop inside marks is a loop of that time range: the looper plays the range again and again.
+            if marked.markIn != nil || marked.markOut != nil, marked.end > marked.start {
+                let range = CMTimeRange(start: CMTime(seconds: marked.start, preferredTimescale: 600),
+                                        end: CMTime(seconds: marked.end, preferredTimescale: 600))
+                self.looper = AVPlayerLooper(player: queue, templateItem: item, timeRange: range)
+            } else {
+                self.looper = AVPlayerLooper(player: queue, templateItem: item)
+            }
         } else {
             self.player = AVPlayer(playerItem: item)
             player.actionAtItemEnd = .pause          // keep the last frame on screen
+            if let out = marked.markOut { item.forwardPlaybackEndTime = CMTime(seconds: out, preferredTimescale: 600) }
         }
         player.isMuted = muted
         player.automaticallyWaitsToMinimizeStalling = false
@@ -124,6 +136,12 @@ public final class VideoPlayerSource: @unchecked Sendable {
             endObserver = NotificationCenter.default.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification,
                                                                  object: item, queue: nil) { [weak self] _ in
                 self?.playerReachedEnd()
+            }
+            // The player sits at the in mark before it plays, so the first frame is the one of the mark. (A loop's range starts there already.)
+            if marked.start > 0 {
+                pendingSeeks += 1
+                player.seek(to: CMTime(seconds: marked.start, preferredTimescale: 600), toleranceBefore: .zero,
+                            toleranceAfter: .zero) { [weak self] _ in self?.seekFinished() }
             }
         }
     }
@@ -262,9 +280,10 @@ public final class VideoPlayerSource: @unchecked Sendable {
         latest = nil
         epoch += 1
         pendingSeeks += 1
+        let start = transport.start      // UI-007d: stop goes back to the in mark
         lock.unlock()
         player.pause()
-        player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in self?.seekFinished() }
+        player.seek(to: CMTime(seconds: start, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in self?.seekFinished() }
     }
 
     private func command(_ change: (inout MediaTransport, Double) -> Void) {
@@ -273,7 +292,7 @@ public final class VideoPlayerSource: @unchecked Sendable {
         var next = transport
         let reachedEnd = playerEnded
         // The player may have reached the end a moment before the transport's clock says so: agree with the player.
-        if playerEnded { next.seek(to: next.duration, at: now) }
+        if playerEnded { next.seek(to: next.end, at: now) }
         change(&next, now)
         lock.unlock()
         apply(next, at: now, forceSeek: reachedEnd)
@@ -395,7 +414,7 @@ public final class VideoPlayerSource: @unchecked Sendable {
         // Kick it where it stands. (The transport's own clock may already say the clip is over: the player is the one
         // that is behind, and it still has to play out the rest and report its end.)
         let target = time
-        if transport.duration > 0, !loops, target >= transport.duration - 0.1 { lock.unlock(); return }
+        if transport.end > 0, !loops, target >= transport.end - 0.1 { lock.unlock(); return }
         if let last = lastRecoveryTarget, abs(last - target) <= 0.05 { consecutiveStallRecoveries += 1 } else { consecutiveStallRecoveries = 1 }
         lastRecoveryTarget = target
         let giveUp = Self.isUnrecoverable(consecutiveRecoveries: consecutiveStallRecoveries)

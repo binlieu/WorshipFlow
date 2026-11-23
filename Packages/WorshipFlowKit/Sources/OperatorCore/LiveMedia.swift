@@ -6,10 +6,12 @@ import Domain
 public enum LiveMedia {
     /// What plays on the live screens: the live slide's own background unless a live override from the bin is on, and the
     /// clip over the words. The registry opens a player for each of these.
-    public static func effective(override: MediaLayers, slide: SlideContent?, at now: Double) -> MediaLayers {
+    /// UI-007d: `resolve` adds what the bin knows about the item (its mark in and mark out) to a slide's own background when it is played.
+    public static func effective(override: MediaLayers, slide: SlideContent?, at now: Double,
+                                 resolve: (MediaSelection) -> MediaSelection = { $0 }) -> MediaLayers {
         guard override.background == nil, let own = slide?.background else { return override }
         var layers = override
-        layers.setBackground(own, at: now)
+        layers.setBackground(resolve(own), at: now)
         return layers
     }
 
@@ -17,13 +19,14 @@ public enum LiveMedia {
     /// background or by Stop is not in the set at all, so no player runs for it and nothing of it is heard; Go Live, Next and
     /// Previous bring it (and its sound) back. Blackout keeps the player running (its sound is silenced by the model's
     /// Blackout flag, as before). The clip over the words is not a background and is left as it is.
-    public static func playing(override: MediaLayers, state: ShowState, at now: Double) -> MediaLayers {
+    public static func playing(override: MediaLayers, state: ShowState, at now: Double,
+                               resolve: (MediaSelection) -> MediaSelection = { $0 }) -> MediaLayers {
         if state.isStopped || state.isBackgroundCleared {
             var layers = override
             layers.setBackground(nil, at: now)
             return layers
         }
-        return effective(override: override, slide: state.liveSlideAtPlace, at: now)
+        return effective(override: override, slide: state.liveSlideAtPlace, at: now, resolve: resolve)
     }
 
     /// What Preview and the thumbnails know of media: only the slide's own background. Never the live override, never a clip,

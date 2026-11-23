@@ -81,6 +81,12 @@ extension AppModel {
             selectBinItem(waves.id)
             try? await Task.sleep(for: .seconds(1))
             binPreview?.seek(to: 11.4)
+            // UI-007d: an in mark, an out mark and a marker, so the strip shows the buttons set.
+            if let length = waves.duration, length > 6 {
+                await media.setMarkIn(1, for: waves.id)
+                await media.setMarkOut((length - 1).rounded(), for: waves.id)
+                await markers?.add(to: waves.id, at: 5, name: "Lower third on")
+            }
         }
         if let audio, let sound = audio.assets.first { audio.play(sound.id); try? await Task.sleep(for: .seconds(1)); audio.seek(sound.id, to: 134) }
         try? await Task.sleep(for: .seconds(2))

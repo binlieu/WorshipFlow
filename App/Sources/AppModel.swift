@@ -96,12 +96,14 @@ final class AppModel {
     /// MEDIA-010: the folders the media bin follows, and the player in the Media mode's sidebar.
     private(set) var hotFolders: HotFolderModel?
     private(set) var binPreview: MediaPreviewModel?
+    /// UI-007d: the markers of the bin's clips and the observer that runs their actions when live playback crosses them. Nil under the same conditions as `media`.
+    private(set) var markers: MediaMarkerModel?
     @ObservationIgnored let binPreviewPlayer = AVPreviewPlayer()
     @ObservationIgnored let hotFolderAccess = HotFolderAccess()
     @ObservationIgnored private var knownHotFolderIDs: Set<UUID> = []
     @ObservationIgnored private var hotTick = 0
     /// MEDIA-010: when the live slide's own background started, so a publish does not restart its video.
-    @ObservationIgnored private var ownBackgroundStart: (selection: MediaSelection, at: Double)?
+    @ObservationIgnored private var ownBackgroundStart: (selection: MediaSelection, at: Double, played: MediaSelection)?      // UI-007d: `played` is it with the marks it started with
     /// Macros, slide actions, the schedule, MIDI and the remote control, and the one command path every show command goes through
     /// (CUE-002b). Nil under the same conditions.
     private(set) var cue: CueModel?
@@ -225,6 +227,9 @@ final class AppModel {
             media.onAssetsChange = { [weak self] assets in
                 self?.mediaAssetsChanged(assets)
                 self?.audio?.setAssets(assets)
+                // UI-007d: marks edited in the bin reach the preview player; the markers of new clips are read.
+                if let self, let id = self.binPreview?.asset?.id, let item = self.media?.asset(id) { self.binPreview?.select(item) }
+                Task { @MainActor in await self?.markers?.syncAssets(assets.filter { $0.kind == .video }) }
             }
             media.onAudioChange = { [weak self] volume, muted in self?.mediaRegistry.setForegroundAudio(volume: volume, muted: muted) }
             mediaRegistry.setForegroundAudio(volume: Float(media.volume), muted: media.isMuted)
@@ -261,6 +266,10 @@ final class AppModel {
                 Task { @MainActor in AppModel.shared.media?.playerReportedEnd() }
             }
             self.media = media
+            // UI-007d (CU-33): a marker of a clip playing live runs its actions on the Cues command path (source "marker"). The observer exists only
+            // while such a clip plays; it is created here, before the bin loads, so the first read of the bin also reads the markers.
+            markers = MediaMarkerModel(store: store, media: media, scheduler: TimerMarkerScheduler(),
+                                       fire: { [weak self] firing in self?.cue?.submit(.markerReached(firing), from: .marker) })
             makeAudio(store: store)
             // UI-005b: the playlist's media-file items and announcements loops play through the bin's own models.
             let player = MediaItemPlayer(media: media, audio: audio, preview: { [weak self] id in self?.selectBinItem(id) })
@@ -1419,9 +1428,12 @@ final class AppModel {
         let override = media?.layers ?? MediaLayers()
         let own = show.liveSlideAtPlace?.background
         if override.background != nil || own == nil { ownBackgroundStart = nil; return LiveMedia.playing(override: override, state: show, at: MediaClock.now()) }
-        if ownBackgroundStart?.selection != own { ownBackgroundStart = (own!, MediaClock.now()) }
+        // UI-007d: a slide's own background video is played with the marks its bin item has when the slide goes live (the slide itself stores none),
+        // and keeps them while it stays: editing marks never changes what is on air now.
+        if ownBackgroundStart?.selection != own { ownBackgroundStart = (own!, MediaClock.now(), own!.withMarks(of: media?.asset(own!.assetID))) }
+        let played = ownBackgroundStart!.played
         // FIX-G item 1: a cleared or stopped background is not played (so not heard either).
-        return LiveMedia.playing(override: override, state: show, at: ownBackgroundStart!.at)
+        return LiveMedia.playing(override: override, state: show, at: ownBackgroundStart!.at, resolve: { _ in played })
     }
 
     /// The stage's one-second republish. Skipped when nothing on any screen changed, and it does not touch the slide

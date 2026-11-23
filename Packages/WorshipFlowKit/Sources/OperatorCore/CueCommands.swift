@@ -5,6 +5,8 @@ import CueEngine
 /// Where a command came from. Shown in the activity list; it never changes what the command does.
 public enum CommandSource: String, Sendable, Equatable, CaseIterable {
     case button, key, slideAction, schedule, midi, remote, timer
+    /// UI-007d (CU-33): a marker of a clip that is playing live was reached.
+    case marker
 
     public var label: String {
         switch self {
@@ -15,6 +17,7 @@ public enum CommandSource: String, Sendable, Equatable, CaseIterable {
         case .midi: "midi"
         case .remote: "remote"
         case .timer: "timer"
+        case .marker: "marker"
         }
     }
 }
@@ -29,6 +32,8 @@ public enum OperatorCommand: Sendable, Equatable {
     case runActions([CueAction], CueOrigin)
     /// A slide went live: run its actions (if it has any and it is still the live one).
     case slideLive(SlideLiveEvent)
+    /// UI-007d (CU-33): live playback reached a marker of a clip. Its actions run on the one path, in order with everything else.
+    case markerReached(MarkerFiring)
     /// Deliver the waited stages of earlier runs that have come due.
     case tick
 }

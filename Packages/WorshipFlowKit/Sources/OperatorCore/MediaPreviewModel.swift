@@ -18,6 +18,12 @@ public protocol PreviewPlayback: AnyObject {
     func setLoops(_ on: Bool)
     func setMuted(_ on: Bool)
     func close()
+    /// UI-007d: the part of the clip to play (nil is the start / the end): the player stops at the out mark, and a loop starts again at the in mark.
+    func setMarks(in markIn: Double?, out markOut: Double?)
+}
+
+public extension PreviewPlayback {
+    func setMarks(in markIn: Double?, out markOut: Double?) {}
 }
 
 /// Which controls the player shows for a kind.
@@ -96,8 +102,28 @@ public final class MediaPreviewModel {
     public var position: Double { min(player.position, max(player.duration, player.position)) }
     public var remaining: Double { max(0, duration - position) }
 
-    /// Shows an item (nil shows none). The earlier one is closed; the same item again changes nothing.
+    /// UI-007d: where the preview starts and where Restart and Stop go back to: the in mark, or the beginning.
+    public var startPosition: Double { markedStart ?? 0 }
+    private var markedStart: Double? { usableMarks(asset)?.in }
+
+    /// The marks of a video that can work: an in mark before the out mark (and before the end of a clip whose length is known). A picture, a
+    /// sound (the audio player does not honour marks) or a clip without a usable mark has none.
+    private func usableMarks(_ asset: MediaAsset?) -> (in: Double?, out: Double?)? {
+        guard let asset, asset.kind == .video else { return nil }
+        let transport = MediaTransport(duration: asset.duration ?? 0, loops: false, markIn: asset.markIn, markOut: asset.markOut)
+        guard transport.markIn != nil || transport.markOut != nil else { return nil }
+        return (transport.markIn, transport.markOut)
+    }
+
+    /// Shows an item (nil shows none). The earlier one is closed; the same item again changes nothing, except that its marks are passed on to
+    /// the player when they changed (setting a mark never reopens the file).
     public func select(_ next: MediaAsset?) {
+        if let next, next.id == asset?.id {
+            let changed = asset?.markIn != next.markIn || asset?.markOut != next.markOut
+            asset = next
+            if changed { applyMarks(next) }
+            return
+        }
         guard next?.id != asset?.id else { return }
         if asset != nil { player.close() }
         asset = next
@@ -107,11 +133,24 @@ public final class MediaPreviewModel {
         isMuted = silent ? true : isMuted
         player.setMuted(isMuted)
         player.setLoops(false)
+        applyMarks(next)
     }
 
+    private func applyMarks(_ item: MediaAsset) {
+        let marks = usableMarks(item)
+        player.setMarks(in: marks?.in, out: marks?.out)
+    }
+
+    /// Plays or pauses. A clip with marks that is before its in mark, or at or past its out mark, starts at the in mark.
     public func togglePlay() {
         guard let asset, PreviewControls.for(kind: asset.kind).showsTransport else { return }
-        if player.isPlaying { player.pause() } else { player.play() }
+        if player.isPlaying { player.pause(); return }
+        if let marks = usableMarks(asset) {
+            let start = marks.in ?? 0
+            let position = player.position
+            if position < start - 0.05 || (marks.out.map { position >= $0 - 0.05 } ?? false) { player.seek(to: start) }
+        }
+        player.play()
     }
 
     public func seek(to seconds: Double) {

@@ -6,15 +6,56 @@ public struct MediaSelection: Sendable, Equatable, Codable, Hashable {
     public var assetID: UUID
     public var kind: MediaKind
     public var duration: Double?
+    /// UI-007d: the part of the clip to play, in clip seconds (nil is the start / the end). Read from the bin item when the clip is chosen for
+    /// playing; never stored with a slide's own background (the marks belong to the bin item, so a slide always uses the item's current ones).
+    public var markIn: Double?
+    public var markOut: Double?
 
-    public init(assetID: UUID, kind: MediaKind, duration: Double?) {
+    private enum CodingKeys: String, CodingKey { case assetID, kind, duration }
+
+    // Written by hand so the marks are not stored: the synthesized decoder leaves a property that has no coding key unset.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        assetID = try c.decode(UUID.self, forKey: .assetID)
+        kind = try c.decode(MediaKind.self, forKey: .kind)
+        duration = try c.decodeIfPresent(Double.self, forKey: .duration)
+        markIn = nil
+        markOut = nil
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(assetID, forKey: .assetID)
+        try c.encode(kind, forKey: .kind)
+        try c.encodeIfPresent(duration, forKey: .duration)
+    }
+
+    public init(assetID: UUID, kind: MediaKind, duration: Double?, markIn: Double? = nil, markOut: Double? = nil) {
         self.assetID = assetID
         self.kind = kind
         self.duration = duration
+        self.markIn = markIn
+        self.markOut = markOut
     }
 
+    /// What a slide's own background stores: the item and its length, no marks.
     public init(asset: MediaAsset) {
         self.init(assetID: asset.id, kind: asset.kind, duration: asset.duration)
+    }
+
+    /// What is played: the item with its mark in and mark out (video only; a picture or a sound has none to play).
+    public static func forPlayback(_ asset: MediaAsset) -> MediaSelection {
+        MediaSelection(assetID: asset.id, kind: asset.kind, duration: asset.duration,
+                       markIn: asset.kind == .video ? asset.markIn : nil, markOut: asset.kind == .video ? asset.markOut : nil)
+    }
+
+    /// The same selection with the marks of `asset` (a slide's own background, resolved when it is played).
+    public func withMarks(of asset: MediaAsset?) -> MediaSelection {
+        guard let asset, asset.id == assetID, kind == .video else { return self }
+        var copy = self
+        copy.markIn = asset.markIn
+        copy.markOut = asset.markOut
+        return copy
     }
 
     /// Only pictures and video are drawn. Audio never becomes a visual layer.
@@ -55,7 +96,7 @@ public struct MediaLayers: Sendable, Equatable, Codable, Hashable {
     public mutating func setBackground(_ selection: MediaSelection?, at now: Double, loops: Bool = true) {
         guard let selection else { background = nil; return }
         guard selection.isVisual else { return }
-        var transport = MediaTransport(duration: selection.duration ?? 0, loops: loops)
+        var transport = MediaTransport(duration: selection.duration ?? 0, loops: loops, markIn: selection.markIn, markOut: selection.markOut)
         transport.play(at: now)
         background = MediaLayer(selection: selection, transport: transport)
     }
@@ -63,7 +104,7 @@ public struct MediaLayers: Sendable, Equatable, Codable, Hashable {
     /// Replaces the foreground and plays it once from the start. Audio is ignored.
     public mutating func startForeground(_ selection: MediaSelection, at now: Double) {
         guard selection.isVisual else { return }
-        var transport = MediaTransport(duration: selection.duration ?? 0, loops: false)
+        var transport = MediaTransport(duration: selection.duration ?? 0, loops: false, markIn: selection.markIn, markOut: selection.markOut)
         transport.play(at: now)
         foreground = MediaLayer(selection: selection, transport: transport)
     }

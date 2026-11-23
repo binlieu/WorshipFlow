@@ -1,7 +1,8 @@
 // UI-005d: the Media mode's clip strip (design 05, bottom of the centre column) and the scrub bar its mockup draws. MEDIA-010's bin
 // player lives here now: the strip plays the item chosen in the bin on this Mac only (never a screen), shows what it is for the
-// live show, and sends it live. The picture of the old player is the tile in the grid. Mark in, Mark out and Add marker are not
-// drawn (no in and out points or markers exist); their room is kept.
+// live show, and sends it live. The picture of the old player is the tile in the grid. UI-007d: for a video the room at the right of the
+// second row holds the design's Mark in, Mark out and Add marker (and the list of marks and markers); the ways to send it live are a menu in
+// the first row then. A picture or a sound keeps its send buttons there.
 import SwiftUI
 import Domain
 import OperatorCore
@@ -123,6 +124,7 @@ struct MediaStrip: View {
                     .buttonStyle(HeaderButtonStyle(kind: .ghost)).wfRect("media.extra.drop")
                     .help("Drop the live override: each slide's own background (or the theme's) shows again")
             }
+            if asset.kind == .video, app.markers != nil { sendMenu(asset) }      // UI-007d: its row-2 room is taken by the marks
             if controls.showsTransport {
                 Button { preview.setMuted(!preview.isMuted) } label: {
                     Image(systemName: preview.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill").font(.wf(12)).frame(width: 15, height: 15)
@@ -175,13 +177,13 @@ struct MediaStrip: View {
                 TimelineView(.periodic(from: .now, by: 0.1)) { _ in
                     let position = dragging ? dragPosition : preview.position
                     HStack(spacing: 8) {
-                        Button { preview.seek(to: 0) } label: { Image(systemName: "backward.end.fill").font(.wf(11)).frame(width: 12, height: 12) }
+                        Button { preview.seek(to: preview.startPosition) } label: { Image(systemName: "backward.end.fill").font(.wf(11)).frame(width: 12, height: 12) }
                             .buttonStyle(HeaderButtonStyle()).wfRect("media.strip.restart", radius: Radius.md)
-                            .help("Back to the start").accessibilityLabel("Restart preview")
+                            .help(preview.startPosition > 0 ? "Back to the in mark" : "Back to the start").accessibilityLabel("Restart preview")
                         Button { preview.togglePlay() } label: { Image(systemName: preview.isPlaying ? "pause.fill" : "play.fill").font(.wf(11)).frame(width: 12, height: 12) }
                             .buttonStyle(HeaderButtonStyle(selected: preview.isPlaying)).wfRect("media.strip.play", radius: Radius.md)
                             .help(preview.isPlaying ? "Pause" : "Play").accessibilityLabel(preview.isPlaying ? "Pause preview" : "Play preview")
-                        Button { if preview.isPlaying { preview.togglePlay() }; preview.seek(to: 0) } label: { Image(systemName: "stop.fill").font(.wf(11)).frame(width: 12, height: 12) }
+                        Button { if preview.isPlaying { preview.togglePlay() }; preview.seek(to: preview.startPosition) } label: { Image(systemName: "stop.fill").font(.wf(11)).frame(width: 12, height: 12) }
                             .buttonStyle(HeaderButtonStyle()).wfRect("media.strip.stop", radius: Radius.md)
                             .help("Stop and go back to the start").accessibilityLabel("Stop preview")
                         Text(Self.tenths(position)).font(.wfMono(11)).wfLine().wfRect("media.strip.elapsed", size: 11, weight: 400)
@@ -197,9 +199,34 @@ struct MediaStrip: View {
             } else {
                 Spacer(minLength: 0)
             }
-            sendButtons(asset).frame(width: 260.4, alignment: .trailing)      // the room of Mark in, Mark out and Add marker
+            Group {
+                if asset.kind == .video, let markers = app.markers {
+                    MediaMarkButtons(media: media, markers: markers, preview: preview, asset: asset)      // UI-007d
+                } else {
+                    sendButtons(asset)
+                }
+            }
+            .fixedSize()      // the room of Mark in, Mark out and Add marker (and the list button): as wide as the buttons need
         }
         .frame(height: 26)
+    }
+
+    /// UI-007d: a video's two ways to send it live, as one menu in the first row (the second row's room holds Mark in, Mark out and Add marker).
+    private func sendMenu(_ asset: MediaAsset) -> some View {
+        let live = media.showIsLive
+        let offered = PreviewSendActions.available(for: asset.kind, showIsLive: live)
+        return Menu {
+            Button("Live background") { app.performDockAction(.setBackground(asset.id)) }.disabled(!offered.background)
+            Button("Live foreground") { app.performDockAction(.playForeground(asset.id)) }.disabled(!offered.foreground)
+        } label: {
+            HStack(spacing: 5) { Text("Send live").font(.wf(11, .semibold)).wfLine(); Image(systemName: "chevron.down").font(.wf(9, .semibold)) }
+                .foregroundStyle(Tok.text).padding(.horizontal, 9).frame(height: 20)
+                .wfOutline(RoundedRectangle(cornerRadius: 10, style: .circular), stroke: Tok.borderStrong)
+                .wfRect("media.extra.sendmenu", size: 11, weight: 600, radius: 10).contentShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+        .help(live ? "Put this behind the words (the presentation is not changed) or play it over them" : "Put this behind the words on the live screens. To play it over them, take a slide live first.")
+        .accessibilityLabel("Send live")
     }
 
     private func sendButtons(_ asset: MediaAsset) -> some View {
