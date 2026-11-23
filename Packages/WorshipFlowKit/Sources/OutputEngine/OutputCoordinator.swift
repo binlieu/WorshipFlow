@@ -113,6 +113,9 @@ public final class OutputCoordinator {
     /// Outputs running now: every screen and every mirror.
     public var runningCount: Int { running.count }
 
+    /// Stopped outputs still held because their teardown has not finished (FIX-V item 4). Tests.
+    var retiredCount: Int { retiring.count }
+
     /// Compiles the shaders and builds the render pipeline ahead of time, on a background thread (R16). Call it once
     /// at launch: starting screens then never compiles on the main thread, however many open. Returns at once.
     public nonisolated static func warmUp() {
@@ -415,11 +418,31 @@ public final class OutputCoordinator {
         // FIX-T item 6 (M6): an SDI output closes its port on its own queue; the main actor does not wait for it. A new output waits
         // (`awaitRetiredTargets`) before it opens a port, so a restart on the same connector never meets the old claim.
         r.target.stopWithoutWaiting()
-        retiring.append(r.target)
+        retire(r.target)
     }
 
-    /// Outputs whose stop was begun and may not have finished. Emptied by `awaitRetiredTargets`.
+    /// Outputs whose stop was begun and may not have finished. A new SDI output (or a waiting stop) empties it through `awaitRetiredTargets`;
+    /// FIX-V item 4 (REVIEW-4 M2): each output also leaves it by itself when its own teardown ends, and one whose stop was instant (a window
+    /// or a display) is never put in it, so a display-only setup holds nothing for the life of the app.
     private var retiring: [any OutputTarget] = []
+
+    /// Tests: called on the main actor when a retired output has been released after its teardown.
+    var onRetiredReleased: (@MainActor () -> Void)?
+
+    private func retire(_ target: any OutputTarget) {
+        guard target.isTearingDown else { return }
+        retiring.append(target)
+        // The output says so on the main actor when its teardown has ended (it is never waited for on a thread of ours).
+        target.onTeardownFinished = { [weak self] in self?.releaseFinishedTargets() }
+    }
+
+    private func releaseFinishedTargets() {
+        let finished = retiring.filter { !$0.isTearingDown }
+        guard !finished.isEmpty else { return }
+        for target in finished { target.onTeardownFinished = nil }
+        retiring.removeAll { !$0.isTearingDown }
+        onRetiredReleased?()
+    }
 
     private func awaitRetiredTargets() {
         guard !retiring.isEmpty else { return }
@@ -433,7 +456,7 @@ public final class OutputCoordinator {
         guard case .stopped(let reason) = status, let r = running[slot], case .stopped = r.target.status else { return }
         running[slot] = nil
         r.target.onStatusChange = nil
-        retiring.append(r.target)             // its teardown was queued when it stopped on its own
+        retire(r.target)                      // its teardown was queued when it stopped on its own
         var deviceLost = false
         if let reason {
             faults[slot] = reason

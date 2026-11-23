@@ -10,19 +10,34 @@ public struct MediaLocateOutcome: Equatable, Sendable {
 }
 
 extension MediaModel {
-    /// Starts a check in the background. A newer request replaces one still waiting.
+    /// Starts a check in the background. FIX-V item 6 (L8): only one check reads the file system at a time (a stalled network volume holds a
+    /// thread for each one that is started beside it); a request that comes while one runs makes it run once more when it ends.
     func scheduleOfflineCheck() {
-        offlineTask?.cancel()
-        let list = assets, available = isAvailable
+        if offlineRunning { offlineAgain = true; return }
+        offlineRunning = true
         offlineTask = Task { [weak self] in
-            let (missing, summary) = await Task.detached(priority: .utility) { () -> (Set<UUID>, MediaOffline.Summary?) in
-                let offline = list.filter { !available($0) }
-                return (Set(offline.map(\.id)), MediaOffline.summary(offline: offline, directoryExists: { FileManager.default.fileExists(atPath: $0) }))
-            }.value
-            guard !Task.isCancelled, let self else { return }
-            if self.offlineIDs != missing { self.offlineIDs = missing }
-            if self.offlineSummary != summary { self.offlineSummary = summary }
+            repeat {
+                guard let self else { return }
+                self.offlineAgain = false
+                let list = self.assets, available = self.isAvailable
+                let signature = MediaOffline.Signature(paths: list.map(\.path), volumes: self.mountedVolumes())
+                let (missing, summary) = await Task.detached(priority: .utility) { () -> (Set<UUID>, MediaOffline.Summary?) in
+                    let offline = list.filter { !available($0) }
+                    return (Set(offline.map(\.id)), MediaOffline.summary(offline: offline, directoryExists: { FileManager.default.fileExists(atPath: $0) }))
+                }.value
+                if self.offlineIDs != missing { self.offlineIDs = missing }
+                if self.offlineSummary != summary { self.offlineSummary = summary }
+                self.lastOfflineCheck = MediaOffline.LastCheck(signature: signature, at: self.offlineClock())
+            } while self?.offlineAgain == true
+            self?.offlineRunning = false
         }
+    }
+
+    /// The app came forward: checks only if the bin or the connected disks changed since the last check, or that check is old.
+    public func refreshOfflineOnActivation() async {
+        let signature = MediaOffline.Signature(paths: assets.map(\.path), volumes: mountedVolumes())
+        guard MediaOffline.shouldCheckOnActivation(last: lastOfflineCheck, now: offlineClock(), signature: signature) else { return }
+        await refreshOffline()
     }
 
     /// Checks now and returns when the answer is in.

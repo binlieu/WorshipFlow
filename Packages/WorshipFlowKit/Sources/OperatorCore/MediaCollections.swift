@@ -93,6 +93,12 @@ public struct MediaCollections: Sendable, Equatable, Codable {
         (try? JSONEncoder().encode(self)).flatMap { String(data: $0, encoding: .utf8) }
     }
 
+    /// FIX-V item 6 (L3): whether stored text decodes at all (an empty collection list is readable).
+    public static func isReadable(_ text: String) -> Bool {
+        guard let data = text.data(using: .utf8) else { return false }
+        return (try? JSONDecoder().decode(MediaCollections.self, from: data)) != nil
+    }
+
     /// Stored text back to a value. Nothing, or text that cannot be read, gives no collections (the bin itself is untouched).
     public static func decoded(_ text: String?) -> MediaCollections {
         guard let data = text?.data(using: .utf8), let value = try? JSONDecoder().decode(MediaCollections.self, from: data) else { return MediaCollections() }

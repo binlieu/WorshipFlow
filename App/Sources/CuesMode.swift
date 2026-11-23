@@ -28,6 +28,7 @@ struct CuesModeView: View {
                     .background(Tok.surface)
                     .overlay(alignment: .leading) { Rectangle().fill(Tok.border).frame(width: 1) }
             }
+            .task { await cue.refreshSlideActionPresentations() }      // FIX-V (L5): one read when Cues appears; a rename or deletion elsewhere shows
         } else {
             Text("Macros and control inputs are not available.").foregroundStyle(Tok.muted).frame(maxWidth: .infinity, maxHeight: .infinity)
         }

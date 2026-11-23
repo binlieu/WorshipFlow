@@ -77,6 +77,8 @@ public enum KeyDecision: Sendable, Equatable {
     /// FIX-H item 7: Escape on a focused control (a toggle, a slider, a button...): put keyboard focus back on the show (the slide grid), so
     /// the transport keys work again. Consumed.
     case focusShow
+    /// FIX-V item 1: a macro's function key. The app runs the macro that holds the key (and passes the key on if none does). Consumed.
+    case runMacro(CueFunctionKey)
     /// The key is not ours: let the focused control, menu or system have it.
     case passThrough
 }
@@ -168,8 +170,14 @@ public enum KeyRouting {
     /// focus (they have no use for arrows) no longer takes the arrow keys from the box.
     public static func decision(for key: KeyboardKey, focus: FocusedElement, canvasHasSelection: Bool = false, canvasLastClicked: Bool = false,
                                 section: KeySection = .slideGrid, sheetOpen: Bool,
-                                commandModifierDown: Bool = false, shiftDown: Bool = false, isRepeat: Bool = false) -> KeyDecision {
+                                commandModifierDown: Bool = false, shiftDown: Bool = false, isRepeat: Bool = false,
+                                macroKey: CueFunctionKey? = nil, mode: WorkspaceMode = .show, isOperatorWindow: Bool = true,
+                                modalUp: Bool = false) -> KeyDecision {
         guard !sheetOpen, !commandModifierDown else { return .passThrough }
+        // FIX-V item 1 (REVIEW-4 M5): a macro's function key is a routed command like the others, not a bypass of them.
+        if let macroKey {
+            return macroDecision(macroKey, focus: focus, mode: mode, isOperatorWindow: isOperatorWindow, modalUp: modalUp, shiftDown: shiftDown, isRepeat: isRepeat)
+        }
         switch focus {
         case .canvas:
             if canvasHasSelection, [.leftArrow, .rightArrow, .upArrow, .downArrow].contains(key) { return .passThrough }
@@ -183,6 +191,27 @@ public enum KeyRouting {
         case .toggle, .checkbox, .segmented, .tab, .slider, .button, .popUp:
             if canvasHasSelection, canvasLastClicked, [.toggle, .checkbox, .button].contains(focus), let move = arrowMove(key) { return .nudgeCanvas(move) }
             return key == .escape && !isRepeat ? .focusShow : .passThrough
+        }
+    }
+
+    /// FIX-V item 1: the modes in which a macro's function key runs: Show and Cues, where the operator is running the service. In Edit, Stage,
+    /// Screens and Media an F-key could change Live (Go Live, Blackout, a Look) from a stray press while slides or boxes are being worked on.
+    public static func macroKeysWork(in mode: WorkspaceMode) -> Bool {
+        switch mode {
+        case .show, .cues: true
+        case .edit, .media, .stage, .screens: false
+        }
+    }
+
+    /// A macro key runs only in the main operator window (not Settings, a stage or output window, the remote panel), with no sheet (the caller's
+    /// `sheetOpen`), alert or other modal up, in Show or Cues, without Shift, a modifier or key repeat, and not while text is being typed. A
+    /// focused button, toggle or slider does not block it: an F-key is not Space or Return, so the control has no use for it.
+    private static func macroDecision(_ key: CueFunctionKey, focus: FocusedElement, mode: WorkspaceMode, isOperatorWindow: Bool, modalUp: Bool,
+                                      shiftDown: Bool, isRepeat: Bool) -> KeyDecision {
+        guard isOperatorWindow, !modalUp, !shiftDown, !isRepeat, macroKeysWork(in: mode) else { return .passThrough }
+        switch focus {
+        case .textInput, .searchField: return .passThrough
+        case .none, .slideGrid, .canvas, .toggle, .checkbox, .segmented, .tab, .slider, .button, .popUp: return .runMacro(key)
         }
     }
 

@@ -3,7 +3,28 @@
 import Foundation
 import Domain
 
+/// FIX-V item 3: the identity of one entry of a section order: the section, and which occurrence of that section it is (a section may repeat).
+/// Unlike a row position it does not change when another entry is removed or moved.
+public struct SectionEntry: Sendable, Equatable, Hashable {
+    public let groupID: UUID
+    public let occurrence: Int
+    public init(groupID: UUID, occurrence: Int) { self.groupID = groupID; self.occurrence = occurrence }
+}
+
 public enum SectionOrderEditing {
+    public static func entries(of order: [UUID]) -> [SectionEntry] {
+        var seen: [UUID: Int] = [:]
+        return order.map { id in
+            let n = seen[id, default: 0]
+            seen[id] = n + 1
+            return SectionEntry(groupID: id, occurrence: n)
+        }
+    }
+
+    public static func index(of entry: SectionEntry, in order: [UUID]) -> Int? {
+        entries(of: order).firstIndex(of: entry)
+    }
+
     public static func appending(_ groupID: UUID, to order: [UUID]) -> [UUID] { order + [groupID] }
 
     /// Out-of-range indices change nothing.

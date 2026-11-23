@@ -125,19 +125,56 @@ public enum EditPreviewScene {
     /// and theme (a role with no screen is drawn with the built-in defaults). No speaker notes are passed, so none can appear in any role.
     /// The slide is drawn as a triggered preview; nothing here touches the live show.
     public static func scene(role: EditPreviewRole, slide: SlideContent, profiles: [ScreenProfile], themes: [Theme], look: Look?,
-                             props: [Prop], presentationThemeID: UUID?, media: MediaLayers?) -> SceneDescription {
-        var state = ShowState()
-        state.apply(.load(ShowDeck(presentationID: UUID(), slides: [slide])))
-        state.apply(.trigger(index: 0))
-        let wanted = role.screenRole
-        let profile = profiles.first { $0.role == wanted && $0.isEnabled }
-            ?? profiles.first { $0.role == wanted }
-            ?? ScreenProfile(name: role.title, role: wanted, destination: .window)
+                             props: [Prop], presentationThemeID: UUID?, media: MediaLayers?,
+                             deck: [SlideContent]? = nil, index: Int? = nil, stageScene: SceneDescription? = nil) -> SceneDescription {
+        let state = previewState(slide: slide, deck: deck, index: index)
+        let profile = profile(for: role, in: profiles)
         // The Look is resolved against the real profile list, so a profile that is not in it still gets the standard look.
         let all = profiles.contains { $0.id == profile.id } ? profiles : profiles + [profile]
+        // FIX-V item 5 (REVIEW-4 M1): a stage screen is drawn from its own layout, as the real screen is, when the caller supplies that scene.
+        let stageScenes: [UUID: SceneDescription] = role == .stage ? (stageScene.map { [profile.id: $0] } ?? [:]) : [:]
         return PublishedScenes(state: state, clockText: nil, profiles: all, themes: themes, look: look, props: props,
-                               presentationThemeID: presentationThemeID, media: media)
+                               presentationThemeID: presentationThemeID, stageScenes: stageScenes, media: media)
             .scene(forScreen: profile.id)
+    }
+
+    /// FIX-V item 5: the stage preview, composed from the stage screen's own layout (`StageModel`, the same call the real screen's scene comes
+    /// from) with the open deck, this slide's position in it and its speaker notes. Other roles are composed as before, with no notes.
+    @MainActor
+    public static func scene(role: EditPreviewRole, slide: SlideContent, profiles: [ScreenProfile], themes: [Theme], look: Look?,
+                             props: [Prop], presentationThemeID: UUID?, media: MediaLayers?,
+                             deck: [SlideContent]?, index: Int?, stage: StageModel?, notes: String?) -> SceneDescription {
+        var stageScene: SceneDescription?
+        if role == .stage, let stage {
+            let state = previewState(slide: slide, deck: deck, index: index)
+            stageScene = stage.stageScene(forScreen: profile(for: role, in: profiles).id, state: state, notes: notes)
+        }
+        return scene(role: role, slide: slide, profiles: profiles, themes: themes, look: look, props: props, presentationThemeID: presentationThemeID,
+                     media: media, deck: deck, index: index, stageScene: stageScene)
+    }
+
+    /// FIX-V item 5: the state the preview is composed from. With the open deck and the slide's position in it, the stage preview has the same
+    /// current and next slide the stage screen would have if this slide were live; without them it is a one-slide deck. Never the live state.
+    public static func previewState(slide: SlideContent, deck: [SlideContent]?, index: Int?) -> ShowState {
+        var slides = [slide]
+        var at = 0
+        if let deck, let index, deck.indices.contains(index) {
+            slides = deck
+            slides[index] = slide
+            at = index
+        }
+        var state = ShowState()
+        state.apply(.load(ShowDeck(presentationID: UUID(), slides: slides)))
+        state.apply(.trigger(index: at))
+        return state
+    }
+
+    /// The first enabled screen of the role, else the first of it, else a stand-in with built-in defaults.
+    public static func profile(for role: EditPreviewRole, in profiles: [ScreenProfile]) -> ScreenProfile {
+        let wanted = role.screenRole
+        return profiles.first { $0.role == wanted && $0.isEnabled }
+            ?? profiles.first { $0.role == wanted }
+            ?? ScreenProfile(name: role.title, role: wanted, destination: .window)
     }
 }
 

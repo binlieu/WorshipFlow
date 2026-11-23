@@ -15,6 +15,7 @@ struct CuesTriggerField: View {
         Menu {
             Button { choose(nil) } label: { entry("No key", on: key == nil) }
             Divider()
+            Button("Function keys work in Show and Cues only") {}.disabled(true)      // FIX-V item 1: the rule, in the menu itself
             ForEach(CueFunctionKey.allCases) { candidate in
                 let holder = cue.keyTriggers.holder(of: candidate).flatMap { $0 == macro.id ? nil : cue.macro($0)?.name }
                 Button { choose(candidate) } label: {
@@ -26,7 +27,7 @@ struct CuesTriggerField: View {
                 .lineLimit(1).wfLine().wfField().wfRect("main.trigger", size: 12, weight: 400, radius: Radius.md)
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-        .help("Choose the function key that runs this macro. It works when no text field has focus.")
+        .help(CuesKeyTrigger.keyHelp)
         .accessibilityLabel("Trigger")
         .accessibilityValue(summary)
     }

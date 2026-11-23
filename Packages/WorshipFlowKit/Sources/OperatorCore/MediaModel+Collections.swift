@@ -7,7 +7,24 @@ extension MediaModel {
     func loadCollections() async {
         let text = try? await store.state(for: MediaCollections.storageKey)
         collections = MediaCollections.decoded(text)
+        // FIX-V item 6 (L3): stored text that cannot be read is kept under its own key before a later change replaces it.
+        if let text, !text.isEmpty, !MediaCollections.isReadable(text) {
+            let key = MediaCollections.storageKey + ".unreadable"
+            persist(key: "collections.unreadable", "keep the unreadable collections") { [store] in try await store.setState(text, for: key) }
+            lastError = "The saved collections could not be read, so the bin starts with none. The damaged text was kept."
+        }
         if collections.prune(keeping: Set(assets.map(\.id))) { persistCollections() }
+    }
+
+    /// FIX-V item 6 (L2): only bin items can be in a collection (the bin's own change prunes by the bin). A hot-folder item is refused, with
+    /// the reason, instead of being accepted and dropped at the next bin change. Returns the ids that were accepted.
+    private func binIDs(_ ids: [UUID]) -> [UUID] {
+        let binSet = Set(assets.map(\.id))
+        let accepted = ids.filter { binSet.contains($0) }
+        if accepted.count != ids.count, ids.contains(where: { asset($0) != nil && !binSet.contains($0) }) {
+            lastError = "Items from a hot folder cannot be put in a collection: they are not in the bin. Add the file to the bin first."
+        }
+        return accepted
     }
 
     /// Called whenever the bin's list changed: items that are gone leave every collection, and the open collection may be gone too.
@@ -26,7 +43,7 @@ extension MediaModel {
     public func createCollection(_ name: String, adding ids: [UUID] = []) -> UUID? {
         do {
             let id = try collections.create(name: name)
-            collections.add(ids.filter { asset($0) != nil }, to: id)
+            collections.add(binIDs(ids), to: id)
             persistCollections()
             return id
         } catch {
@@ -55,7 +72,7 @@ extension MediaModel {
     }
 
     public func addToCollection(_ ids: [UUID], collection id: UUID) {
-        guard collections.add(ids.filter { asset($0) != nil }, to: id) > 0 else { return }
+        guard collections.add(binIDs(ids), to: id) > 0 else { return }
         persistCollections()
     }
 

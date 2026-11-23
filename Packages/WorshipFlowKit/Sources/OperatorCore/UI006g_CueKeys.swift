@@ -106,9 +106,17 @@ extension CueModel {
 
     /// Reads the saved keys (called by `start()`); a key whose macro is gone is dropped.
     func loadKeyTriggers() async {
-        guard let settingsStore, let text = try? await settingsStore.state(for: Self.keyTriggersKey),
-              let triggers = try? JSONDecoder().decode(CueKeyTriggers.self, from: Data(text.utf8)) else { return }
-        keyTriggers = triggers.pruned(keeping: Set(macros.map(\.id)))
+        guard let settingsStore, let text = try? await settingsStore.state(for: Self.keyTriggersKey) else { return }
+        guard let triggers = try? JSONDecoder().decode(CueKeyTriggers.self, from: Data(text.utf8)) else {
+            // FIX-V item 6 (L3): text that cannot be read is kept under its own key before a later change replaces it.
+            try? await settingsStore.setState(text, for: Self.keyTriggersKey + ".unreadable")
+            note("The saved macro keys could not be read, so no macro has a key. The damaged text was kept.")
+            return
+        }
+        let kept = triggers.pruned(keeping: Set(macros.map(\.id)))
+        keyTriggers = kept
+        // The first prune (in `reload`) ran before the keys were read and saw none: a key of a macro that is gone leaves the store here.
+        if kept != triggers { await save(kept, key: Self.keyTriggersKey) }
     }
 
     /// Gives the macro this key (nil clears it) and remembers it. The key moves if another macro had it.

@@ -22,7 +22,7 @@ struct MediaModeView: View {
             // UI-006d: offline files are looked for again when a disk is connected or removed and when the app comes forward (no timer).
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in Task { await media.refreshOffline() } }
             .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didUnmountNotification)) { _ in Task { await media.refreshOffline() } }
-            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in Task { await media.refreshOffline() } }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in Task { await media.refreshOfflineOnActivation() } }      // FIX-V (L8): only if something changed or the last check is old
             .task { await media.refreshOffline() }
         } else {
             Text("The media bin is not available.").foregroundStyle(Tok.muted).padding(Space.s5)
@@ -121,7 +121,7 @@ private struct MediaSidebar: View {
         }
         .alert("Delete the collection \"\(deleting?.name ?? "")\"?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Cancel", role: .cancel) {}
-            Button("Delete collection", role: .destructive) { if let c = deleting { media.deleteCollection(c.id) } }
+            Button("Delete collection") { if let c = deleting { media.deleteCollection(c.id) } }      // FIX-V: no destructive role: not drawn red (red is only for on air)
         } message: { Text("Only the list is deleted. Its items stay in the media bin and no file is touched.") }
     }
 

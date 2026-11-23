@@ -23,6 +23,53 @@ public enum ScreenListEditing {
         profiles.count > 1 && profiles.contains { $0.id == id }
     }
 
+    /// FIX-V item 2 (REVIEW-4 M4): why this screen cannot be removed now, or nil. It is refused while its output is running (`activeOutputs`: the
+    /// screens whose output runs, is hidden or faulted), and while the screens are open and it is the only enabled screen of its role (that role
+    /// would go dark mid-service). Closing the screens first makes it removable.
+    public static func removalBlock(_ id: UUID, profiles: [ScreenProfile], activeOutputs: Set<UUID>, screensOpen: Bool) -> String? {
+        guard let profile = profiles.first(where: { $0.id == id }) else { return "That screen is already gone." }
+        guard profiles.count > 1 else { return "The last screen cannot be removed." }
+        if activeOutputs.contains(id) { return "\(profile.name) is on air. Close the screens first, then remove it." }
+        if screensOpen, profile.isEnabled, !profiles.contains(where: { $0.id != id && $0.role == profile.role && $0.isEnabled }) {
+            return "\(profile.name) is the only \(profile.role.rawValue) screen on air. Close the screens first, then remove it."
+        }
+        return nil
+    }
+
+    /// What goes with a screen, for the confirmation: its entry in each Look (and which screen inherits it), its stage layout choice.
+    public struct RemovalImpact: Sendable, Equatable {
+        public var lookCount: Int
+        /// Look name to the surviving screen that takes over the removed screen's entry (see `look(_:afterRemoving:before:)`).
+        public var handedTo: [String: String]
+        public var hasStageLayoutChoice: Bool
+
+        public var text: String {
+            var parts: [String] = []
+            if lookCount > 0 {
+                var s = "its settings in \(lookCount) Look\(lookCount == 1 ? "" : "s")"
+                if !handedTo.isEmpty {
+                    let moves = handedTo.sorted { $0.key < $1.key }.map { "\($0.key) to \($0.value)" }.joined(separator: ", ")
+                    s += " (the entry moves, so that screen keeps showing what it showed: \(moves))"
+                }
+                parts.append(s)
+            }
+            if hasStageLayoutChoice { parts.append("its stage layout choice") }
+            parts.append("its destination, mirrors and notes")
+            return "Its output stops and " + parts.joined(separator: ", ") + " are forgotten. This cannot be undone. Your slides and media are not touched."
+        }
+    }
+
+    public static func removalImpact(_ id: UUID, profiles: [ScreenProfile], looks: [Look], hasStageLayoutChoice: Bool) -> RemovalImpact {
+        var handed: [String: String] = [:]
+        var count = 0
+        for look in looks where look.screens[id] != nil {
+            count += 1
+            let after = Self.look(look, afterRemoving: id, before: profiles)
+            if let heir = profiles.first(where: { $0.id != id && look.screens[$0.id] == nil && after.screens[$0.id] != nil }) { handed[look.name] = heir.name }
+        }
+        return RemovalImpact(lookCount: count, handedTo: handed, hasStageLayoutChoice: hasStageLayoutChoice)
+    }
+
     public static func removing(_ id: UUID, from profiles: [ScreenProfile]) -> [ScreenProfile] {
         canRemove(id, from: profiles) ? profiles.filter { $0.id != id } : profiles
     }

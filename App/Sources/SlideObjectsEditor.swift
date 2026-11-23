@@ -115,7 +115,7 @@ struct SlideCanvas: View {
 
     var body: some View {
         let _ = app.sceneRevision          // follows theme and Look changes
-        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.stillScene(app.editPreviewScene(role: role, for: shownContent)),      // UI-007c: a video object is its poster
+        ScenePreview(scene: role.isEditable ? app.thumbnailScene(for: shownContent) : app.stillScene(app.editPreviewScene(role: role, for: shownContent, slideID: editor.slide?.id)),      // UI-007c: a video object is its poster
                      width: Int(renderWidth), cached: false, follow: !editor.dragFrames.isEmpty || !editor.lyricDragFrames.isEmpty)
             .overlay {
                 if role.isEditable { boxes }

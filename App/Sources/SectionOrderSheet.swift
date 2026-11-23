@@ -123,17 +123,21 @@ struct SectionOrderSheet: View {
 
     private func entries(_ order: Arrangement) -> some View {
         List {
-            ForEach(Array(order.groupIDs.enumerated()), id: \.offset) { index, groupID in
+            // FIX-V item 3: each row carries its entry (section and occurrence), never a position, so a quick second click cannot act on a row
+            // that has since moved.
+            let entries = workspace.sectionEntries(of: order)
+            ForEach(Array(entries.enumerated()), id: \.element) { index, entry in
+                let groupID = entry.groupID
                 HStack(spacing: 8) {
                     Text("\(index + 1)").font(.wfSmall).foregroundStyle(.secondary).frame(width: 24)
                     Text(workspace.groups.first { $0.id == groupID }?.name ?? "Missing section").frame(maxWidth: .infinity, alignment: .leading)
-                    Button { Task { await workspace.moveSection(from: index, to: index - 1, inSectionOrder: order.id) } } label: {
+                    Button { Task { await workspace.moveSection(entry, by: -1, inSectionOrder: order.id) } } label: {
                         Image(systemName: "arrow.up")
                     }.disabled(index == 0).help("Move earlier").accessibilityLabel("Move \(index + 1) earlier")
-                    Button { Task { await workspace.moveSection(from: index, to: index + 1, inSectionOrder: order.id) } } label: {
+                    Button { Task { await workspace.moveSection(entry, by: 1, inSectionOrder: order.id) } } label: {
                         Image(systemName: "arrow.down")
                     }.disabled(index == order.groupIDs.count - 1).help("Move later").accessibilityLabel("Move \(index + 1) later")
-                    Button { Task { await workspace.removeSection(at: index, fromSectionOrder: order.id) } } label: {
+                    Button { Task { await workspace.removeSection(entry, fromSectionOrder: order.id) } } label: {
                         Image(systemName: "minus.circle")
                     }.help("Remove from this order").accessibilityLabel("Remove \(index + 1)")
                 }
@@ -141,10 +145,11 @@ struct SectionOrderSheet: View {
                 .accessibilityElement(children: .contain)
             }
             .onMove { source, destination in
-                guard let from = source.first else { return }
+                guard let from = source.first, entries.indices.contains(from) else { return }
                 let to = destination > from ? destination - 1 : destination
                 guard to != from else { return }
-                Task { await workspace.moveSection(from: from, to: to, inSectionOrder: order.id) }
+                let target: SectionEntry? = destination < entries.count ? entries[destination] : nil
+                Task { await workspace.moveSection(entries[from], before: target, inSectionOrder: order.id) }
             }
         }
         .frame(minHeight: 150)
