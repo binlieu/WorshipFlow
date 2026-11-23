@@ -1,7 +1,8 @@
 // UI-005f: the signal map, drawn as docs/UI/mockups/03-screens-outputs.html draws it: the Mac node, a 2 pt wire, one tile per connector with
 // its role colour, a 2 pt wire and the destination node. What the design draws that the app cannot know is NOT drawn and its room is
-// kept: the Thunderbolt enclosure node and the SDI-to-HDMI converter nodes (the model has nowhere to store them; the wires cross their room).
-// The destination node is the label the operator typed in "Connected to", marked "typed by you". Nothing here is detected from the equipment.
+// kept: the Thunderbolt enclosure node and the SDI-to-HDMI converter nodes. Since UI-007f the operator can type a chain of such boxes (v15
+// `signalChains`); each is drawn between the connector and the destination, marked "typed by you". The destination node is the label the operator
+// typed in "Connected to" (the key connector has its own). Nothing here is detected from the equipment.
 import SwiftUI
 import Domain
 import OutputEngine
@@ -13,6 +14,7 @@ struct ScreensSignalMap: View {
     let selected: ScreenProfile?
     @State private var pending: SDIPreset?
 
+    private static let chainBoxesShown = 3      // UI-007f: the map row has room for three typed boxes; the settings list the rest
     private let wireLength: CGFloat = 28 + 150 + 28      // the design's wire, enclosure column, wire; and the same at the converter column
 
     var body: some View {
@@ -190,6 +192,15 @@ struct ScreensSignalMap: View {
             .wfRect("sc.map.conn.\(key)", radius: Radius.lg)
             .contentShape(Rectangle())
             .onTapGesture { if let id = tile.screenID { app.ui.selectedScreenID = id } }
+            // UI-007f: the boxes the operator typed between this connector and where it goes, each marked "typed by you"; none when none was typed.
+            ForEach(Array(tile.chain.prefix(Self.chainBoxesShown).enumerated()), id: \.offset) { index, node in
+                Rectangle().fill(Tok.borderStrong).frame(width: 14, height: 2)
+                ScreensChainBox(node: node, rectID: "sc.map.chain.\(key).\(index)").frame(width: 130)
+            }
+            if tile.chain.count > Self.chainBoxesShown {
+                Text("+\(tile.chain.count - Self.chainBoxesShown) more").font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(1).fixedSize()
+                    .padding(.leading, 6).help("The rest of the chain is listed under this screen's settings.")
+            }
             if let note = tile.connectedTo, !note.isEmpty {
                 wire.frame(width: wireLength)
                 ScreensTypedNode(text: note, rectID: "sc.map.dest.\(key)").frame(width: 170)
@@ -199,7 +210,7 @@ struct ScreensSignalMap: View {
         }
         .frame(height: 48)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(f.title), \(tile.faultText ?? f.sub)\(tile.isSimulated ? ", simulated" : "")\(tile.connectedTo.map { ", connected to \($0), typed by you" } ?? "")")
+        .accessibilityLabel("\(f.title), \(tile.faultText ?? f.sub)\(tile.isSimulated ? ", simulated" : "")\(tile.chain.isEmpty ? "" : ", through " + tile.chain.map { SignalChainEditing.title($0) }.joined(separator: ", then ") + ", typed by you")\(tile.connectedTo.map { ", connected to \($0), typed by you" } ?? "")")
     }
 
     // MARK: Footer and presets

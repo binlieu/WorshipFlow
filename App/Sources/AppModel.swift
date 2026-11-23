@@ -320,7 +320,7 @@ final class AppModel {
     /// boxes decide how much of a passage fits on a slide.
     private func scriptureTheme() -> Theme {
         let audience = profiles.first { $0.role == .audience && $0.isEnabled } ?? profiles.first { $0.role == .audience }
-        let look = audience.map { currentLook?.screenLook(for: $0.id, in: profiles) ?? .standard } ?? .standard
+        let look = audience.map { screenLook(for: $0.id) } ?? .standard      // UI-007f: the Look that screen uses
         return ThemeResolver.theme(for: .audience, lookThemeID: look.themeID, presentationThemeID: nil, themes: themes)
     }
 
@@ -521,7 +521,7 @@ final class AppModel {
     /// FIX-I item 5: which background a thumbnail of `slide` draws (its own, else the presentation's or the theme's) and whether it is missing.
     func thumbnailBackground(for slide: SlideContent) -> ThumbnailBackground {
         let profile = profiles.first { $0.role == .audience && $0.isEnabled } ?? profiles.first { $0.role == .audience }
-        let lookTheme = profile.flatMap { currentLook?.screenLook(for: $0.id, in: profiles).themeID }
+        let lookTheme = profile.flatMap { screenLook(for: $0.id).themeID }      // UI-007f: the Look that screen uses
         let theme = ThemeResolver.theme(for: .audience, lookThemeID: lookTheme, presentationThemeID: workspace?.openThemeID, themes: themes)
         let fromPresentation = lookTheme == nil && workspace?.openThemeID == theme.id
         return ThumbnailBackground.resolve(slide: slide, theme: theme, themeIsThePresentations: fromPresentation,
@@ -539,7 +539,7 @@ final class AppModel {
             ?? ScreenProfile(name: "Audience", role: .audience, destination: .window)
         return stillScene(PublishedScenes(state: state, clockText: nil, profiles: [profile], themes: themes, look: currentLook, props: props,
                                           presentationThemeID: workspace?.openThemeID,
-                                          media: LiveMedia.preview(slide: slide, at: MediaClock.now()))
+                                          media: LiveMedia.preview(slide: slide, at: MediaClock.now()), screenLooks: screenLookOverrides)
             .scene(forScreen: profile.id))          // UI-007c: a video object is its poster here (never played)
     }
 
@@ -590,7 +590,7 @@ final class AppModel {
         state.apply(.trigger(index: show.selectedIndex))
         let screens = profiles.filter { $0.isEnabled && $0.role != .stage }
         let snapshot = PublishedScenes(state: state, clockText: nil, profiles: screens, themes: themes, look: currentLook,
-                                       props: props, presentationThemeID: workspace?.openThemeID)
+                                       props: props, presentationThemeID: workspace?.openThemeID, screenLooks: screenLookOverrides)
         return screens.map { profile in
             // An SDI screen draws at its card mode's size; a window or display at its own (not known here): the 1080-line frame most are.
             var sizes: [(width: Int, height: Int)] = profile.destination.isSDI || profile.mirrors.contains(where: \.isSDI)
@@ -963,6 +963,8 @@ final class AppModel {
     // MARK: Looks and props (OUT-003)
 
     var currentLook: Look? { settings?.currentLook }
+    /// UI-007f: the Look of each screen that has one of its own (empty when none does); the composers take it next to `currentLook`.
+    var screenLookOverrides: [UUID: Look] { settings?.screenLookOverrides ?? [:] }
 
     func screenLook(for screenID: UUID) -> ScreenLook { settings?.screenLook(for: screenID) ?? .standard }
 
@@ -1419,7 +1421,7 @@ final class AppModel {
         let stageScenes = stage?.stageScenes(forScreens: stageIDs, state: show, notes: workspace?.liveNotes) ?? [:]
         return PublishedScenes(state: show, clockText: clockText, profiles: profiles, themes: themes,
                                look: currentLook, props: props, presentationThemeID: workspace?.shownThemeID,
-                               stageScenes: stageScenes, media: media?.layers)
+                               stageScenes: stageScenes, media: media?.layers, screenLooks: screenLookOverrides)
     }
 
     /// MEDIA-010: what the media registry plays: a live override from the bin, else the live slide's own background, and the
@@ -1681,7 +1683,7 @@ final class AppModel {
     /// chips and the media controller's screen chips are drawn from, so they only say what is true.
     var layerInputs: [ScreenLayerInput] {
         profiles.map { profile in
-            let screenLook = currentLook?.screenLook(for: profile.id, in: profiles) ?? .standard
+            let screenLook = self.screenLook(for: profile.id)      // UI-007f: the Look that screen uses
             let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID,
                                             presentationThemeID: workspace?.shownThemeID, themes: themes)
             var isMedia = false
@@ -1695,7 +1697,7 @@ final class AppModel {
     /// background layer, nil when no such screen has one. What the background clear icon says it would clear when nothing else is named.
     var themeBackgroundKindOnScreen: MediaKind? {
         for profile in profiles where profile.isEnabled && profile.role != .stage {
-            let screenLook = currentLook?.screenLook(for: profile.id, in: profiles) ?? .standard
+            let screenLook = self.screenLook(for: profile.id)      // UI-007f: the Look that screen uses
             guard screenLook.visibleLayers.contains(.background) else { continue }
             let theme = ThemeResolver.theme(for: profile.role, lookThemeID: screenLook.themeID, presentationThemeID: workspace?.shownThemeID, themes: themes)
             if let kind = ClearIconRule.themeBackgroundKind(theme.background) { return kind }
@@ -1784,7 +1786,7 @@ final class AppModel {
         reportedImages = r.flatMap(\.unavailableImagePaths)
         // R6: the file system is asked on a background thread, and only about images the screens draw now.
         imageMonitor.check(ImageUsage.pathsInUse(props: props, themes: themes, profiles: profiles, look: currentLook,
-                                                 presentationThemeID: workspace?.shownThemeID))
+                                                 presentationThemeID: workspace?.shownThemeID, screenLooks: screenLookOverrides))
         refreshUnavailableImages()
         if screensOn != coordinator.isActive { screensOn = coordinator.isActive }
         let summaries = coordinator.sdiDevices().map { d in

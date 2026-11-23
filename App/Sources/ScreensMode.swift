@@ -129,6 +129,11 @@ private struct ScreensList: View {
                 }
                 HStack(spacing: 0) {
                     Badge(text: profile.role.rawValue.uppercased(), style: .outline(profile.role.tokenColor), rectID: "\(id).role")
+                    // UI-007f: a screen the operator gave a Look of its own says which (nothing is drawn for a screen that follows the show's Look).
+                    if profile.screenLookID != nil, let summary = app.settings?.screenLookSummary(for: profile.id), summary.isOwn, let name = summary.lookName {
+                        Text("Look: \(name)").font(.wf(10, .semibold)).foregroundStyle(Tok.muted).lineLimit(1).padding(.leading, 6)
+                            .accessibilityLabel("Has its own Look, \(name)")
+                    }
                     Spacer(minLength: 0)
                 }
                 .padding(.top, 3)
@@ -145,8 +150,14 @@ private struct ScreensList: View {
         .contentShape(Rectangle())
         .onTapGesture { app.ui.selectedScreenID = profile.id }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(profile.name), \(profile.role.rawValue) screen, \(app.destinationName(profile.destination))\(simulated ? ", simulated" : "")")
+        .accessibilityLabel("\(profile.name), \(profile.role.rawValue) screen, \(app.destinationName(profile.destination))\(simulated ? ", simulated" : "")\(ownLookText(profile))")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// UI-007f: ", its own Look Worship" for a screen that has a Look of its own, for the row's spoken label.
+    private func ownLookText(_ profile: ScreenProfile) -> String {
+        guard let summary = app.settings?.screenLookSummary(for: profile.id), summary.isOwn, let name = summary.lookName else { return "" }
+        return ", its own Look \(name)"
     }
 
     /// `SDI 3 · 1080p59.94`, `SDI 1 + 2 · Fill + Key`; a display or window is named as the destination picker names it.
