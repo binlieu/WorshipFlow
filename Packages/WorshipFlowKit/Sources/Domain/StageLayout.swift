@@ -8,12 +8,16 @@ public struct StageElement: Sendable, Equatable, Codable, Hashable, Identifiable
         case message, notes
         /// UI-005h: the first countdown timer (else the first timer). Draws nothing when there are no timers.
         case firstCountdown
+        /// UI-007e: the name of the live slide's section ("Verse 1"); draws nothing when the slide is in no section or nothing is live.
+        case sectionName
+        /// UI-007e: the name of the next slide's section, only when it differs from the live slide's ("Chorus" coming up); with a "NEXT" caption.
+        case nextSectionName
 
         /// FIX-J: the text of this element changes every second (the clock and the timers).
         public var ticks: Bool {
             switch self {
             case .timeOfDay, .timer, .firstCountdown: return true
-            case .currentSlide, .nextSlide, .message, .notes: return false
+            case .currentSlide, .nextSlide, .message, .notes, .sectionName, .nextSectionName: return false
             }
         }
     }
@@ -308,6 +312,17 @@ public enum StageComposer {
                 } else { text = nil }
             case .message: text = visible(context.message)
             case .notes: text = visible(context.notes)
+            case .sectionName:
+                // UI-007e: stage screens only (this composer is the only one that draws it). Kept while the words are cleared, like the place.
+                text = visible(context.state.liveSectionName)
+            case .nextSectionName:
+                if let next = visible(context.state.nextSectionName), next != context.state.liveSectionName {
+                    if let label = element.label {
+                        layers.append(TextLayer(text: label.text, style: label.style, frame: label.relativeFrame.placed(in: element.frame), alignment: label.alignment,
+                                                verticalAlignment: label.verticalAlignment))
+                    }
+                    text = next
+                } else { text = nil }
             }
             if let text { layers.append(layer(text, style, element, ticks: element.kind.ticks, fitFloor: fitFloor)) }
         }
