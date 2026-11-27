@@ -466,3 +466,11 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Identify screens, then Open screens: labels go at once; rename a screen while they show.
 - [ ] Stage editor: hide the only Current slide: refused with the sentence; add Next slide, then it hides.
 - [ ] Import a program with equal marks / a picture with marks / a duplicate marker id: read the result's warnings.
+
+## OUT-002f
+
+- [ ] Go Live on a slide whose new content is a text box, a "Shrink to fit box" box and a shape, with and without previewing it first: no visible hitch at the change.
+- [ ] Blackout with a stage screen open, before and after changing a slide once: the BLACKOUT word and the black audience screen appear together.
+- [ ] Go Live on a previewed slide: it appears at once, not a frame later.
+- [ ] A slide image on a network volume, connection dropped, slides changed repeatedly: only the first change waits; after reconnecting, changes behave as before.
+- [ ] Drag a window output between displays of different refresh rates: the Screens readout shows no burst of dropped or late frames.
