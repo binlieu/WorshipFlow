@@ -23,7 +23,7 @@ const toolbar=(mode,extra='')=>`<div class="tb"><div class="lights"><i></i><i></
 <span class="pill c-aud"><span class="d"></span>AUD</span><span class="pill c-stg"><span class="d"></span>STG</span><span class="pill c-brd"><span class="d"></span>BRD</span></div>`;
 const transport=(state='live')=>`<div class="tp">
 <span class="badge fill" style="background:var(--live-fill);color:#fff;font-size:11px;padding:3px 8px">LIVE</span>
-<div class="col" style="min-width:0"><span style="font-weight:600;white-space:nowrap">My chains are gone, I’ve been set free</span><span class="sub c-muted" style="font-size:11px">Amazing Grace · Chorus · slide 3 of 9</span></div><div class="grow"></div>
+<div class="col" style="min-width:0"><span style="font-weight:600;white-space:nowrap">Through many dangers, toils and snares</span><span class="sub c-muted" style="font-size:11px">Amazing Grace · Chorus · slide 3 of 9</span></div><div class="grow"></div>
 <span class="btn lg">${I('prev')}Previous <span class="kbd">←</span></span>
 <span class="btn lg live">${I('play')}Go Live <span class="kbd">↩</span></span>
 <span class="btn lg">${I('next')}Next <span class="kbd">→</span></span>

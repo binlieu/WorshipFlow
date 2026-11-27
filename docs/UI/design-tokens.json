@@ -368,7 +368,7 @@
       "fontSize": "120px",
       "lineHeight": "144px",
       "fontWeight": 600,
-      "sample": "My chains are gone",
+      "sample": "Through many dangers",
       "usage": "Audience first-language lyrics, `lyric-ink`, centred inside the 90% title-safe area."
      },
      {
@@ -376,7 +376,7 @@
       "fontSize": "80px",
       "lineHeight": "104px",
       "fontWeight": 500,
-      "sample": "Xiềng xích đã tan",
+      "sample": "Qua bao hiểm nguy",
       "usage": "Audience second-language lyrics, `lyric-ink-2`."
      },
      {
@@ -384,7 +384,7 @@
       "fontSize": "68px",
       "lineHeight": "84px",
       "fontWeight": 600,
-      "sample": "My chains are gone, I’ve been set free",
+      "sample": "Through many dangers, toils and snares",
       "usage": "Broadcast lower third, first language. Reflow before shrinking; never below 56px."
      },
      {
@@ -392,7 +392,7 @@
       "fontSize": "50px",
       "lineHeight": "64px",
       "fontWeight": 500,
-      "sample": "Xiềng xích đã tan, tôi được tự do",
+      "sample": "Qua bao hiểm nguy, gian khó thử thách",
       "usage": "Broadcast lower third, second language."
      },
      {
@@ -400,7 +400,7 @@
       "fontSize": "128px",
       "lineHeight": "148px",
       "fontWeight": 700,
-      "sample": "My chains are gone",
+      "sample": "Through many dangers",
       "usage": "Stage current lyric. Auto-fit may reduce it to 96px, no further."
      },
      {
@@ -408,7 +408,7 @@
       "fontSize": "72px",
       "lineHeight": "88px",
       "fontWeight": 700,
-      "sample": "My God, my Savior",
+      "sample": "’Tis grace has brought me",
       "usage": "Stage next line in `stage-next`. Minimum 64px."
      },
      {

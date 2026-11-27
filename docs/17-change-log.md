@@ -232,3 +232,4 @@
 - FIX-Y: Identify screens labels come down when the screens open or the screen list changes
 - FIX-Y: the Current slide of a stage layout cannot be hidden when nothing else would show the show
 - FIX-Z: the capture sample, the looks probe and the tests that quoted it use public-domain verses of the same hymn and two other sample titles; six pixel digests and four text-width expectations re-recorded as data on unchanged rendering code
+- docs(UI): the mockup sources and design tokens use the same public-domain verses and sample titles as the code (KI-287); the rendered pictures in `docs/UI/screens` are unchanged and still show the old lines
