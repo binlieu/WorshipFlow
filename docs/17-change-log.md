@@ -233,3 +233,9 @@
 - FIX-Y: the Current slide of a stage layout cannot be hidden when nothing else would show the show
 - FIX-Z: the capture sample, the looks probe and the tests that quoted it use public-domain verses of the same hymn and two other sample titles; six pixel digests and four text-width expectations re-recorded as data on unchanged rendering code
 - docs(UI): the mockup sources and design tokens use the same public-domain verses and sample titles as the code (KI-287); the rendered pictures in `docs/UI/screens` are unchanged and still show the old lines
+
+## 2026-11-27 (night run)
+
+- Soak: idle 60 minutes of the installed build's code at 60 Hz: 2 dropped of 216,003, both at start-up (KI-007 stays open)
+- Build 210 packaged with FIX-W, FIX-X, FIX-Y and FIX-Z; not installed
+- OUT-002f brief written; the work waits on a branch for a before/after soak (KI-289)

@@ -1,6 +1,6 @@
 # Current status
 
-Updated: 2026-11-22 (night)
+Updated: 2026-11-27 (night run)
 
 ## Summary
 
@@ -9,6 +9,8 @@ On 2026-11-22 (night) `main` passes `./scripts/check.sh` with 3,476 package test
 REVIEW-5 (0 high, 6 medium, 23 low) and FIX-W (M1 to M5 and the migration-backup low fixed; M6 open until after the idle soak); FIX-X then fixed lows L3, L9 and L13 (Blackout keeps video objects playing; marker delete asks first); not yet in an installed build (build 197 has neither FIX-W nor FIX-X).
 
 2026-11-26: FIX-Y fixed the remaining lows outside the output path (REVIEW-5 L2, L4, L7, L8, L10, L11, L14, L15, L16; REVIEW-4 L1, L7; KI-280) and FIX-Z replaced the capture sample's copyrighted chorus with public-domain verses. Open from the reviews: M6 and L17 to L23 (output path), planned as OUT-002f in the night run AI/specs/NIGHT-RUN-2026-11-27.md. Build 197 is still the installed build and has none of FIX-W, FIX-X, FIX-Y or FIX-Z.
+
+2026-11-27 (night run): gate passes on `main` with 3,639 tests (second run; the first failed in one callback-wait test under load). An idle 60-minute soak of the installed build's code on the 60 Hz display presented 216,003 frames and dropped 2, both in one event 0.18 s after start; nothing after that (Simulated on one native display; not Hardware Verified). Build 210 with FIX-W to FIX-Z is packaged and not installed. OUT-002f (M6 and the output-path lows) waits on a branch for a before/after soak (KI-289).
 
 ## Verification by slice
 
