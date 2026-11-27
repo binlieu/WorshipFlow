@@ -162,6 +162,7 @@ open class MetalOutput: OutputTarget {
             MainActor.assumeIsolated {
                 guard let self, self.status == .running else { return }
                 if let problem = self.reconcileGeometry() { self.finish(reason: problem) }
+                else { self.followScreenRefreshRate() }     // OUT-002f: a window dragged to a display with another rate
             }
         })
         observers.append(nc.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -169,15 +170,24 @@ open class MetalOutput: OutputTarget {
                 guard let self, self.status == .running else { return }
                 if let problem = self.availabilityProblem() { self.finish(reason: problem) }
                 else if let problem = self.reconcileGeometry() { self.finish(reason: problem) }
-                else if let screen = self.window?.screen {
-                    self.refreshRate = Double(screen.maximumFramesPerSecond)
-                    if self.refreshRate > 0 {
-                        self.renderer?.setTargetInterval(1.0 / self.refreshRate)
-                        self.link?.preferredFrameRateRange = MetalOutput.frameRateRange(hz: self.refreshRate)
-                    }
-                }
+                else { self.followScreenRefreshRate() }
             }
         })
+    }
+
+    /// OUT-002f (REVIEW-5 L19): the rate of the display the window is on now. The target interval, the link's frame-rate range and `refreshRate` change
+    /// together, and only when the rate changed (a window move within one display does nothing).
+    private func followScreenRefreshRate() {
+        guard let screen = window?.screen, let hz = Self.newRefreshRate(screenMaximum: screen.maximumFramesPerSecond, current: refreshRate) else { return }
+        refreshRate = hz
+        renderer?.setTargetInterval(1.0 / hz)
+        link?.preferredFrameRateRange = MetalOutput.frameRateRange(hz: hz)
+    }
+
+    /// The rate to switch to for a display whose maximum is `screenMaximum` frames per second, or nil when the output already runs at it or the display gave none.
+    nonisolated static func newRefreshRate(screenMaximum: Int, current: Double) -> Double? {
+        let hz = Double(screenMaximum)
+        return hz > 0 && hz != current ? hz : nil
     }
 
     public func stop() { finish(reason: nil) }

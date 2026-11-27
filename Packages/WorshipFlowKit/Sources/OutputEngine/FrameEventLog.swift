@@ -233,10 +233,10 @@ public enum SoakDropReport {
     public static let ruleLines: [String] = [
         "classification rule (OUT-002d): each event is judged from the ticks that started from 3 frame periods before the previous presentation up to the event, checked in this order:",
         "  app slow: a tick's own work (getting the drawable + building the scene + encoding and committing) exceeded the frame period; the largest part is named",
-        "  app late: no tick was slow, but a tick started more than 1.5 periods after the previous tick started, or ran more than 1.5 periods after the display link's own timestamp (the callback arrived late or the render thread was busy)",
+        "  app late: no tick was slow, but a tick started more than 1.5 periods after the previous tick started, or ran more than 1.5 periods after the time the link meant it to run, taken as one frame period before the link's target timestamp, which is a future time (the callback arrived late or the render thread was busy; OUT-002f)",
         "  unknown: a tick in that window was skipped (two frames were still on the GPU), or no tick was recorded near the event, or the event is past the log cap",
         "  presented late: every tick near the event started on time with work within the period, yet a refresh was skipped (the system or the display presented late)",
-        "event detail lines: class and reason | nearest slide advance and video loop point in s (positive: the event is after it; loop points are item changes of the looping player, n/a without video) | ticks, oldest first: start ms relative to the event, cb = ms after the link's own timestamp, m = ms between the tick's end and the link's target time, d/b/e = drawable/build/encode ms, flags H gate holding, C scene changed, V new video frame, S skipped",
+        "event detail lines: class and reason | nearest slide advance and video loop point in s (positive: the event is after it; loop points are item changes of the looping player, n/a without video) | ticks, oldest first: start ms relative to the event, cb = ms after the link's target timestamp (negative: before it; on time is about minus one frame period), m = ms between the tick's end and the link's target time, d/b/e = drawable/build/encode ms, flags H gate holding, C scene changed, V new video frame, S skipped",
     ]
 
     static func classificationLines(log: FrameEventLog) -> [String] {
