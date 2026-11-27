@@ -8,8 +8,8 @@ import Persistence
 
 @MainActor
 @Suite struct WorkspaceModelTests {
-    let grace = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nMy chains are gone\nI've been set free"
-    let graceVi = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nXiềng xích đã tan\nTôi được tự do"
+    let grace = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nThrough many dangers\ntoils and snares"
+    let graceVi = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nQua bao hiểm nguy\ngian khó thử thách"
 
     func ready() async throws -> (WorkspaceModel, LibraryStore) {
         let store = try LibraryStore.inMemory()
@@ -83,7 +83,7 @@ import Persistence
         model.selectSlide(1)
         #expect(model.show.liveSlide == nil)                       // selecting is preview only
         await model.goLive()
-        #expect(model.show.liveSlide?.primary == "My chains are gone\nI've been set free")
+        #expect(model.show.liveSlide?.primary == "Through many dangers\ntoils and snares")
         await model.previous()
         #expect(model.show.liveIndex == 0)
         model.clear()
@@ -146,7 +146,7 @@ import Persistence
         let item = try #require(model.playlistItems.first)
         await model.setArrangement(arr.id, forPlaylistItem: item.id)
         await model.openPlaylistItem(item.id)
-        #expect(model.slides.map(\.content.primary).map { $0.prefix(2) } == ["My", "Am", "My"])
+        #expect(model.slides.map(\.content.primary).map { $0.prefix(2) } == ["Th", "Am", "Th"])
         #expect(model.arrangements.map(\.name) == ["Chorus first"])
     }
 

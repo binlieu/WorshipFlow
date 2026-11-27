@@ -9,8 +9,8 @@ import Persistence
 
 @MainActor
 @Suite struct FIXH_LanguageLabelTests {
-    static let en = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nMy chains are gone\nI have been set free"
-    static let vi = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nXiềng xích đã tan\nTôi được tự do"
+    static let en = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nThrough many dangers\ntoils and snares"
+    static let vi = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nQua bao hiểm nguy\ngian khó thử thách"
 
     private func openedSong(secondary: String?) async throws -> WorkspaceModel {
         let model = WorkspaceModel(store: try LibraryStore.inMemory())

@@ -16,7 +16,7 @@ import Domain
         e.autoFit = autoFit
         let layout = StageLayout(id: UUID(), name: "t", background: .black, elements: [e])
         var state = ShowState()
-        state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "My chains are gone and I have been set free by amazing grace")])))
+        state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "Through many dangers toils and snares and grace will lead me home")])))
         state.apply(.trigger(index: 0))
         return StageComposer.scene(layout: layout, context: StageContext(state: state, now: 0, timeOfDayText: "", timers: [], message: nil, notes: nil))
     }

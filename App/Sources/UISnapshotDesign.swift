@@ -18,14 +18,14 @@ extension AppModel {
     Was blind, but now I see
 
     Chorus:
-    My chains are gone
-    I've been set free
-    My God, my Savior
-    has ransomed me
-    And like a flood
-    His mercy reigns
-    Unending love
-    Amazing grace
+    Through many dangers
+    toils and snares
+    'Tis grace has brought me
+    safe thus far
+    The Lord has promised
+    good to me
+    And grace will lead
+    me home
 
     Verse 2:
     'Twas grace that taught my heart to fear
@@ -44,14 +44,14 @@ extension AppModel {
     Từng mù lòa, nay tôi thấy
 
     Chorus:
-    Xiềng xích đã tan
-    Tôi được tự do
-    Chúa tôi, Cứu Chúa tôi
-    đã chuộc tôi
-    Như dòng nước lũ
-    ơn thương xót Ngài tuôn tràn
-    Tình yêu vô tận
-    Ân điển lạ lùng
+    Qua bao hiểm nguy
+    gian khó thử thách
+    Ân điển đưa tôi
+    bình an đến nay
+    Chúa đã hứa ban
+    phước lành cho tôi
+    Và ân điển sẽ
+    dẫn tôi về nhà
 
     Verse 2:
     Chính ân điển dạy lòng tôi kính sợ
@@ -108,7 +108,7 @@ extension AppModel {
     func runDesignScenario(note: @MainActor (String) -> Void, capture: @MainActor (String) async -> Void, window: NSWindow?) async {
         guard let workspace else { note("design: no workspace"); return }
         // The rest of the design's sample content: songs, two more libraries, the service order.
-        let songs = ["How Great Thou Art", "10,000 Reasons", "Great Is Thy Faithfulness"]
+        let songs = ["It Is Well", "Holy, Holy, Holy", "Great Is Thy Faithfulness"]
         var ids: [String: UUID] = [:]
         for title in songs {
             if let p = await workspace.importLyrics(title: title, primaryText: "Line one of \(title)\nLine two of \(title)", secondaryText: nil, maxLines: 2) { ids[title] = p.id }
@@ -125,9 +125,9 @@ extension AppModel {
         await workspace.addCountdown(CountdownSpec(label: "Countdown", mode: .duration(seconds: 300)))
         if !pictures.isEmpty { await workspace.addAnnouncementsItem(AnnouncementsSpec(label: "Announcements loop", items: Array(pictures))) }
         await workspace.addHeader("Worship")
-        if let id = ids["How Great Thou Art"] { await workspace.addToPlaylist(id) }
+        if let id = ids["It Is Well"] { await workspace.addToPlaylist(id) }
         if let amazing = workspace.presentations.first(where: { $0.title == "Amazing Grace" }) { await workspace.addToPlaylist(amazing.id) }
-        if let id = ids["10,000 Reasons"] { await workspace.addToPlaylist(id) }
+        if let id = ids["Holy, Holy, Holy"] { await workspace.addToPlaylist(id) }
         await workspace.addHeader("Message")
         await workspace.addScriptureToPlaylist(ScriptureItemSpec(label: "Ephesians 2:1–10", ranges: [.init(book: "EPH", startChapter: 2, startVerse: 1, endChapter: 2, endVerse: 10)], primaryCode: "kjv"))
         if let sermon { await workspace.addToPlaylist(sermon.id) }

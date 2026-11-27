@@ -45,10 +45,10 @@ extension AppModel {
             Was blind, but now I see
 
             Chorus:
-            My chains are gone, I've been set free
-            My God, my Savior has ransomed me
-            And like a flood His mercy reigns
-            Unending love, amazing grace
+            Through many dangers, toils and snares
+            'Tis grace has brought me safe thus far
+            The Lord has promised good to me
+            And grace will lead me home
 
             Ending:
             Amazing grace, amazing grace
@@ -61,10 +61,10 @@ extension AppModel {
             Từng mù lòa, nay tôi thấy
 
             Chorus:
-            Xiềng xích đã tan, tôi được tự do
-            Chúa tôi, Cứu Chúa tôi đã chuộc tôi
-            Như dòng nước lũ ơn thương xót
-            Tình yêu vô tận, ân điển lạ lùng
+            Qua bao hiểm nguy, gian khó thử thách
+            Ân điển đưa tôi bình an đến nay
+            Chúa đã hứa ban phước lành cho tôi
+            Và ân điển sẽ dẫn tôi về nhà
 
             Ending:
             Ân điển lạ lùng, ân điển lạ lùng

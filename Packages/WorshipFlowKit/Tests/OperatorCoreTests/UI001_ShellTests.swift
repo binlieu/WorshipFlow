@@ -179,7 +179,7 @@ import Persistence
     }
 
     @Test func theLiveLineJoinsTheLinesOfTheFirstLanguage() {
-        #expect(LiveSummary.line(for: SlideContent(primary: "My chains are gone\nI've been set free")) == "My chains are gone I've been set free")
+        #expect(LiveSummary.line(for: SlideContent(primary: "Through many dangers\ntoils and snares")) == "Through many dangers toils and snares")
         #expect(LiveSummary.line(for: SlideContent(primary: "")) == "(blank slide)")
     }
 
@@ -219,7 +219,7 @@ import Persistence
     }
 
     @Test func filterIgnoresCaseAndAccentsAndKeepsOrder() {
-        let titles = ["10,000 Reasons", "Amazing Grace", "Ân điển lạ lùng", "Be Thou My Vision"]
+        let titles = ["Holy, Holy, Holy", "Amazing Grace", "Ân điển lạ lùng", "Be Thou My Vision"]
         #expect(LibraryFilter.apply("", to: titles, title: { $0 }) == titles)
         #expect(LibraryFilter.apply("GRACE", to: titles, title: { $0 }) == ["Amazing Grace"])
         #expect(LibraryFilter.apply("an dien", to: titles, title: { $0 }) == ["Ân điển lạ lùng"])

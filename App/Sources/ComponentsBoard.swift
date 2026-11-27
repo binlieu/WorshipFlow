@@ -72,9 +72,9 @@ struct ComponentsBoard: View {
                                     ZStack {
                                         if n == 3 { CheckerboardView() } else { LinearGradient(colors: [Color(red: 0.18, green: 0.49, blue: 0.42), Color(red: 0.02, green: 0.06, blue: 0.11)], startPoint: .bottomTrailing, endPoint: .topLeading) }
                                         VStack(spacing: 4) {
-                                            Text("My chains are gone").font(.wf(13, .semibold)).foregroundStyle(.white)
+                                            Text("Through many dangers").font(.wf(13, .semibold)).foregroundStyle(.white)
                                                 .padding(.horizontal, 6).background(n == 3 ? Color(red: 0.03, green: 0.075, blue: 0.13).opacity(0.86) : .clear)
-                                            Text("Xiềng xích đã tan").font(.wf(10.5, .medium)).foregroundStyle(Color(red: 1, green: 0.82, blue: 0.48))
+                                            Text("Qua bao hiểm nguy").font(.wf(10.5, .medium)).foregroundStyle(Color(red: 1, green: 0.82, blue: 0.48))
                                                 .padding(.horizontal, 6).background(n == 3 ? Color(red: 0.03, green: 0.075, blue: 0.13).opacity(0.86) : .clear)
                                         }
                                     }

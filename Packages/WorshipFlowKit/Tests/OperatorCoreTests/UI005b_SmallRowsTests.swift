@@ -48,8 +48,8 @@ import Persistence
         let store = try LibraryStore.inMemory()
         let model = WorkspaceModel(store: store)
         await model.load()
-        let en = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nMy chains are gone\nI have been set free"
-        let vi = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nXiềng xích đã tan\nTôi được tự do"
+        let en = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nThrough many dangers\ntoils and snares"
+        let vi = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nQua bao hiểm nguy\ngian khó thử thách"
         let song = try #require(await model.importLyrics(title: "Grace", primaryText: en, secondaryText: vi, maxLines: 2))
         await model.openPresentation(song.id)
         #expect(model.quickEditLanguageNames.first == "English")
