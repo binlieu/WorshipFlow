@@ -498,10 +498,11 @@ struct DestinationEditor: View {
     }
 }
 
-/// OUT-003: choose, create, rename and delete Looks. A Look applies to every screen at once.
+/// OUT-003: choose, create, rename and delete Looks. A Look applies to every screen that follows the show's Look; a screen with its own keeps it (FIX-Y).
 struct LookPanel: View {
     @Bindable var model: AppModel
     @State private var name = ""
+    @State private var deletePrompt: (id: UUID, prompt: LookNotices.Prompt)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -511,15 +512,25 @@ struct LookPanel: View {
                     ForEach(model.looks) { Text($0.name).tag($0.id) }
                 }.frame(maxWidth: 260)
                 Button("New") { model.addLook() }.help("Copy the current Look into a new one")
-                Button("Delete") { if let id = model.selectedLookID { model.deleteLook(id) } }
-                    .disabled(model.looks.count < 2).help("Delete the selected Look")
+                Button("Delete") {
+                    if let look = model.currentLook {
+                        deletePrompt = (look.id, LookNotices.deletePrompt(look: look, isShowLook: look.id == model.selectedLookID, profiles: model.profiles))
+                    }
+                }
+                .disabled(model.looks.count < 2).help("Delete the selected Look. It asks first.")
             }
             TextField("Rename Look", text: Binding(get: { model.currentLook?.name ?? "" },
                                                     set: { if let id = model.selectedLookID { model.renameLook(id, to: $0) } }))
                 .textFieldStyle(.roundedBorder).frame(maxWidth: 260)
-            Text("A Look sets the theme and visible layers of each screen below. Switching Look changes every screen at once.")
+            Text(LookNotices.panelText)
                 .font(.wfSmall).foregroundStyle(.secondary)
         }
+        // FIX-Y (REVIEW-5 L15): deleting a Look sends every screen that chose it back to the show's Look at once, so it asks first. As FIX-V: Cancel is the
+        // default (Return), the deleting button has no destructive role, so it is not drawn red (red is only for on air).
+        .alert(deletePrompt?.prompt.title ?? "", isPresented: Binding(get: { deletePrompt != nil }, set: { if !$0 { deletePrompt = nil } })) {
+            Button("Cancel", role: .cancel) {}.keyboardShortcut(.defaultAction)
+            Button(deletePrompt?.prompt.confirmTitle ?? "Delete Look") { if let id = deletePrompt?.id { model.deleteLook(id) } }
+        } message: { Text(deletePrompt?.prompt.message ?? "") }
     }
 }
 

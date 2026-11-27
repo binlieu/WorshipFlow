@@ -1530,6 +1530,7 @@ final class AppModel {
     }
 
     private func openScreensNow() {
+        ScreensIdentifier.shared.dismiss()          // FIX-Y (REVIEW-4 L1): the Identify labels would cover what the outputs show
         startVideoIfNeeded()
         coordinator.start()
         screensOn = true

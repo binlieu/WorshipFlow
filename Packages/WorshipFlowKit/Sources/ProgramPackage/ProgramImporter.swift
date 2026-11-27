@@ -135,6 +135,12 @@ public enum ProgramImporter {
 }
 
 enum ProgramImportWriter {
+    /// A name for a warning: no control characters, at most 80 characters.
+    static func label(_ name: String) -> String {
+        let cleaned = String(name.unicodeScalars.filter { $0.value >= 0x20 && $0.value != 0x7F }.map(Character.init))
+        return cleaned.count > 80 ? String(cleaned.prefix(80)) + "…" : cleaned
+    }
+
     static func write(_ plan: ImportPlan, db: Database, tools: ProgramWriteTools) throws -> ProgramImportResult {
         var result = ProgramImportResult()
         result.warnings = plan.warnings
@@ -184,39 +190,80 @@ enum ProgramImportWriter {
         // A package asset whose file is already in the bin under another id: slides that name the package's id are pointed at
         // the existing entry.
         var assetIDMap: [UUID: UUID] = [:]
+        /// FIX-Y (REVIEW-5 L7): the markers written, with the id each was given (a duplicate id is kept under a new one), for the action rewrite below.
+        var writtenMarkers: [(assetID: UUID, id: UUID, marker: ProgramDocument.MarkerEntry)] = []
+        var usedMarkerIDs: Set<UUID> = []
         for asset in plan.assetsToInsert {
             let path = plan.localPath[asset.file] ?? asset.file
+            let label = Self.label(asset.name)
             if let existing = try String.fetchOne(db, sql: "SELECT id FROM mediaAsset WHERE path = ?", arguments: [path]) {
                 if let id = UUID(uuidString: existing) { assetIDMap[asset.id] = id }
-                result.warnings.append("The media item \(asset.name) uses a file that is already in the media bin under another entry; it was not added again.")
+                var warning = "The media item \(label) uses a file that is already in the media bin under another entry; it was not added again."
+                // The entry that is there keeps its own marks and markers; the package's are not merged in, and the result says so.
+                var parts: [String] = []
+                if asset.markIn != nil || asset.markOut != nil { parts.append("marks") }
+                if !asset.markers.isEmpty { parts.append("\(asset.markers.count) marker\(asset.markers.count == 1 ? "" : "s")") }
+                if !parts.isEmpty { warning += " Its \(parts.joined(separator: " and ")) from the package were not added: the entry in the bin keeps its own." }
+                result.warnings.append(warning)
                 continue
             }
             let name = asset.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Only marks and markers the store and the model could have written are kept: none on a picture or a sound, no equal in and out.
+            var markIn = asset.markIn, markOut = asset.markOut
+            var markers = asset.markers
+            let hadMarks = markIn != nil || markOut != nil
+            switch asset.kind {
+            case .image, .audio:
+                if hadMarks || !markers.isEmpty {
+                    let what = asset.kind == .image ? "a picture" : "a sound"
+                    var parts: [String] = []
+                    if hadMarks { parts.append("its marks") }
+                    if !markers.isEmpty { parts.append("\(markers.count) marker\(markers.count == 1 ? "" : "s")") }
+                    result.warnings.append("The media item \(label) is \(what), so \(parts.joined(separator: " and ")) from the package were not imported.")
+                }
+                markIn = nil; markOut = nil; markers = []
+            case .video:
+                if let i = markIn, let o = markOut, i >= o {
+                    markIn = nil; markOut = nil
+                    result.warnings.append("The media item \(label) had a start mark and an end mark at the same time, so its marks were not imported.")
+                }
+            }
             try db.execute(sql: """
                 INSERT INTO mediaAsset (id, name, kind, path, bookmark, duration, pixelWidth, pixelHeight, addedAt, markIn, markOut)
                 VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
                 """, arguments: [asset.id.uuidString, name.isEmpty ? "Media" : name, asset.kind.rawValue, path, asset.duration,
-                                 asset.pixelWidth, asset.pixelHeight, now, asset.markIn, asset.markOut])
+                                 asset.pixelWidth, asset.pixelHeight, now, markIn, markOut])
             // SYS-015: the clip's markers come with it (their actions may name other clips; those are renamed below, once every clip is in).
-            for (order, marker) in asset.markers.enumerated() {
+            var renewed = 0
+            for (order, marker) in markers.enumerated() {
+                // A marker whose id is already used (by another marker of the package or of the library) is kept under a new id, not dropped.
+                var markerID = marker.id
+                let inLibrary = try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM mediaMarker WHERE id = ?)", arguments: [markerID.uuidString]) ?? false
+                if usedMarkerIDs.contains(markerID) || inLibrary {
+                    markerID = UUID()
+                    renewed += 1
+                }
+                usedMarkerIDs.insert(markerID)
                 // A Look imported under a new id is selected by its new id, as in a slide's actions (FIX-W, REVIEW-5 M3).
                 let actions = plan.lookMap.isEmpty ? marker.actions : marker.actions.replacingUUIDs(plan.lookMap)
                 try db.execute(sql: """
-                    INSERT OR IGNORE INTO mediaMarker (id, assetID, time, name, actions, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, arguments: [marker.id.uuidString, asset.id.uuidString, marker.time, marker.name, actions.text, order, now, now])
+                    INSERT INTO mediaMarker (id, assetID, time, name, actions, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, arguments: [markerID.uuidString, asset.id.uuidString, marker.time, marker.name, actions.text, order, now, now])
+                writtenMarkers.append((asset.id, markerID, marker))
+            }
+            if renewed > 0 {
+                result.warnings.append("The media item \(label) had \(renewed) marker\(renewed == 1 ? "" : "s") whose id was already in use; \(renewed == 1 ? "it was" : "they were") kept under a new id.")
             }
             result.mediaAssetsAdded += 1
         }
 
         // SYS-015: a marker's actions that play a clip the library already had under another id name that one.
         if !assetIDMap.isEmpty {
-            for asset in plan.assetsToInsert where assetIDMap[asset.id] == nil {
-                for marker in asset.markers {
-                    let looked = plan.lookMap.isEmpty ? marker.actions : marker.actions.replacingUUIDs(plan.lookMap)
-                    let mapped = looked.replacingUUIDs(assetIDMap)
-                    if mapped != looked {
-                        try db.execute(sql: "UPDATE mediaMarker SET actions = ? WHERE id = ? AND assetID = ?", arguments: [mapped.text, marker.id.uuidString, asset.id.uuidString])
-                    }
+            for written in writtenMarkers {
+                let looked = plan.lookMap.isEmpty ? written.marker.actions : written.marker.actions.replacingUUIDs(plan.lookMap)
+                let mapped = looked.replacingUUIDs(assetIDMap)
+                if mapped != looked {
+                    try db.execute(sql: "UPDATE mediaMarker SET actions = ? WHERE id = ? AND assetID = ?", arguments: [mapped.text, written.id.uuidString, written.assetID.uuidString])
                 }
             }
         }

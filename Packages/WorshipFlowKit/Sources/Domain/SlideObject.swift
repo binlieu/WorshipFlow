@@ -12,9 +12,9 @@ public struct TextObject: Sendable, Equatable, Codable, Hashable {
     public var style: TextStyle
     public var alignment: TextAlignment
     public var verticalAlignment: VerticalAlignment
-    /// SYS-015: stored only; drawing it is the feature slice's work. Absent in objects stored before: `.none`.
+    /// SYS-015: how the words are fitted to the box (UI-007c draws it: "Shrink to fit box"). Absent in objects stored before: `.none`.
     public var fit: TextFit
-    /// SYS-015: stored only. A colour behind the words inside the box; nil (and absent in objects stored before) is none.
+    /// SYS-015: a colour behind the words inside the box, drawn as a box before them (UI-007c, `drawableLayers`); nil (and absent in objects stored before) is none.
     public var backgroundFill: ColorRGBA?
 
     public init(text: String, style: TextStyle, alignment: TextAlignment = .center,
@@ -84,7 +84,7 @@ public struct ImageObject: Sendable, Equatable, Codable, Hashable {
     }
 }
 
-/// SYS-015: a video that plays inside a slide object's frame. Stored only in this slice: the compositor draws nothing for it yet. `mediaID` is a bin item.
+/// SYS-015: a video that plays inside a slide object's frame. UI-007c plays it (looped and muted unless the object says otherwise); the Edit canvas and thumbnails draw its poster. `mediaID` is a bin item.
 public struct VideoObject: Sendable, Equatable, Codable, Hashable {
     public var mediaID: UUID
     public var loops: Bool
@@ -134,7 +134,7 @@ public struct SlideObject: Sendable, Equatable, Codable, Hashable, Identifiable 
     }
     /// SYS-015: a hidden object stays on the slide and in the editor and is not drawn on any screen.
     public var isHidden: Bool
-    /// SYS-015: stored only; the editor honouring it (no move, no edit) is the feature slice's work. A locked object is still drawn.
+    /// SYS-015: a locked object is still drawn; the editor refuses to move, resize, nudge, align, edit or delete it (UI-007c).
     public var isLocked: Bool
 
     public init(id: UUID = UUID(), frame: NormalizedRect, opacity: Double = 1, name: String? = nil, isHidden: Bool = false,

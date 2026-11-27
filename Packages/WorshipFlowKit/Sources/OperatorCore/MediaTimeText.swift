@@ -29,3 +29,23 @@ public enum MediaTimeText {
         return MediaClock.tenths(tenths + 0.001)       // the tenth is shown, not floored from a float that is a hair under it
     }
 }
+
+/// FIX-Y (MEDIA; REVIEW-5 L4): what leaving (or pressing Return in) a mark or marker time field does. The field shows a time to a tenth of a second, so a
+/// stored 12.37 reads "00:12.4": leaving the field untouched must not write 12.4. A time is written only when the operator typed something that is not
+/// what the field showed for the stored time.
+public enum TimeFieldEdit: Equatable, Sendable {
+    case unchanged
+    case set(Double)
+    case clear
+    /// The text is no time: the field goes back to the stored value.
+    case invalid
+
+    public static func edit(text: String, stored: Double?, emptyClears: Bool) -> TimeFieldEdit {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return emptyClears ? (stored == nil ? .unchanged : .clear) : .invalid }
+        guard let value = MediaTimeText.parse(trimmed) else { return .invalid }
+        if let stored, abs(value - stored) <= 0.0005 { return .unchanged }      
+        if let stored, trimmed == MediaTimeText.format(stored) { return .unchanged }
+        return .set(value)
+    }
+}

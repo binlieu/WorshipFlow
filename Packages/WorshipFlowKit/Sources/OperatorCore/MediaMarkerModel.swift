@@ -111,6 +111,33 @@ public final class MediaMarkerModel {
     @ObservationIgnored private var onFire: @MainActor (MarkerFiring) -> Void
     @ObservationIgnored private var feed = MarkerFeed()
     @ObservationIgnored private var loading: Set<UUID> = []
+    /// Tests: how many marker-list reads were started, and how many times an actions text was decoded.
+    @ObservationIgnored public private(set) var readsStarted = 0
+    @ObservationIgnored public private(set) var decodes = 0
+    /// FIX-Y (REVIEW-5 L8): each marker's actions text is decoded once, when its clip's list is read, not on every observer tick or view body. Nil is
+    /// "the text cannot be read". `playbackByAsset` is the same list in the shape the feed takes.
+    @ObservationIgnored private var decodedActions: [UUID: [CueAction]?] = [:]
+    @ObservationIgnored private var playbackByAsset: [UUID: [PlaybackMarker]] = [:]
+    /// FIX-Y (REVIEW-5 L10): the newest read asked for, per clip; a read that is no longer the newest does not apply its (older) result.
+    @ObservationIgnored private var readTicket: [UUID: Int] = [:]
+    @ObservationIgnored private var nextTicket = 0
+
+    /// Replaces a clip's list (nil forgets it) and decodes its markers' actions once.
+    private func setList(_ list: [MediaMarker]?, for assetID: UUID) {
+        for old in markersByAsset[assetID] ?? [] { decodedActions[old.id] = nil }
+        markersByAsset[assetID] = list
+        playbackByAsset[assetID] = nil
+        guard let list else { return }
+        var playback: [PlaybackMarker] = []
+        playback.reserveCapacity(list.count)
+        for marker in list {
+            decodes += 1
+            let decoded = MarkerActions.decode(marker.actions)
+            decodedActions[marker.id] = .some(decoded)
+            playback.append(PlaybackMarker(id: marker.id, time: marker.time, actions: decoded ?? []))
+        }
+        playbackByAsset[assetID] = playback
+    }
 
     /// - Parameters:
     ///   - sample: how a live layer is looked at. Nil asks the media model (its transports and its clock); a test injects the position.
@@ -136,31 +163,41 @@ public final class MediaMarkerModel {
 
     /// What the marker runs; empty when it runs nothing or its stored text cannot be read.
     public func actions(of markerID: UUID) -> [CueAction] {
-        guard let marker = markersByAsset.values.lazy.flatMap({ $0 }).first(where: { $0.id == markerID }) else { return [] }
-        return MarkerActions.decode(marker.actions) ?? []
+        decodedActions[markerID].flatMap { $0 } ?? []
     }
 
     /// True when the stored actions text of the marker cannot be read (written by a newer version, or damaged): it runs nothing.
     public func actionsAreUnreadable(_ markerID: UUID) -> Bool {
-        guard let marker = markersByAsset.values.lazy.flatMap({ $0 }).first(where: { $0.id == markerID }) else { return false }
-        return MarkerActions.decode(marker.actions) == nil
+        guard let entry = decodedActions[markerID] else { return false }
+        return entry == nil
     }
 
     public func load(_ assetID: UUID) async {
-        guard !loading.contains(assetID) else { return }
+        readsStarted += 1
+        nextTicket += 1
+        let ticket = nextTicket
+        readTicket[assetID] = ticket
         loading.insert(assetID)
-        defer { loading.remove(assetID) }
-        do { markersByAsset[assetID] = try await store.mediaMarkers(forAsset: assetID) }
-        catch StoreError.notFound { markersByAsset[assetID] = nil }
-        catch { media.report(WorkspaceModel.message(for: error, doing: "read the markers of the clip")) }
+        let result: Result<[MediaMarker]?, Error>
+        do { result = .success(try await store.mediaMarkers(forAsset: assetID)) }
+        catch StoreError.notFound { result = .success(nil) }
+        catch { result = .failure(error) }
+        // A newer read of this clip was asked for while this one was out: its answer is the one to keep.
+        guard readTicket[assetID] == ticket else { return }
+        readTicket[assetID] = nil
+        loading.remove(assetID)
+        switch result {
+        case .success(let list): setList(list, for: assetID)
+        case .failure(let error): media.report(WorkspaceModel.message(for: error, doing: "read the markers of the clip"))
+        }
         changed(assetID)
     }
 
     /// Reads the markers of every video in `assets` that has none loaded, and forgets those of clips that left the bin.
     public func syncAssets(_ assets: [MediaAsset]) async {
         let ids = Set(assets.map(\.id))
-        for gone in markersByAsset.keys where !ids.contains(gone) { markersByAsset[gone] = nil }
-        for asset in assets where asset.kind == .video && markersByAsset[asset.id] == nil { await load(asset.id) }
+        for gone in Array(markersByAsset.keys) where !ids.contains(gone) { setList(nil, for: gone) }
+        for asset in assets where asset.kind == .video && markersByAsset[asset.id] == nil && !loading.contains(asset.id) { await load(asset.id) }
         refresh()
     }
 
@@ -223,7 +260,7 @@ public final class MediaMarkerModel {
     }
 
     private func playbackMarkers(_ assetID: UUID) -> [PlaybackMarker] {
-        markers(for: assetID).map { PlaybackMarker(id: $0.id, time: $0.time, actions: MarkerActions.decode($0.actions) ?? []) }
+        playbackByAsset[assetID] ?? []
     }
 
     private func lookAt(_ slot: MediaLayerSlot) -> PlaybackSample? {

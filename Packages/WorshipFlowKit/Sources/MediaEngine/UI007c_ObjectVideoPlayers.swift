@@ -16,8 +16,13 @@ public struct ObjectVideoRequest: Sendable, Equatable, Hashable {
     public var loops: Bool
     public var muted: Bool
     public var duration: Double?
+    /// FIX-Y (REVIEW-5 L2): the bin clip's in and out marks, as the layers use them.
+    public var markIn: Double?
+    public var markOut: Double?
 
-    public init(assetID: UUID, url: URL, loops: Bool = true, muted: Bool = true, duration: Double? = nil) {
+    public init(assetID: UUID, url: URL, loops: Bool = true, muted: Bool = true, duration: Double? = nil, markIn: Double? = nil, markOut: Double? = nil) {
+        self.markIn = markIn
+        self.markOut = markOut
         self.assetID = assetID
         self.url = url
         self.loops = loops
@@ -75,7 +80,8 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
         var failed: Set<UUID> = []
         for (id, request) in wanted where kept[id] == nil {
             do {
-                let source = try VideoPlayerSource(url: request.url, loops: request.loops, duration: request.duration, muted: request.muted)
+                let source = try VideoPlayerSource(url: request.url, loops: request.loops, duration: request.duration, muted: request.muted,
+                                                markIn: request.markIn, markOut: request.markOut)
                 source.audioOutputDeviceUniqueID = device
                 source.setOnHealthChange { [weak self] _ in self?.notify(id) }
                 source.play()
@@ -96,7 +102,16 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
     /// "close everything" and so restart every clip from its first frame when Blackout lifts. Under Blackout the open clips are kept as they are (they go on
     /// playing, as the slide's own background does) and silenced; nothing is opened, closed or waited for. When Blackout is off the clips are heard as
     /// their requests say and the set is made to match `requests` as before. Stop, Clear and a slide leaving Live are not Blackout, so they still close.
-    public func apply(_ requests: [ObjectVideoRequest], blackedOut: Bool) {
+    public func apply(_ requests: [ObjectVideoRequest], blackedOut: Bool) { apply(requests, hidden: blackedOut) }
+
+    /// FIX-Y (KI-280): when the objects are hidden but their clips are kept. The rule is the slide's own background's: it keeps playing under Blackout,
+    /// Clear (words) and Clear all, so the objects' clips do too (silenced, nothing opened or waited for). Clear background hides the background only: the
+    /// slide layer, objects included, stays on air, so the clips are not held but wanted as usual. Stop has no live deck, so nothing is held and everything
+    /// closes; so does a slide leaving Live.
+    public static func holds(_ state: ShowState) -> Bool { state.isBlackedOut || state.isCleared }
+
+    /// `apply` for a publish whose scene may have no objects only because they are hidden (see `holds`).
+    public func apply(_ requests: [ObjectVideoRequest], hidden blackedOut: Bool) {
         if blackedOut {
             lock.lock()
             let sources = open.values.map(\.source)
@@ -169,6 +184,10 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
 
     /// Tests: which player is open for the asset, to tell a kept player from a reopened one.
     func sourceIdentity(for assetID: UUID) -> ObjectIdentifier? { lock.lock(); defer { lock.unlock() }; return open[assetID].map { ObjectIdentifier($0.source) } }
+    func markRange(for assetID: UUID) -> (markIn: Double?, markOut: Double?)? {
+        lock.lock(); let s = open[assetID]?.source; lock.unlock()
+        return s.map { ($0.currentTransport.markIn, $0.currentTransport.markOut) }
+    }
     func isMuted(_ assetID: UUID) -> Bool? { lock.lock(); let s = open[assetID]?.source; lock.unlock(); return s?.isMuted }
 
     private func notify(_ id: UUID) {

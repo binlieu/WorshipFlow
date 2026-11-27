@@ -148,14 +148,16 @@ struct ScreensNotes: View {
     }
 }
 
-/// A text field that keeps what is typed in a draft and commits it when the operator presses Return or leaves the field, so a note is not written
-/// (and the outputs are not re-planned) on every keystroke.
+/// A text field that keeps what is typed in a draft and commits it when the operator presses Return, leaves the field, or (FIX-Y, REVIEW-5 L14) the
+/// field goes away with focus still in it (another screen was clicked in the list): the commit closure belongs to the screen the field was made for, so
+/// the note is written to that screen. Nothing is written on every keystroke, so the outputs are not re-planned while typing.
 private struct CommitField: View {
     let prompt: String
     let value: String
     let label: String
     let commit: (String) -> Void
     @State private var draft = ""
+    @State private var written: String?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -163,8 +165,15 @@ private struct CommitField: View {
             .focused($focused)
             .accessibilityLabel(label)
             .onAppear { draft = value }
-            .onChange(of: value) { _, new in if !focused { draft = new } }
-            .onSubmit { commit(draft) }
-            .onChange(of: focused) { _, now in if !now, draft != value { commit(draft) } }
+            .onChange(of: value) { _, new in written = nil; if !focused { draft = new } }
+            .onSubmit { flush() }
+            .onChange(of: focused) { _, now in if !now { flush() } }
+            .onDisappear { flush() }
+    }
+
+    private func flush() {
+        guard let text = NoteDraft.pending(draft: draft, value: value, written: written) else { return }
+        written = text
+        commit(text)
     }
 }

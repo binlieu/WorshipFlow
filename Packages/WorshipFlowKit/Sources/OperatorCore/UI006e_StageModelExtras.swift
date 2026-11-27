@@ -64,7 +64,12 @@ extension StageModel {
     // MARK: Hide, Auto-fit, second-language colour
 
     /// Hides an element on the stage screens without removing it (the eye in the element list). The element, its frame and its style stay.
+    /// FIX-Y: hiding the Current slide is refused, with the reason in `lastError`, when it would leave nothing from the show on the stage screen.
     public func setHidden(_ hidden: Bool, for elementID: UUID, in layoutID: UUID) {
+        if hidden, let layout = customLayouts.first(where: { $0.id == layoutID }), let why = StageEditing.hideRefusal(hiding: elementID, in: layout) {
+            lastError = why
+            return
+        }
         updateElement(elementID, in: layoutID) { $0.isHidden = hidden }
     }
 

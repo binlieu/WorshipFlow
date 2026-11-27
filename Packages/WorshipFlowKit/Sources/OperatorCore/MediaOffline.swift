@@ -23,6 +23,16 @@ public enum MediaOffline {
     /// disk). A burst of activations inside that time is no check at all.
     public static let activationInterval: TimeInterval = 60
 
+    /// FIX-Y (REVIEW-5 L16): seconds one volume may take to answer a check before the check gives up on it (for that round) and goes on with the others.
+    public static let volumeReadLimit: TimeInterval = 8
+
+    /// The volume a path is on, as far as the path tells: "/Volumes/<name>" for a mounted disk, "/" for everything else (the startup disk).
+    public static func volume(of path: String) -> String {
+        let parts = path.split(separator: "/", omittingEmptySubsequences: true)
+        if parts.count >= 3, parts[0] == "Volumes" { return "/Volumes/\(parts[1])" }
+        return "/"
+    }
+
     /// Whether coming forward starts a check: the first one, a bin or set of disks that changed, or a last check that is old.
     public static func shouldCheckOnActivation(last: LastCheck?, now: Date, signature: Signature) -> Bool {
         guard let last else { return true }

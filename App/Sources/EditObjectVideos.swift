@@ -107,14 +107,14 @@ extension AppModel {
             for clip in snapshot.scene(forScreen: profile.id).videoObjectLayers where seen.insert(clip.mediaID).inserted {
                 guard let asset = media?.asset(clip.mediaID), asset.kind == .video else { continue }
                 requests.append(ObjectVideoRequest(assetID: asset.id, url: ObjectVideoAccess.shared.url(for: asset), loops: clip.loops, muted: clip.muted,
-                                                   duration: asset.duration))
+                                                   duration: asset.duration, markIn: asset.markIn, markOut: asset.markOut))   // FIX-Y (L2)
             }
         }
-        // FIX-X (REVIEW-5 L3): under Blackout the scene has no objects, but the clips are kept (silenced) so lifting it does not restart them; their file
-        // access is kept with them. Stop and Clear still close everything.
-        let blackedOut = show.isBlackedOut
-        mediaRegistry.objectVideos.apply(requests, blackedOut: blackedOut)
-        if !blackedOut { ObjectVideoAccess.shared.keepOnly(Set(requests.map(\.assetID))) }
+        // FIX-X (REVIEW-5 L3), FIX-Y (KI-280): under Blackout, Clear and Clear all the scene has no objects, but the clips are kept (silenced) so lifting
+        // it does not restart them, as the slide's own background is; their file access is kept with them. Stop still closes everything.
+        let held = ObjectVideoPlayers.holds(show)
+        mediaRegistry.objectVideos.apply(requests, hidden: held)
+        if !held { ObjectVideoAccess.shared.keepOnly(Set(requests.map(\.assetID))) }
         reportObjectVideoProblems()
     }
 

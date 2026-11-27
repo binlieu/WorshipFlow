@@ -106,6 +106,10 @@ public enum ScreenIdentify {
     /// Labels would cover what the outputs show, so they are offered only while the screens are closed.
     public static func isAllowed(screensOpen: Bool) -> Bool { !screensOpen }
 
+    /// FIX-Y (REVIEW-4 L1): the labels are taken down at once when the screens open (they would cover what the outputs show) or the screen list changes
+    /// (a name, a role or a display they name may no longer be true); otherwise they end when their own three seconds do.
+    public static func shouldDismiss(screensOpen: Bool, before: [ScreenProfile], after: [ScreenProfile]) -> Bool { screensOpen || before != after }
+
     public static let blockedReason = "Close the screens first: the labels would cover what the outputs are showing."
 
     /// One label per display. The operator's own display says so; a display a screen is set to names that screen (two screens set to

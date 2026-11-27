@@ -20,7 +20,7 @@ extension LibraryStore {
         try await updateObject(objectID, inSlide: slideID) { $0.isHidden = hidden }
     }
 
-    /// A locked object is still drawn; that the editor does not move or edit it is the feature slice's work.
+    /// A locked object is still drawn; the editor does not move or edit it (UI-007c).
     @discardableResult
     public func setSlideObjectLocked(_ locked: Bool, objectID: UUID, inSlide slideID: UUID) async throws -> Slide {
         try await updateObject(objectID, inSlide: slideID) { $0.isLocked = locked }

@@ -8,6 +8,20 @@ import Domain
 import OutputEngine
 import OperatorCore
 
+/// FIX-Y (REVIEW-5 L15): one line under the Look buttons naming the screens that keep a Look of their own, so the operator is not surprised that a
+/// screen does not follow the buttons. It takes no space when no screen has one.
+private struct OwnLookNote: View {
+    let app: AppModel
+
+    var body: some View {
+        if let text = LookNotices.ownLookNotice(profiles: app.profiles, global: app.currentLook, looks: app.looks) {
+            Text(text).font(.wf(11)).foregroundStyle(Tok.muted).lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12).padding(.bottom, 8).frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(text).help("Change these in the Screens mode")
+        }
+    }
+}
+
 struct ShowInspector: View {
     let app: AppModel
     @Bindable var workspace: WorkspaceModel
@@ -30,6 +44,7 @@ struct ShowInspector: View {
                 monitors.padding(.horizontal, 12).padding(.vertical, 10)
                 Rectangle().fill(Tok.border).frame(height: 1)
                 lookRow.padding(.horizontal, 12).padding(.vertical, 8)
+                OwnLookNote(app: app)
                 tabBar
                 tabContent
                 Rectangle().fill(Tok.border).frame(height: 1)

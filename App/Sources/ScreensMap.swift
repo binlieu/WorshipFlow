@@ -29,6 +29,13 @@ struct ScreensSignalMap: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(map.isSimulated ? "Signal map, simulated" : "Signal map")
+        // FIX-Y (REVIEW-4 L1): Identify screens labels are taken down when the screen list they describe changes (opening the screens does it in the model).
+        .onChange(of: app.profiles) { old, new in
+            if ScreenIdentify.shouldDismiss(screensOpen: app.screensOn, before: old, after: new) { ScreensIdentifier.shared.dismiss() }
+        }
+        .onChange(of: app.screensOn) { _, open in
+            if open { ScreensIdentifier.shared.dismiss() }
+        }
     }
 
     // MARK: Header bar

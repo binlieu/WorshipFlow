@@ -39,6 +39,16 @@ public enum NewStageElement: String, Sendable, CaseIterable, Identifiable {
 }
 
 public enum StageEditing {
+    /// FIX-Y (REVIEW-4 L7): why the eye may not hide this element, or nil when it may. The Current slide is what the stage screen is for: it cannot be
+    /// hidden when it is the last visible one and no Next slide or Notes element is left to show the show, because the screen would then show nothing
+    /// from the show. Every other element, and every layout with no Current slide, can be hidden as before.
+    public static func hideRefusal(hiding elementID: UUID, in layout: StageLayout) -> String? {
+        guard let target = layout.elements.first(where: { $0.id == elementID }), target.kind == .currentSlide, !target.isHidden else { return nil }
+        let others = layout.elements.filter { $0.id != elementID && !$0.isHidden }
+        guard !others.contains(where: { [.currentSlide, .nextSlide, .notes].contains($0.kind) }) else { return nil }
+        return "Could not hide the Current slide: the stage screen would show nothing from the show. Keep it visible, or add a Next slide or Notes element first."
+    }
+
     /// Largest and smallest font size the compositor is asked to draw.
     public static let fontSizeRange = ThemeEditing.fontSizeRange
 

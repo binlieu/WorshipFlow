@@ -135,10 +135,13 @@ private struct MarkRow: View {
     }
 
     private func commit() {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty { if time != nil { set(nil) }; return }
-        guard let value = MediaTimeText.parse(trimmed) else { text = time.map(MediaTimeText.format) ?? ""; return }
-        if value != time { set(value) }
+        // FIX-Y (REVIEW-5 L4): leaving the field as it was shown (a time rounded to a tenth) writes nothing.
+        switch TimeFieldEdit.edit(text: text, stored: time, emptyClears: true) {
+        case .unchanged: break
+        case .clear: set(nil)
+        case .set(let value): set(value)
+        case .invalid: text = time.map(MediaTimeText.format) ?? ""
+        }
     }
 }
 
@@ -189,8 +192,11 @@ private struct MarkerRow: View {
     }
 
     private func commitTime() {
-        guard let value = MediaTimeText.parse(timeText) else { timeText = MediaTimeText.format(marker.time); return }
-        if abs(value - marker.time) > 0.0005 { Task { await markers.move(marker.id, to: value) } }
+        switch TimeFieldEdit.edit(text: timeText, stored: marker.time, emptyClears: false) {
+        case .unchanged: break
+        case .set(let value): Task { await markers.move(marker.id, to: value) }
+        case .clear, .invalid: timeText = MediaTimeText.format(marker.time)
+        }
     }
 
     private func commitName() {

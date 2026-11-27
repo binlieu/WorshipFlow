@@ -104,7 +104,7 @@ public struct ScreenProfile: Sendable, Equatable, Codable, Hashable, Identifiabl
     public var connectedToKey: [String]
     /// SYS-015: per destination (indexed like `connectedTo`), the boxes the operator says the signal passes through (enclosure, converter, other).
     public var signalChains: [[ChainNode]]
-    /// SYS-015: the Look this screen follows on its own, if the operator chose one. Nil: the show's current Look. Stored only; nothing reads it yet.
+    /// SYS-015: the Look this screen follows on its own, if the operator chose one. Nil: the show's current Look. UI-007f reads it: the screen composes with that Look's theme, layers and props.
     public var screenLookID: UUID?
 
     /// SYS-015: the most boxes a chain keeps.

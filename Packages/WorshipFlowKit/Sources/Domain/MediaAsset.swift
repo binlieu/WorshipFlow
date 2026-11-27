@@ -19,7 +19,7 @@ public struct MediaAsset: Sendable, Equatable, Codable, Hashable, Identifiable {
     public var pixelWidth: Int?
     public var pixelHeight: Int?
     public let addedAt: Date
-    /// SYS-015: seconds into the clip where playback starts, and where it ends. Nil is the start and the end of the clip. Stored only in this slice.
+    /// SYS-015: seconds into the clip where playback starts, and where it ends. Nil is the start and the end of the clip. Honoured wherever the clip plays: as a layer, in the preview, as a slide's own background and (FIX-Y) as a video object.
     public var markIn: Double?
     public var markOut: Double?
 

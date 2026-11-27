@@ -139,6 +139,10 @@ public final class MediaModel {
     /// FIX-V item 6 (L8): a check is reading now, and another was asked for meanwhile; what the last finished check looked at.
     @ObservationIgnored var offlineRunning = false
     @ObservationIgnored var offlineAgain = false
+    /// FIX-Y (REVIEW-5 L16): how long a check may read one volume before it is abandoned for that volume, and the volumes whose last read has not returned
+    /// yet (such a volume is not read again until it does, so a hung disk holds one thread, not one per check).
+    @ObservationIgnored var offlineCheckLimit: TimeInterval = MediaOffline.volumeReadLimit
+    @ObservationIgnored var offlineBusyVolumes: Set<String> = []
     @ObservationIgnored var lastOfflineCheck: MediaOffline.LastCheck?
     /// The disks that are connected now. The app sets it (the model has no file system of its own); tests leave it empty.
     @ObservationIgnored public var mountedVolumes: @MainActor () -> [String] = { [] }
