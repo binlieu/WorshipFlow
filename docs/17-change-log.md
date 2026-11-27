@@ -240,3 +240,4 @@
 - Build 210 packaged with FIX-W, FIX-X, FIX-Y and FIX-Z; not installed
 - OUT-002f brief written; the work waits on a branch for a before/after soak (KI-289)
 - OUT-002f (REVIEW-5 M6, L17 to L23): the preparation gate sees slide objects (a new text box, fit-to-box text or shape is laid out, fitted and drawn off the render thread); a scene already prepared is adopted on the tick it arrives; the stage Blackout is never held; a preparation that never returns no longer delays later scenes; fit-to-box text builds no key per frame; a window output follows the refresh rate of the display it is moved to; the "app late" rule reads the display link's stamp as a future time. Before/after soaks of 10 minutes at 60 Hz: 3 dropped before, 2 after, all at start-up
+- FIX-AA: the app no longer reads the Desktop at launch, so a new build does not wait behind the macOS permission question before its window opens (KI-291)

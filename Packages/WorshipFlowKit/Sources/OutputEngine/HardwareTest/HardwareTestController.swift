@@ -50,11 +50,12 @@ public final class HardwareTestController {
 
     /// - Parameters:
     ///   - unfinishedParent: where the visible "unfinished" folder of a real run is made. Default: `workingFolder` when one is given (tests), otherwise the Desktop.
+    ///   - looksAtOnce: false leaves the cards, the driver and the unfinished-run folder unread until `refresh()` or `rescan()` (FIX-AA).
     ///   - onRunningChange: called with true when a run starts and false when it ends, so the app can refuse to open screens during a run (S15).
     public init(realProvider: @escaping @Sendable () -> HardwareTestProvider, environment: HardwareEnvironmentSource,
                 screensOpen: @escaping @MainActor () -> Bool, responsiveness: HardwareResponsivenessProbe? = nil,
                 durationsOverride: HardwareTestDurations? = nil, stepsOverride: [HardwareTestStep]? = nil, workingFolder: URL? = nil,
-                unfinishedParent: URL? = nil, onRunningChange: (@MainActor (Bool) -> Void)? = nil) {
+                unfinishedParent: URL? = nil, onRunningChange: (@MainActor (Bool) -> Void)? = nil, looksAtOnce: Bool = true) {
         self.onRunningChange = onRunningChange
         self.unfinishedParent = unfinishedParent ?? workingFolder ?? HardwareTestUnfinished.desktop() ?? FileManager.default.temporaryDirectory
         self.stepsOverride = stepsOverride
@@ -68,7 +69,9 @@ public final class HardwareTestController {
         }
         self.durationsOverride = durationsOverride
         self.workingFolder = workingFolder ?? FileManager.default.temporaryDirectory.appendingPathComponent("WorshipFlow-hardware-test", isDirectory: true)
-        refresh()
+        // FIX-AA: the app builds this at launch; listing the Desktop there made macOS ask for permission while the main thread waited.
+        // The app passes false and the Hardware Test window looks when it appears (`rescan`).
+        if looksAtOnce { refresh() }
     }
 
     // MARK: what the window shows before a run

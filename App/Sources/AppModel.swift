@@ -167,7 +167,8 @@ final class AppModel {
         realProvider: { AppHardwareTest.realProvider() }, environment: AppHardwareTest.environment(),
         screensOpen: { [unowned self] in self.screensOn || self.soak != nil },
         unfinishedParent: AppHardwareTest.unfinishedParent(),
-        onRunningChange: { [unowned self] running in self.hardwareTestRunning = running })
+        onRunningChange: { [unowned self] running in self.hardwareTestRunning = running },
+        looksAtOnce: false)   // FIX-AA: nothing reads the Desktop at launch; the window rescans when it appears
     /// FIX-D S15: true while a Hardware Test run is going on. The screens cannot be opened then (the test uses the card).
     @ObservationIgnored private(set) var hardwareTestRunning = false
 

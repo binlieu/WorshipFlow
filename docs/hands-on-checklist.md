@@ -474,3 +474,7 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Go Live on a previewed slide: it appears at once, not a frame later.
 - [ ] A slide image on a network volume, connection dropped, slides changed repeatedly: only the first change waits; after reconnecting, changes behave as before.
 - [ ] Drag a window output between displays of different refresh rates: the Screens readout shows no burst of dropped or late frames.
+
+## FIX-AA
+
+- [ ] Install a new build and open it: the window opens without a permission question. Open Hardware Test: the question about the Desktop may appear then, and an unfinished run on the Desktop is offered after it is answered.
