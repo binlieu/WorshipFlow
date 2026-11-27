@@ -65,8 +65,9 @@ import Domain
         let (r, _) = try report(.audience, theme: .fullScreen, slide: UI005hFixtures.sampleSlide)
         try #require(r.texts.count == 2)
         let p = r.texts[0], s = r.texts[1]
-        #expect(box(p.box, 391.9, 262.2, 1136.2, 285.7), "primary \(p.box)")
-        #expect(box(s.box, 631.9, 613.1, 656.1, 204.7), "secondary \(s.box)")
+        // re-recorded 2026-11-26 (FIX-Z): sample text changed, rendering code unchanged; the old value passed on the same code with the old text (x and width of both boxes follow the text width; y and height unchanged)
+        #expect(box(p.box, 284.9, 262.2, 1350.2, 285.7), "primary \(p.box)")   // old x 391.9, width 1136.2
+        #expect(box(s.box, 591.8, 613.1, 736.5, 204.7), "secondary \(s.box)")   // old x 631.9, width 656.1
         #expect(abs(p.fontSize - 119.04) < 0.01 && p.weight == 600)
         #expect(abs(s.fontSize - 78.72) < 0.01 && s.weight == 500)
     }
@@ -77,7 +78,8 @@ import Domain
         try #require(r.texts.count == 2)
         #expect(box(plate, 115.2, 773.8, 1689.6, 210.3), "plate \(plate)")
         #expect(box(bar, 161.3, 804.5, 11.5, 148.9), "bar \(bar)")
-        #expect(box(r.texts[0].box, 211.2, 804.5, 1239.8, 84.0), "primary \(r.texts[0].box)")
+        // re-recorded 2026-11-26 (FIX-Z): sample text changed, rendering code unchanged; the old value passed on the same code with the old text (width only follows the text; old 1239.8)
+        #expect(box(r.texts[0].box, 211.2, 804.5, 1315.9, 84.0), "primary \(r.texts[0].box)")
         #expect(box(r.texts[1].box, 211.2, 888.5, nil, 64.9), "secondary \(r.texts[1].box)")
         let (first, second) = (r.texts[0], r.texts[1])
         #expect(abs(first.fontSize - 67.2) < 0.01 && first.weight == 600)
@@ -115,7 +117,8 @@ import Domain
         #expect(abs(second.box.y + second.box.height / 2 - 389.6) < 1.0, "second \(second.box)")
         let label = try #require(t["NEXT"]), next = try #require(t["'Tis grace has brought me safe thus far"])
         #expect(box(label.box, 76.8, 796, nil, 34.44), "label \(label.box)")
-        #expect(box(next.box, 76.8, 837.5, 1222.0, 80.55), "next \(next.box)")
+        // re-recorded 2026-11-26 (FIX-Z): sample text changed, rendering code unchanged; the old value passed on the same code with the old text (width only follows the text; old 1222.0)
+        #expect(box(next.box, 76.8, 837.5, 1293.3, 80.55), "next \(next.box)")
         let clock = try #require(t["9:14"]), timerBox = try #require(t["10:32"])
         #expect(abs(clock.box.x + clock.box.width - 1843.2) < 1 && abs(clock.box.y - 64.8) < 1 && abs(clock.box.height - 81.25) < 1, "clock \(clock.box)")
         #expect(abs(timerBox.box.x + timerBox.box.width - 1843.2) < 1 && abs(timerBox.box.y - 163.7) < 1 && abs(timerBox.box.height - 121.88) < 1, "timer \(timerBox.box)")
