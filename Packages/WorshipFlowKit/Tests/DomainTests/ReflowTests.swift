@@ -12,8 +12,8 @@ import Foundation
     Was blind, but now I see
 
     Chorus:
-    My chains are gone
-    I've been set free
+    Through many dangers
+    toils and snares
 
 
     Twas grace that taught my heart to fear
@@ -24,7 +24,7 @@ import Foundation
         let sections = Reflow.sections(from: hymn)
         #expect(sections.map(\.name) == ["Verse 1", "Chorus", nil])
         #expect(sections.map(\.lines.count) == [4, 2, 2])
-        #expect(sections[1].lines.first == "My chains are gone")
+        #expect(sections[1].lines.first == "Through many dangers")
     }
 
     @Test func recognisesEnglishAndVietnameseLabels() {
@@ -100,12 +100,12 @@ import Foundation
 
     /// PRES-10: a second-language text with the same shape pairs line for line.
     @Test func pairsSecondLanguageBySectionAndLine() {
-        let english = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nMy chains are gone"
-        let vietnamese = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nXiềng xích đã tan"
+        let english = "Verse 1\nAmazing grace, how sweet the sound\nThat saved a wretch like me\n\nChorus\nThrough many dangers"
+        let vietnamese = "Câu 1\nÂn điển lạ lùng thay\nĐã cứu vớt tôi\n\nĐiệp khúc\nQua bao hiểm nguy"
         let result = Reflow.contents(primary: english, secondary: vietnamese, maxLines: 1)
         #expect(result.map(\.sectionName) == ["Verse 1", "Verse 1", "Chorus"])
-        #expect(result.map(\.content.primary) == ["Amazing grace, how sweet the sound", "That saved a wretch like me", "My chains are gone"])
-        #expect(result.map(\.content.secondary) == ["Ân điển lạ lùng thay", "Đã cứu vớt tôi", "Xiềng xích đã tan"])
+        #expect(result.map(\.content.primary) == ["Amazing grace, how sweet the sound", "That saved a wretch like me", "Through many dangers"])
+        #expect(result.map(\.content.secondary) == ["Ân điển lạ lùng thay", "Đã cứu vớt tôi", "Qua bao hiểm nguy"])
     }
 
     @Test func multiLineSlidesJoinWithNewlines() {

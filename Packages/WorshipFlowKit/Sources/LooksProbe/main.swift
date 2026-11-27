@@ -21,8 +21,8 @@ import SDIEngine
 func samples() -> ShowState {
     var state = ShowState()
     state.apply(.load(ShowDeck(presentationID: UUID(), slides: [
-        SlideContent(primary: "My chains are gone\nI\u{2019}ve been set free", secondary: "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan\nT\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do"),
-        SlideContent(primary: "My God, my Savior has ransomed me"),
+        SlideContent(primary: "Through many dangers\ntoils and snares", secondary: "Qua bao hi\u{1EC3}m nguy\ngian kh\u{00F3} th\u{1EED} th\u{00E1}ch"),
+        SlideContent(primary: "'Tis grace has brought me safe thus far"),
     ])))
     state.apply(.trigger(index: 0))
     return state
@@ -256,7 +256,7 @@ func looks(out: String, designPath: String, fontPath: String?) throws {
     let stage = StageComposer.scene(layout: .standard, context: StageContext(state: samples(), now: 0, timeOfDayText: "9:14", timers: [timer],
                                                                               message: "Repeat chorus \u{00D7}2, then bridge", notes: nil))
     let s = try compositor.layoutReport(scene: stage, width: 1920, height: 1080)
-    let names: [String: String] = ["My chains are gone\nI\u{2019}ve been set free": "stg.current", "NEXT": "stg.next.label", "My God, my Savior has ransomed me": "stg.next",
+    let names: [String: String] = ["Through many dangers\ntoils and snares": "stg.current", "NEXT": "stg.next.label", "'Tis grace has brought me safe thus far": "stg.next",
                                    "9:14": "stg.clock", "10:32": "stg.timer", "Repeat chorus \u{00D7}2, then bridge": "stg.band.text"]
     for item in s.texts {
         let id = names[item.text] ?? (item.text.contains("\u{00B7}") ? "stg.second" : "stg.other")
@@ -319,8 +319,8 @@ func longPictures(out: String) throws {
 
 func UI_lowerThirdState() -> ShowState {
     var state = ShowState()
-    state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "My chains are gone, I\u{2019}ve been set free",
-                                                                             secondary: "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan, t\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do")])))
+    state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "Through many dangers, toils and snares",
+                                                                             secondary: "Qua bao hi\u{1EC3}m nguy, gian kh\u{00F3} th\u{1EED} th\u{00E1}ch")])))
     state.apply(.trigger(index: 0))
     return state
 }

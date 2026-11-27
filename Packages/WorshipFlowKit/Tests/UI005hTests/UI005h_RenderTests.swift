@@ -106,14 +106,14 @@ import Domain
         let r = try Compositor().layoutReport(scene: scene, width: 1920, height: 1080)
         var t: [String: TextLayoutItem] = [:]
         for item in r.texts { t[item.text] = item }
-        let currentText = "My chains are gone\nI\u{2019}ve been set free"
-        let secondText = "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan \u{00B7} T\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do"
+        let currentText = "Through many dangers\ntoils and snares"
+        let secondText = "Qua bao hi\u{1EC3}m nguy \u{00B7} gian kh\u{00F3} th\u{1EED} th\u{00E1}ch"
         let current = try #require(t[currentText]), second = try #require(t[secondText])
         #expect(box(current.box, 76.8, 76.8, nil, 268.1), "current \(current.box)")
         // The mockup's second-language line box is 16 px tall (the page's fixed line height) around y = 377.6; the picture draws the line 12 px
         // lower, which is where this normal 1.3 line box is centred.
         #expect(abs(second.box.y + second.box.height / 2 - 389.6) < 1.0, "second \(second.box)")
-        let label = try #require(t["NEXT"]), next = try #require(t["My God, my Savior has ransomed me"])
+        let label = try #require(t["NEXT"]), next = try #require(t["'Tis grace has brought me safe thus far"])
         #expect(box(label.box, 76.8, 796, nil, 34.44), "label \(label.box)")
         #expect(box(next.box, 76.8, 837.5, 1222.0, 80.55), "next \(next.box)")
         let clock = try #require(t["9:14"]), timerBox = try #require(t["10:32"])

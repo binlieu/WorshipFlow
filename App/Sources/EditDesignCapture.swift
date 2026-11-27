@@ -16,7 +16,7 @@ extension AppModel {
         workspace.selectSlide(3)
         try? await Task.sleep(for: .milliseconds(600))
         if let id = editor.add(.textBox) {
-            editor.setText(id, "My God, my Savior\nhas ransomed me")
+            editor.setText(id, "'Tis grace has brought me\nsafe thus far")
             editor.setFrame(id, x: 0.12, y: 0.27, width: 0.76, height: 0.28)
             editor.setFontSize(id, 72)
             editor.setTextColor(id, .white)

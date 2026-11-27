@@ -200,7 +200,7 @@ Behaviour the design implies that the app already has: the controller only appea
 |---|---|---|---|
 | TR1 Bar | yes | 56 pt, surface, top border. Design padding 0 14 gap 10; app padding 14, gap **8** (Space.s3, TB:11) | S |
 | TR2 State badge | partly | Design: `badge fill` 11 pt, padding 3 x 8, radius 4, text "LIVE". App (TB:111-112): 12/bold, padding 10 x 28 pt tall, radius 3 | S |
-| TR3 Headline | partly | Design: first-language line only, lines joined with ", ", "My chains are gone, I’ve been set free"; sub "Amazing Grace · Chorus · slide 3 of 9". App headline in UI-003-show.png joins lines with a space and appends the second language and so ends in "…" (LiveSummary.line). Sub line matches | S |
+| TR3 Headline | partly | Design: first-language line only, lines joined with ", ", "Through many dangers, toils and snares"; sub "Amazing Grace · Chorus · slide 3 of 9". App headline in UI-003-show.png joins lines with a space and appends the second language and so ends in "…" (LiveSummary.line). Sub line matches | S |
 | TR4 Buttons | partly | Design `.btn.lg`: 36 pt, **padding 0 16**, radius 8, 13/600, icon 15. App padding **12** (CO:148). Previous / Go Live / Next with ← ↩ → hints: present | S |
 | TR5 Clear | partly | Design: ONE button "Clear ⌄" (no key hint) with a menu. App: split control: "Clear esc" + separate chevron cell (TB:71-97) | S |
 | TR6 Blackout / Stop | yes | Design: Blackout with B, Stop with no hint. Matches | none |

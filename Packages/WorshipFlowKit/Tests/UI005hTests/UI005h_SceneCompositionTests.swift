@@ -14,7 +14,7 @@ import Domain
         let scene = SceneComposer.scene(for: .audience, state: state, theme: .fullScreen, look: .standard, props: [])
         #expect(scene.backgroundGradient == Theme.fullScreen.mediaFallback && scene.backgroundGradient != nil)
         #expect(scene.showsVideo)                               // motion backgrounds behave as today
-        #expect(scene.textLayers.map(\.text) == ["My chains are gone\nI\u{2019}ve been set free", "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan\nT\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do"])
+        #expect(scene.textLayers.map(\.text) == ["Through many dangers\ntoils and snares", "Qua bao hi\u{1EC3}m nguy\ngian kh\u{00F3} th\u{1EED} th\u{00E1}ch"])
         #expect(scene.textLayers.allSatisfy { !$0.inPlate } && scene.plate == nil)
         #expect(scene.textLayers.map(\.style.weight) == [600, 500])
     }
@@ -92,8 +92,8 @@ import Domain
         let scene = StageComposer.scene(layout: .standard, context: stageContext())
         let layers = scene.textLayers
         #expect(scene.backgroundColor == ColorRGBA(red: 0, green: 0, blue: 0) && scene.backgroundGradient == nil && scene.plate == nil)
-        #expect(layers.map(\.text) == ["My chains are gone\nI\u{2019}ve been set free", "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan \u{00B7} T\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do",
-                                       "NEXT", "My God, my Savior has ransomed me", "9:14", "10:32"])
+        #expect(layers.map(\.text) == ["Through many dangers\ntoils and snares", "Qua bao hi\u{1EC3}m nguy \u{00B7} gian kh\u{00F3} th\u{1EED} th\u{00E1}ch",
+                                       "NEXT", "'Tis grace has brought me safe thus far", "9:14", "10:32"])
         try #require(layers.count == 6)
         let (current, second, label, next, clock, timer) = (layers[0], layers[1], layers[2], layers[3], layers[4], layers[5])
         #expect(D.near(current.style.fontSize, 116.58, 0.02) && current.style.weight == 700 && current.style.lineHeight == 1.15 && D.same(current.style.color, .white))
@@ -130,7 +130,7 @@ import Domain
         var last = state; last.apply(.next)
         let ctx = StageContext(state: last, now: 0, timeOfDayText: "9:14", timers: [], message: nil, notes: nil)
         let scene = StageComposer.scene(layout: .standard, context: ctx)
-        #expect(!scene.textLayers.contains { $0.text == "NEXT" } && scene.textLayers.first?.text == "My God, my Savior has ransomed me")
+        #expect(!scene.textLayers.contains { $0.text == "NEXT" } && scene.textLayers.first?.text == "'Tis grace has brought me safe thus far")
     }
 
     @Test func theStageMessageIsTheWarningBand() throws {
@@ -158,7 +158,7 @@ import Domain
         let scene = StageComposer.scene(layout: mine, context: stageContext(message: "Wrap up"))
         #expect(scene.plate == nil && scene.backgroundColor == s.stageBackground)
         try #require(scene.textLayers.count == 4)
-        #expect(scene.textLayers.map(\.text) == ["My chains are gone\nI\u{2019}ve been set free\nXi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan\nT\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do", "My God, my Savior has ransomed me", "9:14", "Wrap up"])
+        #expect(scene.textLayers.map(\.text) == ["Through many dangers\ntoils and snares\nQua bao hi\u{1EC3}m nguy\ngian kh\u{00F3} th\u{1EED} th\u{00E1}ch", "'Tis grace has brought me safe thus far", "9:14", "Wrap up"])
         #expect(scene.textLayers[0].style == s.stageCurrent && scene.textLayers[1].style == s.stageNext && scene.textLayers[1].style.color == ColorRGBA(red: 0.35, green: 0.85, blue: 0.55))
         #expect(scene.textLayers[3].style.color == mine.warningColor && scene.textLayers[3].style.fontSize == 64 && scene.textLayers.allSatisfy { !$0.inPlate })
     }

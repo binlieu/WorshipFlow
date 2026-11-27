@@ -9,7 +9,7 @@ import RenderEngine
 @Suite struct UI005h_SDIReadbackTests {
     private func scenes() -> [SceneDescription] {
         var state = ShowState()
-        state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "My chains are gone", secondary: "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan")])))
+        state.apply(.load(ShowDeck(presentationID: UUID(), slides: [SlideContent(primary: "Through many dangers", secondary: "Qua bao hi\u{1EC3}m nguy")])))
         state.apply(.trigger(index: 0))
         return [ScreenRole.audience, .stage, .broadcast].map { SceneComposer.scene(for: $0, state: state, clockText: "9:14") }
     }

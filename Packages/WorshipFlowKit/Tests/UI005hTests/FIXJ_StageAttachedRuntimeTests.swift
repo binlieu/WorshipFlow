@@ -10,7 +10,7 @@ import Domain
     }
     func layer(_ layout: StageLayout, _ text: String) -> TextLayer? { layers(layout).first { $0.text == text } }
 
-    static let secondText = "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan \u{00B7} T\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do"
+    static let secondText = "Qua bao hi\u{1EC3}m nguy \u{00B7} gian kh\u{00F3} th\u{1EED} th\u{00E1}ch"
 
     func close(_ a: NormalizedRect, _ b: NormalizedRect, _ tol: Double = 1e-9) -> Bool {
         abs(a.x - b.x) < tol && abs(a.y - b.y) < tol && abs(a.width - b.width) < tol && abs(a.height - b.height) < tol

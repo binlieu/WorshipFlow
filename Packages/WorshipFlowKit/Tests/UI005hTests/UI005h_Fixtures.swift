@@ -8,12 +8,12 @@ import RenderEngine
 
 enum UI005hFixtures {
     /// The design's sample slide (07-output-looks): "Amazing Grace, chorus, English and Vietnamese".
-    static let sampleSlide = SlideContent(primary: "My chains are gone\nI\u{2019}ve been set free",
-                                          secondary: "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan\nT\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do")
-    static let sampleNext = SlideContent(primary: "My God, my Savior has ransomed me")
+    static let sampleSlide = SlideContent(primary: "Through many dangers\ntoils and snares",
+                                          secondary: "Qua bao hi\u{1EC3}m nguy\ngian kh\u{00F3} th\u{1EED} th\u{00E1}ch")
+    static let sampleNext = SlideContent(primary: "'Tis grace has brought me safe thus far")
     /// The lower third's lines: one line each, as the design shows them.
-    static let lowerThirdSlide = SlideContent(primary: "My chains are gone, I\u{2019}ve been set free",
-                                              secondary: "Xi\u{1EC1}ng x\u{00ED}ch \u{0111}\u{00E3} tan, t\u{00F4}i \u{0111}\u{01B0}\u{1EE3}c t\u{1EF1} do")
+    static let lowerThirdSlide = SlideContent(primary: "Through many dangers, toils and snares",
+                                              secondary: "Qua bao hi\u{1EC3}m nguy, gian kh\u{00F3} th\u{1EED} th\u{00E1}ch")
 
     static func live(_ slide: SlideContent = sampleSlide, next: SlideContent? = sampleNext) -> ShowState {
         var state = ShowState()
