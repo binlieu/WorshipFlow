@@ -103,6 +103,34 @@ final class SharedTextStore: @unchecked Sendable {
         }
     }
 
+    // OUT-002f: shape bitmaps, prepared like text. Bounded by size, least recently used first.
+    private struct ShapeEntry { let pixels: [UInt8]; var used: Int }
+    private var shapePixels: [Compositor.ShapeKey: ShapeEntry] = [:]
+    private var shapeBytes = 0
+    static let shapeByteLimit = 64 * 1024 * 1024
+
+    func shape(for key: Compositor.ShapeKey) -> [UInt8]? {
+        lock.lock(); defer { lock.unlock() }
+        guard var entry = shapePixels[key] else { return nil }
+        clock += 1
+        entry.used = clock
+        shapePixels[key] = entry
+        return entry.pixels
+    }
+
+    func put(shape pixels: [UInt8], for key: Compositor.ShapeKey) {
+        guard pixels.count <= Self.shapeByteLimit / 4 else { return }
+        lock.lock(); defer { lock.unlock() }
+        if let old = shapePixels[key] { shapeBytes -= old.pixels.count }
+        clock += 1
+        shapePixels[key] = ShapeEntry(pixels: pixels, used: clock)
+        shapeBytes += pixels.count
+        while shapeBytes > Self.shapeByteLimit, let victim = shapePixels.min(by: { $0.value.used < $1.value.used })?.key {
+            shapeBytes -= shapePixels[victim]?.pixels.count ?? 0
+            shapePixels[victim] = nil
+        }
+    }
+
     func fit(for key: FitKey) -> TextFitStatus? {
         lock.lock(); defer { lock.unlock() }
         return fits.value(for: key)
@@ -118,6 +146,8 @@ final class SharedTextStore: @unchecked Sendable {
 /// background queue, into the store every compositor reads. The app calls it for the selected (Preview) slide of each screen, so the first
 /// live frame is as warm as the later ones. Nothing waits for it: Go Live never blocks on it, and a frame that comes first simply does the work itself.
 public enum TextWarmer {
+    /// OUT-002f (tests and diagnostics): compositors made for warming.
+    static let compositorsCreated = WarmCounter()
     /// `scenes`: each scene with the pixel size of the output it will be drawn on.
     public static func warm(scenes: [(SceneDescription, Int, Int)]) async {
         guard !scenes.isEmpty else { return }
@@ -130,11 +160,47 @@ public enum TextWarmer {
     }
 
     /// The same, on the calling thread (a background queue: never the main thread).
+    /// OUT-002f: one long-lived compositor does all the warming, one scene at a time (a lock: outputs that warm the same words at the same moment
+    /// take turns, and the second finds it all in the stores). It forgets its own caches before each scene, so a store entry that was evicted is
+    /// made again rather than skipped. Slide objects (text boxes, fit-to-box text, shapes) are prepared with the lyric text, and each finished scene
+    /// is noted in `PreparedScenes`, which the output's gate asks.
     public static func warmNow(scenes: [(SceneDescription, Int, Int)]) {
-        guard !scenes.isEmpty, let compositor = try? Compositor() else { return }
-        compositor.publishesRasters = true
-        for (scene, width, height) in scenes where width > 0 && height > 0 {
-            _ = try? compositor.layoutReport(scene: scene, width: width, height: height)
+        guard !scenes.isEmpty else { return }
+        warmer.withCompositor { compositor in
+            for (scene, width, height) in scenes where width > 0 && height > 0 {
+                compositor.resetPreparedCaches()
+                _ = try? compositor.layoutReport(scene: scene, width: width, height: height)
+                compositor.prepareObjects(scene: scene, width: width, height: height)
+                PreparedScenes.record(scene, width, height)
+            }
         }
     }
+
+    private static let warmer = WarmCompositor()
+}
+
+/// The warmer's compositor, made on first use and kept. `Compositor` is not thread safe: every use is under `lock`.
+// @unchecked Sendable: `compositor` is only touched under `lock`.
+private final class WarmCompositor: @unchecked Sendable {
+    private let lock = NSLock()
+    private var compositor: Compositor?
+
+    func withCompositor(_ body: (Compositor) -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        if compositor == nil, let made = try? Compositor() {
+            made.publishesRasters = true
+            TextWarmer.compositorsCreated.add()
+            compositor = made
+        }
+        if let compositor { body(compositor) }
+    }
+}
+
+/// A count that any thread may add to and read.
+// @unchecked Sendable: `value` is guarded by `lock`.
+final class WarmCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    func add() { lock.lock(); value += 1; lock.unlock() }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return value }
 }

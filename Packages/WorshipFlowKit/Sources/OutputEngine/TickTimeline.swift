@@ -12,7 +12,7 @@ public struct TickSample: Sendable, Equatable {
 
     /// When the tick began (the first thing the display-link callback did).
     public var start: Double
-    /// The display link's own timestamp for this callback, 0 when the link gave none.
+    /// The display link's target timestamp for this callback: a time in the future, about one frame period after an on-time callback (OUT-002f). 0 when the link gave none.
     public var linkTimestamp: Double
     /// The time the link says this frame should reach the screen, 0 when the link gave none.
     public var linkTarget: Double
@@ -204,7 +204,13 @@ public struct LatenessClassification: Sendable, Equatable {
 /// from three frame periods before the previous presentation up to the event:
 /// 1. app slow: a tick's own work (drawable + build + encode) exceeded the frame period. The largest phase is named.
 /// 2. app late: no tick was slow, but a tick started more than 1.5 periods after the previous tick started, or ran more than 1.5 periods after the
-///    display link's own timestamp: the callback arrived late or the render thread was busy.
+///    time the display link meant it to run: the callback arrived late or the render thread was busy.
+///    OUT-002f (REVIEW-5 L23): `linkTimestamp` is the link's `targetTimestamp`, a time in the FUTURE (the refresh the frame is aimed at), not the
+///    moment the callback was due. The hour soak of 2026-11-26 recorded `cb` (tick start minus that stamp) steadily near minus one frame period,
+///    about -16 ms, on every listed tick: an on-time callback runs about one period before its stamp. So the callback is taken as due one period
+///    before the stamp, and a tick is late by `start - (linkTimestamp - period)`. Before this change the rule read the stamp as the due time, and its
+///    second branch could not fire unless a callback ran after the refresh it was aimed at. That figure is from one soak report, not a fresh run
+///    (the session was locked on 2026-11-27), and one period is the observed value at `preferredFrameLatency` 1, not a documented guarantee.
 /// 3. unknown: a tick in the window was skipped (two frames were still on the GPU), or no tick was recorded there.
 /// 4. presented late: otherwise. Every tick was on time and short, yet a refresh was skipped: the system or the display.
 public enum FrameLateness {
@@ -235,7 +241,7 @@ public enum FrameLateness {
                 if interval > lateStartFactor * period, interval > (worstStart?.late ?? 0) { worstStart = (interval, t.start) }
             }
             if t.linkTimestamp > 0 {
-                let delay = t.start - t.linkTimestamp
+                let delay = t.start - (t.linkTimestamp - period)
                 if delay > lateStartFactor * period, delay > (worstLink?.late ?? 0) { worstLink = (delay, t.start) }
             }
         }
@@ -243,7 +249,7 @@ public enum FrameLateness {
             return LatenessClassification(kind: .appLate, detail: "a tick started \(ms(w.late)) ms after the previous tick (frame period \(ms(period, 2)) ms): the callback arrived late or the render thread was busy")
         }
         if let w = worstLink {
-            return LatenessClassification(kind: .appLate, detail: "a tick ran \(ms(w.late)) ms after the display link's own timestamp (frame period \(ms(period, 2)) ms): the callback arrived late")
+            return LatenessClassification(kind: .appLate, detail: "a tick ran \(ms(w.late)) ms after the time the display link meant it to run, one frame period before its timestamp (frame period \(ms(period, 2)) ms): the callback arrived late")
         }
         // 3. unknown
         if indices.contains(where: { ticks[$0].skipped }) {
@@ -259,7 +265,7 @@ public enum FrameLateness {
         return classify(ticks: event.ticks, eventTime: event.time, gap: event.intervalMs / 1000, period: event.targetMs / 1000)
     }
 
-    /// One line for a person: `rel` is each tick's start relative to the event. `cb` is how long after the link's own timestamp the tick ran, `m`
+    /// One line for a person: `rel` is each tick's start relative to the event. `cb` is how long after the link's target timestamp the tick ran (negative: before it; on time is about minus one frame period), `m`
     /// the margin between the tick's end and the link's target presentation time, `d`/`b`/`e` the three phases in ms; flags H gate holding,
     /// C scene changed, V new video frame, S skipped.
     public static func tickText(_ ticks: [TickSample], eventTime: Double) -> String {

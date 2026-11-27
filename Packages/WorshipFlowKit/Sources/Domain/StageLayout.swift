@@ -362,7 +362,7 @@ public enum StageComposer {
     }
 
     /// UI-001: the word the stage shows while Blackout is on, so the band knows the other screens are dark.
-    static func blackoutLayer(warning: ColorRGBA) -> TextLayer {
+    public static func blackoutLayer(warning: ColorRGBA) -> TextLayer {
         TextLayer(text: "BLACKOUT",
                   style: TextStyle(fontName: "Helvetica Neue", fontSize: 48, color: warning),
                   frame: NormalizedRect(x: 0.30, y: 0.01, width: 0.40, height: 0.08),

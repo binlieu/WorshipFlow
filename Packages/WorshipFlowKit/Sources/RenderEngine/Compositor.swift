@@ -84,7 +84,7 @@ public final class Compositor {
     public private(set) var looksRasterizationCount = 0
 
     // Shape cache (SLIDE-001a): one rasterised bitmap per distinct shape, size and colour.
-    private struct ShapeKey: Hashable {
+    struct ShapeKey: Hashable {
         let shape: ShapeObject.Shape
         let fill: ColorRGBA?
         let strokeColor: ColorRGBA?
@@ -287,18 +287,66 @@ public final class Compositor {
     /// as the lyrics' fit; computed once per words, style, frame and output shape and kept.
     private func objectFitStatus(_ layer: TextLayer, width: Int, height: Int) -> TextFitStatus {
         guard let floor = layer.fitFloor else { return .unchanged }
+        // OUT-002f: the frame loop asks every frame. A box seen on the frame before, unchanged and at the same size, gets its answer with no key and no
+        // hash: a compare of the layer (the same compare the lyric path makes) and no allocation.
+        for last in lastObjectFits where last.width == width && last.height == height && last.layer == layer { return last.status }
         let refW = TextFitter.referenceWidth(width: width, height: height)
+        objectFitKeyBuildCount += 1
         let key = FitKey(layers: [FitLayerKey(text: layer.text, style: layer.style, frame: layer.frame, alignment: layer.alignment, inPlate: false, floor: floor)],
                          plate: nil, referenceWidth: refW)
-        if let hit = fitCache.value(for: key) { return hit }
+        func remember(_ status: TextFitStatus) -> TextFitStatus {
+            if lastObjectFits.count >= Self.lastObjectFitLimit { lastObjectFits.removeFirst() }
+            lastObjectFits.append((layer, width, height, status))
+            return status
+        }
+        if let hit = fitCache.value(for: key) { return remember(hit) }
+        if let shared = SharedTextStore.shared.fit(for: key) {      // OUT-002f: prepared ahead of Go Live (the gate's warmer, or the Preview warm)
+            fitCache.insert(shared, for: key)
+            return remember(shared)
+        }
         let status = TextFitter.status(layers: [layer], plate: nil, referenceWidth: refW, rasterizer: rasterizer)
         objectFitComputationCount += 1
         fitCache.insert(status, for: key)
-        return status
+        if publishesRasters { SharedTextStore.shared.put(status, for: key) }
+        return remember(status)
+    }
+
+    /// OUT-002f: the text boxes with a fit floor drawn on the last frames, each with its answer; at most `lastObjectFitLimit`, oldest first out.
+    private var lastObjectFits: [(layer: TextLayer, width: Int, height: Int, status: TextFitStatus)] = []
+    private static let lastObjectFitLimit = 16
+
+    /// OUT-002f: forgets what this compositor kept of text, fits and shapes, so a warm that follows finds nothing here and publishes it all to the
+    /// shared stores. Used by the warmer's one long-lived compositor (an output's own compositor never calls it).
+    func resetPreparedCaches() {
+        lyricCache.removeAll()
+        tickingCache.removeAll()
+        fitCache.removeAll()
+        lastFit = nil
+        lastObjectFits.removeAll(keepingCapacity: true)
+        shapes.removeAll()
+        shapeBytes = 0
+    }
+
+    /// OUT-002f (REVIEW-5 M6): lays out, fits and rasterises what a scene's slide objects need (text boxes, fit-to-box text, shapes), as drawing the
+    /// scene would, so that with `publishesRasters` the shared stores hold it before the first frame. Text that changes every second is left out.
+    func prepareObjects(scene: SceneDescription, width: Int, height: Int) {
+        guard width > 0, height > 0 else { return }
+        for layer in scene.objectLayers {
+            switch layer {
+            case .text(let text) where !text.ticks:
+                _ = try? placeText(text, width: width, height: height, fit: text.fitFloor == nil ? .unchanged : objectFitStatus(text, width: width, height: height))
+            case .shape(let shape):
+                _ = shapeDraw(shape, width: width, height: height)
+            default:
+                break
+            }
+        }
     }
 
     /// UI-007c: text objects fitted so far, one per distinct text box and output shape, never one per frame (tests and diagnostics).
     public private(set) var objectFitComputationCount = 0
+    /// OUT-002f (tests and diagnostics): fit keys built for text objects (an array allocation and a hash of the words and style each time).
+    var objectFitKeyBuildCount = 0
 
     // MARK: Offscreen rendering
 
@@ -782,9 +830,16 @@ public final class Compositor {
             shapes[key] = hit
             texture = hit.texture
         } else {
-            guard let pixels = ShapeRasterizer.rasterize(shape: key.shape, fill: key.fill, strokeColor: key.strokeColor,
-                                                         strokeWidth: Double(key.strokeWidth) / 100,
-                                                         width: key.width, height: key.height) else {
+            let pixels: [UInt8]
+            if let prepared = SharedTextStore.shared.shape(for: key) {      // OUT-002f: rasterised ahead of Go Live: no bitmap drawing on this frame
+                pixels = prepared
+            } else if let made = ShapeRasterizer.rasterize(shape: key.shape, fill: key.fill, strokeColor: key.strokeColor,
+                                                           strokeWidth: Double(key.strokeWidth) / 100,
+                                                           width: key.width, height: key.height) {
+                pixels = made
+                shapeRasterizationCount += 1
+                if publishesRasters { SharedTextStore.shared.put(shape: made, for: key) }
+            } else {
                 note(problem: "A shape could not be drawn (\(key.width)x\(key.height) px)")
                 return nil
             }
@@ -800,7 +855,6 @@ public final class Compositor {
                     tex.replace(region: MTLRegionMake2D(0, 0, key.width, key.height), mipmapLevel: 0, withBytes: base, bytesPerRow: key.width * 4)
                 }
             }
-            shapeRasterizationCount += 1
             shapes[key] = ShapeEntry(texture: tex, bytes: pixels.count, lastUsed: frameCounter)
             shapeBytes += pixels.count
             texture = tex
