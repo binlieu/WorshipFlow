@@ -454,3 +454,15 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 - [ ] Blackout, then Stop: the video objects' players close.
 - [ ] Marker with actions, press the trash button: the alert names the marker and the action count, Return cancels, Escape cancels, "Delete marker" deletes, and the alert is not drawn red.
 - [ ] Marker without actions: the trash button deletes it at once.
+
+## FIX-Y
+
+- [ ] Clip with marks 1 s to 2 s used as a video object: loops only inside the marks; change a mark on air, trigger the slide again.
+- [ ] Video object live: Clear, wait, un-clear: mid-play, not frame 0; an unmuted object is silent while cleared; Clear background keeps the object playing; Stop closes it.
+- [ ] Mark in from the playhead (12.37), open the list, Tab through the In field and a marker time field: the time stays 00:12.4 as shown but the stored value is unchanged (check the marker does not move).
+- [ ] Type a key note, click another screen without Return, come back: the note is there; also a chain label.
+- [ ] Look panel text, Delete asks with Cancel default, no red; Show inspector line appears only when a screen has its own Look and wraps in the 299 pt column.
+- [ ] A hung network volume plus a USB disk with a bin file: the USB file's offline mark updates within about 8 s.
+- [ ] Identify screens, then Open screens: labels go at once; rename a screen while they show.
+- [ ] Stage editor: hide the only Current slide: refused with the sentence; add Next slide, then it hides.
+- [ ] Import a program with equal marks / a picture with marks / a duplicate marker id: read the result's warnings.

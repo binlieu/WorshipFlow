@@ -173,8 +173,8 @@ A reference to a file in the media bin. The file itself is never read, moved or 
 | pixelWidth | INTEGER | NULL for audio |
 | pixelHeight | INTEGER | NULL for audio |
 | addedAt | DATETIME NOT NULL | Assets are listed by this, then insertion order |
-| markIn | DOUBLE | v15 (SYS-015): seconds into the clip where playback starts; NULL is the start of the clip. Never set on a picture; 0 to `duration` (to 360,000 s when the length is not known); not after `markOut` |
-| markOut | DOUBLE | v15: seconds where playback ends; NULL is the end of the clip. Same bounds |
+| markIn | DOUBLE | v15 (SYS-015): seconds into the clip where playback starts; NULL is the start of the clip. Never set on a picture; 0 to `duration` (to 360,000 s when the length is not known); not after `markOut`. Honoured wherever the clip plays: layers, preview, a slide's own background, and video objects (FIX-Y). Marks on a picture or sound, and equal marks, are not imported from a package. |
+| markOut | DOUBLE | v15: seconds where playback ends; NULL is the end of the clip. Same bounds. Honoured wherever the clip plays: layers, preview, a slide's own background, and video objects (FIX-Y). Marks on a picture or sound, and equal marks, are not imported from a package. |
 
 ### Columns added to v1 tables
 | Table.column | Type | Notes |
@@ -400,13 +400,13 @@ New optional keys in stored JSON. A value at its default writes no key, so a lib
 |---|---|---|
 | `slide.objects`, each element | `name` | The operator's name for the object. Trimmed, at most 120 characters; absent when blank |
 | | `isHidden` | `true` when the object is hidden: it stays on the slide and in the editor and is not drawn on any screen. Absent means false |
-| | `isLocked` | `true` when locked. Stored only; the editor honouring it is later work. Absent means false |
-| | content `{"video": {"_0": {"mediaID": "<UUID>", "loops": bool, "muted": bool}}}` | A video object. `mediaID` names a bin item (`loops` and `muted` default to true when absent). Stored only: nothing draws it yet |
-| `slide.objects`, a text object | `fit` | `"shrinkToFit"`; absent means `none` |
-| | `backgroundFill` | A colour (`red`, `green`, `blue`, `alpha`, each clamped to 0...1) behind the words; absent means none. Stored only |
+| | `isLocked` | `true` when locked. The editor refuses to move, resize, nudge, align, edit or delete a locked object (UI-007c). A locked object is still drawn. Absent means false |
+| | content `{"video": {"_0": {"mediaID": "<UUID>", "loops": bool, "muted": bool}}}` | A video object. `mediaID` names a bin item (`loops` and `muted` default to true when absent). A video object plays inside its frame while its slide is on a screen (looped and muted unless the object says otherwise), between the clip's in and out marks (FIX-Y). The Edit canvas and thumbnails draw its poster. |
+| `slide.objects`, a text object | `fit` | `"shrinkToFit"`; absent means `none`. `shrinkToFit` shrinks the text until it fits the box, never below the floor (UI-007c). |
+| | `backgroundFill` | A colour (`red`, `green`, `blue`, `alpha`, each clamped to 0...1) drawn as a box behind the words inside a text object (UI-007c); absent means none. |
 | `screenProfile.extra` | `connectedToKey` | Array of text, indexed like `connectedTo` (0 the primary destination, n + 1 mirror n): what the operator typed about where the KEY of a keyed destination goes |
 | | `signalChains` | Array, indexed the same way, of arrays of `{"kind": "enclosure"\|"converter"\|"other", "label": text}` (at most 12 boxes of 120 characters): the signal path the operator says a destination takes ("typed by you") |
-| | `screenLookID` | The Look this screen follows on its own (UUID). Deleting the Look clears it from every screen. Stored only |
+| | `screenLookID` | The Look this screen follows on its own (UUID). Nil follows the show's Look. A screen with its own Look composes with it; changing the show's Look does not move it (UI-007f). A deleted Look clears the choice. |
 
 No stored section name. A stage Section element reads the section of the live and the next slide from `ShowState.liveSectionName` and `nextSectionName`, which come from `ShowDeck.sectionNames`, composed from the slides' groups (`slide.groupID` to `slideGroup.name`) when a presentation's preview deck is built. See ADR-0009.
 

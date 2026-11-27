@@ -275,5 +275,13 @@
 | KI-276 | FIX-W: a key note kept but hidden after a destination goes from Fill and Key to plain (accepted). | Open. |
 | KI-277 | FIX-W: the unavailable text covers both "could not be opened" and "stopped playing" because the player set reports them together. | Open. |
 | KI-278 | REVIEW-5 M6: the preparation gate covers lyric text and images only; text boxes, shapes and fit-to-box text are laid out on the render thread at the first frame of a slide. Open; to be fixed after the idle soak (AI/reports/REVIEW-5.md). | Open. |
-| KI-279 | REVIEW-5 low findings L1 to L23 not fixed by FIX-W or FIX-X (all except L1, L3, L5, L6, L9, L12 and L13): see AI/reports/REVIEW-5.md. Open. | Open. |
-| KI-280 | FIX-X: Clear still closes video-object players and restarts them from the first frame when un-cleared (Blackout no longer does). | Open. |
+| KI-279 | REVIEW-5 low findings not yet fixed: L17 to L23 (output path), planned with M6 as OUT-002f. All other lows were fixed by FIX-W, FIX-X and FIX-Y. | Open. |
+| KI-280 | FIX-X: Clear still closes video-object players and restarts them from the first frame when un-cleared (Blackout no longer does). | Fixed by FIX-Y (Clear words and Clear all keep the video objects' players, silenced). |
+| KI-281 | FIX-Y: an offline check that gave up on a hung volume leaves that volume's marks as they were and says nothing. | Open. |
+| KI-282 | FIX-Y: a mark changed while a video object is on air takes effect at the next publish. | Open. |
+| KI-283 | Same as KI-285 (entered twice). | See KI-285. |
+| KI-284 | FIX-Y: Identify labels are not taken down when the operator only switches mode. | Open. |
+| KI-285 | FIX-Y: the package format version stays 1 although an export can now carry a video object, marks and markers; an older build reports such a package as damaged rather than newer. Decision pending. | Open. |
+| KI-286 | FIX-Y: under Clear words a video object is silenced while the slide's own background keeps its sound. Decision pending. | Open. |
+| KI-287 | FIX-Z: the design source under docs/UI (seven mockup files and design-tokens.json, 24 places) still quotes the chorus that FIX-Z removed from the code and tests; the design's pictures may show it too. Owner's decision. | Open. |
+| KI-288 | FIX-Z: the design rectangle comparison has not been re-measured since the sample text changed; text rectangles may have moved by a point or two. | Open. |

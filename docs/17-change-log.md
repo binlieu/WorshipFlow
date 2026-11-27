@@ -217,3 +217,18 @@
 - FIX-W: Edit's Broadcast and Stage previews use the screen's own Look and the stage preview has section names
 - FIX-W: a library whose history cannot be read is refused with the copy message instead of being migrated unprotected
 - FIX-X: Blackout no longer closes the video objects' players, so lifting it shows the clips where they would be (they play on, silenced); deleting a marker that has actions asks first, naming the marker and its action count (REVIEW-5 L3, L9, L13)
+
+## 2026-11-26
+
+- FIX-Y: a video object plays between its clip's in and out marks
+- FIX-Y: Clear and Clear all keep the video objects' players (silenced) as the slide's own background keeps playing, so lifting Clear does not restart the clips
+- FIX-Y: leaving a mark or marker time field no longer rounds it to a tenth
+- FIX-Y: importing a package no longer brings equal marks or marks and markers on a picture or sound, keeps a marker whose id was taken under a new id, and says in the result what was and was not kept
+- FIX-Y: marker actions are decoded once per load
+- FIX-Y: a marker list read asked for during another read is no longer dropped
+- FIX-Y: a typed key note or chain label is kept when another screen is chosen
+- FIX-Y: the Look help no longer says every screen changes at once, Show names the screens that keep their own Look, and deleting a Look asks first
+- FIX-Y: one hung disk no longer stops the Media offline marks for other disks
+- FIX-Y: Identify screens labels come down when the screens open or the screen list changes
+- FIX-Y: the Current slide of a stage layout cannot be hidden when nothing else would show the show
+- FIX-Z: the capture sample, the looks probe and the tests that quoted it use public-domain verses of the same hymn and two other sample titles; six pixel digests and four text-width expectations re-recorded as data on unchanged rendering code
