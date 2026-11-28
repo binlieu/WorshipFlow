@@ -478,3 +478,13 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 ## FIX-AA
 
 - [ ] Install a new build and open it: the window opens without a permission question. Open Hardware Test: the question about the Desktop may appear then, and an unfinished run on the Desktop is offered after it is answered.
+
+## FIX-AB
+
+1. Open a long song with sections (20 or more slides). Press Space repeatedly through to the last slide: the grid scrolls so the live slide stays in view.
+2. Click the first slide, then use the arrow keys (Down, Right) past the bottom of the window: the grid scrolls to keep the Preview slide in view.
+3. Click a slide already in view: the grid does not jump. Go Live on a slide far above the window: it scrolls up to it.
+4. Switch to the list view and repeat 1 and 2. Open a Scripture passage with many slides and repeat 1.
+5. In the Show media bin, click a video (Background chosen): picture and sound together. Press the speaker button: muted; click the video again: heard again.
+   Press Blackout: silent; lift it: the sound returns. Set a slide's own background video and go to that slide with no bin background: it stays muted.
+6. Drop the bin background ("Use the slide's own background"), then go to a slide with its own video: no sound until you unmute.

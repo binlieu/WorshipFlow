@@ -145,14 +145,30 @@ private struct SectionHeader: View {
     return app.showParts.liveIndex
 }
 
-/// FIX-Q: scrolls the grid to the selected slide. A view of its own, so the selection is read here and not in the grid's body.
+/// FIX-Q, FIX-AB: scrolls the grid (or the list) to the live slide, while the live presentation is the open one, and to the selected slide. A view of
+/// its own, so the selection and the live place are read here and not in the grid's body. Which cell comes first is `ShowGridFollow.target` (Live wins
+/// when both moved). `scrollTo` with no anchor moves the least that shows the cell, so a cell already in view does not make the grid jump.
+/// A grid's cells sit in a lazy grid inside a lazy stack of sections, and a cell of a section that was never on screen is not a scroll target yet
+/// (measured: with 100 sections the grid stayed where it was). `runIDs` names, per slide, the section that holds it: the section is a target of the
+/// outer stack, so it is scrolled to first, which makes its cells; then the cell. The list has no sections to go through (`runIDs` empty).
 private struct ScrollToSelection: View {
+    let app: AppModel
     let workspace: WorkspaceModel
     let proxy: ScrollViewProxy
     let keys: [SlideCellKey]
+    var runIDs: [Int] = []
     var body: some View {
+        let place = ShowGridFollow.Place(live: liveIndex(app, workspace), selected: workspace.showParts.selectedIndex)
         Color.clear.frame(width: 0, height: 0)
-            .onChange(of: workspace.showParts.selectedIndex) { _, new in if keys.indices.contains(new) { withAnimation { proxy.scrollTo(keys[new]) } } }
+            .onChange(of: place) { old, new in
+                guard let target = ShowGridFollow.target(from: old, to: new, count: keys.count), keys.indices.contains(target) else { return }
+                let key = keys[target]
+                let run = runIDs.indices.contains(target) ? runIDs[target] : nil
+                withAnimation {
+                    if let run { proxy.scrollTo(run) }
+                    proxy.scrollTo(key)
+                }
+            }
     }
 }
 
@@ -176,6 +192,13 @@ struct SlideGrid: View {
             }
     }
 
+    /// FIX-AB: the id of the section run that holds each slide (see `ScrollToSelection`).
+    private static func runIDs(_ runs: [SectionRun], slideCount: Int) -> [Int] {
+        var ids = Array(repeating: 0, count: slideCount)
+        for run in runs { for i in run.indices where ids.indices.contains(i) { ids[i] = run.id } }
+        return ids
+    }
+
     /// FIX-I item 2: Up and Down step a row, so the key router needs to know how many slides a row holds.
     private func reportColumns(_ width: CGFloat) {
         let count = SlideGridLayout.columnCount(width: Double(width))
@@ -197,6 +220,8 @@ struct SlideGrid: View {
         // model's list by a position (see `CellSlot`).
         let slides = workspace.slides
         let keys = SlideCellKey.keys(for: slides.map(\.id))
+        let runs = sectionRuns(workspace)
+        let runIDs = Self.runIDs(runs, slideCount: slides.count)
         let available = app.media.map { Set($0.allAssets.map(\.id)) }      // once for the grid, not once per cell
         // FIX-Q: the grid's own body reads neither the selection, the live place nor the mode. Each cell asks for its own marks (`SlideGridCell`), so
         // Next, Previous, a selection, Blackout and Clear wake the cells that change and do not run this body or walk the 200 cells. FIX-O's rule stays:
@@ -208,7 +233,7 @@ struct SlideGrid: View {
                         .foregroundStyle(Tok.muted).padding(24)
                 }
                 LazyVStack(alignment: .leading, spacing: 9) {
-                    ForEach(Array(sectionRuns(workspace).enumerated()), id: \.element.id) { runIndex, run in
+                    ForEach(Array(runs.enumerated()), id: \.element.id) { runIndex, run in
                         VStack(alignment: .leading, spacing: 0) {       // the header is 5 pt above its cards; the 9 pt is between sections
                             SectionHeader(run: run, index: runIndex)
                             LazyVGrid(columns: columns(for: width), alignment: .leading, spacing: 8) {
@@ -228,7 +253,7 @@ struct SlideGrid: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 14)
             }
-            .background(ScrollToSelection(workspace: workspace, proxy: proxy, keys: keys))
+            .background(ScrollToSelection(app: app, workspace: workspace, proxy: proxy, keys: keys, runIDs: runIDs))
         }
     }
 
@@ -274,14 +299,17 @@ struct SlideList: View {
         let _ = BodyProbe.hit("SlideList")
         let slides = workspace.slides                       // FIX-S (KI-193): one snapshot; the rows carry their slide (`CellSlot`)
         let keys = SlideCellKey.keys(for: slides.map(\.id))
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 2) {
-                ForEach(sectionRuns(workspace)) { run in
-                    SectionHeader(run: run).padding(.horizontal, Space.s3)
-                    ForEach(run.indices.compactMap { CellSlot(at: $0, slides: slides, keys: keys) }) { slot in row(slot, color: run.tone.color) }
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 2) {
+                    ForEach(sectionRuns(workspace)) { run in
+                        SectionHeader(run: run).padding(.horizontal, Space.s3)
+                        ForEach(run.indices.compactMap { CellSlot(at: $0, slides: slides, keys: keys) }) { slot in row(slot, color: run.tone.color) }
+                    }
                 }
+                .padding(Space.s3)
             }
-            .padding(Space.s3)
+            .background(ScrollToSelection(app: app, workspace: workspace, proxy: proxy, keys: keys))        // FIX-AB: the list follows Live and Preview too
         }
         .background(Tok.bg)
     }

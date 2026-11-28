@@ -273,7 +273,9 @@ struct PassageGrid: View {
                         }
                         .padding(Space.s5)
                     }
-                    .onChange(of: workspace.showParts.selectedIndex) { _, new in withAnimation { proxy.scrollTo(new) } }
+                    .onChange(of: ShowGridFollow.Place(live: liveIndex(), selected: workspace.showParts.selectedIndex)) { old, new in      // FIX-AB: Live too, Live first
+                        if let target = ShowGridFollow.target(from: old, to: new, count: passage.contents.count) { withAnimation { proxy.scrollTo(target) } }
+                    }
                 }
             }
         }

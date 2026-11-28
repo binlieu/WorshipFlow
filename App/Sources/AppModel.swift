@@ -1742,7 +1742,7 @@ final class AppModel {
     /// What a click on a media tile does (UI-003). Sound plays as a cue; a picture or video follows the layer choice.
     func performDockAction(_ action: MediaDockAction) {
         switch action {
-        case .setBackground(let id): media?.setBackground(id); binPreview?.itemSentLive(id)
+        case .setBackground(let id): media?.setBackgroundFromBin(id); binPreview?.itemSentLive(id)
         case .playForeground(let id): media?.playForeground(id); binPreview?.itemSentLive(id)
         case .playAudio(let id): audio?.play(id); binPreview?.itemSentLive(id)
         }

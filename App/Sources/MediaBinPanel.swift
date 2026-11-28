@@ -103,7 +103,7 @@ struct MediaBinPanel: View {
                 .draggable(SlideBackgroundDrop.dragText(for: asset.id)) { DragChip(text: asset.name, symbol: asset.dragSymbol) }
                 .accessibilityAddTraits(panel.selected == asset.id ? [.isSelected, .isButton] : .isButton)
                 .accessibilityAction { app.selectBinItem(asset.id) }
-                .accessibilityAction(named: "Set as background") { media.setBackground(asset.id) }
+                .accessibilityAction(named: "Set as background") { media.setBackgroundFromBin(asset.id) }
                 .accessibilityAction(named: "Play in foreground") { media.playForeground(asset.id) }
         }
     }
@@ -184,7 +184,7 @@ struct MediaBinPanel: View {
     @ViewBuilder
     fileprivate func menu(for asset: MediaAsset) -> some View {
         if asset.kind != .audio {
-            Button("Set as background") { media.setBackground(asset.id) }
+            Button("Set as background") { media.setBackgroundFromBin(asset.id) }
             Button("Play in foreground") { media.playForeground(asset.id) }
                 .disabled(!media.showIsLive)
         }

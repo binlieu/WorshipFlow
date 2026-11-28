@@ -74,6 +74,7 @@
 		7E995D6D0D133D3BCFDE45AB /* ShowInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B28CDDF5EEF26D5C7BB7F2A /* ShowInspector.swift */; };
 		8131FE6CEDA6419FB54B34CC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C06648FD1853A2071017E9D1 /* Assets.xcassets */; };
 		876002C0CCD3A10F5EDBD524 /* WorshipFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5162371F03A07A152878DE2 /* WorshipFlowApp.swift */; };
+		87B6F2E8A14837877118FD46 /* UISnapshotFixAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA2373294F6A497A388A93B /* UISnapshotFixAB.swift */; };
 		87D5910C2C298652FD13B11B /* ScriptureEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 866F43E83D0E0A9AA0F053FD /* ScriptureEngine */; };
 		87F91E1F669FE74AC56179D7 /* CuesMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AFAF5674771E5C1B9889797 /* CuesMode.swift */; };
 		8C131235AB1BE42BA3D35E4C /* UISnapshotDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */; };
@@ -200,6 +201,7 @@
 		8B845A215193778B503237BC /* CuesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesTab.swift; sourceTree = "<group>"; };
 		8CEA61BF39ADC931B2C2460E /* ProgramTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramTransfer.swift; sourceTree = "<group>"; };
 		8D99E62431530BB329A7B7D0 /* MediaStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaStrip.swift; sourceTree = "<group>"; };
+		8EA2373294F6A497A388A93B /* UISnapshotFixAB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISnapshotFixAB.swift; sourceTree = "<group>"; };
 		9038814A131D4CE91A6C2169 /* CuesKeyTrigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuesKeyTrigger.swift; sourceTree = "<group>"; };
 		918A4F877D346BF9B057DFF8 /* ScreensDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensDetail.swift; sourceTree = "<group>"; };
 		972BF78C395FB49A1F9F52DC /* CueSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueSupport.swift; sourceTree = "<group>"; };
@@ -390,6 +392,7 @@
 				993D2499578DAFEB14C92990 /* TransportBar.swift */,
 				01D4B1DD6F1B39317241E150 /* UISnapshotCues.swift */,
 				55E4F11F3CB1C8490E93F511 /* UISnapshotDesign.swift */,
+				8EA2373294F6A497A388A93B /* UISnapshotFixAB.swift */,
 				3A72B4A3B66000C855AD1CB1 /* UISnapshotFixI.swift */,
 				D3284C1C8C378CF0A5AD8842 /* UISnapshotFixK.swift */,
 				7464A3A5F2860C4D561726F3 /* UISnapshotFixM.swift */,
@@ -653,6 +656,7 @@
 				F94D7995FDE3DAC3AED4FA5E /* TransportBar.swift in Sources */,
 				681C9CA7F7769B2188A1B181 /* UISnapshotCues.swift in Sources */,
 				8C131235AB1BE42BA3D35E4C /* UISnapshotDesign.swift in Sources */,
+				87B6F2E8A14837877118FD46 /* UISnapshotFixAB.swift in Sources */,
 				905D1888E120908524D706A5 /* UISnapshotFixI.swift in Sources */,
 				27605FF226FEA6A5040876BE /* UISnapshotFixK.swift in Sources */,
 				486060F1F8E880A3F5902085 /* UISnapshotFixM.swift in Sources */,

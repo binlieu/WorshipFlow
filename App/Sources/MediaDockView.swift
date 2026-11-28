@@ -146,7 +146,7 @@ struct MediaDockView: View {
                 Button("Add to playlist") { Task { await app.workspace?.addMediaItem(MediaItemSpec(assetID: asset.id, name: asset.name, kind: asset.kind)) } }
                 Divider()
                 if asset.kind != .audio {
-                    Button("Set as background") { app.ui.binSelection = asset.id; media.setBackground(asset.id) }
+                    Button("Set as background") { app.ui.binSelection = asset.id; media.setBackgroundFromBin(asset.id) }
                     Button("Play in foreground") { app.ui.binSelection = asset.id; media.playForeground(asset.id) }
                     if media.layerParts.background?.selection.assetID == asset.id { Button("Use the slide's own background") { media.dropBackgroundOverride() } }
                 } else {

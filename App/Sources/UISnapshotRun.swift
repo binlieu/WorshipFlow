@@ -238,6 +238,15 @@ extension AppModel {
                 shutdown()
                 exit(0)
             }
+            // FIX-AB: where the Show grid's scroll view is after Preview and Live moves with 200 slides (one added block; the same shape as the others).
+            if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXAB"] != nil {
+                await runFixABScenario(note: { note($0) })
+                try? "\(log.joined(separator: "\n"))\n".write(toFile: dir + "/ui-snapshots.log", atomically: true, encoding: .utf8)
+                await flushWorkspace()
+                await stopCue()
+                shutdown()
+                exit(0)
+            }
             // FIX-P: grid focus after a mode change, a drag whose window resigns key, and MIDI latency under load (one added block).
             if ProcessInfo.processInfo.environment["UI_SNAPSHOT_FIXP"] != nil {
                 await runFixPScenario(note: { note($0) })

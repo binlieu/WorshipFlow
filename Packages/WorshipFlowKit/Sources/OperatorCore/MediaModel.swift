@@ -97,6 +97,8 @@ public final class MediaModel {
     // MARK: MEDIA-010 state
     /// MEDIA-010: the background video's sound. A background starts muted, which stays until the operator unmutes it.
     public private(set) var isBackgroundMuted = true
+    /// FIX-AB: the sound is on because a bin click turned it on, not because the operator pressed the button.
+    @ObservationIgnored private var unmutedByBin = false
     /// The state the player is given: the operator's choice, or silent while Blackout is on.
     public var backgroundHeardMuted: Bool { isBackgroundMuted || isMutedByBlackout }
     /// MEDIA-010: a live background chosen in the bin (or by a cue or folder) is on. It is a live override: it never writes to
@@ -326,6 +328,20 @@ public final class MediaModel {
         onBackgroundChosen?()
     }
 
+    /// FIX-AB (MEDIA-010): a video clicked in the media bin as the background is heard, as a clip over the words is. The sound is switched on
+    /// before the layer starts, so the player never opens muted for it. The rule for a slide's own background (silent until the operator
+    /// unmutes) is not touched: when this choice ends the sound goes back to muted, unless the operator has pressed the mute button since
+    /// (then it is their choice and stays). The next bin click is heard again. A picture changes no sound state.
+    public func setBackgroundFromBin(_ id: UUID) {
+        guard let asset = asset(id), asset.kind == .video, usable(asset, as: "a background") else { setBackground(id); return }
+        if isBackgroundMuted {
+            isBackgroundMuted = false
+            unmutedByBin = true
+            onBackgroundAudioChange?(Float(volume), backgroundHeardMuted)
+        }
+        setBackground(id)
+    }
+
     /// MEDIA-010: drops the live override (the inspector's button); the slide's own background shows again.
     public func dropBackgroundOverride() { clearBackground() }
 
@@ -530,6 +546,7 @@ public final class MediaModel {
     /// MEDIA-010: mute or unmute the background video's sound. The choice holds across Next and a new background; Blackout
     /// silences it meanwhile and the choice comes back when it lifts.
     public func setBackgroundMuted(_ muted: Bool) {
+        unmutedByBin = false          // from here the sound is the operator's own choice
         guard muted != isBackgroundMuted else { return }
         isBackgroundMuted = muted
         onBackgroundAudioChange?(Float(volume), backgroundHeardMuted)
@@ -770,6 +787,12 @@ public final class MediaModel {
     }
 
     private func layersChanged() {
+        // FIX-AB: the bin's background has ended (dropped, cleared, its file gone): a slide's own loop that follows is silent again.
+        if unmutedByBin, layerParts.background == nil {
+            unmutedByBin = false
+            isBackgroundMuted = true
+            onBackgroundAudioChange?(Float(volume), backgroundHeardMuted)
+        }
         releaseRetainedHot()
         onLayersChange?(layers)
         onPlaybackChange?()      // UI-007d
