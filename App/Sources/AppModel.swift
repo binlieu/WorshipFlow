@@ -362,6 +362,9 @@ final class AppModel {
             await workspace.load()
             await cue?.start()
             workspaceLoaded = true
+            // FIX-AC (LIB-004d): a translation file the build carries (the test build has the King James Version) is offered once, after the window is
+            // up and off the main thread; it never delays the Show and shows no alert (a failure is shown where translations are listed).
+            if let scripture { Task { @MainActor in await scripture.offerBundledTranslations(in: Bundle.main.resourceURL?.appendingPathComponent("Bibles", isDirectory: true)) } }
             // Test hook for runs that cannot scroll: start with the Screens panel in view.
             if CommandLine.arguments.contains("--show-screens-panel") { workspace.setMode(.screens) }
             // Test hook for runs that cannot click: open the screens as soon as the workspace is loaded.

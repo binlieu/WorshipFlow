@@ -19,7 +19,7 @@ import ProgramPackage
         }
         let document = try JSONDecoder().decode(ProgramDocument.self, from: data)
         #expect(document.format == "worshipflow-program")
-        #expect(document.formatVersion == 1)
+        #expect(document.formatVersion == 2)
         #expect(document.appVersion == "9.9.9")
         #expect(!document.media.isEmpty)
         for entry in document.media { #expect(ProgramPathRules.isSafePackagePath(entry.file)) }

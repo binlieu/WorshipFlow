@@ -110,13 +110,24 @@ public final class ObjectVideoPlayers: @unchecked Sendable {
     /// closes; so does a slide leaving Live.
     public static func holds(_ state: ShowState) -> Bool { state.isBlackedOut || state.isCleared }
 
-    /// `apply` for a publish whose scene may have no objects only because they are hidden (see `holds`).
-    public func apply(_ requests: [ObjectVideoRequest], hidden blackedOut: Bool) {
-        if blackedOut {
+    /// FIX-AC (KI-286): whether held clips are silenced. Blackout silences them, and so does Clear all (`clearedAll`); under Clear words they keep
+    /// playing and are heard, as the slide's own background is. `clearedAll` is the workspace's memory that Clear all, not Clear words, hid the show.
+    public static func silences(_ state: ShowState, clearedAll: Bool) -> Bool { state.isBlackedOut || (state.isCleared && clearedAll) }
+
+    /// `apply` for a publish whose scene may have no objects only because they are hidden (see `holds`): held clips are silenced.
+    public func apply(_ requests: [ObjectVideoRequest], hidden blackedOut: Bool) { apply(requests, hidden: blackedOut, silenced: blackedOut) }
+
+    /// FIX-AC: `hidden` keeps the open clips as they are; `silenced` says whether they are muted meanwhile. A hidden, not silenced clip is heard as its
+    /// own request says (a muted object stays muted).
+    public func apply(_ requests: [ObjectVideoRequest], hidden: Bool, silenced: Bool) {
+        if hidden {
             lock.lock()
-            let sources = open.values.map(\.source)
+            let now = open.values.map { ($0.source, $0.request.muted) }
             lock.unlock()
-            for source in sources { source.isMuted = true }
+            for (source, muted) in now {
+                let want = silenced || muted
+                if source.isMuted != want { source.isMuted = want }
+            }
             return
         }
         apply(requests)

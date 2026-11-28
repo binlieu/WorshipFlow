@@ -413,3 +413,8 @@ No stored section name. A stage Section element reads the section of the live an
 Downgrade: an older build cannot read a `video` object, and the library's migration history now holds `v15`, so every older build refuses to open the library (`LibraryFromNewerBuildError`) and changes nothing. This is the guard of FIX-H item 14, not a new one. An existing library that holds data is copied aside, once, before the step runs: `Backups/Library before migration to v15 (was v14) <UTC date>.sqlite` beside the library file (SQLite's backup API; a complete library file). If the copy cannot be written the library is not opened and nothing is migrated. These copies are never pruned.
 
 The program package (`docs/features/LIB-005-program-export-import.md`) carries the object fields inside each slide's `objects`; a video object's clip travels in `mediaAssets` with its file and is renamed on import like a slide's own background; a clip's `markIn`, `markOut` and `markers` (`id`, `time`, `name`, `actions`) travel with its `mediaAssets` entry, and a marker's actions that play or select another clip or Look bring that clip or Look along. A video object whose clip is no longer in the library is left out of the export with a warning. A screen's key note, chain and Look are not exported (profiles belong to a Mac).
+
+## FIX-AC
+
+- `program.json` `formatVersion`: 2 for packages written from FIX-AC on (may hold video objects, marks and markers); 1 is still read; above 2 is refused as newer.
+- Library state key `scripture.bundledOffered`: JSON array of lower-case file stems of bundled translation files already offered (written when one is imported, or when the library already had the id). No table, no migration.

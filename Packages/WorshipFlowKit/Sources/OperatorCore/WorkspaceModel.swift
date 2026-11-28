@@ -86,6 +86,9 @@ public final class WorkspaceModel {
     /// CUE-002b: called on the main actor after a re-flow replaced a presentation's slides (their ids changed).
     @ObservationIgnored public var onContentReplaced: (@MainActor () -> Void)?
 
+    /// FIX-AC (KI-286): the show is cleared and Clear all was pressed since it was last not cleared (a Clear words over it keeps it). Video objects are
+    /// silenced by Clear all and Blackout, not by Clear words.
+    @ObservationIgnored public private(set) var isClearedAll = false
     /// Called on the main actor by `clearAll()`, after the show state changed, so the app can stop the foreground clip.
     @ObservationIgnored public var onClearAll: (@MainActor () -> Void)?
 
@@ -324,6 +327,8 @@ public final class WorkspaceModel {
         let before = showParts.current
         showParts.apply(command)
         let after = showParts.current
+        // FIX-AC (KI-286): the show state is the same for Clear and Clear all, so the workspace remembers which one hid the show (a video object's sound).
+        if !after.isCleared { isClearedAll = false } else if command == .clearAll { isClearedAll = true }
         switch command {
         case .select, .load, .restore: break
         default: if after != before { blockedStep = nil }     // a move of the live show ends the "stay" a stopped Next belongs to

@@ -488,3 +488,10 @@ Use a scratch library on both "Macs" (two `--library` files), and a folder stand
 5. In the Show media bin, click a video (Background chosen): picture and sound together. Press the speaker button: muted; click the video again: heard again.
    Press Blackout: silent; lift it: the sound returns. Set a slide's own background video and go to that slide with no bin background: it stays muted.
 6. Drop the bin background ("Use the slide's own background"), then go to a slide with its own video: no sound until you unmute.
+
+## FIX-AC
+
+1. Put a video object with sound on a slide, go Live, press Clear: the sound continues. Press Clear all or Blackout: silent. Lift it: it continues from where it was. Stop: it closes.
+2. Export a program and open it in build 221 or older: the "saved by a newer WorshipFlow (format 2)" message. A package made by build 221 still opens in the new build.
+3. A fresh library on the packaged build: Scripture lists the King James Version with its copyright line; Import still works. Remove it and relaunch: it is not put back.
+4. A library that already has a KJV: unchanged after the first launch of the new build.

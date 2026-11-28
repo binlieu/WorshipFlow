@@ -40,7 +40,7 @@ import ProgramPackage
             try FileManager.default.removeItem(at: target)
             try FileManager.default.createSymbolicLink(at: target, withDestinationURL: outside)
         case .oversizedJSON: text += String(repeating: " ", count: ProgramFormat.maxManifestBytes + 1)
-        case .newerFormat: text = text.replacingOccurrences(of: "\"formatVersion\" : 1", with: "\"formatVersion\" : 99")
+        case .newerFormat: text = text.replacingOccurrences(of: "\"formatVersion\" : 2", with: "\"formatVersion\" : 99")
         case .wrongFormatName: text = text.replacingOccurrences(of: "worshipflow-program", with: "something-else")
         case .notJSON: text = "this is not json"
         case .missingManifest: try FileManager.default.removeItem(at: manifest)
@@ -82,7 +82,7 @@ import ProgramPackage
         let newer = try await hostile(.newerFormat, rig)
         do { _ = try ProgramPackageContents.open(newer); Issue.record("expected a refusal") }
         catch let error as ProgramPackageError {
-            #expect(error == .newerFormat(found: 99, supported: 1))
+            #expect(error == .newerFormat(found: 99, supported: 2))
             let message = try #require(error.errorDescription)
             #expect(message.contains("newer") && message.contains("Update WorshipFlow"))
         }

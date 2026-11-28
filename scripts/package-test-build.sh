@@ -16,6 +16,12 @@ xcodebuild -project WORSHIPFLOW.xcodeproj -scheme WORSHIPFLOW -configuration Rel
   -destination 'platform=macOS,arch=arm64' -derivedDataPath "$DD" build -quiet
 APP="$DD/Build/Products/Release/WorshipFlow.app"
 [ -d "$APP" ] && ls "$DD/Build/Products/Release" | grep -qx "WorshipFlow.app" || { echo "Expected WorshipFlow.app in the build products" >&2; exit 1; }
+# FIX-AC (LIB-004d): the test build carries the King James Version (Bibles/KJV.json, an allow-list of that one name) when this Mac has it, and the
+# app is signed again (same identity, entitlements and flags) because a file was added to its Resources. Nothing else from Bibles/ is ever copied.
+. scripts/lib-bundle-translations.sh
+bundle_translations Bibles "$APP"
+codesign --force --sign - --preserve-metadata=identifier,entitlements,flags,requirements "$APP"
+check_bundled_translations "$APP" || { echo "Refusing to package: see above." >&2; exit 1; }
 codesign --verify --deep --strict "$APP"
 # FIX-Q: the packaged app must carry none of the measuring hooks (they exist only in Debug or with the WF_MEASURE condition).
 if strings "$APP/Contents/MacOS/WorshipFlow" | grep -E 'UI_SNAPSHOT_(DIR|FIXQ)' >/dev/null; then

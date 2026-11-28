@@ -110,10 +110,13 @@ extension AppModel {
                                                    duration: asset.duration, markIn: asset.markIn, markOut: asset.markOut))   // FIX-Y (L2)
             }
         }
-        // FIX-X (REVIEW-5 L3), FIX-Y (KI-280): under Blackout, Clear and Clear all the scene has no objects, but the clips are kept (silenced) so lifting
+        // FIX-X (REVIEW-5 L3), FIX-Y (KI-280): under Blackout, Clear and Clear all the scene has no objects, but the clips are kept (silenced, except under Clear words) so lifting
         // it does not restart them, as the slide's own background is; their file access is kept with them. Stop still closes everything.
         let held = ObjectVideoPlayers.holds(show)
-        mediaRegistry.objectVideos.apply(requests, hidden: held)
+        // FIX-AC (KI-286): Clear words keeps them heard (as the slide's own background is); Clear all and Blackout silence them. Without a workspace
+        // (a soak run) a clear is taken as Clear all, as before.
+        let silenced = ObjectVideoPlayers.silences(show, clearedAll: workspace?.isClearedAll ?? true)
+        mediaRegistry.objectVideos.apply(requests, hidden: held, silenced: silenced)
         if !held { ObjectVideoAccess.shared.keepOnly(Set(requests.map(\.assetID))) }
         reportObjectVideoProblems()
     }

@@ -8,8 +8,9 @@ import Domain
 public enum ProgramFormat {
     /// The value of `program.json`'s `format`.
     public static let name = "worshipflow-program"
-    /// The newest format this build writes and reads. A package with a larger number is refused.
-    public static let version = 1
+    /// The newest format this build writes and reads. A package with a larger number is refused. 1: before video objects, marks and markers (SYS-015);
+    /// 2 (FIX-AC): a package may hold them, which a build that reads only 1 would misread. Version 1 packages are still read.
+    public static let version = 2
     public static let fileExtension = "worshipflowprogram"
     public static let manifestName = "program.json"
     public static let mediaFolder = "media"
